@@ -23,17 +23,35 @@ More features are planned: morning and evening athkar, and prayer times.
 
 ## Install
 
-Claude Code installs plugins from a terminal. In a Claude Code terminal session, run:
+Pick whichever fits where you are. All three install the same mod, at the user scope, so it runs in every project, in the terminal and in the Claude desktop app.
+
+**From your shell** (outside Claude):
+
+```bash
+claude plugin marketplace add abdelrahmanzied/claude-muslim
+```
+
+```bash
+claude plugin install muslim@claude-muslim
+```
+
+Then start Claude Code, or run `/reload-plugins` in a session that is already open.
+
+**Inside a Claude Code session in the terminal:**
 
 ```
 /plugin install muslim --marketplace abdelrahmanzied/claude-muslim
 ```
 
-1. Answer `y` to add the `claude-muslim` marketplace.
-2. Pick a scope: **user** (recommended) turns it on in every project.
-3. Set the options, or keep the defaults.
+Answer `y` to add the marketplace, then pick the user scope.
 
-The mod is active right away. Installed at the user scope, it also runs in the Claude desktop app's Code tab.
+**Inside any session, desktop app or terminal:** paste this prompt to Claude.
+
+```text
+Install the Claude Code plugin "muslim": run `claude plugin marketplace add abdelrahmanzied/claude-muslim`, then `claude plugin install muslim@claude-muslim`. Show me the output, then tell me to run /reload-plugins.
+```
+
+Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows the installed version.
 
 ## Use
 
@@ -52,7 +70,7 @@ Every setting is also in `/config`.
 
 ## Update
 
-In a terminal, refresh the marketplace, then update the mod:
+**From your shell:**
 
 ```bash
 claude plugin marketplace update claude-muslim
@@ -62,7 +80,15 @@ claude plugin marketplace update claude-muslim
 claude plugin update muslim@claude-muslim
 ```
 
-Then restart Claude Code, or run `/reload-plugins` in an open session. `/muslim` shows the version you are running; `CHANGELOG.md` lists what changed.
+Then restart Claude Code, or run `/reload-plugins` in an open session.
+
+**Inside any session, desktop app or terminal:** paste this prompt to Claude.
+
+```text
+Update the Claude Code plugin "muslim": run `claude plugin marketplace update claude-muslim`, then `claude plugin update muslim@claude-muslim`. Show me the output, then tell me to run /reload-plugins.
+```
+
+`/muslim` shows the version you are running; `CHANGELOG.md` lists what changed.
 
 ## Uninstall
 
