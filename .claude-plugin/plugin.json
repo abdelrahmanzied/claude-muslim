@@ -23,7 +23,7 @@
     "thikrSpeed": {
       "type": "string",
       "title": "Thikr speed",
-      "description": "auto (1s + 0.6s per word), or whole seconds per phrase from 1 to 60",
+      "description": "auto (1s + 0.5s per word), or whole seconds per phrase from 1 to 60",
       "default": "auto"
     },
     "thikrTashkeel": {

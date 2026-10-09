@@ -5,8 +5,8 @@ import type { UsageLimit } from '../../../types'
 import { readSpeed, SPEED_MAX, SPEED_MIN } from '../../config.ts'
 import type { Options } from '../../config.ts'
 import { limitUntil } from './limit.ts'
-import { END_OF_TURN, SALAWAT, USAGE_LIMIT } from './phrases.ts'
-import { display, groupFor, phraseAt, withThikr } from './rotation.ts'
+import { END_OF_TURN, SALAWAT, STARTING, USAGE_LIMIT } from './phrases.ts'
+import { display, groupFor, phraseAt, pickStart, startOf, withThikr } from './rotation.ts'
 import type { Group, Speed } from './rotation.ts'
 
 const usageLimit = atom({ plugin: 'muslim', key: 'usageLimit' } as const, null as UsageLimit | null)
@@ -14,7 +14,7 @@ const usageLimit = atom({ plugin: 'muslim', key: 'usageLimit' } as const, null a
 const HELP = [
   '/thikr                    status',
   '/thikr on | off           show tasabih while Claude works',
-  `/thikr speed auto          reading time: 1s + 0.6s per word`,
+  `/thikr speed auto          reading time: 1s + 0.5s per word`,
   `/thikr speed <${SPEED_MIN}-${SPEED_MAX}>       fixed seconds per phrase`,
   '/thikr tashkeel on | off  show diacritics',
   '/thikr end on | off       تَمَّ بِحَمْدِ اللَّهِ at the end of a turn',
@@ -38,6 +38,8 @@ export const install = (on: On, options: Options) => {
   // Time each group has played this turn, so a group resumes where it left off.
   const played = new Map<Group, number>()
   let hasMovedOn = false
+  // Each turn opens on a random starting phrase, never the last turn's.
+  let lastStart: number | undefined
   let ticker: { cancel: () => void } | undefined
   // Long moments: compacting, subagents at work, tools by start time.
   let isCompacting = false
@@ -82,6 +84,8 @@ export const install = (on: On, options: Options) => {
   on('turn.start', async ($, e, next) => {
     group = undefined
     played.clear()
+    lastStart = pickStart(STARTING.length, lastStart, Math.random())
+    played.set('starting', startOf('starting', lastStart, options.thikrSpeed))
     hasMovedOn = false
     isCompacting = false
     subagents = 0

@@ -9,6 +9,8 @@ import {
   groupFor,
   LONG_TOOL_MS,
   phraseAt,
+  pickStart,
+  startOf,
   stripTashkeel,
   withThikr,
   wordCount,
@@ -42,16 +44,34 @@ describe('groupFor', () => {
 })
 
 describe('durationOf', () => {
-  test('auto is 1s plus 0.6s per word', async () => {
-    expect(durationOf('سُبْحَانَ اللَّهِ', 'auto')).toBe(2200)
-    expect(durationOf('اللَّهُ أَكْبَرُ', 'auto')).toBe(2200)
-    expect(durationOf('بِسْمِ اللَّهِ', 'auto')).toBe(2200)
+  test('auto is 1s plus 0.5s per word', async () => {
+    expect(durationOf('سُبْحَانَ اللَّهِ', 'auto')).toBe(2000)
+    expect(durationOf('اللَّهُ أَكْبَرُ', 'auto')).toBe(2000)
+    expect(durationOf(LONG[2] ?? '', 'auto')).toBe(6500)
     expect(wordCount('رَبِّ يَسِّرْ وَلَا تُعَسِّرْ')).toBe(4)
   })
 
   test('a fixed speed is the same for every phrase', async () => {
     expect(durationOf('سُبْحَانَ اللَّهِ', 5)).toBe(5000)
     expect(durationOf(LONG[2] ?? '', 5)).toBe(5000)
+  })
+})
+
+describe('starting at random', () => {
+  test('startOf is where a phrase begins', async () => {
+    expect(startOf('starting', 0, 'auto')).toBe(0)
+    expect(phraseAt('starting', startOf('starting', 2, 'auto'), 'auto')).toBe(STARTING[2])
+    expect(phraseAt('starting', startOf('starting', 3, 5), 5)).toBe(STARTING[3])
+  })
+
+  test('pickStart covers every phrase and never repeats the last', async () => {
+    const rolls = [0, 0.3, 0.6, 0.99]
+    expect(new Set(rolls.map(r => pickStart(4, undefined, r)))).toEqual(new Set([0, 1, 2, 3]))
+    for (let last = 0; last < 4; last++) {
+      const picks = rolls.map(r => pickStart(4, last, r))
+      expect(picks.includes(last)).toBe(false)
+      expect(picks.every(i => i >= 0 && i < 4)).toBe(true)
+    }
   })
 })
 
@@ -64,12 +84,12 @@ describe('phraseAt', () => {
   })
 
   test('auto: longer phrases stay longer', async () => {
-    expect(phraseAt('thinking', 2199, 'auto')).toBe(THINKING[0])
-    expect(phraseAt('thinking', 2200, 'auto')).toBe(THINKING[1])
-    // 3 x 2.2s, then لا إله إلا الله (4 words) for 3.4s
-    expect(phraseAt('thinking', 4400, 'auto')).toBe(THINKING[2])
-    expect(phraseAt('thinking', 7799, 'auto')).toBe(THINKING[2])
-    expect(phraseAt('thinking', 7800, 'auto')).toBe(THINKING[3])
+    expect(phraseAt('thinking', 1999, 'auto')).toBe(THINKING[0])
+    expect(phraseAt('thinking', 2000, 'auto')).toBe(THINKING[1])
+    // 2 x 2s, then لا إله إلا الله (4 words) for 3s
+    expect(phraseAt('thinking', 4000, 'auto')).toBe(THINKING[2])
+    expect(phraseAt('thinking', 6999, 'auto')).toBe(THINKING[2])
+    expect(phraseAt('thinking', 7000, 'auto')).toBe(THINKING[3])
   })
 
   test('wraps around after the last phrase', async () => {

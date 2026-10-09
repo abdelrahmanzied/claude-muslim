@@ -43,13 +43,26 @@ export const groupFor = (moment: Moment): Group => {
 }
 
 const AUTO_BASE_MS = 1000
-const AUTO_PER_WORD_MS = 600
+const AUTO_PER_WORD_MS = 500
 
 export const wordCount = (text: string): number => text.split(/\s+/).filter(Boolean).length
 
-// How long one phrase stays: 1 s plus 0.6 s per word in auto, else the fixed seconds.
+// How long one phrase stays: 1 s plus 0.5 s per word in auto, else the fixed seconds.
 export const durationOf = (phrase: string, speed: Speed): number =>
   speed === 'auto' ? AUTO_BASE_MS + AUTO_PER_WORD_MS * wordCount(phrase) : speed * 1000
+
+// Where phrase `index` begins in the group's loop, in ms.
+export const startOf = (group: Group, index: number, speed: Speed): number =>
+  LISTS[group].slice(0, index).reduce((sum, phrase) => sum + durationOf(phrase, speed), 0)
+
+// A random index in [0, count), never `last` when there is another to choose.
+// `roll` is a number in [0, 1).
+export const pickStart = (count: number, last: number | undefined, roll: number): number => {
+  if (last === undefined || count < 2) return Math.floor(roll * count)
+  const index = Math.floor(roll * (count - 1))
+
+  return index >= last ? index + 1 : index
+}
 
 // The phrase shown `elapsedMs` after the group began, the list looping.
 export const phraseAt = (group: Group, elapsedMs: number, speed: Speed): string => {

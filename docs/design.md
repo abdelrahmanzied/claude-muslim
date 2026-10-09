@@ -39,11 +39,11 @@ A turn opens with the starting phrases, then the thinking order plays through th
 | Writing | `responding` (Claude writes the answer) | رب زدني علما · اللهم علمنا ما ينفعنا |
 | Long | compacting (`PreCompact` → `PostCompact`), a subagent at work (`Agent` tool call), or any tool running 10 s or more | لا إله إلا أنت سبحانك إني كنت من الظالمين · اللهم إنك عفو تحب العفو فاعف عنا · ربنا آتنا في الدنيا حسنة وفي الآخرة حسنة وقنا عذاب النار · يا حي يا قيوم برحمتك أستغيث |
 
-Each group loops in order and resumes where it left off when Claude moves between moments in the same turn, so short switches never replay the same first phrase.
+Each turn opens on a random starting phrase, never the one the last turn opened with, then plays the rest of the starting order. Each group loops in order and resumes where it left off when Claude moves between moments in the same turn, so short switches never replay the same first phrase.
 
 ### Speed
 
-- **auto** (default): each phrase stays for its reading time, 1 s + 0.6 s per word. سبحان الله stays 2.2 s; ربنا آتنا … 9.4 s.
+- **auto** (default): each phrase stays for its reading time, 1 s + 0.5 s per word. سبحان الله stays 2 s; ربنا آتنا … 6.5 s.
 - **fixed**: `/thikr speed <1-60>` gives every phrase the same seconds. `/thikr speed auto` goes back.
 
 Full text with tashkeel: `src/features/thikr/phrases.ts`.

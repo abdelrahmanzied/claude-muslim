@@ -41,7 +41,8 @@ test('spinner shows the thikr in order, keeping the desktop step', async ($, on)
     await $.ui.render(spinner(surface, 'responding'))
 
     const tool = (thikr: string | undefined) => (surface === 'terminal' ? thikr : `Sauteing · ${thikr}`)
-    expect(seen.map(s => s.word)).toEqual([STARTING[0], THINKING[0], tool(THINKING[1]), THINKING[1], WRITING[0]])
+    expect(STARTING).toContain(seen[0]?.word)
+    expect(seen.slice(1).map(s => s.word)).toEqual([THINKING[0], tool(THINKING[1]), THINKING[1], WRITING[0]])
     expect(seen.every(s => s.message === null && s.suffix === '')).toBe(true)
   }
 })
@@ -93,6 +94,26 @@ test('compacting plays the long group', async ($, on) => {
   expect(seen).toEqual([LONG[0], THINKING[0]])
 })
 
+test('each turn opens on a different starting phrase', async ($, on) => {
+  mock.clock(on, { now: 0 })
+  answerTurns(on)
+  const seen: string[] = []
+  on('ui.render', { component: 'Spinner' }, async ($, e) => {
+    seen.push(e.props.word)
+    const { Text } = $.ui.resolve(e)
+
+    return <Text>{e.props.word}</Text>
+  })
+
+  for (let turn = 0; turn < 8; turn++) {
+    await $.turn.start({ text: 'hi', turnId: `t${turn}` })
+    await $.ui.render(spinner('terminal', 'requesting'))
+  }
+
+  expect(seen.every(word => STARTING.includes(word))).toBe(true)
+  expect(seen.every((word, i) => i === 0 || word !== seen[i - 1])).toBe(true)
+})
+
 test('a group resumes where it left off', async ($, on) => {
   const clock = mock.clock(on, { now: 0 })
   answerTurns(on)
@@ -106,7 +127,7 @@ test('a group resumes where it left off', async ($, on) => {
 
   await $.turn.start({ text: 'hi', turnId: 't' })
   await $.ui.render(spinner('terminal', 'thinking'))
-  await clock.advance(2200)
+  await clock.advance(2000)
   await $.ui.render(spinner('terminal', 'thinking'))
   await $.ui.render(spinner('terminal', 'responding'))
   await clock.advance(5000)
