@@ -3,10 +3,10 @@ import type { EngineInterface, On } from 'claude-code'
 
 import type { UsageLimit } from '../../../types'
 import { readSpeed, SPEED_MAX, SPEED_MIN } from '../../config.ts'
-import type { Options } from '../../config.ts'
+import type { Mode, Options } from '../../config.ts'
 import { limitUntil } from './limit.ts'
 import { END_OF_TURN, SALAWAT, STARTING, USAGE_LIMIT } from './phrases.ts'
-import { display, groupFor, phraseAt, pickStart, startOf, withThikr } from './rotation.ts'
+import { display, groupFor, isStepRow, phraseAt, pickStart, startOf, withThikr } from './rotation.ts'
 import type { Group, Speed } from './rotation.ts'
 
 const usageLimit = atom({ plugin: 'muslim', key: 'usageLimit' } as const, null as UsageLimit | null)
@@ -18,13 +18,15 @@ const HELP = [
   `/thikr speed <${SPEED_MIN}-${SPEED_MAX}>       fixed seconds per phrase`,
   '/thikr tashkeel on | off  show diacritics',
   '/thikr end on | off       تَمَّ بِحَمْدِ اللَّهِ at the end of a turn',
-  '/thikr salawat on | off   only اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ',
+  '/thikr mode all | salawat  every group, or one salawat for each whole turn',
 ].join('\n')
 
 const setLimit = ($: EngineInterface, value: UsageLimit | null) =>
   $.state.set({ plugin: 'muslim', key: 'usageLimit' }, value)
 
 const onOff = (value: boolean) => (value ? 'on' : 'off')
+
+const isMode = (value: string): value is Mode => value === 'all' || value === 'salawat'
 
 const speedText = (speed: Speed) => (speed === 'auto' ? 'auto' : `${speed}s`)
 
@@ -40,11 +42,15 @@ export const install = (on: On, options: Options) => {
   let hasMovedOn = false
   // Each turn opens on a random starting phrase, never the last turn's.
   let lastStart: number | undefined
+  // Salawat mode: turns so far, so each turn takes the next salawat.
+  let turns = 0
   let ticker: { cancel: () => void } | undefined
   // Long moments: compacting, subagents at work, tools by start time.
   let isCompacting = false
   let subagents = 0
   const toolsSince = new Map<string, number>()
+  // The desktop's last tool step, whose row stays up after the tool ends.
+  let lastStep: string | undefined
 
   on('command.run', { command: 'thikr' }, async ($, e) => {
     const [word = '', value = ''] = e.args.trim().split(/\s+/)
@@ -57,15 +63,16 @@ export const install = (on: On, options: Options) => {
     if (word === '') {
       return {
         text: [
-          `thikr ${onOff(options.thikr)} · speed ${speedText(options.thikrSpeed)} · tashkeel ${onOff(options.thikrTashkeel)} · end ${onOff(options.thikrEnd)} · salawat ${onOff(options.thikrSalawat)}`,
+          `thikr ${onOff(options.thikr)} · speed ${speedText(options.thikrSpeed)} · tashkeel ${onOff(options.thikrTashkeel)} · end ${onOff(options.thikrEnd)} · mode ${options.thikrMode}`,
           '',
           HELP,
         ].join('\n'),
       }
     }
     if (word === 'on' || word === 'off') return set('thikr', word === 'on', `thikr ${word}`)
-    if ((word === 'tashkeel' || word === 'end' || word === 'salawat') && (value === 'on' || value === 'off')) {
-      const field = word === 'tashkeel' ? 'thikrTashkeel' : word === 'end' ? 'thikrEnd' : 'thikrSalawat'
+    if (word === 'mode' && isMode(value)) return set('thikrMode', value, `mode ${value}`)
+    if ((word === 'tashkeel' || word === 'end') && (value === 'on' || value === 'off')) {
+      const field = word === 'tashkeel' ? 'thikrTashkeel' : 'thikrEnd'
 
       return set(field, value === 'on', `${word} ${value}`)
     }
@@ -83,15 +90,17 @@ export const install = (on: On, options: Options) => {
 
   on('turn.start', async ($, e, next) => {
     group = undefined
+    lastStep = undefined
     played.clear()
     lastStart = pickStart(STARTING.length, lastStart, Math.random())
     played.set('starting', startOf('starting', lastStart, options.thikrSpeed))
+    turns += 1
     hasMovedOn = false
     isCompacting = false
     subagents = 0
     toolsSince.clear()
     ticker?.cancel()
-    ticker = options.thikrSalawat ? undefined : $.clock.every(TICK_MS, () => $.ui.invalidate('ui.render'))
+    ticker = options.thikrMode === 'salawat' ? undefined : $.clock.every(TICK_MS, () => $.ui.invalidate('ui.render'))
     await setLimit($, null)
 
     return next(e)
@@ -145,10 +154,15 @@ export const install = (on: On, options: Options) => {
       group = current
       groupSince = now - (played.get(current) ?? 0)
     }
-    const text = options.thikrSalawat ? SALAWAT : phraseAt(current, now - groupSince, options.thikrSpeed)
+    const text = options.thikrMode === 'salawat'
+      ? SALAWAT[Math.max(0, turns - 1) % SALAWAT.length] ?? ''
+      : phraseAt(current, now - groupSince, options.thikrSpeed)
     const phrase = display(text, options.thikrTashkeel)
 
-    const shown = withThikr(e.surface, e.props, phrase)
+    const isStep = isStepRow(e.surface, e.props, lastStep, toolsSince.size > 0)
+    if (isStep) lastStep = e.props.word
+
+    const shown = withThikr(e.props, phrase, isStep)
 
     return next({ ...e, props: { ...e.props, ...shown, suffix: '' } })
   })

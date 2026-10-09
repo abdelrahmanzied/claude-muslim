@@ -41,6 +41,18 @@ A turn opens with the starting phrases, then the thinking order plays through th
 
 Each turn opens on a random starting phrase, never the one the last turn opened with, then plays the rest of the starting order. Each group loops in order and resumes where it left off when Claude moves between moments in the same turn, so short switches never replay the same first phrase.
 
+### Salawat mode
+
+`/thikr mode salawat` replaces every group (starting, thinking, writing, long) with one salawat on the Prophet ﷺ. A whole turn keeps the same one; the next turn takes the next, looping:
+
+اللهم صل على محمد · اللهم صل وسلم على نبينا محمد · اللهم صل على محمد وعلى آل محمد · اللهم صل على محمد عبدك ورسولك · اللهم صل وسلم وبارك على سيدنا محمد
+
+End of turn and usage limit keep their own phrases.
+
+### Desktop step rows
+
+A desktop step row (`Running a command 6s >`) keeps its words with the thikr after them (`Running a command · اللَّهُ أَكْبَرُ`). The desktop keeps a step's row up after its tool ends and during long runs, whatever mode it reports, so a word equal to the last step, or any word while a tool runs, counts as that step.
+
 ### Speed
 
 - **auto** (default): each phrase stays for its reading time, 1 s + 0.5 s per word. سبحان الله stays 2 s; ربنا آتنا … 6.5 s.
@@ -61,7 +73,7 @@ Full text with tashkeel: `src/features/thikr/phrases.ts`.
 | `thikrSpeed` | `/thikr speed auto` · `/thikr speed <1-60>` | auto |
 | `thikrTashkeel` | `/thikr tashkeel on` · `off` | on |
 | `thikrEnd` | `/thikr end on` · `off` | on |
-| `thikrSalawat` | `/thikr salawat on` · `off`: only اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ in every moment | off |
+| `thikrMode` | `/thikr mode all` · `/thikr mode salawat` | all |
 
 `/thikr` alone shows the current settings and help.
 

@@ -6,8 +6,11 @@ export type Options = {
   thikrSpeed: Speed
   thikrTashkeel: boolean
   thikrEnd: boolean
-  thikrSalawat: boolean
+  thikrMode: Mode
 }
+
+// `all`: every group in turn; `salawat`: one salawat for the whole turn.
+export type Mode = 'all' | 'salawat'
 
 export const SPEED_MIN = 1
 export const SPEED_MAX = 60
@@ -17,7 +20,7 @@ export const readOptions = (raw: Record<string, unknown>): Options => ({
   thikrSpeed: readSpeed(raw.thikrSpeed),
   thikrTashkeel: raw.thikrTashkeel !== false,
   thikrEnd: raw.thikrEnd !== false,
-  thikrSalawat: raw.thikrSalawat === true,
+  thikrMode: raw.thikrMode === 'salawat' ? 'salawat' : 'all',
 })
 
 // `auto`, or whole seconds from SPEED_MIN to SPEED_MAX; anything else is auto.

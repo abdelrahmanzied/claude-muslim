@@ -12,6 +12,7 @@ import {
   pickStart,
   startOf,
   stripTashkeel,
+  isStepRow,
   withThikr,
   wordCount,
 } from '../../src/features/thikr/rotation.ts'
@@ -138,25 +139,40 @@ describe('limitUntil', () => {
 describe('withThikr', () => {
   const thikr = 'سُبْحَانَ اللَّهِ'
 
-  test('decorative verbs are dropped on every surface', async () => {
-    for (const surface of ['terminal', 'desktop']) {
-      expect(withThikr(surface, { word: 'Musing', message: null, mode: 'thinking' }, thikr)).toEqual({ word: thikr, message: null })
-      expect(withThikr(surface, { word: 'Sauteing', message: null, mode: 'responding' }, thikr)).toEqual({ word: thikr, message: null })
+  test('decorative verbs are dropped', async () => {
+    expect(withThikr({ word: 'Musing', message: null }, thikr, false)).toEqual({ word: thikr, message: null })
+  })
+
+  test('a step stays, the thikr follows', async () => {
+    expect(withThikr({ word: 'Editing app.ts', message: null }, thikr, true)).toEqual({ word: `Editing app.ts · ${thikr}`, message: null })
+  })
+
+  test('a status message is kept', async () => {
+    expect(withThikr({ word: 'Sauteing', message: 'Compacting conversation' }, thikr, false))
+      .toEqual({ word: thikr, message: `Compacting conversation · ${thikr}` })
+  })
+})
+
+describe('isStepRow', () => {
+  test('desktop tool modes are steps, Working is not', async () => {
+    expect(isStepRow('desktop', { word: 'Editing app.ts', message: null, mode: 'tool-use' }, undefined)).toBe(true)
+    expect(isStepRow('desktop', { word: 'Working', message: null, mode: 'tool-use' }, undefined)).toBe(false)
+  })
+
+  test('the last step stays a step after the tool ends', async () => {
+    for (const mode of ['requesting', 'thinking'] as const) {
+      expect(isStepRow('desktop', { word: 'Running a command', message: null, mode }, 'Running a command')).toBe(true)
+      expect(isStepRow('desktop', { word: 'Musing', message: null, mode }, 'Running a command')).toBe(false)
     }
   })
 
-  test('desktop: the tool step stays, the thikr follows', async () => {
-    expect(withThikr('desktop', { word: 'Editing app.ts', message: null, mode: 'tool-use' }, thikr))
-      .toEqual({ word: `Editing app.ts · ${thikr}`, message: null })
+  test('any word is a step while a tool runs', async () => {
+    expect(isStepRow('desktop', { word: 'Updating docs', message: null, mode: 'thinking' }, undefined, true)).toBe(true)
+    expect(isStepRow('desktop', { word: 'Working', message: null, mode: 'thinking' }, undefined, true)).toBe(false)
   })
 
-  test('desktop: generic Working is dropped', async () => {
-    expect(withThikr('desktop', { word: 'Working', message: null, mode: 'tool-use' }, thikr)).toEqual({ word: thikr, message: null })
-  })
-
-  test('a status message is kept on every surface', async () => {
-    expect(withThikr('terminal', { word: 'Sauteing', message: 'Compacting conversation', mode: 'thinking' }, thikr))
-      .toEqual({ word: thikr, message: `Compacting conversation · ${thikr}` })
+  test('the terminal has no steps', async () => {
+    expect(isStepRow('terminal', { word: 'Sauteing', message: null, mode: 'tool-use' }, 'Sauteing')).toBe(false)
   })
 })
 
@@ -176,3 +192,4 @@ describe('readSpeed', () => {
     expect(readSpeed(60)).toBe(60)
   })
 })
+

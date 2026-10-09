@@ -40,9 +40,10 @@ test('spinner shows the thikr in order, keeping the desktop step', async ($, on)
     await $.ui.render(spinner(surface, 'requesting'))
     await $.ui.render(spinner(surface, 'responding'))
 
-    const tool = (thikr: string | undefined) => (surface === 'terminal' ? thikr : `Sauteing · ${thikr}`)
+    // On desktop the step's row stays up after the tool, so its words stay too.
+    const step = (thikr: string | undefined) => (surface === 'terminal' ? thikr : `Sauteing · ${thikr}`)
     expect(STARTING).toContain(seen[0]?.word)
-    expect(seen.slice(1).map(s => s.word)).toEqual([THINKING[0], tool(THINKING[1]), THINKING[1], WRITING[0]])
+    expect(seen.slice(1).map(s => s.word)).toEqual([THINKING[0], step(THINKING[1]), step(THINKING[1]), step(WRITING[0])])
     expect(seen.every(s => s.message === null && s.suffix === '')).toBe(true)
   }
 })
@@ -136,7 +137,7 @@ test('a group resumes where it left off', async ($, on) => {
   expect(seen).toEqual([THINKING[0], THINKING[1], WRITING[0], THINKING[1]])
 })
 
-test('salawat on shows only the salawat', { options: { thikrSalawat: true } }, async ($, on) => {
+test('salawat mode keeps one salawat for a whole turn, the next one each turn', { options: { thikrMode: 'salawat' } }, async ($, on) => {
   const clock = mock.clock(on, { now: 0 })
   answerTurns(on)
   const seen: string[] = []
@@ -147,13 +148,40 @@ test('salawat on shows only the salawat', { options: { thikrSalawat: true } }, a
     return <Text>{e.props.word}</Text>
   })
 
-  await $.turn.start({ text: 'hi', turnId: 't' })
-  for (const mode of ['requesting', 'thinking', 'tool-use', 'responding'] as const) {
-    await $.ui.render(spinner('terminal', mode))
-    await clock.advance(5000)
+  for (let turn = 0; turn < SALAWAT.length + 1; turn++) {
+    await $.turn.start({ text: 'hi', turnId: `t${turn}` })
+    for (const mode of ['requesting', 'thinking', 'tool-use', 'responding'] as const) {
+      await $.ui.render(spinner('terminal', mode))
+      await clock.advance(20_000)
+    }
   }
 
-  expect(seen).toEqual([SALAWAT, SALAWAT, SALAWAT, SALAWAT])
+  const turns = SALAWAT.length + 1
+  for (let turn = 0; turn < turns; turn++) {
+    expect(seen.slice(turn * 4, turn * 4 + 4)).toEqual(Array(4).fill(SALAWAT[turn % SALAWAT.length]))
+  }
+})
+
+test('desktop keeps the step row\'s words after its tool ends', async ($, on) => {
+  mock.clock(on, { now: 0 })
+  answerTurns(on)
+  const words: string[] = []
+  on('ui.render', { component: 'Spinner' }, async ($, e) => {
+    words.push(e.props.word)
+    const { Text } = $.ui.resolve(e)
+
+    return <Text>{e.props.word}</Text>
+  })
+  const desktop = (mode: Mode, word: string) => ({ ...spinner('desktop', mode), props: { word, message: null, suffix: '…', mode } })
+
+  await $.turn.start({ text: 'hi', turnId: 't' })
+  await $.ui.render(desktop('thinking', 'Working'))
+  await $.ui.render(desktop('tool-use', 'Running a command'))
+  // The tool ended; the desktop keeps the step's row up while Claude reads.
+  await $.ui.render(desktop('requesting', 'Running a command'))
+  await $.ui.render(desktop('thinking', 'Musing'))
+
+  expect(words).toEqual([THINKING[0], `Running a command · ${THINKING[0]}`, `Running a command · ${THINKING[0]}`, THINKING[0]])
 })
 
 test('tashkeel off strips the marks', { options: { thikrTashkeel: false } }, async ($, on) => {
@@ -206,7 +234,7 @@ test('/thikr shows status and help', async $ => {
     presentation: { isFullscreen: false, columns: 80 },
   })
 
-  expect(ran.text).toContain('thikr on · speed auto · tashkeel on · end on · salawat off')
+  expect(ran.text).toContain('thikr on · speed auto · tashkeel on · end on · mode all')
   expect(ran.text).toContain('/thikr speed')
 })
 

@@ -38,11 +38,15 @@
       "description": "Show تَمَّ بِحَمْدِ اللَّهِ when a turn ends",
       "default": true
     },
-    "thikrSalawat": {
-      "type": "boolean",
-      "title": "Salawat only",
-      "description": "Show only اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ in the thikr line",
-      "default": false
+    "thikrMode": {
+      "type": "string",
+      "title": "Thikr mode",
+      "description": "all: every group in turn; salawat: one salawat on the Prophet ﷺ for each whole turn",
+      "options": [
+        "all",
+        "salawat"
+      ],
+      "default": "all"
     }
   }
 }

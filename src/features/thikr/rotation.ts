@@ -80,17 +80,31 @@ export const phraseAt = (group: Group, elapsedMs: number, speed: Speed): string 
 
 export type SpinnerText = { word: string; message: string | null; mode: SpinnerMode }
 
-// Keeps what Claude tells the user and adds the thikr after it. Only the
-// desktop's tool step ("Editing app.ts") is information; decorative verbs
-// ("Musing", "Sauteing") and the generic "Working" are dropped.
-export const withThikr = (
+// Whether the row shows a desktop step ("Editing app.ts"). The desktop keeps
+// the last step's row up after the tool ends, while Claude reads or thinks,
+// so a word equal to the last tool step is still that step's row, and so is
+// any word while a tool runs (a long run can report another mode).
+export const isStepRow = (
   surface: string,
   claude: SpinnerText,
+  lastStep: string | undefined,
+  isToolRunning = false,
+): boolean => {
+  if (surface === 'terminal' || claude.word === 'Working' || claude.word === '') return false
+  const isToolMode = claude.mode === 'tool-use' || claude.mode === 'tool-input'
+
+  return isToolMode || isToolRunning || claude.word === lastStep
+}
+
+// Keeps what Claude tells the user and adds the thikr after it. Only a step
+// is information; decorative verbs ("Musing", "Sauteing") and the generic
+// "Working" are dropped.
+export const withThikr = (
+  claude: Omit<SpinnerText, 'mode'>,
   thikr: string,
+  isStep: boolean,
 ): Omit<SpinnerText, 'mode'> => {
-  const isToolStep = claude.mode === 'tool-use' || claude.mode === 'tool-input'
-  const keepsWord = surface !== 'terminal' && isToolStep && claude.word !== 'Working'
-  const word = keepsWord ? `${claude.word} · ${thikr}` : thikr
+  const word = isStep ? `${claude.word} · ${thikr}` : thikr
   const message = claude.message === null ? null : `${claude.message} · ${thikr}`
 
   return { word, message }
