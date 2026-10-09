@@ -1,10 +1,44 @@
 {
   "name": "muslim",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A Claude Code mod for Muslim developers.",
-  "author": { "name": "Abdelrahman Zied" },
+  "author": {
+    "name": "Abdelrahman Zied"
+  },
   "repository": "https://github.com/abdelrahmanzied/claude-muslim",
   "license": "MIT",
-  "keywords": ["muslim", "islam", "mod"],
-  "types": "./types/index.d.ts"
+  "keywords": [
+    "muslim",
+    "islam",
+    "mod"
+  ],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "thikr": {
+      "type": "boolean",
+      "title": "Thikr line",
+      "description": "Show tasabih in place of Claude's working words",
+      "default": true
+    },
+    "thikrSpeed": {
+      "type": "number",
+      "title": "Thikr speed (seconds)",
+      "description": "Seconds each phrase stays, 1 to 60",
+      "default": 3,
+      "min": 1,
+      "max": 60
+    },
+    "thikrTashkeel": {
+      "type": "boolean",
+      "title": "Thikr tashkeel",
+      "description": "Show diacritics on the phrases",
+      "default": true
+    },
+    "thikrEnd": {
+      "type": "boolean",
+      "title": "Thikr end-of-turn line",
+      "description": "Show تَمَّ بِحَمْدِ اللَّهِ when a turn ends",
+      "default": true
+    }
+  }
 }
