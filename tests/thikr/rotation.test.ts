@@ -69,21 +69,24 @@ describe('limitUntil', () => {
 describe('withThikr', () => {
   const thikr = 'سُبْحَانَ اللَّهِ'
 
-  test('terminal: the thikr replaces the decorative verb', async () => {
-    expect(withThikr('terminal', { word: 'Sauteing', message: null }, thikr)).toEqual({ word: thikr, message: null })
+  test('decorative verbs are dropped on every surface', async () => {
+    for (const surface of ['terminal', 'desktop']) {
+      expect(withThikr(surface, { word: 'Musing', message: null, mode: 'thinking' }, thikr)).toEqual({ word: thikr, message: null })
+      expect(withThikr(surface, { word: 'Sauteing', message: null, mode: 'responding' }, thikr)).toEqual({ word: thikr, message: null })
+    }
   })
 
-  test('desktop: Claude\'s step stays, the thikr follows', async () => {
-    expect(withThikr('desktop', { word: 'Editing app.ts', message: null }, thikr))
+  test('desktop: the tool step stays, the thikr follows', async () => {
+    expect(withThikr('desktop', { word: 'Editing app.ts', message: null, mode: 'tool-use' }, thikr))
       .toEqual({ word: `Editing app.ts · ${thikr}`, message: null })
   })
 
-  test('desktop: a generic word is replaced', async () => {
-    expect(withThikr('desktop', { word: 'Working', message: null }, thikr)).toEqual({ word: thikr, message: null })
+  test('desktop: generic Working is dropped', async () => {
+    expect(withThikr('desktop', { word: 'Working', message: null, mode: 'tool-use' }, thikr)).toEqual({ word: thikr, message: null })
   })
 
   test('a status message is kept on every surface', async () => {
-    expect(withThikr('terminal', { word: 'Sauteing', message: 'Compacting conversation' }, thikr))
+    expect(withThikr('terminal', { word: 'Sauteing', message: 'Compacting conversation', mode: 'thinking' }, thikr))
       .toEqual({ word: thikr, message: `Compacting conversation · ${thikr}` })
   })
 })

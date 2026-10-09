@@ -24,8 +24,8 @@ While Claude works, a thikr phrase joins its working line (the Spinner). Claude'
 
 | Surface | Claude shows | With thikr |
 | --- | --- | --- |
-| Terminal | a decorative verb, `Sauteing…` | `سُبْحَانَ اللَّهِ` (the verb carries no information, so it is replaced) |
-| Desktop | the step, `Editing app.ts` | `Editing app.ts · سُبْحَانَ اللَّهِ` (generic `Working` is replaced) |
+| Both | a decorative verb, `Musing…`, `Sauteing…` | `سُبْحَانَ اللَّهِ` (no information, so it is dropped) |
+| Desktop, using a tool | the step, `Editing app.ts` | `Editing app.ts · سُبْحَانَ اللَّهِ` (generic `Working` is dropped) |
 | Both | a status message, `Compacting conversation` | `Compacting conversation · سُبْحَانَ اللَّهِ` |
 
 ### Moments and phrases

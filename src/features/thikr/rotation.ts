@@ -19,20 +19,18 @@ const LISTS: Record<Group, string[]> = {
 export const groupFor = (mode: SpinnerMode, hasMovedOn: boolean): Group =>
   mode === 'requesting' && !hasMovedOn ? 'starting' : 'thinking'
 
-// Words Claude's desktop row shows when it has nothing specific to say.
-const GENERIC = new Set(['Working'])
+export type SpinnerText = { word: string; message: string | null; mode: SpinnerMode }
 
-export type SpinnerText = { word: string; message: string | null }
-
-// Keeps what Claude tells the user and adds the thikr after it. The terminal's
-// word is a decorative verb ("Sauteing"), so the thikr takes its place there;
-// the desktop's word is the step ("Editing app.ts"), so it stays.
+// Keeps what Claude tells the user and adds the thikr after it. Only the
+// desktop's tool step ("Editing app.ts") is information; decorative verbs
+// ("Musing", "Sauteing") and the generic "Working" are dropped.
 export const withThikr = (
   surface: string,
   claude: SpinnerText,
   thikr: string,
-): SpinnerText => {
-  const keepsWord = surface !== 'terminal' && !GENERIC.has(claude.word)
+): Omit<SpinnerText, 'mode'> => {
+  const isToolStep = claude.mode === 'tool-use' || claude.mode === 'tool-input'
+  const keepsWord = surface !== 'terminal' && isToolStep && claude.word !== 'Working'
   const word = keepsWord ? `${claude.word} · ${thikr}` : thikr
   const message = claude.message === null ? null : `${claude.message} · ${thikr}`
 

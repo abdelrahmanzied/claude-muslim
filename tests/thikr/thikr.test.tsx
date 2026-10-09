@@ -40,8 +40,8 @@ test('spinner shows the thikr in order, keeping the desktop step', async ($, on)
     await $.ui.render(spinner(surface, 'requesting'))
     await $.ui.render(spinner(surface, 'responding'))
 
-    const step = (thikr: string | undefined) => (surface === 'terminal' ? thikr : `Sauteing · ${thikr}`)
-    expect(seen.map(s => s.word)).toEqual([STARTING[0], THINKING[0], THINKING[1], THINKING[1], THINKING[1]].map(step))
+    const tool = (thikr: string | undefined) => (surface === 'terminal' ? thikr : `Sauteing · ${thikr}`)
+    expect(seen.map(s => s.word)).toEqual([STARTING[0], THINKING[0], tool(THINKING[1]), THINKING[1], THINKING[1]])
     expect(seen.every(s => s.message === null && s.suffix === '')).toBe(true)
   }
 })
