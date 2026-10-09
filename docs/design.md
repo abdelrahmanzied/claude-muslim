@@ -20,17 +20,22 @@ Cross-cutting issues: languages (#1), Arabic in terminals that don't shape (#3).
 
 ## Thikr line (0.2.0)
 
-While Claude works, its working word (the Spinner: "Thinking…", "Sauteing…") is replaced by a thikr phrase. Claude's glyph, color, animation, timer and `esc to interrupt` stay as they are.
+While Claude works, a thikr phrase joins its working line (the Spinner). Claude's glyph, color, animation, timer and `esc to interrupt` stay as they are, and so does any information Claude shows:
+
+| Surface | Claude shows | With thikr |
+| --- | --- | --- |
+| Terminal | a decorative verb, `Sauteing…` | `سُبْحَانَ اللَّهِ` (the verb carries no information, so it is replaced) |
+| Desktop | the step, `Editing app.ts` | `Editing app.ts · سُبْحَانَ اللَّهِ` (generic `Working` is replaced) |
+| Both | a status message, `Compacting conversation` | `Compacting conversation · سُبْحَانَ اللَّهِ` |
 
 ### Moments and phrases
 
-Each group plays in a fixed order, one phrase per `speed` seconds (default 3), starting from the first phrase whenever the moment changes.
+A turn opens with the starting phrases, then the thinking order plays on through thinking, tools and writing, one phrase per `speed` seconds (default 3).
 
 | Moment | Spinner modes | Phrases |
 | --- | --- | --- |
 | Starting | first `requesting` of a turn | بسم الله · رب اشرح لي صدري ويسر لي أمري · رب يسر ولا تعسر |
-| Thinking | `thinking`, `tool-input`, `tool-use`, later `requesting` | سبحان الله · الحمد لله · لا إله إلا الله · الله أكبر · لا حول ولا قوة إلا بالله العلي العظيم · سبحان الله وبحمده سبحان الله العظيم · أستغفر الله · رب زدني علما · اللهم علمنا ما ينفعنا · توكلت على الله · لا إله إلا أنت سبحانك إني كنت من الظالمين · اللهم إنك عفو تحب العفو فاعف عنا · ربنا آتنا في الدنيا حسنة وفي الآخرة حسنة وقنا عذاب النار · يا حي يا قيوم برحمتك أستغيث |
-| Writing | `responding` | اللهم صل على محمد |
+| Thinking | everything after: `thinking`, tools, `responding`, later `requesting` | سبحان الله · الحمد لله · لا إله إلا الله · الله أكبر · لا حول ولا قوة إلا بالله العلي العظيم · سبحان الله وبحمده سبحان الله العظيم · أستغفر الله · رب زدني علما · اللهم علمنا ما ينفعنا · توكلت على الله · لا إله إلا أنت سبحانك إني كنت من الظالمين · اللهم إنك عفو تحب العفو فاعف عنا · ربنا آتنا في الدنيا حسنة وفي الآخرة حسنة وقنا عذاب النار · يا حي يا قيوم برحمتك أستغيث · اللهم صل على محمد |
 
 Full text with tashkeel: `src/features/thikr/phrases.ts`.
 
@@ -52,6 +57,6 @@ Full text with tashkeel: `src/features/thikr/phrases.ts`.
 
 ### To verify live
 
-- Desktop: the phrase replaces the step text ("Editing app.ts"); confirm it reads well.
+- Desktop: step text and thikr side by side read well at narrow widths.
 - End-of-turn line: how Claude joins the word and the duration (e.g. "… for 3s") in an RTL phrase.
 - Arabic joining and direction per terminal: issue #3.

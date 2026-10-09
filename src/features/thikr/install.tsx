@@ -6,7 +6,7 @@ import { SPEED_MAX, SPEED_MIN } from '../../config.ts'
 import type { Options } from '../../config.ts'
 import { limitUntil } from './limit.ts'
 import { END_OF_TURN, USAGE_LIMIT } from './phrases.ts'
-import { display, groupFor, phraseAt } from './rotation.ts'
+import { display, groupFor, phraseAt, withThikr } from './rotation.ts'
 import type { Group } from './rotation.ts'
 
 const usageLimit = atom({ plugin: 'muslim', key: 'usageLimit' } as const, null as UsageLimit | null)
@@ -95,7 +95,9 @@ export const install = (on: On, options: Options) => {
     }
     const phrase = display(phraseAt(current, now - groupSince, options.thikrSpeed), options.thikrTashkeel)
 
-    return next({ ...e, props: { ...e.props, word: phrase, message: phrase, suffix: '' } })
+    const shown = withThikr(e.surface, e.props, phrase)
+
+    return next({ ...e, props: { ...e.props, ...shown, suffix: '' } })
   })
 
   if (options.thikrEnd) {

@@ -1,6 +1,6 @@
-import { STARTING, THINKING, WRITING } from './phrases.ts'
+import { STARTING, THINKING } from './phrases.ts'
 
-export type Group = 'starting' | 'thinking' | 'writing'
+export type Group = 'starting' | 'thinking'
 
 export type SpinnerMode =
   | 'requesting'
@@ -12,15 +12,31 @@ export type SpinnerMode =
 const LISTS: Record<Group, string[]> = {
   starting: STARTING,
   thinking: THINKING,
-  writing: WRITING,
 }
 
 // `requesting` opens every model call; it reads as "starting" only until the
-// turn has moved on once, so later calls stay in the thinking order.
-export const groupFor = (mode: SpinnerMode, hasMovedOn: boolean): Group => {
-  if (mode === 'responding') return 'writing'
-  if (mode === 'requesting' && !hasMovedOn) return 'starting'
-  return 'thinking'
+// turn has moved on once. Everything after plays on in the thinking order.
+export const groupFor = (mode: SpinnerMode, hasMovedOn: boolean): Group =>
+  mode === 'requesting' && !hasMovedOn ? 'starting' : 'thinking'
+
+// Words Claude's desktop row shows when it has nothing specific to say.
+const GENERIC = new Set(['Working'])
+
+export type SpinnerText = { word: string; message: string | null }
+
+// Keeps what Claude tells the user and adds the thikr after it. The terminal's
+// word is a decorative verb ("Sauteing"), so the thikr takes its place there;
+// the desktop's word is the step ("Editing app.ts"), so it stays.
+export const withThikr = (
+  surface: string,
+  claude: SpinnerText,
+  thikr: string,
+): SpinnerText => {
+  const keepsWord = surface !== 'terminal' && !GENERIC.has(claude.word)
+  const word = keepsWord ? `${claude.word} · ${thikr}` : thikr
+  const message = claude.message === null ? null : `${claude.message} · ${thikr}`
+
+  return { word, message }
 }
 
 // The phrase shown `elapsedMs` after the group began, one step per `speedSeconds`.

@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { limitUntil } from '../../src/features/thikr/limit.ts'
-import { STARTING, THINKING, WRITING } from '../../src/features/thikr/phrases.ts'
-import { display, groupFor, phraseAt, stripTashkeel } from '../../src/features/thikr/rotation.ts'
+import { STARTING, THINKING } from '../../src/features/thikr/phrases.ts'
+import { display, groupFor, phraseAt, stripTashkeel, withThikr } from '../../src/features/thikr/rotation.ts'
 
 describe('groupFor', () => {
   test('requesting starts a turn, then reads as thinking', async () => {
@@ -10,11 +10,10 @@ describe('groupFor', () => {
     expect(groupFor('requesting', true)).toBe('thinking')
   })
 
-  test('tools count as thinking, responding as writing', async () => {
-    expect(groupFor('thinking', true)).toBe('thinking')
-    expect(groupFor('tool-use', true)).toBe('thinking')
-    expect(groupFor('tool-input', true)).toBe('thinking')
-    expect(groupFor('responding', true)).toBe('writing')
+  test('thinking, tools and writing share one order', async () => {
+    for (const mode of ['thinking', 'tool-use', 'tool-input', 'responding'] as const) {
+      expect(groupFor(mode, true)).toBe('thinking')
+    }
   })
 })
 
@@ -31,9 +30,8 @@ describe('phraseAt', () => {
     expect(phraseAt('starting', STARTING.length * 2000, 2)).toBe(STARTING[0])
   })
 
-  test('writing is salawat only', async () => {
-    expect(phraseAt('writing', 0, 3)).toBe(WRITING[0])
-    expect(phraseAt('writing', 60_000, 3)).toBe(WRITING[0])
+  test('salawat closes the thinking order', async () => {
+    expect(THINKING[THINKING.length - 1]).toBe('اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ')
   })
 })
 
@@ -65,5 +63,27 @@ describe('limitUntil', () => {
   test('unknown windows or reset time clear on the next turn', async () => {
     expect(limitUntil([])).toBeNull()
     expect(limitUntil([{ percentUsed: 100 }])).toBeNull()
+  })
+})
+
+describe('withThikr', () => {
+  const thikr = 'سُبْحَانَ اللَّهِ'
+
+  test('terminal: the thikr replaces the decorative verb', async () => {
+    expect(withThikr('terminal', { word: 'Sauteing', message: null }, thikr)).toEqual({ word: thikr, message: null })
+  })
+
+  test('desktop: Claude\'s step stays, the thikr follows', async () => {
+    expect(withThikr('desktop', { word: 'Editing app.ts', message: null }, thikr))
+      .toEqual({ word: `Editing app.ts · ${thikr}`, message: null })
+  })
+
+  test('desktop: a generic word is replaced', async () => {
+    expect(withThikr('desktop', { word: 'Working', message: null }, thikr)).toEqual({ word: thikr, message: null })
+  })
+
+  test('a status message is kept on every surface', async () => {
+    expect(withThikr('terminal', { word: 'Sauteing', message: 'Compacting conversation' }, thikr))
+      .toEqual({ word: thikr, message: `Compacting conversation · ${thikr}` })
   })
 })

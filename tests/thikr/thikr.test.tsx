@@ -1,7 +1,7 @@
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
-import { END_OF_TURN, STARTING, THINKING, USAGE_LIMIT, WRITING } from '../../src/features/thikr/phrases.ts'
+import { END_OF_TURN, STARTING, THINKING, USAGE_LIMIT } from '../../src/features/thikr/phrases.ts'
 import { stripTashkeel } from '../../src/features/thikr/rotation.ts'
 
 const SURFACES = ['terminal', 'desktop'] as const
@@ -19,7 +19,7 @@ const spinner = (surface: (typeof SURFACES)[number], mode: Mode) => ({
   props: { word: 'Sauteing', message: null, suffix: '…', mode },
 })
 
-test('spinner shows the thikr in order on every surface', async ($, on) => {
+test('spinner shows the thikr in order, keeping the desktop step', async ($, on) => {
   const clock = mock.clock(on, { now: 0 })
   answerTurns(on)
   const seen: { word: string; message: string | null; suffix: string }[] = []
@@ -40,8 +40,9 @@ test('spinner shows the thikr in order on every surface', async ($, on) => {
     await $.ui.render(spinner(surface, 'requesting'))
     await $.ui.render(spinner(surface, 'responding'))
 
-    expect(seen.map(s => s.word)).toEqual([STARTING[0], THINKING[0], THINKING[1], THINKING[1], WRITING[0]])
-    expect(seen.every(s => s.message === s.word && s.suffix === '')).toBe(true)
+    const step = (thikr: string | undefined) => (surface === 'terminal' ? thikr : `Sauteing · ${thikr}`)
+    expect(seen.map(s => s.word)).toEqual([STARTING[0], THINKING[0], THINKING[1], THINKING[1], THINKING[1]].map(step))
+    expect(seen.every(s => s.message === null && s.suffix === '')).toBe(true)
   }
 })
 

@@ -1,4 +1,5 @@
-// The thikr line's phrases, played in this order within each group.
+// The thikr line's phrases: STARTING opens a turn, then THINKING plays on in
+// this order through thinking, tools and writing.
 // Original Arabic with tashkeel; display may strip the marks, never the words.
 
 export const STARTING = [
@@ -22,9 +23,8 @@ export const THINKING = [
   'اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنَّا',
   'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ',
   'يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ',
+  'اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ',
 ]
-
-export const WRITING = ['اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ']
 
 export const END_OF_TURN = 'تَمَّ بِحَمْدِ اللَّهِ'
 
