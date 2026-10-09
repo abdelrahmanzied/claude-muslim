@@ -1,6 +1,6 @@
-import { LONG, STARTING, THINKING } from './phrases.ts'
+import { LONG, STARTING, THINKING, WRITING } from './phrases.ts'
 
-export type Group = 'starting' | 'thinking' | 'long'
+export type Group = 'starting' | 'thinking' | 'writing' | 'long'
 
 export type SpinnerMode =
   | 'requesting'
@@ -15,6 +15,7 @@ export type Speed = 'auto' | number
 const LISTS: Record<Group, string[]> = {
   starting: STARTING,
   thinking: THINKING,
+  writing: WRITING,
   long: LONG,
 }
 
@@ -36,6 +37,7 @@ export type Moment = {
 export const groupFor = (moment: Moment): Group => {
   if (moment.isCompacting || moment.hasSubagent || moment.toolRunMs >= LONG_TOOL_MS) return 'long'
   if (moment.mode === 'requesting' && !moment.hasMovedOn) return 'starting'
+  if (moment.mode === 'responding') return 'writing'
 
   return 'thinking'
 }

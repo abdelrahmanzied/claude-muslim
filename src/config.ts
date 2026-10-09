@@ -6,6 +6,7 @@ export type Options = {
   thikrSpeed: Speed
   thikrTashkeel: boolean
   thikrEnd: boolean
+  thikrSalawat: boolean
 }
 
 export const SPEED_MIN = 1
@@ -16,6 +17,7 @@ export const readOptions = (raw: Record<string, unknown>): Options => ({
   thikrSpeed: readSpeed(raw.thikrSpeed),
   thikrTashkeel: raw.thikrTashkeel !== false,
   thikrEnd: raw.thikrEnd !== false,
+  thikrSalawat: raw.thikrSalawat === true,
 })
 
 // `auto`, or whole seconds from SPEED_MIN to SPEED_MAX; anything else is auto.

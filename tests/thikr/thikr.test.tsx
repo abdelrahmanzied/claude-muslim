@@ -1,7 +1,7 @@
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
-import { END_OF_TURN, LONG, STARTING, THINKING, USAGE_LIMIT } from '../../src/features/thikr/phrases.ts'
+import { END_OF_TURN, LONG, SALAWAT, STARTING, THINKING, USAGE_LIMIT, WRITING } from '../../src/features/thikr/phrases.ts'
 import { stripTashkeel } from '../../src/features/thikr/rotation.ts'
 
 const SURFACES = ['terminal', 'desktop'] as const
@@ -41,7 +41,7 @@ test('spinner shows the thikr in order, keeping the desktop step', async ($, on)
     await $.ui.render(spinner(surface, 'responding'))
 
     const tool = (thikr: string | undefined) => (surface === 'terminal' ? thikr : `Sauteing · ${thikr}`)
-    expect(seen.map(s => s.word)).toEqual([STARTING[0], THINKING[0], tool(THINKING[1]), THINKING[1], THINKING[1]])
+    expect(seen.map(s => s.word)).toEqual([STARTING[0], THINKING[0], tool(THINKING[1]), THINKING[1], WRITING[0]])
     expect(seen.every(s => s.message === null && s.suffix === '')).toBe(true)
   }
 })
@@ -91,6 +91,48 @@ test('compacting plays the long group', async ($, on) => {
   await $.ui.render(spinner('desktop', 'thinking'))
 
   expect(seen).toEqual([LONG[0], THINKING[0]])
+})
+
+test('a group resumes where it left off', async ($, on) => {
+  const clock = mock.clock(on, { now: 0 })
+  answerTurns(on)
+  const seen: string[] = []
+  on('ui.render', { component: 'Spinner' }, async ($, e) => {
+    seen.push(e.props.word)
+    const { Text } = $.ui.resolve(e)
+
+    return <Text>{e.props.word}</Text>
+  })
+
+  await $.turn.start({ text: 'hi', turnId: 't' })
+  await $.ui.render(spinner('terminal', 'thinking'))
+  await clock.advance(2200)
+  await $.ui.render(spinner('terminal', 'thinking'))
+  await $.ui.render(spinner('terminal', 'responding'))
+  await clock.advance(5000)
+  await $.ui.render(spinner('terminal', 'thinking'))
+
+  expect(seen).toEqual([THINKING[0], THINKING[1], WRITING[0], THINKING[1]])
+})
+
+test('salawat on shows only the salawat', { options: { thikrSalawat: true } }, async ($, on) => {
+  const clock = mock.clock(on, { now: 0 })
+  answerTurns(on)
+  const seen: string[] = []
+  on('ui.render', { component: 'Spinner' }, async ($, e) => {
+    seen.push(e.props.word)
+    const { Text } = $.ui.resolve(e)
+
+    return <Text>{e.props.word}</Text>
+  })
+
+  await $.turn.start({ text: 'hi', turnId: 't' })
+  for (const mode of ['requesting', 'thinking', 'tool-use', 'responding'] as const) {
+    await $.ui.render(spinner('terminal', mode))
+    await clock.advance(5000)
+  }
+
+  expect(seen).toEqual([SALAWAT, SALAWAT, SALAWAT, SALAWAT])
 })
 
 test('tashkeel off strips the marks', { options: { thikrTashkeel: false } }, async ($, on) => {
@@ -143,7 +185,7 @@ test('/thikr shows status and help', async $ => {
     presentation: { isFullscreen: false, columns: 80 },
   })
 
-  expect(ran.text).toContain('thikr on · speed auto · tashkeel on · end on')
+  expect(ran.text).toContain('thikr on · speed auto · tashkeel on · end on · salawat off')
   expect(ran.text).toContain('/thikr speed')
 })
 

@@ -22,10 +22,14 @@ describe('groupFor', () => {
     expect(groupFor({ ...moment, mode: 'requesting' })).toBe('thinking')
   })
 
-  test('thinking, tools and writing share one order', async () => {
-    for (const mode of ['thinking', 'tool-use', 'tool-input', 'responding'] as const) {
+  test('thinking and tools share one order', async () => {
+    for (const mode of ['thinking', 'tool-use', 'tool-input'] as const) {
       expect(groupFor({ ...moment, mode })).toBe('thinking')
     }
+  })
+
+  test('writing the answer has its own group', async () => {
+    expect(groupFor({ ...moment, mode: 'responding' })).toBe('writing')
   })
 
   test('long only while compacting, a subagent works, or a tool runs 10s', async () => {

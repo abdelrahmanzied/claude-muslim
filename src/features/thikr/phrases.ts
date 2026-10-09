@@ -1,5 +1,6 @@
 // The thikr line's phrases, each group played in this order.
-// STARTING opens a turn; THINKING plays through thinking, tools and writing;
+// STARTING opens a turn; THINKING plays through thinking and tools; WRITING
+// while Claude writes the answer;
 // LONG plays while Claude waits on something long (a long tool run, a
 // subagent, compacting). Original Arabic with tashkeel; display may strip
 // the marks, never the words.
@@ -19,9 +20,12 @@ export const THINKING = [
   'لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ الْعَلِيِّ الْعَظِيمِ',
   'سُبْحَانَ اللَّهِ وَبِحَمْدِهِ سُبْحَانَ اللَّهِ الْعَظِيمِ',
   'أَسْتَغْفِرُ اللَّهَ',
+  'اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ',
+]
+
+export const WRITING = [
   'رَبِّ زِدْنِي عِلْمًا',
   'اللَّهُمَّ عَلِّمْنَا مَا يَنْفَعُنَا',
-  'اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ',
 ]
 
 export const LONG = [
@@ -30,6 +34,9 @@ export const LONG = [
   'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ',
   'يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ',
 ]
+
+// The salawat setting shows this alone, in every moment.
+export const SALAWAT = 'اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ'
 
 export const END_OF_TURN = 'تَمَّ بِحَمْدِ اللَّهِ'
 

@@ -30,15 +30,16 @@ While Claude works, a thikr phrase joins its working line (the Spinner). Claude'
 
 ### Moments and phrases
 
-A turn opens with the starting phrases, then the thinking order plays on through thinking, tools and writing. While Claude waits on something long, the long group plays instead, and thinking returns when it ends.
+A turn opens with the starting phrases, then the thinking order plays through thinking and tools, and the writing pair while Claude writes the answer. While Claude waits on something long, the long group plays instead, and thinking returns when it ends.
 
 | Moment | When | Phrases |
 | --- | --- | --- |
 | Starting | first `requesting` of a turn | بسم الله · توكلت على الله · رب اشرح لي صدري ويسر لي أمري · رب يسر ولا تعسر |
-| Thinking | everything after: `thinking`, tools, `responding`, later `requesting` | سبحان الله · الحمد لله · لا إله إلا الله · الله أكبر · لا حول ولا قوة إلا بالله العلي العظيم · سبحان الله وبحمده سبحان الله العظيم · أستغفر الله · رب زدني علما · اللهم علمنا ما ينفعنا · اللهم صل على محمد |
+| Thinking | everything else: `thinking`, tools, later `requesting` | سبحان الله · الحمد لله · لا إله إلا الله · الله أكبر · لا حول ولا قوة إلا بالله العلي العظيم · سبحان الله وبحمده سبحان الله العظيم · أستغفر الله · اللهم صل على محمد |
+| Writing | `responding` (Claude writes the answer) | رب زدني علما · اللهم علمنا ما ينفعنا |
 | Long | compacting (`PreCompact` → `PostCompact`), a subagent at work (`Agent` tool call), or any tool running 10 s or more | لا إله إلا أنت سبحانك إني كنت من الظالمين · اللهم إنك عفو تحب العفو فاعف عنا · ربنا آتنا في الدنيا حسنة وفي الآخرة حسنة وقنا عذاب النار · يا حي يا قيوم برحمتك أستغيث |
 
-Each group starts from its first phrase when it begins and loops in order.
+Each group loops in order and resumes where it left off when Claude moves between moments in the same turn, so short switches never replay the same first phrase.
 
 ### Speed
 
@@ -60,6 +61,7 @@ Full text with tashkeel: `src/features/thikr/phrases.ts`.
 | `thikrSpeed` | `/thikr speed auto` · `/thikr speed <1-60>` | auto |
 | `thikrTashkeel` | `/thikr tashkeel on` · `off` | on |
 | `thikrEnd` | `/thikr end on` · `off` | on |
+| `thikrSalawat` | `/thikr salawat on` · `off`: only اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ in every moment | off |
 
 `/thikr` alone shows the current settings and help.
 

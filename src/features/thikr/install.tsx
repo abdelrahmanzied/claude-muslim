@@ -5,7 +5,7 @@ import type { UsageLimit } from '../../../types'
 import { readSpeed, SPEED_MAX, SPEED_MIN } from '../../config.ts'
 import type { Options } from '../../config.ts'
 import { limitUntil } from './limit.ts'
-import { END_OF_TURN, USAGE_LIMIT } from './phrases.ts'
+import { END_OF_TURN, SALAWAT, USAGE_LIMIT } from './phrases.ts'
 import { display, groupFor, phraseAt, withThikr } from './rotation.ts'
 import type { Group, Speed } from './rotation.ts'
 
@@ -18,6 +18,7 @@ const HELP = [
   `/thikr speed <${SPEED_MIN}-${SPEED_MAX}>       fixed seconds per phrase`,
   '/thikr tashkeel on | off  show diacritics',
   '/thikr end on | off       تَمَّ بِحَمْدِ اللَّهِ at the end of a turn',
+  '/thikr salawat on | off   only اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ',
 ].join('\n')
 
 const setLimit = ($: EngineInterface, value: UsageLimit | null) =>
@@ -34,6 +35,8 @@ export const install = (on: On, options: Options) => {
   // Spinner timing, per turn. Module values: a reload mid-turn only restarts the order.
   let group: Group | undefined
   let groupSince = 0
+  // Time each group has played this turn, so a group resumes where it left off.
+  const played = new Map<Group, number>()
   let hasMovedOn = false
   let ticker: { cancel: () => void } | undefined
   // Long moments: compacting, subagents at work, tools by start time.
@@ -52,15 +55,15 @@ export const install = (on: On, options: Options) => {
     if (word === '') {
       return {
         text: [
-          `thikr ${onOff(options.thikr)} · speed ${speedText(options.thikrSpeed)} · tashkeel ${onOff(options.thikrTashkeel)} · end ${onOff(options.thikrEnd)}`,
+          `thikr ${onOff(options.thikr)} · speed ${speedText(options.thikrSpeed)} · tashkeel ${onOff(options.thikrTashkeel)} · end ${onOff(options.thikrEnd)} · salawat ${onOff(options.thikrSalawat)}`,
           '',
           HELP,
         ].join('\n'),
       }
     }
     if (word === 'on' || word === 'off') return set('thikr', word === 'on', `thikr ${word}`)
-    if ((word === 'tashkeel' || word === 'end') && (value === 'on' || value === 'off')) {
-      const field = word === 'tashkeel' ? 'thikrTashkeel' : 'thikrEnd'
+    if ((word === 'tashkeel' || word === 'end' || word === 'salawat') && (value === 'on' || value === 'off')) {
+      const field = word === 'tashkeel' ? 'thikrTashkeel' : word === 'end' ? 'thikrEnd' : 'thikrSalawat'
 
       return set(field, value === 'on', `${word} ${value}`)
     }
@@ -78,12 +81,13 @@ export const install = (on: On, options: Options) => {
 
   on('turn.start', async ($, e, next) => {
     group = undefined
+    played.clear()
     hasMovedOn = false
     isCompacting = false
     subagents = 0
     toolsSince.clear()
     ticker?.cancel()
-    ticker = $.clock.every(TICK_MS, () => $.ui.invalidate('ui.render'))
+    ticker = options.thikrSalawat ? undefined : $.clock.every(TICK_MS, () => $.ui.invalidate('ui.render'))
     await setLimit($, null)
 
     return next(e)
@@ -133,10 +137,12 @@ export const install = (on: On, options: Options) => {
       toolRunMs: now - oldestTool,
     })
     if (current !== group) {
+      if (group) played.set(group, now - groupSince)
       group = current
-      groupSince = now
+      groupSince = now - (played.get(current) ?? 0)
     }
-    const phrase = display(phraseAt(current, now - groupSince, options.thikrSpeed), options.thikrTashkeel)
+    const text = options.thikrSalawat ? SALAWAT : phraseAt(current, now - groupSince, options.thikrSpeed)
+    const phrase = display(text, options.thikrTashkeel)
 
     const shown = withThikr(e.surface, e.props, phrase)
 
