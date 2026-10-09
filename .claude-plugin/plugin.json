@@ -1,0 +1,10 @@
+{
+  "name": "muslim",
+  "version": "0.1.0",
+  "description": "A Claude Code mod for Muslim developers.",
+  "author": { "name": "Abdelrahman Zied" },
+  "repository": "https://github.com/abdelrahmanzied/claude-muslim",
+  "license": "MIT",
+  "keywords": ["muslim", "islam", "mod"],
+  "types": "./types/index.d.ts"
+}

@@ -1,0 +1,6 @@
+{
+  "name": "claude-muslim",
+  "description": "Claude Code mods for Muslim developers.",
+  "owner": { "name": "Abdelrahman Zied" },
+  "plugins": [{ "name": "muslim", "source": "./" }]
+}
