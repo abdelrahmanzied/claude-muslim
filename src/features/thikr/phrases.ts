@@ -1,9 +1,12 @@
-// The thikr line's phrases: STARTING opens a turn, then THINKING plays on in
-// this order through thinking, tools and writing.
-// Original Arabic with tashkeel; display may strip the marks, never the words.
+// The thikr line's phrases, each group played in this order.
+// STARTING opens a turn; THINKING plays through thinking, tools and writing;
+// LONG plays while Claude waits on something long (a long tool run, a
+// subagent, compacting). Original Arabic with tashkeel; display may strip
+// the marks, never the words.
 
 export const STARTING = [
   'بِسْمِ اللَّهِ',
+  'تَوَكَّلْتُ عَلَى اللَّهِ',
   'رَبِّ اشْرَحْ لِي صَدْرِي وَيَسِّرْ لِي أَمْرِي',
   'رَبِّ يَسِّرْ وَلَا تُعَسِّرْ',
 ]
@@ -18,12 +21,14 @@ export const THINKING = [
   'أَسْتَغْفِرُ اللَّهَ',
   'رَبِّ زِدْنِي عِلْمًا',
   'اللَّهُمَّ عَلِّمْنَا مَا يَنْفَعُنَا',
-  'تَوَكَّلْتُ عَلَى اللَّهِ',
+  'اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ',
+]
+
+export const LONG = [
   'لَا إِلَٰهَ إِلَّا أَنْتَ سُبْحَانَكَ إِنِّي كُنْتُ مِنَ الظَّالِمِينَ',
   'اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنَّا',
   'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ',
   'يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ',
-  'اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ',
 ]
 
 export const END_OF_TURN = 'تَمَّ بِحَمْدِ اللَّهِ'

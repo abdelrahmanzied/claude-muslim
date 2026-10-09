@@ -52,7 +52,7 @@ Never use `error` or `warning` for religious text.
 ## 5. Voice
 
 - Arabic for religious content; English for UI chrome (commands, help, settings) until languages land (issue #1).
-- Commands answer in one short line: what changed (`speed 3s`), or why not (`Speed is a whole number of seconds from 1 to 60.`).
+- Commands answer in one short line: what changed (`speed 3s`), or why not (`Speed is auto, or a whole number of seconds from 1 to 60.`).
 - No exclamation marks, emoji or praise in UI text.
 
 ## 6. Commands and settings

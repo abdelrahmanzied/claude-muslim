@@ -1,33 +1,78 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { limitUntil } from '../../src/features/thikr/limit.ts'
-import { STARTING, THINKING } from '../../src/features/thikr/phrases.ts'
-import { display, groupFor, phraseAt, stripTashkeel, withThikr } from '../../src/features/thikr/rotation.ts'
+import { readSpeed } from '../../src/config.ts'
+import { LONG, STARTING, THINKING } from '../../src/features/thikr/phrases.ts'
+import {
+  display,
+  durationOf,
+  groupFor,
+  LONG_TOOL_MS,
+  phraseAt,
+  stripTashkeel,
+  withThikr,
+  wordCount,
+} from '../../src/features/thikr/rotation.ts'
+
+const moment = { mode: 'thinking' as const, hasMovedOn: true, isCompacting: false, hasSubagent: false, toolRunMs: 0 }
 
 describe('groupFor', () => {
   test('requesting starts a turn, then reads as thinking', async () => {
-    expect(groupFor('requesting', false)).toBe('starting')
-    expect(groupFor('requesting', true)).toBe('thinking')
+    expect(groupFor({ ...moment, mode: 'requesting', hasMovedOn: false })).toBe('starting')
+    expect(groupFor({ ...moment, mode: 'requesting' })).toBe('thinking')
   })
 
   test('thinking, tools and writing share one order', async () => {
     for (const mode of ['thinking', 'tool-use', 'tool-input', 'responding'] as const) {
-      expect(groupFor(mode, true)).toBe('thinking')
+      expect(groupFor({ ...moment, mode })).toBe('thinking')
     }
+  })
+
+  test('long only while compacting, a subagent works, or a tool runs 10s', async () => {
+    expect(groupFor({ ...moment, isCompacting: true })).toBe('long')
+    expect(groupFor({ ...moment, hasSubagent: true })).toBe('long')
+    expect(groupFor({ ...moment, mode: 'tool-use', toolRunMs: LONG_TOOL_MS - 1 })).toBe('thinking')
+    expect(groupFor({ ...moment, mode: 'tool-use', toolRunMs: LONG_TOOL_MS })).toBe('long')
+    expect(groupFor({ ...moment, mode: 'requesting', hasMovedOn: false, isCompacting: true })).toBe('long')
+  })
+})
+
+describe('durationOf', () => {
+  test('auto is 1s plus 0.6s per word', async () => {
+    expect(durationOf('سُبْحَانَ اللَّهِ', 'auto')).toBe(2200)
+    expect(durationOf('اللَّهُ أَكْبَرُ', 'auto')).toBe(2200)
+    expect(durationOf('بِسْمِ اللَّهِ', 'auto')).toBe(2200)
+    expect(wordCount('رَبِّ يَسِّرْ وَلَا تُعَسِّرْ')).toBe(4)
+  })
+
+  test('a fixed speed is the same for every phrase', async () => {
+    expect(durationOf('سُبْحَانَ اللَّهِ', 5)).toBe(5000)
+    expect(durationOf(LONG[2] ?? '', 5)).toBe(5000)
   })
 })
 
 describe('phraseAt', () => {
-  test('plays the list in order, one step per speed', async () => {
+  test('fixed: plays the list in order, one step per speed', async () => {
     expect(phraseAt('thinking', 0, 3)).toBe(THINKING[0])
     expect(phraseAt('thinking', 2999, 3)).toBe(THINKING[0])
     expect(phraseAt('thinking', 3000, 3)).toBe(THINKING[1])
     expect(phraseAt('thinking', 9000, 3)).toBe(THINKING[3])
   })
 
+  test('auto: longer phrases stay longer', async () => {
+    expect(phraseAt('thinking', 2199, 'auto')).toBe(THINKING[0])
+    expect(phraseAt('thinking', 2200, 'auto')).toBe(THINKING[1])
+    // 3 x 2.2s, then لا إله إلا الله (4 words) for 3.4s
+    expect(phraseAt('thinking', 4400, 'auto')).toBe(THINKING[2])
+    expect(phraseAt('thinking', 7799, 'auto')).toBe(THINKING[2])
+    expect(phraseAt('thinking', 7800, 'auto')).toBe(THINKING[3])
+  })
+
   test('wraps around after the last phrase', async () => {
     expect(phraseAt('thinking', THINKING.length * 3000, 3)).toBe(THINKING[0])
     expect(phraseAt('starting', STARTING.length * 2000, 2)).toBe(STARTING[0])
+    const cycle = LONG.reduce((sum, p) => sum + durationOf(p, 'auto'), 0)
+    expect(phraseAt('long', cycle, 'auto')).toBe(LONG[0])
   })
 
   test('salawat closes the thinking order', async () => {
@@ -88,5 +133,22 @@ describe('withThikr', () => {
   test('a status message is kept on every surface', async () => {
     expect(withThikr('terminal', { word: 'Sauteing', message: 'Compacting conversation', mode: 'thinking' }, thikr))
       .toEqual({ word: thikr, message: `Compacting conversation · ${thikr}` })
+  })
+})
+
+describe('readSpeed', () => {
+  test('auto by default and for anything out of range', async () => {
+    expect(readSpeed(undefined)).toBe('auto')
+    expect(readSpeed('auto')).toBe('auto')
+    expect(readSpeed('0')).toBe('auto')
+    expect(readSpeed('61')).toBe('auto')
+    expect(readSpeed('2.5')).toBe('auto')
+    expect(readSpeed('fast')).toBe('auto')
+  })
+
+  test('whole seconds from 1 to 60', async () => {
+    expect(readSpeed('1')).toBe(1)
+    expect(readSpeed('5')).toBe(5)
+    expect(readSpeed(60)).toBe(60)
   })
 })

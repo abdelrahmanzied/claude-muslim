@@ -2,19 +2,20 @@ import { atom, read } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
 import type { UsageLimit } from '../../../types'
-import { SPEED_MAX, SPEED_MIN } from '../../config.ts'
+import { readSpeed, SPEED_MAX, SPEED_MIN } from '../../config.ts'
 import type { Options } from '../../config.ts'
 import { limitUntil } from './limit.ts'
 import { END_OF_TURN, USAGE_LIMIT } from './phrases.ts'
 import { display, groupFor, phraseAt, withThikr } from './rotation.ts'
-import type { Group } from './rotation.ts'
+import type { Group, Speed } from './rotation.ts'
 
 const usageLimit = atom({ plugin: 'muslim', key: 'usageLimit' } as const, null as UsageLimit | null)
 
 const HELP = [
   '/thikr                    status',
   '/thikr on | off           show tasabih while Claude works',
-  `/thikr speed <${SPEED_MIN}-${SPEED_MAX}>       seconds per phrase`,
+  `/thikr speed auto          reading time: 1s + 0.6s per word`,
+  `/thikr speed <${SPEED_MIN}-${SPEED_MAX}>       fixed seconds per phrase`,
   '/thikr tashkeel on | off  show diacritics',
   '/thikr end on | off       تَمَّ بِحَمْدِ اللَّهِ at the end of a turn',
 ].join('\n')
@@ -24,16 +25,25 @@ const setLimit = ($: EngineInterface, value: UsageLimit | null) =>
 
 const onOff = (value: boolean) => (value ? 'on' : 'off')
 
+const speedText = (speed: Speed) => (speed === 'auto' ? 'auto' : `${speed}s`)
+
+// Redraws often enough for auto speed and for a tool crossing the long mark.
+const TICK_MS = 500
+
 export const install = (on: On, options: Options) => {
   // Spinner timing, per turn. Module values: a reload mid-turn only restarts the order.
   let group: Group | undefined
   let groupSince = 0
   let hasMovedOn = false
   let ticker: { cancel: () => void } | undefined
+  // Long moments: compacting, subagents at work, tools by start time.
+  let isCompacting = false
+  let subagents = 0
+  const toolsSince = new Map<string, number>()
 
   on('command.run', { command: 'thikr' }, async ($, e) => {
     const [word = '', value = ''] = e.args.trim().split(/\s+/)
-    const set = async (field: string, to: boolean | number, said: string) => {
+    const set = async (field: string, to: boolean | number | string, said: string) => {
       const { deny } = await $.config.set({ key: `muslim.${field}`, value: to })
 
       return { text: deny ? `Not changed: ${deny}` : said }
@@ -42,7 +52,7 @@ export const install = (on: On, options: Options) => {
     if (word === '') {
       return {
         text: [
-          `thikr ${onOff(options.thikr)} · speed ${options.thikrSpeed}s · tashkeel ${onOff(options.thikrTashkeel)} · end ${onOff(options.thikrEnd)}`,
+          `thikr ${onOff(options.thikr)} · speed ${speedText(options.thikrSpeed)} · tashkeel ${onOff(options.thikrTashkeel)} · end ${onOff(options.thikrEnd)}`,
           '',
           HELP,
         ].join('\n'),
@@ -55,12 +65,10 @@ export const install = (on: On, options: Options) => {
       return set(field, value === 'on', `${word} ${value}`)
     }
     if (word === 'speed') {
-      const seconds = Number(value)
-      if (Number.isInteger(seconds) && seconds >= SPEED_MIN && seconds <= SPEED_MAX) {
-        return set('thikrSpeed', seconds, `speed ${seconds}s`)
-      }
+      const speed = readSpeed(value)
+      if (value === 'auto' || speed !== 'auto') return set('thikrSpeed', String(speed), `speed ${speedText(speed)}`)
 
-      return { text: `Speed is a whole number of seconds from ${SPEED_MIN} to ${SPEED_MAX}.` }
+      return { text: `Speed is auto, or a whole number of seconds from ${SPEED_MIN} to ${SPEED_MAX}.` }
     }
 
     return { text: HELP }
@@ -71,8 +79,11 @@ export const install = (on: On, options: Options) => {
   on('turn.start', async ($, e, next) => {
     group = undefined
     hasMovedOn = false
+    isCompacting = false
+    subagents = 0
+    toolsSince.clear()
     ticker?.cancel()
-    ticker = $.clock.every(options.thikrSpeed * 1000, () => $.ui.invalidate('ui.render'))
+    ticker = $.clock.every(TICK_MS, () => $.ui.invalidate('ui.render'))
     await setLimit($, null)
 
     return next(e)
@@ -85,10 +96,42 @@ export const install = (on: On, options: Options) => {
     return next(e)
   })
 
+  on('tool.call', async ($, e, next) => {
+    const isSubagent = e.tool === 'Agent'
+    toolsSince.set(e.tool_use_id, await $.clock.now())
+    if (isSubagent) subagents += 1
+    try {
+      return await next(e)
+    } finally {
+      toolsSince.delete(e.tool_use_id)
+      if (isSubagent) subagents = Math.max(0, subagents - 1)
+    }
+  })
+
+  on('classic.PreCompact', async ($, e, next) => {
+    isCompacting = true
+    $.ui.invalidate('ui.render')
+
+    return next(e)
+  })
+
+  on('classic.PostCompact', async ($, e, next) => {
+    isCompacting = false
+
+    return next(e)
+  })
+
   on('ui.render', { component: 'Spinner' }, async ($, e, next) => {
     const now = await $.clock.now()
     if (e.props.mode !== 'requesting') hasMovedOn = true
-    const current = groupFor(e.props.mode, hasMovedOn)
+    const oldestTool = Math.min(now, ...toolsSince.values())
+    const current = groupFor({
+      mode: e.props.mode,
+      hasMovedOn,
+      isCompacting,
+      hasSubagent: subagents > 0,
+      toolRunMs: now - oldestTool,
+    })
     if (current !== group) {
       group = current
       groupSince = now

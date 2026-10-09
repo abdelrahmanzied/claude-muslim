@@ -1,7 +1,9 @@
+import type { Speed } from './features/thikr/rotation.ts'
+
 // Typed view of the manifest's userConfig values, defaults filled in.
 export type Options = {
   thikr: boolean
-  thikrSpeed: number
+  thikrSpeed: Speed
   thikrTashkeel: boolean
   thikrEnd: boolean
 }
@@ -11,10 +13,15 @@ export const SPEED_MAX = 60
 
 export const readOptions = (raw: Record<string, unknown>): Options => ({
   thikr: raw.thikr !== false,
-  thikrSpeed: clampSpeed(Number(raw.thikrSpeed ?? 3)),
+  thikrSpeed: readSpeed(raw.thikrSpeed),
   thikrTashkeel: raw.thikrTashkeel !== false,
   thikrEnd: raw.thikrEnd !== false,
 })
 
-export const clampSpeed = (seconds: number): number =>
-  Number.isFinite(seconds) ? Math.min(SPEED_MAX, Math.max(SPEED_MIN, Math.round(seconds))) : 3
+// `auto`, or whole seconds from SPEED_MIN to SPEED_MAX; anything else is auto.
+export const readSpeed = (value: unknown): Speed => {
+  const seconds = Number(value)
+  if (value === undefined || value === 'auto' || !Number.isInteger(seconds)) return 'auto'
+
+  return seconds >= SPEED_MIN && seconds <= SPEED_MAX ? seconds : 'auto'
+}

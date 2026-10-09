@@ -1,6 +1,6 @@
-import { STARTING, THINKING } from './phrases.ts'
+import { LONG, STARTING, THINKING } from './phrases.ts'
 
-export type Group = 'starting' | 'thinking'
+export type Group = 'starting' | 'thinking' | 'long'
 
 export type SpinnerMode =
   | 'requesting'
@@ -9,15 +9,59 @@ export type SpinnerMode =
   | 'tool-input'
   | 'tool-use'
 
+// `auto`: each phrase stays for its reading time; a number: seconds for every phrase.
+export type Speed = 'auto' | number
+
 const LISTS: Record<Group, string[]> = {
   starting: STARTING,
   thinking: THINKING,
+  long: LONG,
 }
 
-// `requesting` opens every model call; it reads as "starting" only until the
-// turn has moved on once. Everything after plays on in the thinking order.
-export const groupFor = (mode: SpinnerMode, hasMovedOn: boolean): Group =>
-  mode === 'requesting' && !hasMovedOn ? 'starting' : 'thinking'
+// A tool running at least this long counts as a long moment.
+export const LONG_TOOL_MS = 10_000
+
+export type Moment = {
+  mode: SpinnerMode
+  // The turn has gone past its first request.
+  hasMovedOn: boolean
+  // Claude is compacting the conversation.
+  isCompacting: boolean
+  // A subagent is working.
+  hasSubagent: boolean
+  // How long the oldest running tool has run, 0 when none.
+  toolRunMs: number
+}
+
+export const groupFor = (moment: Moment): Group => {
+  if (moment.isCompacting || moment.hasSubagent || moment.toolRunMs >= LONG_TOOL_MS) return 'long'
+  if (moment.mode === 'requesting' && !moment.hasMovedOn) return 'starting'
+
+  return 'thinking'
+}
+
+const AUTO_BASE_MS = 1000
+const AUTO_PER_WORD_MS = 600
+
+export const wordCount = (text: string): number => text.split(/\s+/).filter(Boolean).length
+
+// How long one phrase stays: 1 s plus 0.6 s per word in auto, else the fixed seconds.
+export const durationOf = (phrase: string, speed: Speed): number =>
+  speed === 'auto' ? AUTO_BASE_MS + AUTO_PER_WORD_MS * wordCount(phrase) : speed * 1000
+
+// The phrase shown `elapsedMs` after the group began, the list looping.
+export const phraseAt = (group: Group, elapsedMs: number, speed: Speed): string => {
+  const list = LISTS[group]
+  const cycle = list.reduce((sum, phrase) => sum + durationOf(phrase, speed), 0)
+  let left = Math.max(0, elapsedMs) % cycle
+  for (const phrase of list) {
+    const stays = durationOf(phrase, speed)
+    if (left < stays) return phrase
+    left -= stays
+  }
+
+  return list[0] ?? ''
+}
 
 export type SpinnerText = { word: string; message: string | null; mode: SpinnerMode }
 
@@ -35,14 +79,6 @@ export const withThikr = (
   const message = claude.message === null ? null : `${claude.message} · ${thikr}`
 
   return { word, message }
-}
-
-// The phrase shown `elapsedMs` after the group began, one step per `speedSeconds`.
-export const phraseAt = (group: Group, elapsedMs: number, speedSeconds: number): string => {
-  const list = LISTS[group]
-  const step = Math.floor(Math.max(0, elapsedMs) / (speedSeconds * 1000))
-
-  return list[step % list.length] ?? list[0] ?? ''
 }
 
 const TASHKEEL = /[ً-ٰٟ]/g

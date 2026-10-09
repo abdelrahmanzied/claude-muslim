@@ -1,7 +1,7 @@
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
-import { END_OF_TURN, STARTING, THINKING, USAGE_LIMIT } from '../../src/features/thikr/phrases.ts'
+import { END_OF_TURN, LONG, STARTING, THINKING, USAGE_LIMIT } from '../../src/features/thikr/phrases.ts'
 import { stripTashkeel } from '../../src/features/thikr/rotation.ts'
 
 const SURFACES = ['terminal', 'desktop'] as const
@@ -44,6 +44,53 @@ test('spinner shows the thikr in order, keeping the desktop step', async ($, on)
     expect(seen.map(s => s.word)).toEqual([STARTING[0], THINKING[0], tool(THINKING[1]), THINKING[1], THINKING[1]])
     expect(seen.every(s => s.message === null && s.suffix === '')).toBe(true)
   }
+})
+
+test('a subagent plays the long group, then thinking returns', async ($, on) => {
+  mock.clock(on, { now: 0 })
+  answerTurns(on)
+  const seen: string[] = []
+  on('ui.render', { component: 'Spinner' }, async ($, e) => {
+    seen.push(e.props.word)
+    const { Text } = $.ui.resolve(e)
+
+    return <Text>{e.props.word}</Text>
+  })
+  // Stands for the engine running the subagent: the spinner draws meanwhile.
+  on('tool.call', async (_engine, e) => {
+    await $.ui.render(spinner('terminal', 'tool-use'))
+
+    return { tool: e.tool, tool_use_id: e.tool_use_id, result: { content: 'done' } } as never
+  })
+
+  await $.turn.start({ text: 'hi', turnId: 't' })
+  await $.ui.render(spinner('terminal', 'thinking'))
+  await $.tool.call({ tool: 'Agent', description: 'look', prompt: 'look around', subagent_type: 'Explore' } as never)
+  await $.ui.render(spinner('terminal', 'thinking'))
+
+  expect(seen).toEqual([THINKING[0], LONG[0], THINKING[0]])
+})
+
+test('compacting plays the long group', async ($, on) => {
+  mock.clock(on, { now: 0 })
+  answerTurns(on)
+  on('classic.PreCompact', async () => ({}))
+  on('classic.PostCompact', async () => ({}))
+  const seen: string[] = []
+  on('ui.render', { component: 'Spinner' }, async ($, e) => {
+    seen.push(e.props.word)
+    const { Text } = $.ui.resolve(e)
+
+    return <Text>{e.props.word}</Text>
+  })
+
+  await $.turn.start({ text: 'hi', turnId: 't' })
+  await $.classic.PreCompact({ trigger: 'auto', custom_instructions: null } as never)
+  await $.ui.render(spinner('desktop', 'thinking'))
+  await $.classic.PostCompact({ trigger: 'auto', compact_summary: '' } as never)
+  await $.ui.render(spinner('desktop', 'thinking'))
+
+  expect(seen).toEqual([LONG[0], THINKING[0]])
 })
 
 test('tashkeel off strips the marks', { options: { thikrTashkeel: false } }, async ($, on) => {
@@ -96,7 +143,7 @@ test('/thikr shows status and help', async $ => {
     presentation: { isFullscreen: false, columns: 80 },
   })
 
-  expect(ran.text).toContain('thikr on · speed 3s · tashkeel on · end on')
+  expect(ran.text).toContain('thikr on · speed auto · tashkeel on · end on')
   expect(ran.text).toContain('/thikr speed')
 })
 
@@ -108,7 +155,7 @@ test('/thikr speed refuses out-of-range values', async $ => {
     presentation: { isFullscreen: false, columns: 80 },
   })
 
-  expect(ran.text).toContain('from 1 to 60')
+  expect(ran.text).toContain('auto, or a whole number of seconds from 1 to 60')
 })
 
 test('a usage limit shows hasbiyallah above the prompt until it resets', async ($, on) => {

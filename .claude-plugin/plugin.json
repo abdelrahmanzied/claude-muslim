@@ -21,12 +21,10 @@
       "default": true
     },
     "thikrSpeed": {
-      "type": "number",
-      "title": "Thikr speed (seconds)",
-      "description": "Seconds each phrase stays, 1 to 60",
-      "default": 3,
-      "min": 1,
-      "max": 60
+      "type": "string",
+      "title": "Thikr speed",
+      "description": "auto (1s + 0.6s per word), or whole seconds per phrase from 1 to 60",
+      "default": "auto"
     },
     "thikrTashkeel": {
       "type": "boolean",

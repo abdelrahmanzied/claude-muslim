@@ -30,12 +30,20 @@ While Claude works, a thikr phrase joins its working line (the Spinner). Claude'
 
 ### Moments and phrases
 
-A turn opens with the starting phrases, then the thinking order plays on through thinking, tools and writing, one phrase per `speed` seconds (default 3).
+A turn opens with the starting phrases, then the thinking order plays on through thinking, tools and writing. While Claude waits on something long, the long group plays instead, and thinking returns when it ends.
 
-| Moment | Spinner modes | Phrases |
+| Moment | When | Phrases |
 | --- | --- | --- |
-| Starting | first `requesting` of a turn | بسم الله · رب اشرح لي صدري ويسر لي أمري · رب يسر ولا تعسر |
-| Thinking | everything after: `thinking`, tools, `responding`, later `requesting` | سبحان الله · الحمد لله · لا إله إلا الله · الله أكبر · لا حول ولا قوة إلا بالله العلي العظيم · سبحان الله وبحمده سبحان الله العظيم · أستغفر الله · رب زدني علما · اللهم علمنا ما ينفعنا · توكلت على الله · لا إله إلا أنت سبحانك إني كنت من الظالمين · اللهم إنك عفو تحب العفو فاعف عنا · ربنا آتنا في الدنيا حسنة وفي الآخرة حسنة وقنا عذاب النار · يا حي يا قيوم برحمتك أستغيث · اللهم صل على محمد |
+| Starting | first `requesting` of a turn | بسم الله · توكلت على الله · رب اشرح لي صدري ويسر لي أمري · رب يسر ولا تعسر |
+| Thinking | everything after: `thinking`, tools, `responding`, later `requesting` | سبحان الله · الحمد لله · لا إله إلا الله · الله أكبر · لا حول ولا قوة إلا بالله العلي العظيم · سبحان الله وبحمده سبحان الله العظيم · أستغفر الله · رب زدني علما · اللهم علمنا ما ينفعنا · اللهم صل على محمد |
+| Long | compacting (`PreCompact` → `PostCompact`), a subagent at work (`Agent` tool call), or any tool running 10 s or more | لا إله إلا أنت سبحانك إني كنت من الظالمين · اللهم إنك عفو تحب العفو فاعف عنا · ربنا آتنا في الدنيا حسنة وفي الآخرة حسنة وقنا عذاب النار · يا حي يا قيوم برحمتك أستغيث |
+
+Each group starts from its first phrase when it begins and loops in order.
+
+### Speed
+
+- **auto** (default): each phrase stays for its reading time, 1 s + 0.6 s per word. سبحان الله stays 2.2 s; ربنا آتنا … 9.4 s.
+- **fixed**: `/thikr speed <1-60>` gives every phrase the same seconds. `/thikr speed auto` goes back.
 
 Full text with tashkeel: `src/features/thikr/phrases.ts`.
 
@@ -49,7 +57,7 @@ Full text with tashkeel: `src/features/thikr/phrases.ts`.
 | `/config` field | Command | Default |
 | --- | --- | --- |
 | `thikr` | `/thikr on` · `/thikr off` | on |
-| `thikrSpeed` | `/thikr speed <1-60>` | 3 |
+| `thikrSpeed` | `/thikr speed auto` · `/thikr speed <1-60>` | auto |
 | `thikrTashkeel` | `/thikr tashkeel on` · `off` | on |
 | `thikrEnd` | `/thikr end on` · `off` | on |
 
