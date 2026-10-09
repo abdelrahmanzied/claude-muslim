@@ -1,9 +1,8 @@
 // The thikr line's phrases, each group played in this order.
 // STARTING opens a turn; THINKING plays through thinking and tools; WRITING
-// while Claude writes the answer;
-// LONG plays while Claude waits on something long (a long tool run, a
-// subagent, compacting). Original Arabic with tashkeel; display may strip
-// the marks, never the words.
+// while Claude writes the answer; LONG while Claude waits on something long
+// (a long tool run, a subagent, compacting). Original Arabic with tashkeel;
+// display may strip the marks, never the words.
 
 export const STARTING = [
   'بِسْمِ اللَّهِ',
