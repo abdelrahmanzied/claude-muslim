@@ -45,10 +45,13 @@ Then start Claude Code, or run `/reload-plugins` in a session that is already op
 
 Answer `y` to add the marketplace, then pick the user scope.
 
-**Inside any session, desktop app or terminal:** paste this prompt to Claude.
+**Inside any session, desktop app or terminal:** paste this prompt to Claude. It installs the mod, or updates it if it is already installed.
 
 ```text
-Install the Claude Code plugin "muslim": run `claude plugin marketplace add abdelrahmanzied/claude-muslim`, then `claude plugin install muslim@claude-muslim`. Show me the output, then tell me to run /reload-plugins.
+Set up the Claude Code plugin "muslim" for all my sessions (user scope):
+1. Run `claude plugin marketplace list`. If `claude-muslim` is not listed, run `claude plugin marketplace add abdelrahmanzied/claude-muslim`; otherwise run `claude plugin marketplace update claude-muslim`.
+2. Run `claude plugin list`. If `muslim@claude-muslim` is not installed, run `claude plugin install muslim@claude-muslim --scope user`; otherwise run `claude plugin update muslim@claude-muslim`.
+3. Show me what each step printed, then tell me to run /reload-plugins.
 ```
 
 Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows the installed version.
@@ -82,11 +85,7 @@ claude plugin update muslim@claude-muslim
 
 Then restart Claude Code, or run `/reload-plugins` in an open session.
 
-**Inside any session, desktop app or terminal:** paste this prompt to Claude.
-
-```text
-Update the Claude Code plugin "muslim": run `claude plugin marketplace update claude-muslim`, then `claude plugin update muslim@claude-muslim`. Show me the output, then tell me to run /reload-plugins.
-```
+**Inside any session, desktop app or terminal:** paste the same prompt from [Install](#install). It updates the mod when it is already installed.
 
 `/muslim` shows the version you are running; `CHANGELOG.md` lists what changed.
 
