@@ -1,14 +1,14 @@
 # Design system — muslim mod
 
-The shared base every feature follows, and the index to each feature's own design. Each feature owns its design: its moments, surfaces and visual means live in `docs/features/<feature>.md`. Read this before designing a new feature, then the docs of the features you touch.
+The shared base every feature follows, and the index to each feature's own design. Each feature owns its design: its spec is `docs/features/<feature>.md` and its design (surfaces, visual means, requirements) is `docs/features/<feature>-design.md`. Read this before designing a new feature, then the docs of the features you touch.
 
 ## Feature index
 
-| Feature | Command | Design and spec | Status |
-| --- | --- | --- | --- |
-| Thikr line | `/thikr` | [docs/features/thikr.md](docs/features/thikr.md) | 0.2.0 |
-| Salah | `/salah` | [docs/features/salah.md](docs/features/salah.md) | 0.3.0 |
-| Morning and evening athkar | `/athkar` | in progress in another branch | planned |
+| Feature | Command | Spec | Design | Status |
+| --- | --- | --- | --- | --- |
+| Thikr line | `/thikr` | [thikr.md](docs/features/thikr.md) | [thikr-design.md](docs/features/thikr-design.md): text only | 0.2.0 |
+| Salah | `/salah` | [salah.md](docs/features/salah.md) | [salah-design.md](docs/features/salah-design.md): text, richer adhan moment | 0.3.0 |
+| Morning and evening athkar | `/athkar` | in progress in another branch | in progress | planned |
 
 Everything below is shared by every feature. A feature's doc may add to it, never contradict it.
 
@@ -20,11 +20,11 @@ Everything below is shared by every feature. A feature's doc may add to it, neve
 4. **No scores.** We never count the user's worship, show streaks, rewards or guilt. Counting exists only where the user counts themselves (athkar reader), and stays private on their machine.
 5. **One feature, one switch.** Every feature can be turned off on its own, in `/config` and by its command. Off means its hooks do nothing.
 
-6. **Each feature owns its visual means.** Text in Claude's font, size and colors is the default. A feature may use richer means (images, SVG, animation) only where its doc says so and why. Anything drawn must work on every surface the feature targets, with a text fallback in the terminal when the richer surface is desktop-only, and must follow the theme and zoom.
+6. **Each feature owns its visual means.** Text in Claude's font, size and colors is the default. A feature may use richer means (images, SVG, animation) only where its design doc says so and why. Anything drawn must work on every surface the feature targets, with a text fallback in the terminal when the richer surface is desktop-only, and must follow the theme and zoom.
 
 ## 2. Surfaces
 
-Pick the lightest surface that does the job. Each comes from the mod API (`/plugin-authoring` types are the reference). Each feature's doc states which surfaces and visual means it uses and why.
+Pick the lightest surface that does the job. Each comes from the mod API (`/plugin-authoring` types are the reference). Each feature's design doc states which surfaces and visual means it uses and why.
 
 | Surface | What it is | Use for | Example |
 | --- | --- | --- | --- |
@@ -32,11 +32,11 @@ Pick the lightest surface that does the job. Each comes from the mod API (`/plug
 | TurnDuration | Line closing a turn (terminal) | One short phrase; keep Claude's duration | تَمَّ بِحَمْدِ اللَّهِ |
 | AbovePrompt band | Rows above the input | A suggestion or notice that needs to be seen; at most one line unless it is a reader | Usage limit, after-prayer suggestion, athkar reader |
 | Status line | `$.ui.status`, under the prompt | Always-on, glanceable fact; plain text, no color | Next prayer time |
-| Toast | `$.ui.toast` | One-off confirmation after an action | "speed 3s" (prefer command reply) |
-| Notification | `$.ui.notify` | Only for time-critical moments the user opted into | Prayer time |
+| Toast | `$.ui.toast` | One-off confirmation after an action, or a timed reminder inside the app | "speed 3s" (prefer command reply), prayer reminder |
+| Notification | `$.ui.notify` | Not used: OS banners show in meetings and screen shares; use the status line or a toast | — |
 | Command reply | `command.run` → `{ text }` | Status, help, changing settings | `/thikr` |
 
-Richer surfaces (Pane, Image, Svg, Raster, Client modules) are chosen per feature in its doc, not here. Passive content does not get a Pane.
+Richer surfaces (Pane, Image, Svg, Raster, Client modules) are chosen per feature in its design doc, not here. Passive content does not get a Pane.
 
 ## 3. Color
 
@@ -53,7 +53,7 @@ Never use `error` or `warning` for religious text.
 
 ## 4. Typography and Arabic
 
-- **Font and size:** text uses Claude's own, which we cannot change. A feature that draws states its own choices in its doc.
+- **Font and size:** text uses Claude's own, which we cannot change. A feature that draws states its own choices in its design doc.
 - **Tashkeel:** on by default; each feature respects a `…Tashkeel` setting through `display(text, tashkeel)`.
 - **Direction:** a line that starts with Arabic is read right to left by the surface. When Claude's own Latin text or numbers sit in the same line, keep them as a separate run (e.g. a separator `·`), and never convert Claude's numbers.
 - **Our numbers** (counts, times we compute) use Arabic-Indic digits (`١٥:٢٤`, `٢/٣`) inside Arabic lines.
@@ -87,7 +87,8 @@ src/features/<feature>/
   phrases.ts      authored text (or data.ts)
   *.ts            pure logic, no $
 tests/<feature>/  unit tests for pure logic + engine tests on terminal and desktop
-docs/features/<feature>.md   the feature's spec
+docs/features/<feature>.md          the feature's spec
+docs/features/<feature>-design.md   the feature's design
 ```
 
 Wire it in `hooks/register.tsx` (`install<Feature>(on, settings)`), register its command there, add its fields to `plugin.json` `userConfig` and `src/config.ts`, declare any `$.state` values in `types/index.d.ts`.
@@ -95,7 +96,7 @@ Wire it in `hooks/register.tsx` (`install<Feature>(on, settings)`), register its
 ## 9. New feature checklist
 
 - [ ] Fits the shared base above; uses the lightest surface that does the job.
-- [ ] The feature doc has a Design section: surfaces, visual means, why, and the fallback where a surface is desktop-only.
+- [ ] `docs/features/<feature>-design.md` written: surfaces, visual means, why, and the fallback where a surface is desktop-only; linked from the index above and from the spec's Design section.
 - [ ] Spec added to `docs/features/<feature>.md` (moments, phrases with sources, settings).
 - [ ] Phrases reviewed by a person; sources noted.
 - [ ] Off switch in `/config` and the command; off leaves Claude untouched.

@@ -1,12 +1,12 @@
 # Design — muslim mod
 
-Each feature's spec lives in its own file under `docs/features/`. This page is a short index. [DESIGN.md](../DESIGN.md) is the main entry: shared base, surfaces, colors and checklist. Each feature's doc owns its own design.
+Each feature has a spec (`docs/features/<feature>.md`) and a design (`docs/features/<feature>-design.md`). This page is a short index. [DESIGN.md](../DESIGN.md) is the main entry: shared base, surfaces, colors and checklist.
 
-| Feature | Command | Spec | Status |
-| --- | --- | --- | --- |
-| Thikr line | `/thikr` | [features/thikr.md](features/thikr.md) | 0.2.0 |
-| Salah | `/salah` | [features/salah.md](features/salah.md) | 0.3.0 |
-| Morning and evening athkar | `/athkar` | in progress in another branch | planned |
+| Feature | Command | Spec | Design | Status |
+| --- | --- | --- | --- | --- |
+| Thikr line | `/thikr` | [features/thikr.md](features/thikr.md) | [features/thikr-design.md](features/thikr-design.md) | 0.2.0 |
+| Salah | `/salah` | [features/salah.md](features/salah.md) | [features/salah-design.md](features/salah-design.md) | 0.3.0 |
+| Morning and evening athkar | `/athkar` | in progress in another branch | in progress | planned |
 
 Cross-cutting issues: languages (#1), Arabic in terminals that don't shape (#3).
 

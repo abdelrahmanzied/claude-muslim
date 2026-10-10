@@ -52,11 +52,9 @@ Prayer times for the user's city, calculated on their machine with
 | `salahMethod` | `/salah method <name>` | auto |
 | `salahAdjust` | `/salah adjust` · `/salah adjust <prayer> <±min>` | `0 0 0 0 0 0` |
 
-
 ## Design
 
-- **Status line and bands are text**, in Claude's font, size and theme colors.
-- **The adhan moment's look is open.** Animation and art (a minaret, mosque or crescent), drawn richer on desktop only with a terminal text fallback, are being chosen in a design lab. Until decided, the moment stays text.
+Surfaces, the adhan moment's look and what salah never does: [salah-design.md](salah-design.md).
 
 ## Files
 
