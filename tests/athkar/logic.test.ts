@@ -110,6 +110,8 @@ test('the band grows with its text and shrinks with the width', async () => {
   expect(long).toBeGreaterThan(bandHeight({ phase: 'reading', thikrId: '98', period: 'morning', times: 10 }, 900))
   expect(bandHeight({ phase: 'reading', thikrId: '75', period: 'morning', times: 1 }, 500)).toBeGreaterThan(long)
   expect(bandHeight({ phase: 'done', thikrId: '75', period: 'morning', times: 1 }, 900)).toBe(56)
+  // A larger text size wraps sooner and takes taller lines.
+  expect(bandHeight({ phase: 'reading', thikrId: '75', period: 'morning', times: 1, textSize: 24 }, 900)).toBeGreaterThan(long)
 })
 
 test('clicks on the picture find the × and the 10 | 100 switch', async () => {

@@ -109,6 +109,7 @@ On every sky: open circles ringed in the main color, done circles filled with a 
 | `athkar` | `/athkar on` · `off` | on |
 | `athkarStyle` | `/athkar style sky` · `sand` · `outline` | sky |
 | `athkarColor` | `/athkar color orange` · `green` · `gold` · `blue` | orange |
+| `athkarSize` | `/athkar size 12` … `28` | 16 |
 
 `/athkar morning reset` · `/athkar evening reset` start that period again. `/athkar` shows the status and help.
 

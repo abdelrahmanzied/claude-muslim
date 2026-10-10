@@ -11,6 +11,7 @@ export type Options = {
   athkar: boolean
   athkarStyle: Style
   athkarColor: Accent
+  athkarSize: number
 }
 
 // `all`: every group in turn; `salawat`: one salawat for the whole turn.
@@ -28,7 +29,19 @@ export const readOptions = (raw: Record<string, unknown>): Options => ({
   athkar: raw.athkar !== false,
   athkarStyle: raw.athkarStyle === 'sand' || raw.athkarStyle === 'outline' ? raw.athkarStyle : 'sky',
   athkarColor: raw.athkarColor === 'green' || raw.athkarColor === 'gold' || raw.athkarColor === 'blue' ? raw.athkarColor : 'orange',
+  athkarSize: readSize(raw.athkarSize),
 })
+
+export const SIZE_MIN = 12
+export const SIZE_MAX = 28
+export const SIZE_DEFAULT = 16
+
+// The athkar's text size in pixels, whole, from SIZE_MIN to SIZE_MAX; anything else is the default.
+export const readSize = (value: unknown): number => {
+  const size = Number(value)
+
+  return Number.isInteger(size) && size >= SIZE_MIN && size <= SIZE_MAX ? size : SIZE_DEFAULT
+}
 
 // `auto`, or whole seconds from SPEED_MIN to SPEED_MAX; anything else is auto.
 export const readSpeed = (value: unknown): Speed => {

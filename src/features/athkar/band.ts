@@ -12,6 +12,8 @@ import { TEXT_WIDTH } from './metrics.ts'
 export type Phase = 'cover' | 'reading' | 'done'
 
 export type BandModel = {
+  // The text's size in pixels; 16 when absent.
+  textSize?: number
   phase: Phase
   period: Period
   sky: Sky
@@ -98,7 +100,7 @@ const EXTRA_CSS = `
 .band.line { padding: calc(10px + var(--ay, 0px)) calc(14px + var(--ax, 0px)); }
 .band.card { padding: calc(12px + var(--ay, 0px)) calc(16px + var(--ax, 0px)); }
 .band { min-height: 100%; }
-.band[data-band] .text, .band.line .text { font-size: 16px !important; max-height: none; overflow: visible; }
+.band[data-band] .text, .band.line .text { font-size: var(--fs, 16px) !important; max-height: none; overflow: visible; }
 .pglow b { animation: glowTo .7s cubic-bezier(.2, .8, .2, 1) both; }
 @keyframes glowTo { from { width: var(--from); } }
 .endfx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; border-radius: inherit; }
@@ -198,7 +200,7 @@ export const bandHtml = (m: BandModel) => {
   const f = frameOf(m)
   const card = m.card ? `;--ax:${f.addX}px;--ay:${f.addY}px;border-radius:10px` : ''
 
-  return `<div class="${bandClasses(m)}" data-band="" style="--t:${t}${card}"><span class="x xabs">×</span>${inner}${fx}${glow}${end}</div>`
+  return `<div class="${bandClasses(m)}" data-band="" style="--t:${t};--fs:${m.textSize ?? 16}px${card}"><span class="x xabs">×</span>${inner}${fx}${glow}${end}</div>`
 }
 
 export const bandSvg = (m: BandModel) => {
@@ -219,15 +221,17 @@ export const bandSvg = (m: BandModel) => {
 }
 
 // The band's height in CSS pixels at a width, as the lab lays it out.
-export const bandHeight = (m: Pick<BandModel, 'phase' | 'thikrId' | 'period' | 'times'>, width: number) => {
+export const bandHeight = (m: Pick<BandModel, 'phase' | 'thikrId' | 'period' | 'times' | 'textSize'>, width: number) => {
   if (m.phase === 'done') return 56
   const widths = TEXT_WIDTH[m.thikrId]
   const lines = m.period === 'evening' && widths?.e ? widths.e : widths?.m ?? [width]
   const room = Math.max(120, width - 32)
   // Words wrap a little short of the full width.
-  const rows = lines.reduce((sum, w) => sum + Math.max(1, Math.ceil((w * 1.05) / room)), 0)
+  // Widths are measured at 16px; a line is 1.9 times the text's size.
+  const scale = (m.textSize ?? 16) / 16
+  const rows = lines.reduce((sum, w) => sum + Math.max(1, Math.ceil((w * scale * 1.05) / room)), 0)
   const circles = m.times > 10 ? 30 : 24
-  const reading = Math.ceil(22 + rows * 30.4 + 4 + circles + 6)
+  const reading = Math.ceil(22 + rows * 30.4 * scale + 4 + circles + 6)
 
   return m.phase === 'cover' ? Math.max(76, reading) : reading
 }

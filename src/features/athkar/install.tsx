@@ -3,6 +3,7 @@ import type { EngineInterface, On } from 'claude-code'
 
 import type { Day } from '../../../types'
 import type { Options } from '../../config.ts'
+import { readSize } from '../../config.ts'
 import { display } from '../thikr/rotation.ts'
 import { bandHeight, frameOf } from './band.ts'
 import type { BandModel } from './band.ts'
@@ -26,6 +27,7 @@ const HELP = [
   '/athkar morning | evening reset  read that period again from the start',
   '/athkar style sky | sand | outline',
   '/athkar color orange | green | gold | blue',
+  '/athkar size 12 … 28                text size in pixels, 16 by default',
 ].join('\n')
 
 // The width of a cell on the desktop in CSS pixels: the band picture is sized
@@ -194,7 +196,7 @@ export const install = (on: On, options: Options) => {
 
       return {
         text: [
-          `athkar ${options.athkar ? 'on' : 'off'} · style ${options.athkarStyle} · color ${options.athkarColor}`,
+          `athkar ${options.athkar ? 'on' : 'off'} · style ${options.athkarStyle} · color ${options.athkarColor} · size ${options.athkarSize}`,
           `${statusOf(day, 'morning')} · ${statusOf(day, 'evening')}`,
           '',
           HELP,
@@ -204,6 +206,7 @@ export const install = (on: On, options: Options) => {
     if (word === 'on' || word === 'off') return set('athkar', word === 'on', `athkar ${word}`)
     if (word === 'style' && isStyle(value)) return set('athkarStyle', value, `style ${value}`)
     if (word === 'color' && isColor(value)) return set('athkarColor', value, `color ${value}`)
+    if (word === 'size' && readSize(value) === Number(value)) return set('athkarSize', value, `size ${value}px`)
     if (isPeriod(word) && value === 'reset') {
       const { day } = await today($)
       await save($, { ...day, [word]: emptyReading() })
@@ -352,6 +355,7 @@ export const install = (on: On, options: Options) => {
       period,
       sky,
       style: options.athkarStyle,
+      textSize: options.athkarSize,
       accent: options.athkarColor,
       isDark,
       isActive: view.isActive,
