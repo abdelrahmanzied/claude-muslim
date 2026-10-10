@@ -104,6 +104,11 @@ const EXTRA_CSS = `
 .endfx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; border-radius: inherit; }
 .fall { position: absolute; top: -30px; color: var(--ring); animation: fall linear forwards; opacity: .9; }
 @keyframes fall { to { transform: translateY(var(--dy)) rotate(var(--rot)); opacity: 0; } }
+/* Sand and Outline: at rest the app's own quiet line; lit, the accent line
+   and the glow breathing inside the edge, since the picture ends at it. */
+.band.band.al-breathe:not(.active) { border-color: var(--desk-line) !important; }
+.band.band.al-breathe.active { border-color: var(--b-acc) !important; animation: breatheIn 5.5s ease-in-out infinite; animation-delay: var(--t, 0s); }
+@keyframes breatheIn { 0%, 100% { box-shadow: inset 0 0 12px 0 color-mix(in srgb, var(--b-acc) 18%, transparent); } 50% { box-shadow: inset 0 0 26px 2px color-mix(in srgb, var(--b-acc) 38%, transparent); } }
 `
 
 const DIGITS = '٠١٢٣٤٥٦٧٨٩'
