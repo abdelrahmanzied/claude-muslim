@@ -38,7 +38,7 @@ test('93 is merged into 92; each period has its own thikrs and wording', async (
   expect(evening).not.toContain('94')
   const t77 = ATHKAR.find(t => t.id === '77')!
   expect(textOf(t77, 'evening').startsWith('أَمْسَيْنَا')).toBe(true)
-  expect(ATHKAR.filter(t => t.choices).map(t => t.id)).toEqual(['92'])
+  expect(ATHKAR.filter(t => t.choices).map(t => t.id)).toEqual([])
 })
 
 test('counting fills the thikr, moves on past its end, and back undoes', async () => {
@@ -61,12 +61,6 @@ test('progress gives each thikr an equal share, partial counts included', async 
   const n = listFor('morning').length
   const r: Reading = { ...emptyReading(), counts: { '75': 1, '91': 50 } }
   expect(Math.abs(overall('morning', r) - 1.5 / n)).toBeLessThan(1e-9)
-})
-
-test('a picked count replaces the thikr\'s times, and only its own choices', async () => {
-  const at92 = { ...emptyReading(), index: listFor('morning').findIndex(t => t.id === '92') }
-  expect(step('morning', at92, { act: 'choose', times: 100 }).choices['92']).toBe(100)
-  expect(step('morning', at92, { act: 'choose', times: 7 }).choices['92']).toBeUndefined()
 })
 
 test('the last thikr counted to its end finishes the period', async () => {
