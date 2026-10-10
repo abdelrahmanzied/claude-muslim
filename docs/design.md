@@ -82,3 +82,7 @@ Full text with tashkeel: `src/features/thikr/phrases.ts`.
 - Desktop: step text and thikr side by side read well at narrow widths.
 - End-of-turn line: how Claude joins the word and the duration (e.g. "… for 3s") in an RTL phrase.
 - Arabic joining and direction per terminal: issue #3.
+
+## Prayer times (0.3.0)
+
+Spec, flow, settings and data sources: [src/features/salah/README.md](../src/features/salah/README.md).

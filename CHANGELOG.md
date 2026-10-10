@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0
+
+- Prayer times (`/salah`): calculated on the machine with adhan-js, no location service or API. The first prompt after install offers the city named by the time zone, or any city typed in any language (Claude reads it into coordinates). Each country's official Sunni method, else Muslim World League; Asr by the majority.
+- Review form: today's times with − and + per prayer to match the user's mosque.
+- Status line: the next prayer in Arabic, a countdown in the 20 minutes before it, and حان وقت صلاة … once it is in. One notification 20 minutes before each prayer and before sunrise.
+- Settings in `/config`: `salah`, `salahNotify`, `salahPlace`, `salahMethod`, `salahAdjust`.
+
 ## 0.2.0
 
 - Thikr line: tasabih join Claude's working line: starting phrases, then a thinking order through tools, a writing pair while Claude answers, and a long group while compacting, a subagent works, or a tool runs 10 s or more. Starting phrase random per turn. Speed auto (1 s + 0.5 s per word) by default, or fixed seconds. Claude's step text on desktop and any status message stay, with the thikr after them; the terminal's decorative verb is replaced.

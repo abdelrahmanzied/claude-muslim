@@ -19,7 +19,11 @@ A thikr phrase joins Claude's working line (the spinner). Claude's step, timer a
 
 **Salawat mode:** `/thikr mode salawat` shows one salawat on the Prophet ﷺ for each whole request, a different one each request.
 
-More features are planned: morning and evening athkar, and prayer times.
+### Prayer times (`/salah`)
+
+The next prayer under the prompt (`☾ العصر ١٥:٥٩`), a countdown in the 20 minutes before it, and one notification. Calculated on your machine; on first use the mod offers the city of your time zone, or any city you type in any language, then shows today's times so you can match them to your mosque. Details: [src/features/salah/README.md](src/features/salah/README.md).
+
+More features are planned: morning and evening athkar.
 
 ## Install
 
@@ -67,6 +71,11 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/thikr tashkeel on` · `off` | Show or hide diacritics |
 | `/thikr end on` · `off` | تَمَّ بِحَمْدِ اللَّهِ at the end of a turn |
 | `/thikr mode all` · `salawat` | Every group in turn, or one salawat per request |
+| `/salah` | Today's prayer times and help |
+| `/salah setup` · `city <name>` | Pick your city, in any language |
+| `/salah adjust` | Match today's times to your mosque, a minute at a time |
+| `/salah method <name>` | `auto` (your country's own) or a named method |
+| `/salah on` · `off` · `notify on` · `off` | The status line, and the notification before each prayer |
 | `/muslim` | Show the installed version |
 
 Every setting is also in `/config`.
@@ -137,7 +146,7 @@ hooks/
 src/
   constants.ts       shared constants
   config.ts          typed userConfig options
-  features/<name>/   one folder per feature: install.tsx (hooks), phrases and pure logic
+  features/<name>/   one folder per feature: install.tsx (hooks), phrases, pure logic, README
 types/
   index.d.ts         $.state contract
 tests/               *.test.ts, run by `claude plugin test .`
