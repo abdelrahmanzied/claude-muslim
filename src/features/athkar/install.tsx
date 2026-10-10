@@ -4,10 +4,12 @@ import type { EngineInterface, On } from 'claude-code'
 import type { Day } from '../../../types'
 import type { Options } from '../../config.ts'
 import { display } from '../thikr/rotation.ts'
-import { ADVANCE_MS, countOf, currentOf, dayOf, emptyReading, isAct, listFor, periodAt, readDay, shouldAdvance, skyAt, step, timesOf } from './logic.ts'
-import type { Act } from './logic.ts'
+import { bandHeight, frameOf } from './band.ts'
+import type { BandModel } from './band.ts'
 import type { Period } from './data.ts'
-import { ACCENTS, lookFor, readerProps, skySvg } from './look.ts'
+import { ADVANCE_MS, countOf, currentOf, dayOf, emptyReading, END, listFor, overall, periodAt, readDay, shouldAdvance, skyAt, step, textOf, timesOf, TITLE } from './logic.ts'
+import type { Act } from './logic.ts'
+import { ACCENTS, lookFor, plain, readerProps } from './look.ts'
 import type { Accent, Style } from './look.ts'
 
 const dayRef = atom({ plugin: 'muslim', key: 'athkar' } as const, null as Day | null)
@@ -26,9 +28,17 @@ const HELP = [
   '/athkar color orange | green | gold | blue',
 ].join('\n')
 
-// Rough size of a cell on the desktop, in CSS pixels, to size the sky picture.
-const CELL_WIDTH = 8.4
-const CELL_HEIGHT = 20
+// The width of a cell on the desktop in CSS pixels: the band picture is sized
+// from the columns it is given.
+const CELL_PX = 8.4
+// A line on the desktop in CSS pixels.
+const LINE_PX = 20
+// How long the progress glow slides to a new value.
+const GLOW_MS = 700
+// A focus change this soon after a press on the band is the press's own.
+const FOCUS_GRACE_MS = 600
+// Faded again after this long with no input.
+const IDLE_MS = 90_000
 
 const isStyle = (value: string): value is Style => (STYLES as readonly string[]).includes(value)
 const isColor = (value: string): value is Accent => (COLORS as readonly string[]).includes(value)
@@ -70,9 +80,84 @@ const advance = async ($: EngineInterface, period: Period, index: number) => {
   await save($, { ...day, [period]: step(period, reading, { act: 'next' }) })
 }
 
+// One step of today's reading, saved; after a count that ends a thikr, the
+// next one shows by itself.
+const apply = async ($: EngineInterface, act: Act) => {
+  const { now, day } = await today($)
+  const period = periodAt(now.getHours())
+  const before = day[period]
+  const after = step(period, before, act)
+  await save($, { ...day, [period]: after })
+  if (act.act === 'count' && shouldAdvance(period, before, after)) {
+    $.clock.after(ADVANCE_MS, () => void advance($, period, after.index))
+  }
+}
+
+// What the reader posts: every click and key, and its size.
+type Message =
+  | { act: 'pointer'; button: 'left' | 'middle' | 'right'; x: number; y: number; columns?: number; rows?: number }
+  | { act: 'key'; key: string }
+  | { act: 'size'; columns: number; rows: number }
+  | { act: 'hide' }
+  | { act: 'choose'; times: number }
+
+const isMessage = (value: unknown): value is Message => {
+  if (!value || typeof value !== 'object') return false
+  const m = value as Record<string, unknown>
+  if (m.act === 'pointer') return typeof m.x === 'number' && typeof m.y === 'number'
+  if (m.act === 'key') return typeof m.key === 'string'
+  if (m.act === 'size') return typeof m.columns === 'number' && typeof m.rows === 'number'
+  if (m.act === 'choose') return typeof m.times === 'number'
+
+  return m.act === 'hide'
+}
+
+// Where the picture's controls sit, in CSS pixels as the band lays them out:
+// the × at the top left; the 10 | 100 switch after the circles, on the last row.
+type Hit = { x0: number; x1: number; y0: number; y1: number; act: Act }
+
+export const hitsFor = (m: Pick<BandModel, 'phase' | 'times' | 'choices' | 'height'>): Hit[] => {
+  const hits: Hit[] = [{ x0: 0, x1: 34, y0: 0, y1: 30, act: { act: 'hide' } }]
+  if (m.phase !== 'reading' || m.choices.length < 2) return hits
+  const circles = m.times > 10 ? 10 * 28 + 9 * 4 : m.times * 22 + (m.times - 1) * 4
+  const x = 16 + circles + 10
+  const y0 = m.height - 44
+  const y1 = m.height - 8
+  // Right to left: the first choice, then the second.
+  hits.push({ x0: x + 28, x1: x + 58, y0, y1, act: { act: 'choose', times: m.choices[0] ?? 10 } })
+  hits.push({ x0: x - 2, x1: x + 28, y0, y1, act: { act: 'choose', times: m.choices[1] ?? 100 } })
+
+  return hits
+}
+
+// This session's view: past the cover, lit, and when it fades.
+const view = { isOpen: false, isActive: false, idle: undefined as { cancel: () => void } | undefined, pressedAt: 0 }
+
+// Lights the band, and fades it again after a while with no input.
+const wake = ($: EngineInterface) => {
+  view.isActive = true
+  view.idle?.cancel()
+  view.idle = $.clock.after(IDLE_MS, () => {
+    view.isActive = false
+    $.ui.invalidate('ui.render')
+  })
+  $.ui.invalidate('ui.render')
+}
+
 export const install = (on: On, options: Options) => {
   // The sky follows the clock, and the period and the day turn on it.
   let clock: { cancel: () => void } | undefined
+  // The glow eases from where it last stood.
+  let glowAt = -1
+  let glowFrom = 0
+  // When the glow last moved: every redraw is a new picture, so it slides only just after.
+  let glowSince = 0
+  let isStatusCleared = false
+  // The picture last drawn and the reader's region over it, for its clicks.
+  let lastBand: BandModel | undefined
+  let region = { columns: 0, rows: 0 }
+  view.isOpen = false
+  view.isActive = false
 
   on('command.run', { command: 'athkar' }, async ($, e) => {
     const [word = '', value = ''] = e.args.trim().split(/\s+/)
@@ -102,6 +187,7 @@ export const install = (on: On, options: Options) => {
     if (isPeriod(word) && value === 'reset') {
       const { day } = await today($)
       await save($, { ...day, [word]: emptyReading() })
+      view.isOpen = false
 
       return { text: `${word} athkar start again from the first` }
     }
@@ -113,23 +199,81 @@ export const install = (on: On, options: Options) => {
 
   on('ui.message', async ($, e, next) => {
     if (e.element !== 'athkar') return next(e)
-    if (!isAct(e.data)) return {}
-    const act: Act = e.data
-    const { now, day } = await today($)
-    const period = periodAt(now.getHours())
-    const before = day[period]
-    const after = step(period, before, act)
-    await save($, { ...day, [period]: after })
-    if (act.act === 'count' && shouldAdvance(period, before, after)) {
-      $.clock.after(ADVANCE_MS, () => void advance($, period, after.index))
+    const m = e.data
+    if (!isMessage(m)) return {}
+    if (m.act === 'size') {
+      region = { columns: m.columns, rows: m.rows }
+
+      return {}
     }
+    if (m.act === 'hide' || m.act === 'choose') {
+      await apply($, m)
+
+      return {}
+    }
+    // A click on the picture's × or 10 | 100 does that. The region is the
+    // picture, in whole cells; its last row may be cut short.
+    const columns = m.act === 'pointer' ? (m.columns ?? region.columns) : 0
+    const rows = m.act === 'pointer' ? (m.rows ?? region.rows) : 0
+    if (m.act === 'pointer') view.pressedAt = Date.now()
+    if (m.act === 'pointer' && m.button === 'left' && lastBand && columns > 0 && rows > 0) {
+      const f = frameOf(lastBand)
+      // × and 10 | 100 sit at the left, so a click is placed from the left edge.
+      const px = lastBand.card ? (m.x + 0.5) * lastBand.card.ch - f.left : ((m.x + 0.5) * f.width) / columns
+      const py = lastBand.card ? (m.y + 0.5) * lastBand.card.lh - f.top : ((m.y + 0.5) * f.height) / (rows + 0.5)
+      const hit = hitsFor(lastBand).find(h => px >= h.x0 && px <= h.x1 && py >= h.y0 && py <= h.y1)
+      if (hit) {
+        if (hit.act.act === 'hide') view.isOpen = false
+        await apply($, hit.act)
+
+        return {}
+      }
+    }
+    const { now, day } = await today($)
+    const reading = day[periodAt(now.getHours())]
+    const isBack = m.act === 'pointer' ? m.button === 'right' : m.key === 'backspace'
+    const isCount = m.act === 'pointer' ? m.button === 'left' : m.key === ' ' || m.key === 'space' || m.key === 'return'
+    if (reading.isDone) {
+      if (isBack) await apply($, { act: 'back' })
+
+      return {}
+    }
+    // The first click opens or wakes the reader; it never counts.
+    if (!view.isOpen || !view.isActive) {
+      if (!isCount) return {}
+      view.isOpen = true
+      wake($)
+
+      return {}
+    }
+    wake($)
+    if (isCount) await apply($, { act: 'count' })
+    else if (isBack) await apply($, { act: 'back' })
+    else if (m.act === 'key' && m.key === 'left') await apply($, { act: 'next' })
+    else if (m.act === 'key' && m.key === 'right') await apply($, { act: 'previous' })
 
     return {}
   })
 
+  // A click elsewhere takes the focus off the band: it fades, as at rest.
+  on('ui.focus', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (e.plugin !== 'muslim' && view.isActive && Date.now() - view.pressedAt > FOCUS_GRACE_MS) {
+      view.isActive = false
+      view.idle?.cancel()
+      $.ui.invalidate('ui.render')
+    }
+
+    return next(e)
+  })
+
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)
-    if (e.props.hasSurvey) return theirs
+    // An earlier build left a debugging line in the status bar: clear it once.
+    if (!isStatusCleared) {
+      isStatusCleared = true
+      $.ui.status(undefined)
+    }
+    if (e.props.hasSurvey || (e.surface !== 'terminal' && e.surface !== 'desktop')) return theirs
     // Read while drawing so a save draws the band again; before the first
     // save this session, the stored day.
     const held = (await read($, dayRef)) ?? (await $.store.get(STORE_KEY))
@@ -137,39 +281,76 @@ export const install = (on: On, options: Options) => {
     const now = await localNow($)
     const period = periodAt(now.getHours())
     const reading = readDay(held, dayOf(now))[period]
-    if (reading.isHidden || (e.surface !== 'terminal' && e.surface !== 'desktop')) return theirs
+    if (reading.isHidden) return theirs
 
-    const hasPicture = options.athkarStyle === 'sky' && e.surface === 'desktop'
-    const sky = skyAt(hourOf(now))
     // Light themes take the deeper main colors.
     const theme = (await $.config.list()).find(row => row.key === 'theme')
     const isDark = !String(theme?.value ?? '').includes('light')
-    const look = lookFor(options.athkarStyle, options.athkarColor, sky, isDark, hasPicture)
-    const props = readerProps(period, reading, look, text => display(text, true))
+    const isPicture = e.surface === 'desktop'
+    const sky = skyAt(hourOf(now))
+    const look = lookFor(options.athkarStyle, options.athkarColor, sky, isDark, isPicture)
+    const props = readerProps(period, reading, look, text => display(text, true), { isOpen: view.isOpen, isActive: view.isActive, isPicture })
     const { Box, Client } = $.ui.resolve(e)
-    const reader = <Client key="athkar" module="./reader.tsx" props={props} flexGrow={1} />
 
-    let band = <Box key="athkar-band" width="100%">{reader}</Box>
-    if (e.surface === 'desktop' && hasPicture) {
-      const { Svg } = $.ui.resolve(e)
-      const columns = e.props.bodyColumns
-      const lines = Math.ceil(props.text.length / Math.max(20, columns - 6)) + props.text.split('\n').length - 1
-      const rows = props.isDone ? 3 : lines + 6
-      const source = skySvg(sky, columns * CELL_WIDTH, rows * CELL_HEIGHT, props.isDone)
-      band = (
-        <Box key="athkar-band" width="100%" position="relative" overflow="hidden" backgroundColor={look.under}>
-          <Box position="absolute" top={0} left={0}>
-            <Svg source={source} alt={`${sky} sky`} isInteractive />
+    if (e.surface !== 'desktop') {
+      return (
+        <Box flexDirection="column">
+          <Box key="athkar-band" width="100%">
+            <Client key="athkar" module="./reader.tsx" props={props} flexGrow={1} />
           </Box>
-          {reader}
+          {theirs}
         </Box>
       )
     }
 
+    const thikr = currentOf(period, reading)
+    const progress = Math.round(overall(period, reading) * 1000) / 10
+    if (progress !== glowAt) {
+      glowFrom = glowAt < 0 ? progress : glowAt
+      glowAt = progress
+      glowSince = Date.now()
+    }
+    const times = timesOf(thikr, reading)
+    const width = Math.round(e.props.bodyColumns * CELL_PX)
+    const model: BandModel = {
+      phase: props.phase,
+      period,
+      sky,
+      style: options.athkarStyle,
+      accent: options.athkarColor,
+      isDark,
+      isActive: view.isActive,
+      hasBegun: props.hasBegun,
+      title: display(TITLE[period], true),
+      thikrId: thikr.id,
+      text: display(textOf(thikr, period), true),
+      note: props.note,
+      position: props.position,
+      count: Math.min(countOf(thikr, reading), times),
+      times,
+      choices: thikr.choices ?? [],
+      progress,
+      from: Date.now() - glowSince < GLOW_MS ? glowFrom : progress,
+      end: display(END, true),
+      endHint: props.endHint,
+      now: now.getTime(),
+      width,
+      height: 0,
+      card: { ch: CELL_PX, lh: LINE_PX },
+    }
+    model.height = bandHeight(model, width)
+    lastBand = model
+
     return (
+      // The desktop's card pads the band, and its scroller is the card's whole
+      // box: the picture reaches into that padding, a cell each side and half a
+      // line above and below. The desktop drops vertical margins down a root's
+      // line of only children, so the band always has a sibling.
       <Box flexDirection="column">
-        {band}
-        {theirs}
+        <Box key="athkar-band" marginX={-1} marginY={-1}>
+          <Client key="athkar" module="./reader.tsx" props={plain({ ...props, band: model })} width="100%" />
+        </Box>
+        {theirs ?? <Box key="athkar-end" height={0} />}
       </Box>
     )
   })

@@ -1,3 +1,4 @@
+import type { BandModel } from './band.ts'
 import type { Period } from './data.ts'
 import { arabicDigits, countOf, currentOf, END, hasBegun, listFor, overall, textOf, timesOf, TITLE } from './logic.ts'
 import type { Reading, Sky } from './logic.ts'
@@ -104,11 +105,16 @@ export type Circle = {
 
 export type ReaderProps = {
   period: Period
+  phase: 'cover' | 'reading' | 'done'
+  // Lit by a click; faded again when idle.
+  isActive: boolean
+  // Desktop: the band is a picture the reader draws and listens over.
+  isPicture: boolean
+  band?: BandModel
   look: Look
   title: string
   // The cover says continue once anything was counted today.
   hasBegun: boolean
-  isDone: boolean
   text: string
   note?: string
   position: string
@@ -142,9 +148,15 @@ export const circlesFor = (n: number, times: number, look: Look): Circle[] => {
 }
 
 // A Client's props are plain data: no undefined anywhere.
-const plain = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
+export const plain = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 
-export const readerProps = (period: Period, reading: Reading, look: Look, display: (text: string) => string): ReaderProps => {
+export const readerProps = (
+  period: Period,
+  reading: Reading,
+  look: Look,
+  display: (text: string) => string,
+  view: { isOpen: boolean; isActive: boolean; isPicture: boolean },
+): ReaderProps => {
   const list = listFor(period)
   const thikr = currentOf(period, reading)
   const n = countOf(thikr, reading)
@@ -152,10 +164,12 @@ export const readerProps = (period: Period, reading: Reading, look: Look, displa
 
   return plain({
     period,
+    phase: reading.isDone ? 'done' : view.isOpen ? 'reading' : 'cover',
+    isActive: view.isActive,
+    isPicture: view.isPicture,
     look,
     title: display(TITLE[period]),
     hasBegun: hasBegun(reading),
-    isDone: reading.isDone,
     text: display(textOf(thikr, period)),
     note: thikr.note?.split(' · ')[0],
     position: `${arabicDigits(Math.min(reading.index, list.length - 1) + 1)} مِنْ ${arabicDigits(list.length)}`,
@@ -165,82 +179,4 @@ export const readerProps = (period: Period, reading: Reading, look: Look, displa
     end: display(END),
     endHint: `/athkar ${period} reset to read again`,
   })
-}
-
-// --- The sky picture (desktop): gradient, Rich motion, falling stars at the end.
-
-const round = (n: number) => Math.round(n * 10) / 10
-
-const star = (x: number, y: number, r: number, delay: number, dur: number) =>
-  `<circle cx="${round(x)}" cy="${round(y)}" r="${r}" fill="#fff"><animate attributeName="opacity" values=".25;1;.25" dur="${dur}s" begin="${delay}s" repeatCount="indefinite"/></circle>`
-
-const shooting = (x: number, y: number, delay: number, dur: number) =>
-  `<g opacity="0"><line x1="0" y1="0" x2="60" y2="0" stroke="url(#tail)" stroke-width="1.5" stroke-linecap="round"/><animateTransform attributeName="transform" type="translate" values="${round(x)} ${round(y)};${round(x - 160)} ${round(y + 50)}" keyTimes="0;1" dur="1.2s" begin="${delay}s;sh${Math.round(delay * 10)}.end+${dur}s" id="sh${Math.round(delay * 10)}"/><animate attributeName="opacity" values="0;1;0" dur="1.2s" begin="${delay}s;sh${Math.round(delay * 10)}.end+${dur}s"/></g>`
-
-const cloud = (y: number, w: number, width: number, dur: number, offset: number, opacity: number) =>
-  `<g opacity="${opacity}"><g><ellipse cx="0" cy="${round(y)}" rx="${round(w * 0.4)}" ry="${round(w * 0.12)}" fill="#fff"/><ellipse cx="${round(w * 0.25)}" cy="${round(y - w * 0.06)}" rx="${round(w * 0.3)}" ry="${round(w * 0.13)}" fill="#fff"/><animateTransform attributeName="transform" type="translate" from="${round(-w - offset)} 0" to="${round(width + w - offset)} 0" dur="${dur}s" repeatCount="indefinite"/></g></g>`
-
-const bird = (y: number, width: number, dur: number) =>
-  `<g><path d="M0 0 q4 -4 8 0 q4 -4 8 0" fill="none" stroke="rgba(40,44,70,.7)" stroke-width="1.4" stroke-linecap="round"><animate attributeName="d" values="M0 0 q4 -4 8 0 q4 -4 8 0;M0 0 q4 2 8 0 q4 2 8 0;M0 0 q4 -4 8 0 q4 -4 8 0" dur=".9s" repeatCount="indefinite"/></path><animateTransform attributeName="transform" type="translate" from="-20 ${round(y)}" to="${round(width + 20)} ${round(y - 8)}" dur="${dur}s" repeatCount="indefinite"/></g>`
-
-const glow = (cx: number, cy: number, r: number, color: string, values: string, dur: number) =>
-  `<circle cx="${round(cx)}" cy="${round(cy)}" r="${round(r)}" fill="${color}"><animate attributeName="opacity" values="${values}" dur="${dur}s" repeatCount="indefinite"/></circle>`
-
-const starsAcross = (width: number, height: number, count: number, seed: number) =>
-  Array.from({ length: count }, (_, i) => {
-    const x = ((i * 97 + seed * 31) % 100) / 100 * width
-    const y = (((i * 53 + seed * 17) % 60) / 100 + 0.04) * height
-
-    return star(x, y, i % 3 === 0 ? 1.4 : 0.9, -((i * 0.7) % 3), 3 + (i % 4) * 0.5)
-  }).join('')
-
-const motion = (sky: Sky, w: number, h: number) => {
-  switch (sky) {
-    case 'dawn':
-      return starsAcross(w, h * 0.6, 6, 1) + glow(w * 0.5, h * 1.25, h * 0.9, 'url(#warm)', '.6;1;.6', 7)
-    case 'sunrise':
-      return `<circle cx="${round(w * 0.86)}" r="${round(h * 0.55)}" fill="url(#sun)"><animate attributeName="cy" values="${round(h * 1.15)};${round(h * 0.9)};${round(h * 1.15)}" dur="18s" repeatCount="indefinite"/></circle>`
-        + cloud(h * 0.3, 90, w, 40, 0, 0.6) + cloud(h * 0.62, 70, w, 55, w * 0.5, 0.45) + bird(h * 0.4, w, 30)
-    case 'day':
-      return glow(w * 0.93, -h * 0.06, h * 0.9, 'url(#sun)', '.6;.9;.6', 4)
-        + cloud(h * 0.28, 100, w, 45, 0, 0.8) + cloud(h * 0.55, 80, w, 60, w * 0.4, 0.6) + cloud(h * 0.75, 110, w, 70, w * 0.75, 0.5) + bird(h * 0.35, w, 34)
-    case 'rose':
-      return `<circle cx="${round(w * 0.1)}" r="${round(h * 0.5)}" fill="url(#dusk)"><animate attributeName="cy" values="${round(h * 0.95)};${round(h * 1.2)};${round(h * 0.95)}" dur="18s" repeatCount="indefinite"/></circle>`
-        + starsAcross(w, h * 0.45, 4, 2) + cloud(h * 0.55, 160, w, 60, 0, 0.18) + cloud(h * 0.75, 200, w, 80, w * 0.5, 0.12)
-    case 'bluehour':
-      return starsAcross(w, h * 0.6, 7, 3) + shooting(w * 0.8, h * 0.08, 2, 9) + glow(w * 0.5, h * 1.3, h * 0.9, 'url(#warm)', '.5;.9;.5', 7)
-    case 'crescent':
-      return starsAcross(w, h * 0.7, 9, 4) + shooting(w * 0.8, h * 0.08, 1, 7) + shooting(w * 0.5, h * 0.22, 5, 11)
-        + `<g opacity=".7"><path d="M0 -9 a9 9 0 1 0 0 18 a7 7 0 1 1 0 -18z" fill="#ffe9b8" transform="translate(${round(w - 40)} 16)"><animate attributeName="opacity" values=".7;1;.7" dur="4s" repeatCount="indefinite"/></path></g>`
-  }
-}
-
-const falling = (w: number, h: number) =>
-  Array.from({ length: 14 }, (_, i) => {
-    const x = ((i * 61) % 100) / 100 * w
-    const delay = (i * 0.37) % 2.4
-
-    return `<text x="${round(x)}" y="0" font-size="${10 + (i % 3) * 3}" fill="${i % 2 ? '#ffe9b8' : '#fff'}" opacity="0">✦<animate attributeName="y" from="-10" to="${round(h + 10)}" dur="2.8s" begin="${delay}s" repeatCount="2"/><animate attributeName="opacity" values="0;1;1;0" dur="2.8s" begin="${delay}s" repeatCount="2"/></text>`
-  }).join('')
-
-// The sky as one SVG document sized in CSS pixels, so nothing stretches.
-export const skySvg = (sky: Sky, width: number, height: number, isDone: boolean) => {
-  const w = Math.max(80, Math.round(width))
-  const h = Math.max(40, Math.round(height))
-  const { stops, isBright } = SKIES[sky]
-  const gradient = stops.map((c, i) => `<stop offset="${round(i / (stops.length - 1))}" stop-color="${c}"/>`).join('')
-  // A shade under the words keeps them readable: light on bright skies, dark on the rest.
-  const scrim = isBright ? 'rgba(255,255,255,.34)' : 'rgba(8,12,30,.30)'
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">`
-    + `<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">${gradient}</linearGradient>`
-    + '<radialGradient id="sun"><stop offset="0" stop-color="#fffdf0" stop-opacity=".8"/><stop offset=".35" stop-color="#ffe08f" stop-opacity=".5"/><stop offset="1" stop-color="#ffb062" stop-opacity="0"/></radialGradient>'
-    + '<radialGradient id="dusk"><stop offset="0" stop-color="#ffeccc" stop-opacity=".55"/><stop offset=".4" stop-color="#ffb98a" stop-opacity=".35"/><stop offset="1" stop-color="#ff9678" stop-opacity="0"/></radialGradient>'
-    + '<radialGradient id="warm"><stop offset="0" stop-color="#ffc496" stop-opacity=".5"/><stop offset="1" stop-color="#ffc496" stop-opacity="0"/></radialGradient>'
-    + '<linearGradient id="tail"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#fff"/></linearGradient></defs>'
-    + `<rect width="${w}" height="${h}" fill="url(#g)"/>`
-    + motion(sky, w, h)
-    + `<rect width="${w}" height="${h}" fill="${scrim}"/>`
-    + (isDone ? falling(w, h) : '')
-    + '</svg>'
 }

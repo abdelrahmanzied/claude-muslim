@@ -1,115 +1,95 @@
-import type { ClientModule, RenderElement } from 'claude-code'
+import type { ClientModule, RenderElement, SvgProps } from 'claude-code'
 
+import { bandSvg, frameOf } from './band.ts'
 import type { Circle, ReaderProps } from './look.ts'
 
-// The athkar reader, drawn above the prompt. It runs on the drawing thread:
-// it keeps what is only on screen (cover, active, the moving progress head)
-// and posts every count, undo and move to the hooks module, which keeps the
-// reading. Click, Space or Enter count; right click or Backspace undo (or go
-// back a thikr at 0); ← next, → previous (Arabic reads right to left).
+// The athkar reader's input, and its drawing in the terminal. It runs on the
+// drawing thread and posts every click and key to the hooks module, which
+// keeps the reading and decides what each one does. On the desktop it draws
+// the band as one picture and its clicks land on it; in the terminal it draws
+// the band as text.
 
 type Local = {
-  // Past the cover this session.
-  isOpen: boolean
-  // Lit up by a click; idle for a while, it fades back.
-  isActive: boolean
-  lastInput: number
   // The progress line as drawn, easing toward the real value.
   shown: number
   // Frames, for the head's slow pulse.
   frame: number
+  // The region's size last reported to the hooks module.
+  size: string
 }
 
 const TICK_MS = 100
-// Faded again after this long with no count.
-const IDLE_MS = 90_000
 // One full pulse of the progress head, in frames.
 const PULSE = Math.round(2600 / TICK_MS)
 
 const COVER_KEYS = '⎵ ↵ count · ← → move · right click ⌫ undo · esc pause'
 
+// The props of the last draw, for the frame clock.
+let latest: ReaderProps
+
 const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
   const { Box, Text, Button } = surface.elements
-  const local: Local = surface.state ?? { isOpen: false, isActive: false, lastInput: 0, shown: props.progress, frame: 0 }
-  const { look } = props
+  const local: Local = surface.state ?? { shown: props.progress, frame: 0, size: '' }
+  latest = props
 
   if (surface.state === undefined) {
     surface.setState(local)
     surface.every(TICK_MS, () => {
-      const now = Date.now()
       const s = surface.state ?? local
+      // The hooks module hit-tests clicks on the picture, so it needs the region's size.
+      const size = `${surface.columns}x${surface.rows}`
+      if (size !== s.size && surface.columns > 0) surface.post({ act: 'size', columns: surface.columns, rows: surface.rows })
+      if (latest.isPicture) {
+        if (size !== s.size) surface.setState({ ...s, size })
+
+        return
+      }
       const target = latest.progress
       const shown = Math.abs(target - s.shown) < 0.002 ? target : s.shown + (target - s.shown) * 0.25
-      const isActive = s.isActive && now - s.lastInput < IDLE_MS
       // At rest (faded, line in place) nothing moves: no redraw.
-      if (!isActive && !s.isActive && shown === s.shown) return
-      surface.setState({ ...s, shown, isActive, frame: s.frame + 1 })
+      if (!latest.isActive && shown === s.shown && size === s.size) return
+      surface.setState({ ...s, shown, size, frame: s.frame + 1 })
     })
   }
-  latest = props
-
-  const touch = (s: Local, change: Partial<Local>) => surface.setState({ ...s, ...change, lastInput: Date.now() })
 
   surface.onPointer(event => {
     if (event.type !== 'down') return
-    const s = surface.state ?? local
-    if (props.isDone) {
-      if (event.button === 'right') surface.post({ act: 'back' })
-      else surface.post({ act: 'hide' })
-
-      return
-    }
-    // The first click opens or wakes the reader; it never counts.
-    if (!s.isOpen || !s.isActive) {
-      touch(s, { isOpen: true, isActive: true })
-      if (event.button === 'right' && s.isOpen) surface.post({ act: 'back' })
-
-      return
-    }
-    touch(s, {})
-    surface.post({ act: event.button === 'right' ? 'back' : 'count' })
+    surface.post({ act: 'pointer', button: event.button ?? 'left', x: event.x, y: event.y, columns: surface.columns, rows: surface.rows })
   })
 
   surface.onKey(event => {
-    const s = surface.state ?? local
-    const isCount = event.key === ' ' || event.key === 'space' || event.key === 'return'
-    if (!s.isOpen || !s.isActive) {
-      if (isCount) touch(s, { isOpen: true, isActive: true })
-
-      return
-    }
-    touch(s, {})
-    if (isCount) surface.post({ act: 'count' })
-    else if (event.key === 'backspace') surface.post({ act: 'back' })
-    else if (event.key === 'left') surface.post({ act: 'next' })
-    else if (event.key === 'right') surface.post({ act: 'previous' })
+    surface.post({ act: 'key', key: event.key })
   })
 
-  const isLit = local.isActive
+  // Desktop: the picture is the region, so a click anywhere on it reaches here.
+  // Svg is not in the region's element table, so it is named by its tag.
+  if (props.band) {
+    // Over the card the picture is drawn a cell past the region, which the
+    // desktop narrows to the region: it fills it, whatever its pixels.
+    const band = props.band.card && surface.columns > 0 ? { ...props.band, drawWidth: (surface.columns + 1) * props.band.card.ch } : props.band
+    const { width, height } = frameOf(band)
+    const alt = band.phase === 'cover' ? band.title : band.text
+    const picture: SvgProps = { source: bandSvg(band), alt, width, height }
+
+    return <Box width="100%">{h('Svg', picture)}</Box>
+  }
+
+  const { look } = props
+  const isLit = props.isActive
   // Skies light up from faded; Sand and Outline breathe.
   const accent = isLit || look.style !== 'sky' ? look.ring : look.dim
-  const breathing = look.style !== 'sky' && isLit
-  const wave = (1 - Math.cos((local.frame % PULSE) / PULSE * Math.PI * 2)) / 2
-  const frame = look.style === 'sky' ? undefined : breathing ? mixHex(look.ring, look.under, 0.55 * (1 - wave)) : look.track
+  const wave = (1 - Math.cos(((local.frame % PULSE) / PULSE) * Math.PI * 2)) / 2
+  const frame = look.style === 'sky' ? undefined : isLit ? mixHex(look.ring, look.under, 0.55 * (1 - wave)) : look.track
 
-  const close = (
-    <Button key="hide" plain label="×" onPress={() => surface.post({ act: 'hide' })} />
-  )
+  const close = <Button key="hide" plain label="×" onPress={() => surface.post({ act: 'hide' })} />
 
   const shell = (children: RenderElement[]) => (
-    <Box
-      flexDirection="column"
-      paddingX={2}
-      backgroundColor={look.background}
-      borderStyle={frame ? 'round' : undefined}
-      borderColor={frame}
-      width="100%"
-    >
+    <Box flexDirection="column" paddingX={2} backgroundColor={look.background} borderStyle={frame ? 'round' : undefined} borderColor={frame} width="100%">
       {children}
     </Box>
   )
 
-  if (props.isDone) {
+  if (props.phase === 'done') {
     return shell([
       <Box key="done" flexDirection="row-reverse" justifyContent="space-between" alignItems="center" paddingY={1}>
         <Text bold color={look.ring}>{props.end}</Text>
@@ -118,7 +98,7 @@ const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
     ])
   }
 
-  if (!local.isOpen) {
+  if (props.phase === 'cover') {
     return shell([
       <Box key="cover" flexDirection="row-reverse" justifyContent="space-between" alignItems="center" paddingY={1} gap={2}>
         <Text bold color={look.ring}>{props.title}</Text>
@@ -144,16 +124,12 @@ const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
   ])
 }
 
-// The props of the last draw, for the frame clock's easing.
-let latest: ReaderProps
-
 const circle = (elements: ReaderElements, c: Circle, i: number, accent: string) => {
   const { Box, Text } = elements
-  const isFilled = c.state !== 'open'
 
   return (
     <Box key={`c${i}`} borderStyle="round" borderColor={accent} backgroundColor={c.state === 'done' ? accent : c.fill} paddingX={1}>
-      <Text color={isFilled ? '#ffffff' : accent} bold={c.state === 'filling'}>{c.label}</Text>
+      <Text color={c.state !== 'open' ? '#ffffff' : accent} bold={c.state === 'filling'}>{c.label}</Text>
     </Box>
   )
 }
@@ -166,7 +142,7 @@ const choice = (elements: ReaderElements, props: ReaderProps, accent: string, po
     <Box key="choice" flexDirection="row-reverse" borderStyle="round" borderColor={accent}>
       {props.choices.map(c => (
         <Button key={`n${c.times}`} plain label={c.label} onPress={() => post({ act: 'choose', times: c.times })}>
-          <Text color={c.isPicked ? '#ffffff' : props.look.style === 'sky' ? '#ffffff' : props.look.ink} backgroundColor={c.isPicked ? accent : undefined}>{` ${c.label} `}</Text>
+          <Text color={c.isPicked || props.look.style === 'sky' ? '#ffffff' : props.look.ink} backgroundColor={c.isPicked ? accent : undefined}>{` ${c.label} `}</Text>
         </Button>
       ))}
     </Box>
@@ -179,13 +155,13 @@ const horizon = (elements: ReaderElements, columns: number, shown: number, accen
   const { Box, Text } = elements
   const width = Math.max(10, columns)
   const filled = Math.round(width * Math.min(1, Math.max(0, shown)))
-  const wave = (1 - Math.cos((frame % PULSE) / PULSE * Math.PI * 2)) / 2
-  const head = filled > 0 && filled < width ? mixHex(accent, '#ffffff', 0.15 + 0.5 * wave) : accent
+  const hasHead = filled > 0 && filled < width
+  const wave = (1 - Math.cos(((frame % PULSE) / PULSE) * Math.PI * 2)) / 2
 
   return (
-    <Box key="horizon" flexDirection="row" marginTop={0}>
-      <Text color={look.track}>{'─'.repeat(Math.max(0, width - filled - (filled > 0 && filled < width ? 1 : 0)))}</Text>
-      {filled > 0 && filled < width ? <Text color={head}>●</Text> : null}
+    <Box key="horizon" flexDirection="row">
+      <Text color={look.track}>{'─'.repeat(Math.max(0, width - filled - (hasHead ? 1 : 0)))}</Text>
+      {hasHead ? <Text color={mixHex(accent, '#ffffff', 0.15 + 0.5 * wave)}>●</Text> : null}
       <Text color={accent}>{'━'.repeat(filled)}</Text>
     </Box>
   )

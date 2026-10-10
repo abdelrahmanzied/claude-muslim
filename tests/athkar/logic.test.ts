@@ -3,7 +3,10 @@ import { expect, test } from 'claude-code/testing'
 import { ATHKAR } from '../../src/features/athkar/data.ts'
 import { arabicDigits, dayOf, emptyReading, listFor, overall, periodAt, readDay, shouldAdvance, skyAt, step, textOf } from '../../src/features/athkar/logic.ts'
 import type { Reading } from '../../src/features/athkar/logic.ts'
-import { circlesFor, lookFor, skySvg } from '../../src/features/athkar/look.ts'
+import { bandHeight, bandSvg } from '../../src/features/athkar/band.ts'
+import type { BandModel } from '../../src/features/athkar/band.ts'
+import { hitsFor } from '../../src/features/athkar/install.tsx'
+import { circlesFor, lookFor } from '../../src/features/athkar/look.ts'
 
 test('morning runs 05:00 to 17:00, evening the rest', async () => {
   expect([4, 5, 12, 16, 17, 23, 0].map(periodAt)).toEqual(['evening', 'morning', 'morning', 'morning', 'evening', 'evening', 'evening'])
@@ -85,9 +88,36 @@ test('a hundred shows ten circles, the current one filling', async () => {
   expect(circles[4]?.state).toBe('open')
 })
 
-test('the sky picture is bounded and carries its motion', async () => {
-  const svg = skySvg('crescent', 900, 160, true)
-  expect(svg.length).toBeLessThan(131072)
-  expect(svg).toContain('<animate')
-  expect(svg).toContain('✦')
+const model = (over: Partial<BandModel>): BandModel => ({
+  phase: 'reading', period: 'morning', sky: 'crescent', style: 'sky', accent: 'orange', isDark: true, isActive: true, hasBegun: true,
+  title: 't', thikrId: '91', text: 'x', position: '١ مِنْ ٢٢', count: 3, times: 100, choices: [10, 100], progress: 30, from: 20,
+  end: 'e', endHint: 'h', now: 0, width: 900, height: 93, ...over,
+})
+
+test('every band picture fits the size limit and carries its fonts', async () => {
+  for (const sky of ['dawn', 'sunrise', 'day', 'rose', 'bluehour', 'crescent'] as const) {
+    for (const phase of ['cover', 'reading', 'done'] as const) {
+      const svg = bandSvg(model({ sky, phase, thikrId: '75', times: 1, choices: [] }))
+      expect(svg.length).toBeLessThan(131072)
+      expect(svg).toContain('font-family: "Tajawal"')
+    }
+  }
+  expect(bandSvg(model({ phase: 'done' }))).toContain('class="fall"')
+})
+
+test('the band grows with its text and shrinks with the width', async () => {
+  const long = bandHeight({ phase: 'reading', thikrId: '75', period: 'morning', times: 1 }, 900)
+  expect(long).toBeGreaterThan(bandHeight({ phase: 'reading', thikrId: '98', period: 'morning', times: 10 }, 900))
+  expect(bandHeight({ phase: 'reading', thikrId: '75', period: 'morning', times: 1 }, 500)).toBeGreaterThan(long)
+  expect(bandHeight({ phase: 'done', thikrId: '75', period: 'morning', times: 1 }, 900)).toBe(56)
+})
+
+test('clicks on the picture find the × and the 10 | 100 switch', async () => {
+  const hits = hitsFor(model({}))
+  const at = (x: number, y: number) => hits.find(h => x >= h.x0 && x <= h.x1 && y >= h.y0 && y <= h.y1)?.act
+  expect(at(16, 14)).toEqual({ act: 'hide' })
+  // Measured in a browser: 10 at 372–396, 100 at 343–370, rows 56–75.
+  expect(at(384, 65)).toEqual({ act: 'choose', times: 10 })
+  expect(at(356, 65)).toEqual({ act: 'choose', times: 100 })
+  expect(at(600, 20)).toBeUndefined()
 })
