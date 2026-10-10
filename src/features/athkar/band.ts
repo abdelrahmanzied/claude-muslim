@@ -113,6 +113,8 @@ const EXTRA_CSS = `
 @keyframes fall { to { transform: translateY(var(--dy)) rotate(var(--rot)); opacity: 0; } }
 .rise-msg { position: absolute; left: 50%; bottom: 24px; font-family: var(--font-cover); font-size: 30px; white-space: nowrap; direction: rtl; color: var(--ring); text-shadow: 0 0 18px color-mix(in srgb, var(--ring) 70%, transparent); opacity: 0; animation: riseMsg 2.8s ease-out both; }
 @keyframes riseMsg { 0% { opacity: 0; transform: translate(-50%, 30px); } 30% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -110px); } }
+/* Skies have no edge line, colored or white: the picture is the edge. */
+.band.band.band.sky, .band.band.band.sky.edge:not(.framed) { border-color: transparent !important; }
 /* Sand and Outline: at rest the app's own quiet line; lit, the accent line
    and the glow breathing inside the edge, since the picture ends at it. */
 .band.band.al-breathe:not(.active) { border-color: var(--desk-line) !important; }
