@@ -16,6 +16,8 @@ type Local = {
   frame: number
   // The region's size last reported to the hooks module.
   size: string
+  // When a press lit the band here, ahead of the hooks module's answer.
+  litAt?: number
 }
 
 const TICK_MS = 100
@@ -23,6 +25,9 @@ const TICK_MS = 100
 const PULSE = Math.round(2600 / TICK_MS)
 
 const COVER_KEYS = '⎵ ↵ count · ← → move · right click ⌫ undo · esc pause'
+
+// How long a press lights the band here before the hooks module must agree.
+const LIT_MS = 3000
 
 // The props of the last draw, for the frame clock.
 let latest: ReaderProps
@@ -55,6 +60,8 @@ const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
   surface.onPointer(event => {
     if (event.type === 'enter' || event.type === 'leave') surface.post({ act: event.type })
     if (event.type !== 'down') return
+    // Light the picture at once; the hooks module's own redraw follows.
+    if (latest.band && !latest.band.isActive) surface.setState({ ...(surface.state ?? local), litAt: Date.now() })
     surface.post({ act: 'pointer', button: event.button ?? 'left', x: event.x, y: event.y, columns: surface.columns, rows: surface.rows })
   })
 
@@ -67,7 +74,11 @@ const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
   if (props.band) {
     // Over the card the picture is drawn a cell past the region, which the
     // desktop narrows to the region: it fills it, whatever its pixels.
-    const band = props.band.card && surface.columns > 0 ? { ...props.band, drawWidth: (surface.columns + 1) * props.band.card.ch } : props.band
+    // Once the hooks module has lit it too, its word holds: it may fade it again.
+    if (props.band.isActive && local.litAt !== undefined) surface.setState({ ...local, litAt: undefined })
+    const isLit = props.band.isActive || (local.litAt !== undefined && Date.now() - local.litAt < LIT_MS)
+    const lit = { ...props.band, isActive: isLit }
+    const band = lit.card && surface.columns > 0 ? { ...lit, drawWidth: (surface.columns + 1) * lit.card.ch } : lit
     const { width, height } = frameOf(band)
     const alt = band.phase === 'cover' ? band.title : band.text
     const picture: SvgProps = { source: bandSvg(band), alt, width, height }

@@ -40,7 +40,7 @@ const FOCUS_GRACE_MS = 600
 // Faded again after this long with no input.
 const IDLE_MS = 90_000
 // How long the pointer may be off the band before it fades.
-const LEAVE_MS = 1500
+const LEAVE_MS = 300
 
 const isStyle = (value: string): value is Style => (STYLES as readonly string[]).includes(value)
 const isColor = (value: string): value is Accent => (COLORS as readonly string[]).includes(value)
