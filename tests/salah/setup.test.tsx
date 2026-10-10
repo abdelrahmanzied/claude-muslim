@@ -75,12 +75,12 @@ test('another city: typed in any language, found by Claude, saved', async ($, on
   expect(written).toEqual([{ key: 'muslim.salahPlace', value: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' }])
 })
 
-test('/salah setup asks the same question', async ($, on) => {
+test('/salah city with no name asks the setup question', async ($, on) => {
   const written = settingsWriter(on)
   answerDialog(on, 'Munich')
   answerCities(on, [MUNICH])
 
-  const ran = await $.command.run({ command: 'salah', args: 'setup', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+  const ran = await $.command.run({ command: 'salah', args: 'city', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
 
   expect(ran.text).toBe('Munich, Germany · Muslim World League')
   expect(written[0]?.value).toBe('Munich, Germany; 48.14, 11.58; Europe/Berlin; DE')

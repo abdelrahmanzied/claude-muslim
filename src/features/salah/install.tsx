@@ -4,6 +4,7 @@ import type { EngineInterface, On } from 'claude-code'
 import { ADJUST_MAX, isMethod, REMINDER_MAX, REMINDER_MIN, writeAdjust } from '../../config.ts'
 import type { Options } from '../../config.ts'
 import { CITY_MODEL, CITY_SYSTEM, cityPrompt, parseCities, parseCoordinates, type City } from './city.ts'
+import { salahHelp } from './help.ts'
 import { guessPlace, systemTimeZone } from './location.ts'
 import { METHODS, type Prayer } from './methods.ts'
 import { ENGLISH, prayerNamed } from './names.ts'
@@ -24,17 +25,7 @@ const notified = atom({ plugin: 'muslim', key: 'salahNotified' } as const, null 
 // How often the status line is redrawn.
 const TICK_MS = 30_000
 
-const HELP = [
-  '/salah                         today\'s times',
-  '/salah setup                   pick your city',
-  '/salah always | reminder | off next prayer all day, only in the reminder window, or nothing',
-  `/salah reminder <${REMINDER_MIN}-${REMINDER_MAX}>        minutes before a prayer the reminder starts`,
-  '/salah adhan on | off          حان وقت صلاة … when a prayer comes in',
-  '/salah city <name>             your city, in any language; or latitude, longitude',
-  '/salah method <name>           auto (the country\'s own), or: ' + Object.keys(METHODS).join(', '),
-  '/salah adjust                  check today\'s times against your mosque\'s',
-  `/salah adjust <prayer> <±min>  move one prayer by up to ${ADJUST_MAX} minutes, e.g. adjust asr +5`,
-].join('\n')
+const HINT = 'Help: /salah help'
 
 // The cities a typed place can mean: coordinates as typed, else Claude's
 // reading of the name; a sentence when Claude could not be reached.
@@ -125,18 +116,14 @@ export const install = (on: On, options: Options) => {
 
     if (word === '') {
       const place = options.salahPlace
-      if (!place) return { text: ['Prayer times are not set up yet: /salah setup', '', HELP].join('\n') }
+      if (!place) return { text: ['Prayer times are not set up yet: /salah city', '', HINT].join('\n') }
       const method = METHODS[methodOf(options, place)].name
 
       return {
-        text: [
-          `${place.name} · ${method}${options.salah === 'off' ? ' · off' : ''}`,
-          dayLine(options, place, await $.clock.now()),
-          '',
-          HELP,
-        ].join('\n'),
+        text: [`${place.name} · ${method} · ${options.salah}`, dayLine(options, place, await $.clock.now()), '', HINT].join('\n'),
       }
     }
+    if (word === 'help') return { text: salahHelp() }
     if (word === 'reminder' && first !== '') {
       const minutes = Number(first)
       if (!Number.isInteger(minutes) || minutes < REMINDER_MIN || minutes > REMINDER_MAX) {
@@ -146,17 +133,10 @@ export const install = (on: On, options: Options) => {
       return set('salahReminder', minutes, `reminder ${minutes} min before each prayer`)
     }
     if (word === 'always' || word === 'reminder' || word === 'off') return set('salah', word, `salah ${word}`)
-    if (word === 'on') return set('salah', 'reminder', 'salah reminder')
     if (word === 'adhan' && (first === 'on' || first === 'off')) return set('salahAdhan', first === 'on', `adhan ${first}`)
-    if (word === 'setup') {
-      const city = await askCity($, guess)
-
-      return { text: typeof city === 'string' ? city : await savePlace($, city, options) }
-    }
     if (word === 'city') {
       const typed = e.args.trim().slice('city'.length).trim()
-      if (typed === '') return { text: 'Type your city after it, e.g. /salah city Munich' }
-      const city = await cityFrom($, typed)
+      const city = typed === '' ? await askCity($, guess) : await cityFrom($, typed)
 
       return { text: typeof city === 'string' ? city : await savePlace($, city, options) }
     }
@@ -167,7 +147,7 @@ export const install = (on: On, options: Options) => {
       return { text: `Method is auto, or one of: ${Object.keys(METHODS).join(', ')}.` }
     }
     if (word === 'adjust' && first === '') {
-      if (!options.salahPlace) return { text: 'Set your city first: /salah setup' }
+      if (!options.salahPlace) return { text: 'Set your city first: /salah city' }
       await update($, review, () => options.salahAdjust)
 
       return { text: 'Check today\'s times above the prompt.' }
@@ -184,7 +164,7 @@ export const install = (on: On, options: Options) => {
       return set('salahAdjust', writeAdjust(adjust), `${ENGLISH[prayer]} ${sign}${minutes} min`)
     }
 
-    return { text: HELP }
+    return { text: salahHelp() }
   })
 
   // The next prayer under the prompt, from the first time the prompt is drawn.

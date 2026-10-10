@@ -23,7 +23,7 @@ The salah feature's own design. It adds to the shared base in [DESIGN.md](../../
 | Reminder starts | Toast (in-app) | One short line, closes by itself |
 | Prayer comes in | Status line (+ the adhan look) | `حان وقت صلاة العصر` for 15 minutes (`salahAdhan`) |
 | Claude works in the window | Spinner (thikr line) | حَيَّ عَلَى الصَّلَاةِ joins the thikr rotation |
-| Settings and help | Command reply | `/salah`, `/salah help` table |
+| Settings and help | Command reply | `/salah`, `/salah help` table, `/muslim help` |
 
 ## Never
 

@@ -71,14 +71,16 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/thikr tashkeel on` · `off` | Show or hide diacritics |
 | `/thikr end on` · `off` | تَمَّ بِحَمْدِ اللَّهِ at the end of a turn |
 | `/thikr mode all` · `salawat` | Every group in turn, or one salawat per request |
-| `/salah` | Today's prayer times and help |
-| `/salah setup` · `city <name>` | Pick your city, in any language |
+| `/salah` | Place, method and mode, then today's prayer times |
+| `/salah help` | Table of every `/salah` command |
+| `/salah city` · `city <name or lat, lng>` | Pick your city by question, or by name in any language |
 | `/salah adjust` | Match today's times to your mosque, a minute at a time |
 | `/salah method <name>` | `auto` (your country's own) or a named method |
 | `/salah always` · `reminder` · `off` | Next prayer all day, only in the reminder window, or nothing |
 | `/salah reminder <5-60>` | Minutes before a prayer the reminder starts |
 | `/salah adhan on` · `off` | `حان وقت صلاة …` when a prayer comes in |
 | `/muslim` | Show the installed version |
+| `/muslim help` · `help <feature>` | Command tables of every feature, or one (`thikr`, `salah`) |
 
 Every setting is also in `/config`.
 

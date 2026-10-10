@@ -2,6 +2,7 @@ import type { Register } from 'claude-code'
 
 import { readOptions } from '../src/config.ts'
 import { PLUGIN, VERSION } from '../src/constants.ts'
+import { muslimHelp } from '../src/help.ts'
 import { install as installSalah } from '../src/features/salah/install.tsx'
 import { install as installThikr } from '../src/features/thikr/install.tsx'
 
@@ -16,7 +17,7 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'muslim',
-      description: `Show ${PLUGIN} version`,
+      description: `Show ${PLUGIN} version, and help for every command`,
     })
     await $.command.register({
       name: 'thikr',
@@ -24,14 +25,18 @@ export const register: Register = (on, options) => {
     })
     await $.command.register({
       name: 'salah',
-      description: 'Prayer times: today, on, off, method, adjust',
+      description: 'Prayer times: today, help, always, reminder, off, adhan, city, method, adjust',
     })
 
     return next(e)
   })
 
-  on('command.run', { command: 'muslim' }, async () => {
-    return { text: `${PLUGIN} v${VERSION}` }
+  on('command.run', { command: 'muslim' }, async (_$, e) => {
+    const [word = '', feature = ''] = e.args.trim().split(/\s+/)
+    if (word === 'help') return { text: muslimHelp(feature) }
+    if (word !== '') return { text: muslimHelp() }
+
+    return { text: `${PLUGIN} v${VERSION}\n\nHelp: /muslim help` }
   })
 
   installThikr(on, settings)

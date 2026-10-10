@@ -37,14 +37,15 @@ describe('settings', () => {
 test('/salah before setup says so', async $ => {
   const ran = await $.command.run(salah(''))
 
-  expect(ran.text).toContain('Prayer times are not set up yet: /salah setup')
+  expect(ran.text).toContain('Prayer times are not set up yet: /salah city')
 })
 
 test('/salah shows the place, method and today\'s times', { options: MUNICH }, async ($, on) => {
   mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
   const ran = await $.command.run(salah(''))
 
-  expect(ran.text).toContain('Munich, Germany · Muslim World League')
+  expect(ran.text).toContain('Munich, Germany · Muslim World League · reminder')
+  expect(ran.text).toContain('/salah help')
   expect(ran.text).toContain('Fajr 05:42 · Sunrise 07:26 · Dhuhr 13:02 · Asr 15:59 · Maghrib 18:35 · Isha 20:12')
 })
 
@@ -141,4 +142,16 @@ test('/salah city with no match, or coordinates typed by hand', async ($, on) =>
   expect((await $.command.run(salah('city Atlantis'))).text).toContain('No city found for "Atlantis"')
   expect((await $.command.run(salah('city 48.14, 11.58'))).text).toMatch(/^48\.14, 11\.58 · /)
   expect(String(written[0]?.value)).toMatch(/^48\.14, 11\.58; 48\.14, 11\.58; /)
+})
+
+test('/salah help is a table of every subcommand; unknown words answer with it', async $ => {
+  const help = (await $.command.run(salah('help'))).text
+
+  expect(help).toContain('| Command | What it does |')
+  for (const word of ['/salah help', '/salah always', '/salah reminder <5-60>', '/salah adhan on', '/salah city', '/salah method', '/salah adjust <prayer>']) {
+    expect(help).toContain(word)
+  }
+  for (const gone of ['/salah setup', '/salah on', '/salah notify']) expect(help).not.toContain(gone)
+  expect((await $.command.run(salah('banana'))).text).toBe(help)
+  expect((await $.command.run(salah('on'))).text).toBe(help)
 })

@@ -13,7 +13,7 @@ Prayer times for the user's city, calculated on their machine with
    - Claude (haiku) reads the typed name into English name, country,
      coordinates and time zone as JSON; each field is checked before saving.
      A shared name (Alexandria) asks which one.
-   - *Not now* puts setup off for good; `/salah setup` brings it back.
+   - *Not now* puts setup off for good; `/salah city` brings it back.
    - No guess (time zone UTC): **Pick city**, **Not now**.
 2. **Review.** Saving the place shows today's times above the prompt, one row
    per prayer with − and +. The user matches them to their mosque and saves the
@@ -49,6 +49,15 @@ Prayer times for the user's city, calculated on their machine with
 | `methods.ts` | angles, minutes, country → method | adhan-js (MIT), AlAdhan methods list |
 | `adhan/` | the calculation | adhan-js 4.4.6, MIT |
 
+## Commands
+
+`/salah` shows place · method · mode, today's times and a hint to `/salah help`.
+`/salah help` is a table of every subcommand: `always` · `reminder` · `off`,
+`reminder <5-60>`, `adhan on` · `off`, `city` (the setup question) and
+`city <name or lat, lng>`, `method <auto or name>`, `adjust` and
+`adjust <prayer> <±min>`. An unknown word answers with the table.
+`/muslim help` shows the tables of thikr and salah; `/muslim help salah` only salah's.
+
 ## Settings
 
 | Field | Command | Default |
@@ -56,7 +65,7 @@ Prayer times for the user's city, calculated on their machine with
 | `salah` | `/salah always` · `reminder` · `off` | reminder |
 | `salahReminder` | `/salah reminder <5-60>` | 20 (minutes) |
 | `salahAdhan` | `/salah adhan on` · `off` | on |
-| `salahPlace` | `/salah setup` · `/salah city <name>` | empty |
+| `salahPlace` | `/salah city` (question) · `/salah city <name or lat, lng>` | empty |
 | `salahMethod` | `/salah method <name>` | auto |
 | `salahAdjust` | `/salah adjust` · `/salah adjust <prayer> <±min>` | `0 0 0 0 0 0` |
 
@@ -69,6 +78,7 @@ Surfaces, the adhan moment's look and what salah never does: [salah-design.md](s
 | File | Holds |
 | --- | --- |
 | `install.tsx` | hooks: `/salah`, setup line, review form, status line |
+| `help.ts` | the `/salah help` table (also in `/muslim help`) |
 | `times.ts` | a day's times, next (with and without sunrise) and last prayer |
 | `clock.ts` | local time and Hijri month in a time zone |
 | `location.ts` | the guess from the system's time zone |

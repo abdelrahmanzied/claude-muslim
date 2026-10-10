@@ -5,6 +5,7 @@
 - Prayer times (`/salah`): calculated on the machine with adhan-js, no location service or API. The first prompt after install offers the city named by the time zone, or any city typed in any language (Claude reads it into coordinates). Each country's official Sunni method, else Muslim World League; Asr by the majority.
 - Review form: today's times with − and + per prayer to match the user's mosque.
 - Status line: `salah` is `always` (next prayer all day), `reminder` (default: only in the reminder window) or `off`. A countdown in the reminder window (`salahReminder`, 5 to 60 minutes, default 20), and حان وقت صلاة … for 15 minutes once a prayer is in (`salahAdhan`). Sunrise is in today's times only. One in-app toast when the window starts, never an OS notification.
+- `/salah` commands: `help` (a table), `always` · `reminder` · `off`, `reminder <5-60>`, `adhan on` · `off`, `city` (replaces `setup`), `method`, `adjust`. `/muslim help [feature]` shows the command tables.
 - Settings in `/config`: `salah`, `salahReminder`, `salahAdhan`, `salahPlace`, `salahMethod`, `salahAdjust`.
 
 ## 0.2.0
