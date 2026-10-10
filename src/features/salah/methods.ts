@@ -27,6 +27,8 @@ export type MethodId =
 
 export type Prayer = 'fajr' | 'sunrise' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'
 
+export const PRAYERS: readonly Prayer[] = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha']
+
 export type Method = {
   name: string
   nameAr: string

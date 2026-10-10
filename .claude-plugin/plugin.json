@@ -47,6 +47,69 @@
         "salawat"
       ],
       "default": "all"
+    },
+    "salah": {
+      "type": "boolean",
+      "title": "Prayer times",
+      "description": "Next prayer under the prompt, and a reminder before it",
+      "default": true
+    },
+    "salahCity": {
+      "type": "string",
+      "title": "Prayer city",
+      "description": "The place prayer times are for, as /salah setup saved it; empty until set up",
+      "default": ""
+    },
+    "salahLatitude": {
+      "type": "number",
+      "title": "Prayer latitude",
+      "description": "Degrees north (negative south), from -90 to 90",
+      "default": 0
+    },
+    "salahLongitude": {
+      "type": "number",
+      "title": "Prayer longitude",
+      "description": "Degrees east (negative west), from -180 to 180",
+      "default": 0
+    },
+    "salahTimeZone": {
+      "type": "string",
+      "title": "Prayer time zone",
+      "description": "IANA time zone such as Europe/Berlin; empty uses the system's",
+      "default": ""
+    },
+    "salahMethod": {
+      "type": "string",
+      "title": "Prayer calculation method",
+      "description": "Fajr and Isha angles of an authority; setup picks the country's own",
+      "options": [
+        "mwl",
+        "egypt",
+        "ummAlQura",
+        "karachi",
+        "isna",
+        "dubai",
+        "kuwait",
+        "qatar",
+        "singapore",
+        "jakim",
+        "kemenag",
+        "turkey",
+        "france",
+        "russia",
+        "tunisia",
+        "algeria",
+        "morocco",
+        "jordan",
+        "portugal"
+      ],
+      "default": "mwl"
+    },
+    "salahAdjust": {
+      "type": "string",
+      "title": "Prayer minutes",
+      "description": "Minutes added to Fajr, Sunrise, Dhuhr, Asr, Maghrib and Isha, e.g. 0 0 0 5 0 0",
+      "default": "0 0 0 0 0 0"
     }
   }
 }

@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { hijriMonth, localTime } from '../../src/features/salah/clock.ts'
-import { clockText, lastPrayer, NO_ADJUST, nextPrayer, PRAYERS, timesOn } from '../../src/features/salah/times.ts'
+import { PRAYERS } from '../../src/features/salah/methods.ts'
+import { clockText, lastPrayer, NO_ADJUST, nextPrayer, timesOn } from '../../src/features/salah/times.ts'
 
 const MUNICH = { latitude: 48.1372, longitude: 11.5755, timeZone: 'Europe/Berlin' }
 const CAIRO = { latitude: 30.05, longitude: 31.25, timeZone: 'Africa/Cairo' }

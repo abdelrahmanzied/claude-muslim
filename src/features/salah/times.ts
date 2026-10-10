@@ -3,9 +3,7 @@
 
 import { CalculationParameters, Coordinates, HighLatitudeRule, PolarCircleResolution, PrayerTimes } from './adhan/Adhan.ts'
 import { hijriMonth, localTime } from './clock.ts'
-import { METHODS, type MethodId, type Prayer } from './methods.ts'
-
-export const PRAYERS: readonly Prayer[] = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha']
+import { METHODS, PRAYERS, type MethodId, type Prayer } from './methods.ts'
 
 export type Adjust = Record<Prayer, number>
 
