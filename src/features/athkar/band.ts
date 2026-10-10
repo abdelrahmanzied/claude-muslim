@@ -34,6 +34,8 @@ export type BandModel = {
   // Overall progress now and before the last change, 0 to 100.
   progress: number
   from: number
+  // How far into its slide the glow is, in milliseconds: a redraw carries it on.
+  glowMs?: number
   end: string
   endHint: string
   // When it is drawn, so the sky's motion carries on across redraws.
@@ -101,7 +103,7 @@ const EXTRA_CSS = `
 .band.card { padding: calc(12px + var(--ay, 0px)) calc(16px + var(--ax, 0px)); }
 .band { min-height: 100%; }
 .band[data-band] .text, .band.line .text { font-size: var(--fs, 16px) !important; max-height: none; overflow: visible; }
-.pglow b { animation: glowTo .7s cubic-bezier(.2, .8, .2, 1) both; }
+.pglow b { animation: glowTo .7s cubic-bezier(.33, 1, .68, 1) both; }
 @keyframes glowTo { from { width: var(--from); } }
 .endfx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; border-radius: inherit; }
 .fall { position: absolute; top: -30px; color: var(--ring); animation: fall linear forwards; opacity: .9; }
@@ -192,7 +194,7 @@ export const bandHtml = (m: BandModel) => {
   const fx = m.style === 'sky' ? `<span class="fx">${SKY_FX[m.sky]}</span>` : ''
   const progress = m.phase === 'reading' ? m.progress : 100
   const from = m.phase === 'reading' ? m.from : 100
-  const glow = `<div class="pglow${progress >= 100 ? ' full' : ''}${progress <= 0 ? ' empty' : ''}"><b style="width:${progress}%;--from:${from}%"></b></div>`
+  const glow = `<div class="pglow${progress >= 100 ? ' full' : ''}${progress <= 0 ? ' empty' : ''}"><b style="width:${progress}%;--from:${from}%;animation-delay:-${m.glowMs ?? 0}ms"></b></div>`
   const end = m.phase === 'done' ? `<span class="endfx">${falling(m.height)}</span>` : ''
   // Motion keeps its phase across redraws: every animation starts where the clock is.
   const t = `-${((m.now / 1000) % 3600).toFixed(2)}s`

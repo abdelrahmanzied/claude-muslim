@@ -37,6 +37,13 @@ const CELL_PX = 8.4
 const LINE_PX = 20
 // How long the progress glow slides to a new value.
 const GLOW_MS = 700
+
+// Where the glow stands some time into a slide, on the slide's ease-out curve.
+const glowAtTime = (from: number, to: number, ms: number) => {
+  const t = Math.min(1, Math.max(0, ms / GLOW_MS))
+
+  return from + (to - from) * (1 - (1 - t) ** 3)
+}
 // A focus change this soon after a press on the band is the press's own.
 const FOCUS_GRACE_MS = 600
 // Faded again after this long with no input.
@@ -343,11 +350,14 @@ export const install = (on: On, options: Options) => {
 
     const thikr = currentOf(period, reading)
     const progress = Math.round(overall(period, reading) * 1000) / 10
+    // A new value slides on from where the glow stands now, mid-slide or not,
+    // so quick counts never make it jump back.
     if (progress !== glowAt) {
-      glowFrom = glowAt < 0 ? progress : glowAt
+      glowFrom = glowAt < 0 ? progress : glowAtTime(glowFrom, glowAt, Date.now() - glowSince)
       glowAt = progress
       glowSince = Date.now()
     }
+    const glowMs = Date.now() - glowSince
     const times = timesOf(thikr, reading)
     const width = Math.round(e.props.bodyColumns * CELL_PX)
     const model: BandModel = {
@@ -369,7 +379,8 @@ export const install = (on: On, options: Options) => {
       times,
       choices: thikr.choices ?? [],
       progress,
-      from: Date.now() - glowSince < GLOW_MS ? glowFrom : progress,
+      from: glowMs < GLOW_MS ? glowFrom : progress,
+      glowMs: glowMs < GLOW_MS ? glowMs : 0,
       end: display(END, true),
       endHint: props.endHint,
       now: now.getTime(),
