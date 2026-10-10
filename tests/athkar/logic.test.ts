@@ -38,7 +38,7 @@ test('93 is merged into 92; each period has its own thikrs and wording', async (
   expect(evening).not.toContain('94')
   const t77 = ATHKAR.find(t => t.id === '77')!
   expect(textOf(t77, 'evening').startsWith('أَمْسَيْنَا')).toBe(true)
-  expect(ATHKAR.filter(t => t.choices).map(t => t.id)).toEqual(['92', '98'])
+  expect(ATHKAR.filter(t => t.choices).map(t => t.id)).toEqual(['92'])
 })
 
 test('counting fills the thikr, moves on past its end, and back undoes', async () => {
