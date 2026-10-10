@@ -49,9 +49,28 @@
       "default": "all"
     },
     "salah": {
-      "type": "boolean",
+      "type": "string",
       "title": "Prayer times",
-      "description": "Next prayer under the prompt, and a reminder before it",
+      "description": "always: next prayer all day; reminder: only in the reminder window before a prayer; off: nothing",
+      "options": [
+        "always",
+        "reminder",
+        "off"
+      ],
+      "default": "reminder"
+    },
+    "salahReminder": {
+      "type": "number",
+      "title": "Prayer reminder minutes",
+      "description": "Minutes before a prayer when the countdown and reminder start, from 5 to 60",
+      "min": 5,
+      "max": 60,
+      "default": 20
+    },
+    "salahAdhan": {
+      "type": "boolean",
+      "title": "Prayer call",
+      "description": "Show حان وقت صلاة … for 15 minutes once a prayer comes in",
       "default": true
     },
     "salahNotify": {

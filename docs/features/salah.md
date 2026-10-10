@@ -18,10 +18,17 @@ Prayer times for the user's city, calculated on their machine with
 2. **Review.** Saving the place shows today's times above the prompt, one row
    per prayer with − and +. The user matches them to their mosque and saves the
    minutes, or skips.
-3. **Every day.** The status line shows the next prayer: `☾ العصر ١٥:٥٩`; in
-   the 20 minutes before it, `☾ العصر بعد ٢٠ دقيقة`; for 15 minutes once it is
-   in, `حان وقت صلاة العصر`. One notification 20 minutes before each prayer and
-   before sunrise.
+3. **Every day.** What the status line shows depends on the mode (`salah`):
+   - `always`: the next prayer all day, `☾ العصر ١٥:٥٩`; in the reminder window
+     before it (20 minutes by default), `☾ العصر بعد ٢٠ دقيقة`; for 15 minutes
+     once it is in, `حان وقت صلاة العصر`.
+   - `reminder` (default): empty outside the reminder window; the countdown
+     inside it; `حان وقت صلاة …` for 15 minutes, then empty again.
+   - `off`: nothing, and the line is cleared.
+   - `salahAdhan` off drops the `حان وقت` line: the line goes straight back to the
+     next prayer (`always`) or to empty (`reminder`).
+   - Sunrise is in today's times only: no countdown and no reminder for it.
+   - One notification when the window starts for each prayer.
 
 ## Calculation
 
@@ -46,7 +53,9 @@ Prayer times for the user's city, calculated on their machine with
 
 | Field | Command | Default |
 | --- | --- | --- |
-| `salah` | `/salah on` · `off` | on |
+| `salah` | `/salah always` · `reminder` · `off` | reminder |
+| `salahReminder` | `/salah reminder <5-60>` | 20 (minutes) |
+| `salahAdhan` | `/salah adhan on` · `off` | on |
 | `salahNotify` | `/salah notify on` · `off` | on |
 | `salahPlace` | `/salah setup` · `/salah city <name>` | empty |
 | `salahMethod` | `/salah method <name>` | auto |
@@ -61,13 +70,13 @@ Surfaces, the adhan moment's look and what salah never does: [salah-design.md](s
 | File | Holds |
 | --- | --- |
 | `install.tsx` | hooks: `/salah`, setup line, review form, status line |
-| `times.ts` | a day's times, next and last prayer |
+| `times.ts` | a day's times, next (with and without sunrise) and last prayer |
 | `clock.ts` | local time and Hijri month in a time zone |
 | `location.ts` | the guess from the system's time zone |
 | `city.ts` | Claude's prompt for a typed city and the checks on its reply |
 | `place.ts` | the saved place's one-setting format |
 | `review.ts` | the review form's rows |
-| `line.ts` | the status line and notification text |
+| `line.ts` | the status line and reminder text |
 | `names.ts` | prayer names in English and Arabic |
 | `today.ts` | today's line for `/salah` and the method in effect |
 

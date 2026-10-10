@@ -9,12 +9,17 @@ export type Options = {
   thikrTashkeel: boolean
   thikrEnd: boolean
   thikrMode: Mode
-  salah: boolean
+  salah: SalahMode
+  salahReminder: number
+  salahAdhan: boolean
   salahNotify: boolean
   salahPlace: Place | undefined
   salahMethod: MethodId | 'auto'
   salahAdjust: Record<Prayer, number>
 }
+
+// `always`: next prayer all day; `reminder`: only in the reminder window; `off`: nothing.
+export type SalahMode = 'always' | 'reminder' | 'off'
 
 // `all`: every group in turn; `salawat`: one salawat for the whole turn.
 export type Mode = 'all' | 'salawat'
@@ -28,7 +33,9 @@ export const readOptions = (raw: Record<string, unknown>): Options => ({
   thikrTashkeel: raw.thikrTashkeel !== false,
   thikrEnd: raw.thikrEnd !== false,
   thikrMode: raw.thikrMode === 'salawat' ? 'salawat' : 'all',
-  salah: raw.salah !== false,
+  salah: readSalahMode(raw.salah),
+  salahReminder: readReminder(raw.salahReminder),
+  salahAdhan: raw.salahAdhan !== false,
   salahNotify: raw.salahNotify !== false,
   salahPlace: readPlace(raw.salahPlace),
   salahMethod: isMethod(raw.salahMethod) ? raw.salahMethod : 'auto',
@@ -41,6 +48,27 @@ export const readSpeed = (value: unknown): Speed => {
   if (value === undefined || value === 'auto' || !Number.isInteger(seconds)) return 'auto'
 
   return seconds >= SPEED_MIN && seconds <= SPEED_MAX ? seconds : 'auto'
+}
+
+export const REMINDER_MIN = 5
+export const REMINDER_MAX = 60
+export const REMINDER_DEFAULT = 20
+
+// `always`, `reminder` or `off`; the old boolean reads true as reminder, false as off.
+export const readSalahMode = (value: unknown): SalahMode => {
+  if (value === 'always' || value === 'off') return value
+  if (value === false) return 'off'
+
+  return 'reminder'
+}
+
+// Whole minutes from REMINDER_MIN to REMINDER_MAX; anything else is the default.
+export const readReminder = (value: unknown): number => {
+  const minutes = Number(value)
+
+  return value !== '' && value !== null && Number.isInteger(minutes) && minutes >= REMINDER_MIN && minutes <= REMINDER_MAX
+    ? minutes
+    : REMINDER_DEFAULT
 }
 
 export const isMethod = (value: unknown): value is MethodId => typeof value === 'string' && Object.hasOwn(METHODS, value)

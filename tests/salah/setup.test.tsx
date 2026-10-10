@@ -95,6 +95,12 @@ test('a saved place shows no setup band', { options: { salahPlace: 'Munich, Germ
 })
 
 const AT_MUNICH = { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berlin; DE' }
+const statusLines = (on: On) => {
+  const lines: (string | undefined)[] = []
+  on('ui.status', async (_$, e) => (lines.push(e.text), { value: undefined }))
+
+  return lines
+}
 
 test('/salah adjust opens the review form: minutes move a prayer, Save keeps them', { options: AT_MUNICH }, async ($, on) => {
   mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
@@ -135,7 +141,7 @@ test('Skip closes the review form without saving', { options: AT_MUNICH }, async
   await shown.unmount()
 })
 
-test('the status line shows the next prayer, counts down, and notifies once', { options: AT_MUNICH }, async ($, on) => {
+test('always: the status line shows the next prayer, counts down, and notifies once', { options: { ...AT_MUNICH, salah: 'always' } }, async ($, on) => {
   // 13:30 in Munich on 10 October 2026; Asr is at 15:59.
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
   engineBand(on)
@@ -156,12 +162,42 @@ test('the status line shows the next prayer, counts down, and notifies once', { 
   await shown.unmount()
 })
 
-test('off clears the status line', { options: { ...AT_MUNICH, salah: false } }, async ($, on) => {
+test('off clears the status line', { options: { ...AT_MUNICH, salah: 'off' } }, async ($, on) => {
   engineBand(on)
   const lines: (string | undefined)[] = []
   on('ui.status', async (_$, e) => (lines.push(e.text), { value: undefined }))
 
   const shown = await $.ui.mount(band('terminal'))
   expect(lines).toEqual([undefined])
+  await shown.unmount()
+})
+
+test('reminder: the line is empty until the window, counts down, calls, then clears', { options: AT_MUNICH }, async ($, on) => {
+  const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
+  engineBand(on)
+  const lines = statusLines(on)
+
+  const shown = await $.ui.mount(band('terminal'))
+  expect(lines.at(-1)).toBe(undefined)
+  await clock.advance(129 * 60_000)
+  expect(lines.at(-1)).toBe('☾ العصر بعد ٢٠ دقيقة')
+  await clock.advance(20 * 60_000 + 30_000)
+  expect(lines.at(-1)).toBe('حان وقت صلاة العصر')
+  await clock.advance(16 * 60_000)
+  expect(lines.at(-1)).toBe(undefined)
+  await shown.unmount()
+})
+
+test('a shorter reminder moves the window; no adhan skips the call', { options: { ...AT_MUNICH, salahReminder: 5, salahAdhan: false } }, async ($, on) => {
+  const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:44:00Z') })
+  engineBand(on)
+  const lines = statusLines(on)
+
+  const shown = await $.ui.mount(band('terminal'))
+  expect(lines.at(-1)).toBe(undefined)
+  await clock.advance(10 * 60_000)
+  expect(lines.at(-1)).toBe('☾ العصر بعد ٥ دقائق')
+  await clock.advance(20 * 60_000)
+  expect(lines.at(-1)).toBe(undefined)
   await shown.unmount()
 })

@@ -1,11 +1,11 @@
 // The status line under the prompt: the next prayer's time, a countdown in
 // the minutes before it, and the call once it is in.
+// Sunrise has no line and no reminder.
 
 import type { Prayer } from './methods.ts'
+import type { SalahMode } from '../../config.ts'
 import { ARABIC } from './names.ts'
 
-// How long before a prayer the countdown and the notification start.
-export const SOON_MS = 20 * 60_000
 // How long `حان وقت صلاة …` stays after a prayer comes in.
 export const IN_MS = 15 * 60_000
 
@@ -23,22 +23,28 @@ export const minutesText = (minutes: number): string => {
 
 export type Moment = { prayer: Prayer; at: number }
 
-// The line for `now`, given the next prayer, the last one and its HH:MM.
-export const statusText = (next: Moment, nextClock: string, last: Moment, now: number): string => {
-  if (now - last.at < IN_MS) return `حان وقت صلاة ${ARABIC[last.prayer]}`
-  const left = next.at - now
-  if (left <= SOON_MS) return `☾ ${ARABIC[next.prayer]} بعد ${minutesText(Math.max(1, Math.ceil(left / 60_000)))}`
+// What the status line shows besides the times: the mode, the minutes before
+// a prayer the countdown starts, and whether the call shows once it is in.
+export type View = { mode: SalahMode; reminder: number; isAdhan: boolean }
 
-  return `☾ ${ARABIC[next.prayer]} ${arabicDigits(nextClock)}`
+const MINUTE_MS = 60_000
+
+// The line for `now`, given the next prayer (never sunrise), the last one and
+// its HH:MM; undefined when the line is empty (off, or `reminder` outside its window).
+export const statusText = (next: Moment, nextClock: string, last: Moment, now: number, view: View): string | undefined => {
+  if (view.mode === 'off') return undefined
+  if (view.isAdhan && now - last.at < IN_MS) return `حان وقت صلاة ${ARABIC[last.prayer]}`
+  const left = next.at - now
+  if (left <= view.reminder * MINUTE_MS) return `☾ ${ARABIC[next.prayer]} بعد ${minutesText(Math.max(1, Math.ceil(left / MINUTE_MS)))}`
+  if (view.mode === 'always') return `☾ ${ARABIC[next.prayer]} ${arabicDigits(nextClock)}`
+
+  return undefined
 }
 
-// The notification text when `now` is in the minutes before a prayer not yet
-// notified; sunrise ends Fajr and is notified too.
-export const notifyText = (next: Moment, now: number, notifiedAt: number | null): string | undefined => {
-  if (notifiedAt === next.at || next.at - now > SOON_MS || next.at <= now) return undefined
-  const minutes = Math.max(1, Math.ceil((next.at - now) / 60_000))
+// The reminder text when `now` is in the `reminder` minutes before a prayer
+// not yet reminded of.
+export const notifyText = (next: Moment, now: number, notifiedAt: number | null, reminder: number): string | undefined => {
+  if (next.prayer === 'sunrise' || notifiedAt === next.at || next.at - now > reminder * MINUTE_MS || next.at <= now) return undefined
 
-  return next.prayer === 'sunrise'
-    ? `الشروق بعد ${minutesText(minutes)}، آخر وقت الفجر`
-    : `صلاة ${ARABIC[next.prayer]} بعد ${minutesText(minutes)}`
+  return `صلاة ${ARABIC[next.prayer]} بعد ${minutesText(Math.max(1, Math.ceil((next.at - now) / MINUTE_MS)))}`
 }

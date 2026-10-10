@@ -54,6 +54,14 @@ export const nextPrayer = (place: Where, method: MethodId, adjust: Adjust, at: n
   return { prayer: 'fajr', at: timesOn(place, method, adjust, at + DAY_MS).fajr }
 }
 
+// The next of the five prayers after `at`: nextPrayer without sunrise.
+export const nextSalah = (place: Where, method: MethodId, adjust: Adjust, at: number): { prayer: Prayer; at: number } => {
+  const next = nextPrayer(place, method, adjust, at)
+  if (next.prayer !== 'sunrise') return next
+
+  return nextPrayer(place, method, adjust, next.at)
+}
+
 // The most recent prayer at or before `at` (sunrise excluded), today's or yesterday's Isha.
 export const lastPrayer = (place: Where, method: MethodId, adjust: Adjust, at: number): { prayer: Prayer; at: number } => {
   const today = timesOn(place, method, adjust, at)

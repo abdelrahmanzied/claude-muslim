@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
-import { ADJUST_MAX, isMethod, writeAdjust } from '../../config.ts'
+import { ADJUST_MAX, isMethod, REMINDER_MAX, REMINDER_MIN, writeAdjust } from '../../config.ts'
 import type { Options } from '../../config.ts'
 import { CITY_MODEL, CITY_SYSTEM, cityPrompt, parseCities, parseCoordinates, type City } from './city.ts'
 import { guessPlace, systemTimeZone } from './location.ts'
@@ -10,7 +10,7 @@ import { ENGLISH, prayerNamed } from './names.ts'
 import { writePlace, type Place } from './place.ts'
 import { notifyText, statusText } from './line.ts'
 import { nudge, reviewRows } from './review.ts'
-import { clockText, lastPrayer, nextPrayer, type Adjust } from './times.ts'
+import { clockText, lastPrayer, nextSalah, type Adjust } from './times.ts'
 import { dayLine, methodOf } from './today.ts'
 
 // Setup put off with Not now: for the session here, for good in $.store.
@@ -27,8 +27,10 @@ const TICK_MS = 30_000
 const HELP = [
   '/salah                         today\'s times',
   '/salah setup                   pick your city',
-  '/salah on | off                next prayer under the prompt',
-  '/salah notify on | off         a notification 20 minutes before each prayer',
+  '/salah always | reminder | off next prayer all day, only in the reminder window, or nothing',
+  `/salah reminder <${REMINDER_MIN}-${REMINDER_MAX}>        minutes before a prayer the reminder starts`,
+  '/salah adhan on | off          حان وقت صلاة … when a prayer comes in',
+  '/salah notify on | off         a notification before each prayer',
   '/salah city <name>             your city, in any language; or latitude, longitude',
   '/salah method <name>           auto (the country\'s own), or: ' + Object.keys(METHODS).join(', '),
   '/salah adjust                  check today\'s times against your mosque\'s',
@@ -93,11 +95,12 @@ const savePlace = async ($: EngineInterface, city: City, options: Options): Prom
 const tick = async ($: EngineInterface, options: Options, place: Place) => {
   const now = await $.clock.now()
   const method = methodOf(options, place)
-  const next = nextPrayer(place, method, options.salahAdjust, now)
+  const next = nextSalah(place, method, options.salahAdjust, now)
   const last = lastPrayer(place, method, options.salahAdjust, now)
-  $.ui.status(statusText(next, clockText(next.at, place.timeZone), last, now))
+  const view = { mode: options.salah, reminder: options.salahReminder, isAdhan: options.salahAdhan }
+  $.ui.status(statusText(next, clockText(next.at, place.timeZone), last, now, view))
   if (!options.salahNotify) return
-  const text = notifyText(next, now, await read($, notified))
+  const text = notifyText(next, now, await read($, notified), options.salahReminder)
   if (!text) return
   await update($, notified, () => next.at)
   await $.ui.notify(text, { title: 'Salah' }).catch(() => undefined)
@@ -116,7 +119,7 @@ export const install = (on: On, options: Options) => {
 
   on('command.run', { command: 'salah' }, async ($, e) => {
     const [word = '', first = '', second = ''] = e.args.trim().split(/\s+/)
-    const set = async (field: string, to: boolean | string, said: string) => {
+    const set = async (field: string, to: boolean | number | string, said: string) => {
       const { deny } = await $.config.set({ key: `muslim.${field}`, value: to })
 
       return { text: deny ? `Not changed: ${deny}` : said }
@@ -129,14 +132,24 @@ export const install = (on: On, options: Options) => {
 
       return {
         text: [
-          `${place.name} · ${method}${options.salah ? '' : ' · off'}`,
+          `${place.name} · ${method}${options.salah === 'off' ? ' · off' : ''}`,
           dayLine(options, place, await $.clock.now()),
           '',
           HELP,
         ].join('\n'),
       }
     }
-    if (word === 'on' || word === 'off') return set('salah', word === 'on', `salah ${word}`)
+    if (word === 'reminder' && first !== '') {
+      const minutes = Number(first)
+      if (!Number.isInteger(minutes) || minutes < REMINDER_MIN || minutes > REMINDER_MAX) {
+        return { text: `Reminder takes whole minutes from ${REMINDER_MIN} to ${REMINDER_MAX}, e.g. /salah reminder 20.` }
+      }
+
+      return set('salahReminder', minutes, `reminder ${minutes} min before each prayer`)
+    }
+    if (word === 'always' || word === 'reminder' || word === 'off') return set('salah', word, `salah ${word}`)
+    if (word === 'on') return set('salah', 'reminder', 'salah reminder')
+    if (word === 'adhan' && (first === 'on' || first === 'off')) return set('salahAdhan', first === 'on', `adhan ${first}`)
     if (word === 'notify' && (first === 'on' || first === 'off')) return set('salahNotify', first === 'on', `notify ${first}`)
     if (word === 'setup') {
       const city = await askCity($, guess)
@@ -180,11 +193,11 @@ export const install = (on: On, options: Options) => {
   // The next prayer under the prompt, from the first time the prompt is drawn.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const place = options.salahPlace
-    if (options.salah && place && !ticker) {
+    if (options.salah !== 'off' && place && !ticker) {
       ticker = $.clock.every(TICK_MS, () => void tick($, options, place))
       await tick($, options, place)
     }
-    if (!(options.salah && place) && !isLineCleared) {
+    if (!(options.salah !== 'off' && place) && !isLineCleared) {
       isLineCleared = true
       $.ui.status(undefined)
     }

@@ -21,7 +21,7 @@ A thikr phrase joins Claude's working line (the spinner). Claude's step, timer a
 
 ### Prayer times (`/salah`)
 
-The next prayer under the prompt (`☾ العصر ١٥:٥٩`), a countdown in the 20 minutes before it, and one notification. Calculated on your machine; on first use the mod offers the city of your time zone, or any city you type in any language, then shows today's times so you can match them to your mosque. Details: [docs/features/salah.md](docs/features/salah.md).
+The next prayer under the prompt (`☾ العصر ١٥:٥٩`) all day, or only in the reminder window before it (20 minutes by default, 5 to 60), with a countdown and `حان وقت صلاة …` when it comes in; one notification when the window starts. Calculated on your machine; on first use the mod offers the city of your time zone, or any city you type in any language, then shows today's times so you can match them to your mosque. Details: [docs/features/salah.md](docs/features/salah.md).
 
 More features are planned: morning and evening athkar.
 
@@ -75,7 +75,10 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/salah setup` · `city <name>` | Pick your city, in any language |
 | `/salah adjust` | Match today's times to your mosque, a minute at a time |
 | `/salah method <name>` | `auto` (your country's own) or a named method |
-| `/salah on` · `off` · `notify on` · `off` | The status line, and the notification before each prayer |
+| `/salah always` · `reminder` · `off` | Next prayer all day, only in the reminder window, or nothing |
+| `/salah reminder <5-60>` | Minutes before a prayer the reminder starts |
+| `/salah adhan on` · `off` | `حان وقت صلاة …` when a prayer comes in |
+| `/salah notify on` · `off` | The notification when the reminder starts |
 | `/muslim` | Show the installed version |
 
 Every setting is also in `/config`.
