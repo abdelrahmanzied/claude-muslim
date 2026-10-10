@@ -63,6 +63,11 @@ Full text with tashkeel: `src/features/thikr/phrases.ts`.
 - End-of-turn line: how Claude joins the word and the duration (e.g. "… for 3s") in an RTL phrase.
 - Arabic joining and direction per terminal: issue #3.
 
+
+## Design
+
+Thikr is text only, in Claude's own font, size and colors (theme keys such as `color="claude"`). No drawing: no SVG, images or custom fonts. It looks the same on Windows, macOS and Linux, in the terminal and the desktop app, and follows the theme and zoom. This is thikr's own choice; other features decide theirs.
+
 ## Files
 
 | File | Holds |

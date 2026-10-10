@@ -1,19 +1,30 @@
 # Design system — muslim mod
 
-The rules every feature follows. Read this before designing a new feature; the per-feature specs live in `docs/features/<feature>.md`.
+The shared base every feature follows, and the index to each feature's own design. Each feature owns its design: its moments, surfaces and visual means live in `docs/features/<feature>.md`. Read this before designing a new feature, then the docs of the features you touch.
+
+## Feature index
+
+| Feature | Command | Design and spec | Status |
+| --- | --- | --- | --- |
+| Thikr line | `/thikr` | [docs/features/thikr.md](docs/features/thikr.md) | 0.2.0 |
+| Salah | `/salah` | [docs/features/salah.md](docs/features/salah.md) | 0.3.0 |
+| Morning and evening athkar | `/athkar` | in progress in another branch | planned |
+
+Everything below is shared by every feature. A feature's doc may add to it, never contradict it.
 
 ## 1. Principles
 
 1. **Claude stays Claude.** We add a layer of thikr to Claude's interface; we never redesign it. Claude's own text (timer, token counts, `esc to interrupt`, tool output) is never translated, reworded or hidden.
-2. **Text only.** Everything is plain text in Claude's own font, size and colors. No SVG, images, custom fonts or drawing. It must look right on Windows, macOS and Linux, in the terminal and the desktop app, follow the user's theme and scale with zoom.
-3. **Quiet by default.** A reminder, never an interruption. Nothing blocks work, steals focus, plays sound, or appears more than once for the same moment.
-4. **Authentic content.** Every phrase is authored data with tashkeel and, where it has one, a source (Quran ayah or Hisn al-Muslim number). Nothing is generated at runtime. Display may strip tashkeel; it never changes words.
-5. **No scores.** We never count the user's worship, show streaks, rewards or guilt. Counting exists only where the user counts themselves (athkar reader), and stays private on their machine.
-6. **One feature, one switch.** Every feature can be turned off on its own, in `/config` and by its command. Off means its hooks do nothing.
+2. **Quiet by default.** A reminder, never an interruption. Nothing blocks work, steals focus, plays sound, or appears more than once for the same moment.
+3. **Authentic content.** Every phrase is authored data with tashkeel and, where it has one, a source (Quran ayah or Hisn al-Muslim number). Nothing is generated at runtime. Display may strip tashkeel; it never changes words.
+4. **No scores.** We never count the user's worship, show streaks, rewards or guilt. Counting exists only where the user counts themselves (athkar reader), and stays private on their machine.
+5. **One feature, one switch.** Every feature can be turned off on its own, in `/config` and by its command. Off means its hooks do nothing.
 
-## 2. Surfaces we use
+6. **Each feature owns its visual means.** Text in Claude's font, size and colors is the default. A feature may use richer means (images, SVG, animation) only where its doc says so and why. Anything drawn must work on every surface the feature targets, with a text fallback in the terminal when the richer surface is desktop-only, and must follow the theme and zoom.
 
-Pick the lightest surface that does the job. Each comes from the mod API (`/plugin-authoring` types are the reference).
+## 2. Surfaces
+
+Pick the lightest surface that does the job. Each comes from the mod API (`/plugin-authoring` types are the reference). Each feature's doc states which surfaces and visual means it uses and why.
 
 | Surface | What it is | Use for | Example |
 | --- | --- | --- | --- |
@@ -25,11 +36,11 @@ Pick the lightest surface that does the job. Each comes from the mod API (`/plug
 | Notification | `$.ui.notify` | Only for time-critical moments the user opted into | Prayer time |
 | Command reply | `command.run` → `{ text }` | Status, help, changing settings | `/thikr` |
 
-Not used: custom Panes for passive content, Images, Svg, Raster, Client modules.
+Richer surfaces (Pane, Image, Svg, Raster, Client modules) are chosen per feature in its doc, not here. Passive content does not get a Pane.
 
 ## 3. Color
 
-Use theme keys, never hex, so every theme (light, dark, color-blind, ANSI) stays correct.
+Wherever text is used, use theme keys, never hex, so every theme (light, dark, color-blind, ANSI) stays correct.
 
 | Role | Theme key | Use |
 | --- | --- | --- |
@@ -42,7 +53,7 @@ Never use `error` or `warning` for religious text.
 
 ## 4. Typography and Arabic
 
-- **Font and size:** Claude's. We cannot and do not change them.
+- **Font and size:** text uses Claude's own, which we cannot change. A feature that draws states its own choices in its doc.
 - **Tashkeel:** on by default; each feature respects a `…Tashkeel` setting through `display(text, tashkeel)`.
 - **Direction:** a line that starts with Arabic is read right to left by the surface. When Claude's own Latin text or numbers sit in the same line, keep them as a separate run (e.g. a separator `·`), and never convert Claude's numbers.
 - **Our numbers** (counts, times we compute) use Arabic-Indic digits (`١٥:٢٤`, `٢/٣`) inside Arabic lines.
@@ -83,11 +94,12 @@ Wire it in `hooks/register.tsx` (`install<Feature>(on, settings)`), register its
 
 ## 9. New feature checklist
 
-- [ ] Fits the principles above; uses the lightest surface.
+- [ ] Fits the shared base above; uses the lightest surface that does the job.
+- [ ] The feature doc has a Design section: surfaces, visual means, why, and the fallback where a surface is desktop-only.
 - [ ] Spec added to `docs/features/<feature>.md` (moments, phrases with sources, settings).
 - [ ] Phrases reviewed by a person; sources noted.
 - [ ] Off switch in `/config` and the command; off leaves Claude untouched.
-- [ ] Colors via theme keys; tashkeel setting respected.
+- [ ] Text colors via theme keys; tashkeel setting respected.
 - [ ] Tests on `terminal` and `desktop`; `claude plugin validate`, `claude plugin test`, `tsc` pass.
 - [ ] Tried live in a terminal and the desktop app.
 - [ ] `CHANGELOG.md` and version bumped.
