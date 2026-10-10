@@ -5,7 +5,7 @@ import type { Day } from '../../../types'
 import type { Options } from '../../config.ts'
 import { readSize } from '../../config.ts'
 import { display } from '../thikr/rotation.ts'
-import { bandHeight, frameOf } from './band.ts'
+import { bandHeight, frameOf, isFolded } from './band.ts'
 import type { BandModel } from './band.ts'
 import type { Period } from './data.ts'
 import { ADVANCE_MS, countOf, currentOf, dayOf, emptyReading, END, listFor, overall, periodAt, readDay, shouldAdvance, skyAt, step, textOf, timesOf, TITLE } from './logic.ts'
@@ -33,6 +33,8 @@ const HELP = [
 // The width of a cell on the desktop in CSS pixels: the band picture is sized
 // from the columns it is given.
 const CELL_PX = 8.4
+// The folded row's height: one line of text, in CSS pixels (the card adds a line to it).
+const REST_PX = 24
 // A line on the desktop in CSS pixels.
 const LINE_PX = 20
 // How long the progress glow slides to a new value.
@@ -133,7 +135,9 @@ const isMessage = (value: unknown): value is Message => {
 // the × at the top left; the 10 | 100 switch after the circles, on the last row.
 type Hit = { x0: number; x1: number; y0: number; y1: number; act: Act }
 
-export const hitsFor = (m: Pick<BandModel, 'phase' | 'times' | 'choices' | 'height'>): Hit[] => {
+export const hitsFor = (m: Pick<BandModel, 'phase' | 'times' | 'choices' | 'height' | 'isActive' | 'restHeight'>): Hit[] => {
+  // The folded row has no controls: a press on it opens it.
+  if (isFolded(m)) return []
   const hits: Hit[] = [{ x0: 0, x1: 34, y0: 0, y1: 30, act: { act: 'hide' } }]
   if (m.phase !== 'reading' || m.choices.length < 2) return hits
   const circles = m.times > 10 ? 10 * 28 + 9 * 4 : m.times * 22 + (m.times - 1) * 4
@@ -401,6 +405,7 @@ export const install = (on: On, options: Options) => {
       now: now.getTime(),
       width,
       height: 0,
+      restHeight: REST_PX,
       card: { ch: CELL_PX, lh: LINE_PX },
     }
     // The finale stands as tall as the desktop lets the band be.

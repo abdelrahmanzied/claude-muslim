@@ -137,3 +137,41 @@ test('off draws nothing above the prompt', { options: { athkar: false } }, async
   expect(await ui.find({ type: 'Client' })).toBeUndefined()
   await ui.unmount()
 })
+
+test('faded, the reading folds to one row; a press opens it without counting', async ($, on) => {
+  const clock = mock.clock(on, { now: MORNING })
+  mock.store(on)
+  engineBand(on)
+
+  for (const surface of SURFACES) {
+    await $.command.run({ command: 'athkar', args: 'morning reset', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+    const ui = await $.ui.mount(band(surface))
+    await ui.pointer({ type: 'down', x: 40, y: 1, button: 'left' })
+    const heightOf = async () => Number((await ui.find({ in: 'athkar', type: 'Svg' }))?.props.height ?? 0)
+    const isFolded = async () => (surface === 'desktop' ? (await picture(ui)).includes('class="peek"') : (await ui.find({ in: 'athkar', key: 'rest' })) !== undefined)
+
+    // Lit: the full reading, with its circles.
+    expect(await isFolded()).toBe(false)
+    const full = await heightOf()
+
+    // The pointer leaves: it fades and folds.
+    await ui.post({ act: 'leave' })
+    await clock.advance(400)
+    expect(await isFolded()).toBe(true)
+    if (surface === 'desktop') {
+      expect(await heightOf()).toBeLessThan(full / 2)
+      expect(await picture(ui)).not.toContain('class="nb')
+    }
+
+    // A press opens it at once and does not count.
+    await ui.pointer({ type: 'down', x: 40, y: 0, button: 'left' })
+    expect(await isFolded()).toBe(false)
+    expect(await isFirstCounted(ui, surface)).toBe(false)
+    if (surface === 'desktop') expect(await heightOf()).toBe(full)
+
+    // The next one counts.
+    await ui.pointer({ type: 'down', x: 40, y: 1, button: 'left' })
+    expect(await isFirstCounted(ui, surface)).toBe(true)
+    await ui.unmount()
+  }
+})

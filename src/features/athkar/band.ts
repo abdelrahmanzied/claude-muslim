@@ -45,6 +45,8 @@ export type BandModel = {
   now: number
   width: number
   height: number
+  // The height of the one-line row the reading folds to when faded; absent, it never folds.
+  restHeight?: number
   // On the desktop, the cell the band is laid out in (CSS px): the picture
   // reaches a column past the band's slot at the sides and half a line above
   // and below (a margin of -1 each way) to cover the card the desktop draws
@@ -60,14 +62,22 @@ export type BandModel = {
 const CARD_X = 8
 const cardY = (lh: number) => Math.max(0, (40 - lh) / 2)
 
+// The reading folds to one row while faded; a press lights it and it opens.
+export const isFolded = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight'>) =>
+  m.phase === 'reading' && !m.isActive && m.restHeight !== undefined
+
+// The height the band stands at now: the folded row, or the full band.
+export const heightOf = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' | 'height'>) => (isFolded(m) ? (m.restHeight ?? m.height) : m.height)
+
 // The picture's size, and where the band's own box starts in it.
-export const frameOf = (m: Pick<BandModel, 'width' | 'height' | 'card' | 'drawWidth'>) => {
-  if (!m.card) return { width: m.width, height: m.height, left: 0, top: 0, padX: 0, padY: 0, addX: 0, addY: 0 }
+export const frameOf = (m: Pick<BandModel, 'width' | 'height' | 'card' | 'drawWidth' | 'phase' | 'isActive' | 'restHeight'>) => {
+  const tall = heightOf(m)
+  if (!m.card) return { width: m.width, height: tall, left: 0, top: 0, padX: 0, padY: 0, addX: 0, addY: 0 }
   const { ch, lh } = m.card
 
   return {
     width: Math.round(m.drawWidth ?? m.width + 2 * ch),
-    height: Math.round(m.height + lh),
+    height: Math.round(tall + lh),
     left: ch,
     top: lh / 2,
     // Past the card's edge the picture is cut off: left empty.
@@ -105,6 +115,12 @@ const EXTRA_CSS = `
 .band.line { padding: calc(10px + var(--ay, 0px)) calc(14px + var(--ax, 0px)); }
 .band.card { padding: calc(12px + var(--ay, 0px)) calc(16px + var(--ax, 0px)); }
 .band { min-height: 100%; }
+/* Faded, the reading folds to one row: the thikr cut short, then where it stands. */
+.band.band.rest { display: flex; align-items: center; padding: var(--ay, 0px) calc(14px + var(--ax, 0px)); }
+.band.rest > .x { display: none; }
+.band.rest .peek { display: flex; align-items: center; gap: 12px; width: 100%; direction: rtl; }
+.band.rest .pk-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: right; font-family: var(--font-band); font-size: 15px; line-height: 1.6; color: var(--b-ink); }
+.band.rest .pk-pos { flex: none; white-space: nowrap; font-size: 11.5px; color: var(--b-dim); font-family: var(--font-band); }
 .band[data-band] .text, .band.line .text { font-size: var(--fs, 16px) !important; max-height: none; overflow: visible; }
 .pglow b { animation: glowTo .7s cubic-bezier(.33, 1, .68, 1) both; }
 @keyframes glowTo { from { width: var(--from); } }
@@ -164,6 +180,9 @@ const reading = (m: BandModel) =>
   `<div class="text">${esc(m.text)}</div><div class="sub"><div class="nbs">${circles(m.count, m.times)}</div>${choice(m)}`
   + `<span class="hint state keys"></span><span class="src">${esc([m.note, m.position].filter(Boolean).join(' · '))}</span></div>`
 
+const folded = (m: BandModel) =>
+  `<div class="peek"><span class="pk-text">${esc(m.text)}</span><span class="pk-pos">${esc(m.position)}</span></div>`
+
 const done = (m: BandModel) =>
   `<div class="done-row"><span class="big">${esc(m.end)}</span><span class="dim done-hint">${esc(m.endHint)}</span></div>`
 
@@ -186,7 +205,7 @@ const falling = (height: number, ms: number) =>
 const bandClasses = (m: BandModel) => {
   const layout = m.phase === 'done' ? 'card' : 'line compact'
   const edge = m.phase !== 'reading' ? ' edge' : ''
-  const active = m.isActive ? ' active' : ''
+  const active = (m.isActive ? ' active' : '') + (isFolded(m) ? ' rest' : '')
   if (m.style === 'sky') {
     return `band ${layout} bg-${m.sky} sky ${INK[m.sky]}-ink acc-${m.accent} ts-plain al-fade tc-auto bd-auto dn-soft nm-main fx-rich ui-classic fc-white${edge}${active}`
   }
@@ -199,7 +218,7 @@ const fontFace = (family: string, weight: number, data: string) =>
 
 export const bandHtml = (m: BandModel) => {
   const isFinale = m.phase === 'done' && m.finaleMs !== undefined
-  const inner = isFinale ? '' : m.phase === 'cover' ? cover(m) : m.phase === 'done' ? done(m) : reading(m)
+  const inner = isFinale ? '' : m.phase === 'cover' ? cover(m) : m.phase === 'done' ? done(m) : isFolded(m) ? folded(m) : reading(m)
   const fx = m.style === 'sky' ? `<span class="fx">${SKY_FX[m.sky]}</span>` : ''
   const progress = m.phase === 'reading' ? m.progress : 100
   const from = m.phase === 'reading' ? m.from : 100
