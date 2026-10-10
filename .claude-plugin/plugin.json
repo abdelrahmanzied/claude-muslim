@@ -54,6 +54,12 @@
       "description": "Next prayer under the prompt, and a reminder before it",
       "default": true
     },
+    "salahNotify": {
+      "type": "boolean",
+      "title": "Prayer notification",
+      "description": "One notification 20 minutes before each prayer, and before sunrise",
+      "default": true
+    },
     "salahPlace": {
       "type": "string",
       "title": "Prayer place",

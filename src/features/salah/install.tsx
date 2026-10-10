@@ -8,8 +8,9 @@ import { guessPlace, systemTimeZone } from './location.ts'
 import { METHODS, type Prayer } from './methods.ts'
 import { ENGLISH, prayerNamed } from './names.ts'
 import { writePlace, type Place } from './place.ts'
+import { notifyText, statusText } from './line.ts'
 import { nudge, reviewRows } from './review.ts'
-import type { Adjust } from './times.ts'
+import { clockText, lastPrayer, nextPrayer, type Adjust } from './times.ts'
 import { dayLine, methodOf } from './today.ts'
 
 // Setup put off with Not now: for the session here, for good in $.store.
@@ -18,11 +19,16 @@ const SETUP_LATER_KEY = 'salahSetupLater'
 // The review form's minutes while it is open; null when closed. Kept in
 // $.state so it survives the reload that saving the place causes.
 const review = atom({ plugin: 'muslim', key: 'salahReview' } as const, null as Adjust | null)
+const notified = atom({ plugin: 'muslim', key: 'salahNotified' } as const, null as number | null)
+
+// How often the status line is redrawn.
+const TICK_MS = 30_000
 
 const HELP = [
   '/salah                         today\'s times',
   '/salah setup                   pick your city',
   '/salah on | off                next prayer under the prompt',
+  '/salah notify on | off         a notification 20 minutes before each prayer',
   '/salah city <name>             your city, in any language; or latitude, longitude',
   '/salah method <name>           auto (the country\'s own), or: ' + Object.keys(METHODS).join(', '),
   '/salah adjust                  check today\'s times against your mosque\'s',
@@ -83,6 +89,20 @@ const savePlace = async ($: EngineInterface, city: City, options: Options): Prom
   return deny ? `Not changed: ${deny}` : `${city.name} · ${METHODS[methodOf(options, city)].name}`
 }
 
+// Redraws the status line, and notifies once in the minutes before a prayer.
+const tick = async ($: EngineInterface, options: Options, place: Place) => {
+  const now = await $.clock.now()
+  const method = methodOf(options, place)
+  const next = nextPrayer(place, method, options.salahAdjust, now)
+  const last = lastPrayer(place, method, options.salahAdjust, now)
+  $.ui.status(statusText(next, clockText(next.at, place.timeZone), last, now))
+  if (!options.salahNotify) return
+  const text = notifyText(next, now, await read($, notified))
+  if (!text) return
+  await update($, notified, () => next.at)
+  await $.ui.notify(text, { title: 'Salah' }).catch(() => undefined)
+}
+
 const putOff = async ($: EngineInterface) => {
   await update($, setupLater, () => true)
   await $.store.set(SETUP_LATER_KEY, true)
@@ -90,6 +110,9 @@ const putOff = async ($: EngineInterface) => {
 
 export const install = (on: On, options: Options) => {
   const guess = guessPlace(systemTimeZone())
+  // The status line's timer, started on the first draw of the prompt.
+  let ticker: { cancel: () => void } | undefined
+  let isLineCleared = false
 
   on('command.run', { command: 'salah' }, async ($, e) => {
     const [word = '', first = '', second = ''] = e.args.trim().split(/\s+/)
@@ -114,6 +137,7 @@ export const install = (on: On, options: Options) => {
       }
     }
     if (word === 'on' || word === 'off') return set('salah', word === 'on', `salah ${word}`)
+    if (word === 'notify' && (first === 'on' || first === 'off')) return set('salahNotify', first === 'on', `notify ${first}`)
     if (word === 'setup') {
       const city = await askCity($, guess)
 
@@ -151,6 +175,21 @@ export const install = (on: On, options: Options) => {
     }
 
     return { text: HELP }
+  })
+
+  // The next prayer under the prompt, from the first time the prompt is drawn.
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    const place = options.salahPlace
+    if (options.salah && place && !ticker) {
+      ticker = $.clock.every(TICK_MS, () => void tick($, options, place))
+      await tick($, options, place)
+    }
+    if (!(options.salah && place) && !isLineCleared) {
+      isLineCleared = true
+      $.ui.status(undefined)
+    }
+
+    return next(e)
   })
 
   // After the place is saved, or on /salah adjust: today's times to check

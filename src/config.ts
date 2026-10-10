@@ -10,6 +10,7 @@ export type Options = {
   thikrEnd: boolean
   thikrMode: Mode
   salah: boolean
+  salahNotify: boolean
   salahPlace: Place | undefined
   salahMethod: MethodId | 'auto'
   salahAdjust: Record<Prayer, number>
@@ -28,6 +29,7 @@ export const readOptions = (raw: Record<string, unknown>): Options => ({
   thikrEnd: raw.thikrEnd !== false,
   thikrMode: raw.thikrMode === 'salawat' ? 'salawat' : 'all',
   salah: raw.salah !== false,
+  salahNotify: raw.salahNotify !== false,
   salahPlace: readPlace(raw.salahPlace),
   salahMethod: isMethod(raw.salahMethod) ? raw.salahMethod : 'auto',
   salahAdjust: readAdjust(raw.salahAdjust),

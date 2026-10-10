@@ -15,6 +15,8 @@ declare module 'claude-code' {
       salahSetupLater: boolean
       // The prayer times review form's minutes while it is open, else null.
       salahReview: SalahAdjust | null
+      // The prayer time (ms since epoch) last notified, so a reload does not notify it again.
+      salahNotified: number | null
     }
   }
 }
