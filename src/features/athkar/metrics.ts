@@ -3,12 +3,15 @@
 // desktop band is a picture of fixed height, so the height is worked out from
 // these. Measured in a browser with the fonts in fonts.ts; remeasure when the
 // text changes.
+// '75' and '76-*' include the verse-end markers ((١)): their widths are an
+// ESTIMATE (old width, minus ~20px per old ۝ separator, plus ~32px per marker),
+// not measured; remeasure when convenient.
 
 export const TEXT_WIDTH: Record<string, { m: readonly number[]; e?: readonly number[] }> = {
-  '75': { m: [1626] },
-  '76-ikhlas': { m: [150, 445] },
-  '76-falaq': { m: [150, 773] },
-  '76-nas': { m: [150, 838] },
+  '75': { m: [1658] },
+  '76-ikhlas': { m: [150, 513] },
+  '76-falaq': { m: [150, 853] },
+  '76-nas': { m: [150, 930] },
   '77': { m: [1815], e: [1843] },
   '78': { m: [407], e: [409] },
   '79': { m: [1143] },

@@ -129,3 +129,28 @@ test('clicks on the picture find the × and the 10 | 100 switch', async () => {
   expect(at(356, 65)).toEqual({ act: 'choose', times: 100 })
   expect(at(600, 20)).toBeUndefined()
 })
+
+// Verse-end markers: ( + Arabic-Indic number + ), after every numbered verse.
+const MARK = /(([٠-٩]+))/g
+const marksOf = (id: string) => [...ATHKAR.find(t => t.id === id)!.text.matchAll(MARK)].map(m => m[1])
+
+test('the short surahs number every verse, the last one included', async () => {
+  expect(marksOf('76-ikhlas')).toEqual(['١', '٢', '٣', '٤'])
+  expect(marksOf('76-falaq')).toEqual(['١', '٢', '٣', '٤', '٥'])
+  expect(marksOf('76-nas')).toEqual(['١', '٢', '٣', '٤', '٥', '٦'])
+  for (const id of ['76-ikhlas', '76-falaq', '76-nas']) {
+    const text = ATHKAR.find(t => t.id === id)!.text
+    expect(text.endsWith(')')).toBe(true)
+    expect(text.includes('۝')).toBe(false)
+  }
+})
+
+test('the basmala stays unnumbered and Ayat al-Kursi carries its verse number', async () => {
+  for (const id of ['76-ikhlas', '76-falaq', '76-nas']) {
+    const basmala = ATHKAR.find(t => t.id === id)!.text.split('\n')[0]
+    expect(basmala).toBe('بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ')
+  }
+  const kursi = ATHKAR.find(t => t.id === '75')!.text
+  expect(marksOf('75')).toEqual(['٢٥٥'])
+  expect(kursi.endsWith('الْعَظِيمُ (٢٥٥)')).toBe(true)
+})
