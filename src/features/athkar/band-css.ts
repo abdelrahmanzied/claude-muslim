@@ -116,7 +116,6 @@ button:focus-visible {outline: 2px solid var(--accent); outline-offset: 2px;}
 .done-row .done-hint {direction: ltr; font-family: var(--font-mono);}
 .done-row .big {font-family: var(--font-ar); font-size: 19px; color: var(--b-acc); white-space: nowrap;}
 .fx {position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 5;}
-.card {background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 10px; align-content: start; font-size: 14px;}
 .kc {display: inline-grid; place-items: center; min-width: 16px; height: 16px; padding: 0 4px; border: 1px solid var(--b-dim); border-bottom-width: 2px; border-radius: 4px; font: 500 9.5px/1 var(--font-mono); color: var(--b-dim); opacity: .85;}
 .keys {display: inline-flex; gap: 4px; align-items: center; font: 500 10.5px var(--font-mono); color: var(--b-dim);}
 .nbs {display: flex; gap: 4px; direction: rtl; flex-wrap: wrap; align-items: center;}

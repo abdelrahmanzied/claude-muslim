@@ -37,6 +37,10 @@ const CELL_PX = 8.4
 const LINE_PX = 20
 // How long the progress glow slides to a new value.
 const GLOW_MS = 700
+// The finale when a set is finished: the band stands this tall while stars
+// fall and the dua rises, then settles to the done row.
+const FINALE_MS = 3200
+const FINALE_PX = 240
 
 // Where the glow stands some time into a slide, on the slide's ease-out curve.
 const glowAtTime = (from: number, to: number, ms: number) => {
@@ -182,6 +186,9 @@ export const install = (on: On, options: Options) => {
   // When the glow last moved: every redraw is a new picture, so it slides only just after.
   let glowSince = 0
   let isStatusCleared = false
+  // The phase last drawn, and when the set was finished in front of the person.
+  let lastPhase: string | undefined
+  let finishedAt = 0
   // The picture last drawn and the reader's region over it, for its clicks.
   let lastBand: BandModel | undefined
   let region = { columns: 0, rows: 0 }
@@ -335,6 +342,13 @@ export const install = (on: On, options: Options) => {
     const sky = skyAt(hourOf(now))
     const look = lookFor(options.athkarStyle, options.athkarColor, sky, isDark, isPicture)
     const props = readerProps(period, reading, look, text => display(text, true), { isOpen: view.isOpen, isActive: view.isActive, isPicture })
+    // Finished just now, not found finished on a reload: the finale plays once.
+    if (props.phase === 'done' && lastPhase !== undefined && lastPhase !== 'done') {
+      finishedAt = Date.now()
+      $.clock.after(FINALE_MS, () => $.ui.invalidate('ui.render'))
+    }
+    lastPhase = props.phase
+    const finaleMs = props.phase === 'done' && Date.now() - finishedAt < FINALE_MS ? Date.now() - finishedAt : undefined
     const { Box, Client } = $.ui.resolve(e)
 
     if (e.surface !== 'desktop') {
@@ -366,6 +380,7 @@ export const install = (on: On, options: Options) => {
       sky,
       style: options.athkarStyle,
       textSize: options.athkarSize,
+      finaleMs,
       accent: options.athkarColor,
       isDark,
       isActive: view.isActive,
@@ -388,7 +403,8 @@ export const install = (on: On, options: Options) => {
       height: 0,
       card: { ch: CELL_PX, lh: LINE_PX },
     }
-    model.height = bandHeight(model, width)
+    // The finale stands as tall as the desktop lets the band be.
+    model.height = finaleMs === undefined ? bandHeight(model, width) : Math.min(FINALE_PX, Math.max(56, (e.props.maxRows - 2) * LINE_PX))
     lastBand = model
 
     return (

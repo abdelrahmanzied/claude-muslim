@@ -105,7 +105,10 @@ test('finishing shows the end, and × hides the band keeping the reading', async
     for (let n = 0; n < thikr.times; n++) await press(ui, 'return')
     await press(ui, 'left')
   }
-  expect(await picture(ui)).toContain('class="done-row"')
+  // Finished in front of the person: the finale plays, tall, with the dua rising.
+  const finale = String(await picture(ui))
+  expect(finale).toContain('class="rise-msg"')
+  expect(finale).toContain('class="fall"')
 
   await ui.post({ act: 'hide' })
   expect(await ui.find({ type: 'Client' })).toBeUndefined()

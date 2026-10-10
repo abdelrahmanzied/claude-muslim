@@ -102,7 +102,13 @@ test('every band picture fits the size limit and carries its fonts', async () =>
       expect(svg).toContain('font-family: "Tajawal"')
     }
   }
-  expect(bandSvg(model({ phase: 'done' }))).toContain('class="fall"')
+  // The finale carries the stars and the rising dua; the done row after it is still.
+  expect(bandSvg(model({ phase: 'done', finaleMs: 0 }))).toContain('class="rise-msg"')
+  expect(bandSvg(model({ phase: 'done', finaleMs: 0 }))).toContain('class="fall"')
+  expect(bandSvg(model({ phase: 'done' }))).toContain('class="done-row"')
+  expect(bandSvg(model({ phase: 'done' }))).not.toContain('class="fall"')
+  // The lab's gallery card rule would paint over the sky on the done row.
+  expect(bandSvg(model({ phase: 'done' }))).not.toContain('.card {background: var(--panel)')
 })
 
 test('the band grows with its text and shrinks with the width', async () => {

@@ -34,6 +34,9 @@ export type BandModel = {
   // Overall progress now and before the last change, 0 to 100.
   progress: number
   from: number
+  // Just after the set is finished: how far into the finale, in milliseconds.
+  // The band stands tall, stars fall and the dua rises; absent, the done row.
+  finaleMs?: number
   // How far into its slide the glow is, in milliseconds: a redraw carries it on.
   glowMs?: number
   end: string
@@ -108,6 +111,8 @@ const EXTRA_CSS = `
 .endfx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; border-radius: inherit; }
 .fall { position: absolute; top: -30px; color: var(--ring); animation: fall linear forwards; opacity: .9; }
 @keyframes fall { to { transform: translateY(var(--dy)) rotate(var(--rot)); opacity: 0; } }
+.rise-msg { position: absolute; left: 50%; bottom: 24px; font-family: var(--font-cover); font-size: 30px; white-space: nowrap; direction: rtl; color: var(--ring); text-shadow: 0 0 18px color-mix(in srgb, var(--ring) 70%, transparent); opacity: 0; animation: riseMsg 2.8s ease-out both; }
+@keyframes riseMsg { 0% { opacity: 0; transform: translate(-50%, 30px); } 30% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -110px); } }
 /* Sand and Outline: at rest the app's own quiet line; lit, the accent line
    and the glow breathing inside the edge, since the picture ends at it. */
 .band.band.al-breathe:not(.active) { border-color: var(--desk-line) !important; }
@@ -162,15 +167,16 @@ const done = (m: BandModel) =>
 
 const GLYPHS = ['✦', '✧', '⋆', '✦', '☾']
 
-// Stars falling once over the band; placed by index so a redraw keeps them.
-const falling = (height: number) =>
+// Stars falling once over the band; placed by index, and started back by how
+// far the finale has gone, so a redraw carries them on.
+const falling = (height: number, ms: number) =>
   Array.from({ length: 26 }, (_, i) => {
     const left = (i * 37) % 96
     const size = 10 + ((i * 7) % 14)
     const dy = Math.round(height * (0.55 + ((i * 13) % 40) / 100))
     const rot = ((i * 41) % 180) - 90
     const dur = 1.6 + ((i * 3) % 14) / 10
-    const delay = ((i * 5) % 8) / 10
+    const delay = ((i * 5) % 8) / 10 - ms / 1000
 
     return `<span class="fall" style="left:${left}%;font-size:${size}px;--dy:${dy}px;--rot:${rot}deg;animation-duration:${dur}s;animation-delay:${delay}s">${GLYPHS[i % GLYPHS.length]}</span>`
   }).join('')
@@ -190,12 +196,16 @@ const fontFace = (family: string, weight: number, data: string) =>
   `@font-face { font-family: "${family}"; font-weight: ${weight}; src: url(data:font/woff2;base64,${data}) format("woff2"); }`
 
 export const bandHtml = (m: BandModel) => {
-  const inner = m.phase === 'cover' ? cover(m) : m.phase === 'done' ? done(m) : reading(m)
+  const isFinale = m.phase === 'done' && m.finaleMs !== undefined
+  const inner = isFinale ? '' : m.phase === 'cover' ? cover(m) : m.phase === 'done' ? done(m) : reading(m)
   const fx = m.style === 'sky' ? `<span class="fx">${SKY_FX[m.sky]}</span>` : ''
   const progress = m.phase === 'reading' ? m.progress : 100
   const from = m.phase === 'reading' ? m.from : 100
   const glow = `<div class="pglow${progress >= 100 ? ' full' : ''}${progress <= 0 ? ' empty' : ''}"><b style="width:${progress}%;--from:${from}%;animation-delay:-${m.glowMs ?? 0}ms"></b></div>`
-  const end = m.phase === 'done' ? `<span class="endfx">${falling(m.height)}</span>` : ''
+  const ms = m.finaleMs ?? 0
+  const end = isFinale
+    ? `<span class="endfx">${falling(m.height, ms)}<span class="rise-msg" style="animation-delay:-${ms}ms">${esc(m.end)}</span></span>`
+    : ''
   // Motion keeps its phase across redraws: every animation starts where the clock is.
   const t = `-${((m.now / 1000) % 3600).toFixed(2)}s`
 
@@ -207,7 +217,7 @@ export const bandHtml = (m: BandModel) => {
 
 export const bandSvg = (m: BandModel) => {
   const fonts = [fontFace('Tajawal', 400, TAJAWAL_REGULAR), fontFace('Tajawal', 700, TAJAWAL_BOLD)]
-  if (m.phase === 'cover') fonts.push(fontFace('Aref Ruqaa', 700, AREF_RUQAA_BOLD))
+  if (m.phase === 'cover' || m.finaleMs !== undefined) fonts.push(fontFace('Aref Ruqaa', 700, AREF_RUQAA_BOLD))
   const style = `${fonts.join('\n')}\n:root { ${m.isDark ? ROOT_DARK : ROOT_LIGHT} ${FONTS} }\n${BAND_CSS}\n${EXTRA_CSS}`
 
   const f = frameOf(m)
