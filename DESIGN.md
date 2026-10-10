@@ -1,6 +1,6 @@
 # Design system — muslim mod
 
-The rules every feature follows. Read this before designing a new feature; the per-feature specs live in `docs/design.md`.
+The rules every feature follows. Read this before designing a new feature; the per-feature specs live in `docs/features/<feature>.md`.
 
 ## 1. Principles
 
@@ -76,6 +76,7 @@ src/features/<feature>/
   phrases.ts      authored text (or data.ts)
   *.ts            pure logic, no $
 tests/<feature>/  unit tests for pure logic + engine tests on terminal and desktop
+docs/features/<feature>.md   the feature's spec
 ```
 
 Wire it in `hooks/register.tsx` (`install<Feature>(on, settings)`), register its command there, add its fields to `plugin.json` `userConfig` and `src/config.ts`, declare any `$.state` values in `types/index.d.ts`.
@@ -83,7 +84,7 @@ Wire it in `hooks/register.tsx` (`install<Feature>(on, settings)`), register its
 ## 9. New feature checklist
 
 - [ ] Fits the principles above; uses the lightest surface.
-- [ ] Spec added to `docs/design.md` (moments, phrases with sources, settings).
+- [ ] Spec added to `docs/features/<feature>.md` (moments, phrases with sources, settings).
 - [ ] Phrases reviewed by a person; sources noted.
 - [ ] Off switch in `/config` and the command; off leaves Claude untouched.
 - [ ] Colors via theme keys; tashkeel setting respected.

@@ -1,7 +1,7 @@
 # Salah — prayer times
 
 Prayer times for the user's city, calculated on their machine with
-[adhan-js](adhan/README.md). No location service and no prayer-times API.
+[adhan-js](../../src/features/salah/adhan/VENDOR.md). No location service and no prayer-times API.
 
 ## Flow
 

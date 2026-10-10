@@ -6,6 +6,8 @@ Claude Code mod (function-hooks plugin). Plugin name is `muslim` — Claude Code
 
 - Read `DESIGN.md` before designing or changing any feature; follow its principles, surfaces, colors and checklist.
 
+- Each feature's spec lives in `docs/features/<feature>.md`. Read it before working on that feature, and update it in the same commit as any change to the feature. `docs/design.md` is only an index.
+
 - Always load the `/plugin-authoring` skill before building or changing any mod code (hooks, renders, commands, tests). It writes this build's API types and is the source of truth for the mod API; never write mod code from memory.
 - Hooks module runs with no DOM and no Node. Reach everything through `$`. No `import()`, no `require`.
 - `hooks/register.tsx` is the only entry. Each feature goes in `src/features/<feature>/`, exports `install(on, options)` from `install.ts(x)`, and is imported by name and called in `register`. The engine only allows passing `on` to functions imported from the mod's own files — no arrays/registries of features.

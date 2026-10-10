@@ -21,7 +21,7 @@ A thikr phrase joins Claude's working line (the spinner). Claude's step, timer a
 
 ### Prayer times (`/salah`)
 
-The next prayer under the prompt (`☾ العصر ١٥:٥٩`), a countdown in the 20 minutes before it, and one notification. Calculated on your machine; on first use the mod offers the city of your time zone, or any city you type in any language, then shows today's times so you can match them to your mosque. Details: [src/features/salah/README.md](src/features/salah/README.md).
+The next prayer under the prompt (`☾ العصر ١٥:٥٩`), a countdown in the 20 minutes before it, and one notification. Calculated on your machine; on first use the mod offers the city of your time zone, or any city you type in any language, then shows today's times so you can match them to your mosque. Details: [docs/features/salah.md](docs/features/salah.md).
 
 More features are planned: morning and evening athkar.
 
@@ -146,10 +146,11 @@ hooks/
 src/
   constants.ts       shared constants
   config.ts          typed userConfig options
-  features/<name>/   one folder per feature: install.tsx (hooks), phrases, pure logic, README
+  features/<name>/   one folder per feature: install.tsx (hooks), phrases, pure logic
 types/
   index.d.ts         $.state contract
 tests/               *.test.ts, run by `claude plugin test .`
+docs/features/       one spec per feature
 ```
 
 ## License
