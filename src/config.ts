@@ -1,4 +1,5 @@
 import { METHODS, PRAYERS, type MethodId, type Prayer } from './features/salah/methods.ts'
+import { readPlace, type Place } from './features/salah/place.ts'
 import type { Speed } from './features/thikr/rotation.ts'
 
 // Typed view of the manifest's userConfig values, defaults filled in.
@@ -9,11 +10,8 @@ export type Options = {
   thikrEnd: boolean
   thikrMode: Mode
   salah: boolean
-  salahCity: string
-  salahLatitude: number
-  salahLongitude: number
-  salahTimeZone: string
-  salahMethod: MethodId
+  salahPlace: Place | undefined
+  salahMethod: MethodId | 'auto'
   salahAdjust: Record<Prayer, number>
 }
 
@@ -30,11 +28,8 @@ export const readOptions = (raw: Record<string, unknown>): Options => ({
   thikrEnd: raw.thikrEnd !== false,
   thikrMode: raw.thikrMode === 'salawat' ? 'salawat' : 'all',
   salah: raw.salah !== false,
-  salahCity: typeof raw.salahCity === 'string' ? raw.salahCity.trim() : '',
-  salahLatitude: readDegrees(raw.salahLatitude, 90),
-  salahLongitude: readDegrees(raw.salahLongitude, 180),
-  salahTimeZone: typeof raw.salahTimeZone === 'string' ? raw.salahTimeZone.trim() : '',
-  salahMethod: isMethod(raw.salahMethod) ? raw.salahMethod : 'mwl',
+  salahPlace: readPlace(raw.salahPlace),
+  salahMethod: isMethod(raw.salahMethod) ? raw.salahMethod : 'auto',
   salahAdjust: readAdjust(raw.salahAdjust),
 })
 
@@ -47,13 +42,6 @@ export const readSpeed = (value: unknown): Speed => {
 }
 
 export const isMethod = (value: unknown): value is MethodId => typeof value === 'string' && Object.hasOwn(METHODS, value)
-
-// Degrees within ±limit; anything else is 0.
-const readDegrees = (value: unknown, limit: number): number => {
-  const degrees = Number(value)
-
-  return Number.isFinite(degrees) && Math.abs(degrees) <= limit ? degrees : 0
-}
 
 export const ADJUST_MAX = 60
 

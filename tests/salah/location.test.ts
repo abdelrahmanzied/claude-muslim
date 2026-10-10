@@ -5,12 +5,11 @@ import { COUNTRY_METHODS, METHODS, methodFor } from '../../src/features/salah/me
 import { ZONE_ALIASES, ZONES } from '../../src/features/salah/zones.ts'
 
 describe('guessPlace', () => {
-  test('a zone gives its city, country and method', async () => {
+  test('a zone gives its city and country', async () => {
     expect(guessPlace('Africa/Cairo')).toEqual({
-      timeZone: 'Africa/Cairo', country: 'EG', latitude: 30.05, longitude: 31.25, method: 'egypt',
+      name: 'Cairo, Egypt', timeZone: 'Africa/Cairo', country: 'EG', latitude: 30.05, longitude: 31.25,
     })
-    expect(guessPlace('Asia/Riyadh')?.method).toBe('ummAlQura')
-    expect(guessPlace('Europe/Berlin')?.method).toBe('mwl')
+    expect(guessPlace('America/Argentina/Buenos_Aires')?.name).toBe('Buenos Aires, Argentina')
   })
 
   test('an old zone name reads as its zone', async () => {
@@ -25,7 +24,9 @@ describe('guessPlace', () => {
 })
 
 describe('methods', () => {
-  test('a country without its own method gets mwl', async () => {
+  test('each country gets its own method, or mwl', async () => {
+    expect(methodFor('EG')).toBe('egypt')
+    expect(methodFor('SA')).toBe('ummAlQura')
     expect(methodFor('DE')).toBe('mwl')
   })
 

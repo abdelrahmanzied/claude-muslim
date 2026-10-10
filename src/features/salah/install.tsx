@@ -4,12 +4,12 @@ import { ADJUST_MAX, isMethod, writeAdjust } from '../../config.ts'
 import type { Options } from '../../config.ts'
 import { METHODS } from './methods.ts'
 import { ENGLISH, prayerNamed } from './names.ts'
-import { dayLine, isSetUp } from './today.ts'
+import { dayLine, methodOf } from './today.ts'
 
 const HELP = [
   '/salah                         today\'s times',
   '/salah on | off                next prayer under the prompt',
-  '/salah method <name>           calculation method: ' + Object.keys(METHODS).join(', '),
+  '/salah method <name>           auto (the country\'s own), or: ' + Object.keys(METHODS).join(', '),
   `/salah adjust <prayer> <±min>  move one prayer by up to ${ADJUST_MAX} minutes, e.g. adjust asr +5`,
 ].join('\n')
 
@@ -23,13 +23,14 @@ export const install = (on: On, options: Options) => {
     }
 
     if (word === '') {
-      if (!isSetUp(options)) return { text: ['Prayer times are not set up yet.', '', HELP].join('\n') }
-      const method = METHODS[options.salahMethod].name
+      const place = options.salahPlace
+      if (!place) return { text: ['Prayer times are not set up yet.', '', HELP].join('\n') }
+      const method = METHODS[methodOf(options, place)].name
 
       return {
         text: [
-          `${options.salahCity} · ${method}${options.salah ? '' : ' · off'}`,
-          dayLine(options, await $.clock.now()),
+          `${place.name} · ${method}${options.salah ? '' : ' · off'}`,
+          dayLine(options, place, await $.clock.now()),
           '',
           HELP,
         ].join('\n'),
@@ -37,9 +38,10 @@ export const install = (on: On, options: Options) => {
     }
     if (word === 'on' || word === 'off') return set('salah', word === 'on', `salah ${word}`)
     if (word === 'method') {
+      if (first === 'auto') return set('salahMethod', first, 'method auto')
       if (isMethod(first)) return set('salahMethod', first, `method ${METHODS[first].name}`)
 
-      return { text: `Method is one of: ${Object.keys(METHODS).join(', ')}.` }
+      return { text: `Method is auto, or one of: ${Object.keys(METHODS).join(', ')}.` }
     }
     if (word === 'adjust') {
       const prayer = prayerNamed(first)

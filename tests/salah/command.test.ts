@@ -1,14 +1,9 @@
 import { describe, expect, mock, test } from 'claude-code/testing'
 
 import { readAdjust, readOptions, writeAdjust } from '../../src/config.ts'
+import { countryName, readPlace, writePlace } from '../../src/features/salah/place.ts'
 
-const MUNICH = {
-  salahCity: 'Munich, Germany',
-  salahLatitude: 48.1372,
-  salahLongitude: 11.5755,
-  salahTimeZone: 'Europe/Berlin',
-  salahMethod: 'mwl',
-}
+const MUNICH = { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berlin; DE' }
 
 const salah = (args: string) => ({
   command: 'salah',
@@ -24,11 +19,17 @@ describe('settings', () => {
     expect(writeAdjust(readAdjust('1 2 3 4 5 6'))).toBe('1 2 3 4 5 6')
   })
 
-  test('an unknown method or a place off the globe falls back', async () => {
-    const options = readOptions({ salahMethod: 'tehran', salahLatitude: 120, salahLongitude: -200 })
+  test('an unknown method is auto; a place off the globe or missing a part is unset', async () => {
+    expect(readOptions({ salahMethod: 'tehran' }).salahMethod).toBe('auto')
+    expect(readOptions({ salahPlace: 'Nowhere; 120, 10; Europe/Berlin; DE' }).salahPlace).toBe(undefined)
+    expect(readOptions({ salahPlace: 'Munich; 48.14, 11.58; Europe/Berlin' }).salahPlace).toBe(undefined)
+  })
 
-    expect(options.salahMethod).toBe('mwl')
-    expect([options.salahLatitude, options.salahLongitude]).toEqual([0, 0])
+  test('a place reads back as it was written', async () => {
+    const place = { name: 'Munich, Germany', latitude: 48.14, longitude: 11.58, timeZone: 'Europe/Berlin', country: 'DE' }
+
+    expect(readPlace(writePlace(place))).toEqual(place)
+    expect(countryName('EG')).toBe('Egypt')
   })
 })
 
@@ -49,7 +50,7 @@ test('/salah shows the place, method and today\'s times', { options: MUNICH }, a
 test('/salah adjust and method refuse what they cannot take', { options: MUNICH }, async $ => {
   expect((await $.command.run(salah('adjust asr 90'))).text).toContain('whole minutes from -60 to +60')
   expect((await $.command.run(salah('adjust noon 5'))).text).toContain('whole minutes from -60 to +60')
-  expect((await $.command.run(salah('method tehran'))).text).toContain('Method is one of: mwl, egypt')
+  expect((await $.command.run(salah('method tehran'))).text).toContain('Method is auto, or one of: mwl, egypt')
 })
 
 test('/salah adjust saves one prayer\'s minutes', { options: MUNICH }, async ($, on) => {

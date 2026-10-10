@@ -54,35 +54,18 @@
       "description": "Next prayer under the prompt, and a reminder before it",
       "default": true
     },
-    "salahCity": {
+    "salahPlace": {
       "type": "string",
-      "title": "Prayer city",
-      "description": "The place prayer times are for, as /salah setup saved it; empty until set up",
-      "default": ""
-    },
-    "salahLatitude": {
-      "type": "number",
-      "title": "Prayer latitude",
-      "description": "Degrees north (negative south), from -90 to 90",
-      "default": 0
-    },
-    "salahLongitude": {
-      "type": "number",
-      "title": "Prayer longitude",
-      "description": "Degrees east (negative west), from -180 to 180",
-      "default": 0
-    },
-    "salahTimeZone": {
-      "type": "string",
-      "title": "Prayer time zone",
-      "description": "IANA time zone such as Europe/Berlin; empty uses the system's",
+      "title": "Prayer place",
+      "description": "name; latitude, longitude; time zone; country, e.g. Munich, Germany; 48.14, 11.58; Europe/Berlin; DE. Empty until set up",
       "default": ""
     },
     "salahMethod": {
       "type": "string",
       "title": "Prayer calculation method",
-      "description": "Fajr and Isha angles of an authority; setup picks the country's own",
+      "description": "auto uses the place's country's own method; or name an authority's Fajr and Isha angles",
       "options": [
+        "auto",
         "mwl",
         "egypt",
         "ummAlQura",
@@ -103,7 +86,7 @@
         "jordan",
         "portugal"
       ],
-      "default": "mwl"
+      "default": "auto"
     },
     "salahAdjust": {
       "type": "string",
