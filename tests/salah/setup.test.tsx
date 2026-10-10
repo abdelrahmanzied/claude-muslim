@@ -1,0 +1,95 @@
+import type { On } from 'claude-code'
+import { expect, test } from 'claude-code/testing'
+
+const SURFACES = ['terminal', 'desktop'] as const
+
+const band = (surface: (typeof SURFACES)[number]) => ({
+  plugin: 'muslim',
+  surface,
+  component: 'AbovePrompt' as const,
+  requestId: 'band',
+  props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} },
+})
+
+// Stands for the engine's own band beneath the plugin.
+const engineBand = (on: On) =>
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e) => {
+    const { Box } = $.ui.resolve(e)
+
+    return <Box />
+  })
+
+const settingsWriter = (on: On) => {
+  const written: { key: string; value: unknown }[] = []
+  on('config.set', async (_$, e) => (written.push({ key: e.key, value: e.value }), { value: e.value }))
+
+  return written
+}
+
+// Stands for the user typing `typed` under Other in the question dialog.
+const answerDialog = (on: On, typed: string) =>
+  on('tool.call', async (_$, e) => {
+    const question = (e as unknown as { questions: { question: string }[] }).questions[0]?.question ?? ''
+
+    return { tool: e.tool, tool_use_id: e.tool_use_id, result: { questions: [], answers: { [question]: typed } } } as never
+  })
+
+// Stands for Claude reading the typed place.
+const answerCities = (on: On, cities: unknown[]) =>
+  on('model.complete', async () => {
+    const usage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 }
+
+    return { value: { isAnswered: true as const, text: JSON.stringify({ cities }), usage } }
+  })
+
+const MUNICH = { name: 'Munich, Germany', country: 'DE', latitude: 48.14, longitude: 11.58, timeZone: 'Europe/Berlin' }
+
+test('before setup the band asks for the place; Not now puts it off for good', async ($, on) => {
+  engineBand(on)
+  // Stands for the plugin's store.
+  const stored: Record<string, unknown> = {}
+  on('store.set', async (_$, e) => (stored[e.key] = e.value, { value: undefined }))
+  for (const surface of SURFACES) {
+    const shown = await $.ui.mount(band(surface))
+    expect(await shown.find({ type: 'Button', key: 'salah-city' })).toBeDefined()
+    await shown.unmount()
+  }
+
+  const shown = await $.ui.mount(band('terminal'))
+  await shown.press({ key: 'salah-later' })
+  expect(await shown.find({ type: 'Button', key: 'salah-city' })).toBeUndefined()
+  await shown.unmount()
+  expect(stored).toEqual({ salahSetupLater: true })
+})
+
+test('another city: typed in any language, found by Claude, saved', async ($, on) => {
+  engineBand(on)
+  const written = settingsWriter(on)
+  answerDialog(on, 'ميونخ')
+  answerCities(on, [MUNICH])
+
+  const shown = await $.ui.mount(band('desktop'))
+  await shown.press({ key: 'salah-city' })
+  await shown.unmount()
+
+  expect(written).toEqual([{ key: 'muslim.salahPlace', value: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' }])
+})
+
+test('/salah setup asks the same question', async ($, on) => {
+  const written = settingsWriter(on)
+  answerDialog(on, 'Munich')
+  answerCities(on, [MUNICH])
+
+  const ran = await $.command.run({ command: 'salah', args: 'setup', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+
+  expect(ran.text).toBe('Munich, Germany · Muslim World League')
+  expect(written[0]?.value).toBe('Munich, Germany; 48.14, 11.58; Europe/Berlin; DE')
+})
+
+test('a saved place shows no setup band', { options: { salahPlace: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' } }, async ($, on) => {
+  engineBand(on)
+  const shown = await $.ui.mount(band('terminal'))
+
+  expect(await shown.find({ type: 'Button', key: 'salah-city' })).toBeUndefined()
+  await shown.unmount()
+})

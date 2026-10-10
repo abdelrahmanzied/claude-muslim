@@ -37,7 +37,7 @@ describe('settings', () => {
 test('/salah before setup says so', async $ => {
   const ran = await $.command.run(salah(''))
 
-  expect(ran.text).toContain('Prayer times are not set up yet.')
+  expect(ran.text).toContain('Prayer times are not set up yet: /salah setup')
 })
 
 test('/salah shows the place, method and today\'s times', { options: MUNICH }, async ($, on) => {

@@ -8,6 +8,8 @@ declare module 'claude-code' {
   interface PluginState {
     muslim: {
       usageLimit: UsageLimit | null
+      // Prayer times setup put off with Not now, for this session.
+      salahSetupLater: boolean
     }
   }
 }
