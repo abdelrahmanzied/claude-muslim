@@ -12,7 +12,6 @@ export type Options = {
   salah: SalahMode
   salahReminder: number
   salahAdhan: boolean
-  salahNotify: boolean
   salahPlace: Place | undefined
   salahMethod: MethodId | 'auto'
   salahAdjust: Record<Prayer, number>
@@ -36,7 +35,6 @@ export const readOptions = (raw: Record<string, unknown>): Options => ({
   salah: readSalahMode(raw.salah),
   salahReminder: readReminder(raw.salahReminder),
   salahAdhan: raw.salahAdhan !== false,
-  salahNotify: raw.salahNotify !== false,
   salahPlace: readPlace(raw.salahPlace),
   salahMethod: isMethod(raw.salahMethod) ? raw.salahMethod : 'auto',
   salahAdjust: readAdjust(raw.salahAdjust),

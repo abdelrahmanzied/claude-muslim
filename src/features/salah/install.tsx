@@ -8,7 +8,7 @@ import { guessPlace, systemTimeZone } from './location.ts'
 import { METHODS, type Prayer } from './methods.ts'
 import { ENGLISH, prayerNamed } from './names.ts'
 import { writePlace, type Place } from './place.ts'
-import { notifyText, statusText } from './line.ts'
+import { reminderText, statusText } from './line.ts'
 import { nudge, reviewRows } from './review.ts'
 import { clockText, lastPrayer, nextSalah, type Adjust } from './times.ts'
 import { dayLine, methodOf } from './today.ts'
@@ -30,7 +30,6 @@ const HELP = [
   '/salah always | reminder | off next prayer all day, only in the reminder window, or nothing',
   `/salah reminder <${REMINDER_MIN}-${REMINDER_MAX}>        minutes before a prayer the reminder starts`,
   '/salah adhan on | off          حان وقت صلاة … when a prayer comes in',
-  '/salah notify on | off         a notification before each prayer',
   '/salah city <name>             your city, in any language; or latitude, longitude',
   '/salah method <name>           auto (the country\'s own), or: ' + Object.keys(METHODS).join(', '),
   '/salah adjust                  check today\'s times against your mosque\'s',
@@ -91,7 +90,7 @@ const savePlace = async ($: EngineInterface, city: City, options: Options): Prom
   return deny ? `Not changed: ${deny}` : `${city.name} · ${METHODS[methodOf(options, city)].name}`
 }
 
-// Redraws the status line, and notifies once in the minutes before a prayer.
+// Redraws the status line, and shows a toast once when a prayer's reminder window starts.
 const tick = async ($: EngineInterface, options: Options, place: Place) => {
   const now = await $.clock.now()
   const method = methodOf(options, place)
@@ -99,11 +98,10 @@ const tick = async ($: EngineInterface, options: Options, place: Place) => {
   const last = lastPrayer(place, method, options.salahAdjust, now)
   const view = { mode: options.salah, reminder: options.salahReminder, isAdhan: options.salahAdhan }
   $.ui.status(statusText(next, clockText(next.at, place.timeZone), last, now, view))
-  if (!options.salahNotify) return
-  const text = notifyText(next, now, await read($, notified), options.salahReminder)
+  const text = reminderText(next, now, await read($, notified), options.salahReminder)
   if (!text) return
   await update($, notified, () => next.at)
-  await $.ui.notify(text, { title: 'Salah' }).catch(() => undefined)
+  $.ui.toast(text)
 }
 
 const putOff = async ($: EngineInterface) => {
@@ -150,7 +148,6 @@ export const install = (on: On, options: Options) => {
     if (word === 'always' || word === 'reminder' || word === 'off') return set('salah', word, `salah ${word}`)
     if (word === 'on') return set('salah', 'reminder', 'salah reminder')
     if (word === 'adhan' && (first === 'on' || first === 'off')) return set('salahAdhan', first === 'on', `adhan ${first}`)
-    if (word === 'notify' && (first === 'on' || first === 'off')) return set('salahNotify', first === 'on', `notify ${first}`)
     if (word === 'setup') {
       const city = await askCity($, guess)
 

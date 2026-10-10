@@ -28,7 +28,7 @@ Prayer times for the user's city, calculated on their machine with
    - `salahAdhan` off drops the `حان وقت` line: the line goes straight back to the
      next prayer (`always`) or to empty (`reminder`).
    - Sunrise is in today's times only: no countdown and no reminder for it.
-   - One notification when the window starts for each prayer.
+   - One in-app toast when the window starts for each prayer (`always` and `reminder`, not `off`): «صلاة العصر بعد ٢٠ دقيقة». No OS notification.
 
 ## Calculation
 
@@ -56,7 +56,6 @@ Prayer times for the user's city, calculated on their machine with
 | `salah` | `/salah always` · `reminder` · `off` | reminder |
 | `salahReminder` | `/salah reminder <5-60>` | 20 (minutes) |
 | `salahAdhan` | `/salah adhan on` · `off` | on |
-| `salahNotify` | `/salah notify on` · `off` | on |
 | `salahPlace` | `/salah setup` · `/salah city <name>` | empty |
 | `salahMethod` | `/salah method <name>` | auto |
 | `salahAdjust` | `/salah adjust` · `/salah adjust <prayer> <±min>` | `0 0 0 0 0 0` |
@@ -76,7 +75,7 @@ Surfaces, the adhan moment's look and what salah never does: [salah-design.md](s
 | `city.ts` | Claude's prompt for a typed city and the checks on its reply |
 | `place.ts` | the saved place's one-setting format |
 | `review.ts` | the review form's rows |
-| `line.ts` | the status line and reminder text |
+| `line.ts` | the status line and reminder toast text |
 | `names.ts` | prayer names in English and Arabic |
 | `today.ts` | today's line for `/salah` and the method in effect |
 

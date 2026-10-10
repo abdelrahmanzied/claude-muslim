@@ -141,14 +141,14 @@ test('Skip closes the review form without saving', { options: AT_MUNICH }, async
   await shown.unmount()
 })
 
-test('always: the status line shows the next prayer, counts down, and notifies once', { options: { ...AT_MUNICH, salah: 'always' } }, async ($, on) => {
+test('always: the status line shows the next prayer, counts down, and toasts once', { options: { ...AT_MUNICH, salah: 'always' } }, async ($, on) => {
   // 13:30 in Munich on 10 October 2026; Asr is at 15:59.
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
   engineBand(on)
   const lines: (string | undefined)[] = []
-  const notes: string[] = []
+  const toasts: string[] = []
   on('ui.status', async (_$, e) => (lines.push(e.text), { value: undefined }))
-  on('ui.notify', async (_$, e) => (notes.push(e.text), { value: { isSent: true as const, channel: 'terminal' } }) as never)
+  on('ui.toast', async (_$, e) => (toasts.push(e.text), { value: undefined }))
 
   const shown = await $.ui.mount(band('terminal'))
   expect(lines.at(-1)).toBe('☾ العصر ١٥:٥٩')
@@ -158,7 +158,7 @@ test('always: the status line shows the next prayer, counts down, and notifies o
   expect(lines.at(-1)).toBe('☾ العصر بعد ٢٠ دقيقة')
   await clock.advance(20 * 60_000 + 30_000)
   expect(lines.at(-1)).toBe('حان وقت صلاة العصر')
-  expect(notes).toEqual(['صلاة العصر بعد ٢٠ دقيقة'])
+  expect(toasts).toEqual(['صلاة العصر بعد ٢٠ دقيقة'])
   await shown.unmount()
 })
 
