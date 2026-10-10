@@ -68,7 +68,7 @@ Never use `error` or `warning` for religious text.
 
 ## 6. Commands and settings
 
-- One command per feature, named in Arabic transliteration with the `th` spelling: `/thikr`, `/athkar`, `/salah`. `/muslim` shows the version.
+- One command per feature, named in Arabic transliteration with the `th` spelling: `/thikr`, `/athkar`, `/salah`. `/muslim` shows the version; `/muslim help [feature]` shows every feature's command table, or one; `/<feature> help` shows that table.
 - Shape: `/<feature>` = status + help; `/<feature> on|off`; `/<feature> <setting> <value>`.
 - Every setting is a `userConfig` field named `<feature><Setting>` (`thikrSpeed`), so it also appears in `/config`. Commands change it with `$.config.set({ key: 'muslim.<field>' })`.
 - Defaults are chosen so a new user needs no setup, except where the feature cannot work without input (prayer location).
