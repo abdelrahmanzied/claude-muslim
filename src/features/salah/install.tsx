@@ -5,14 +5,19 @@ import { ADJUST_MAX, isMethod, writeAdjust } from '../../config.ts'
 import type { Options } from '../../config.ts'
 import { CITY_MODEL, CITY_SYSTEM, cityPrompt, parseCities, parseCoordinates, type City } from './city.ts'
 import { guessPlace, systemTimeZone } from './location.ts'
-import { METHODS } from './methods.ts'
+import { METHODS, type Prayer } from './methods.ts'
 import { ENGLISH, prayerNamed } from './names.ts'
 import { writePlace, type Place } from './place.ts'
+import { nudge, reviewRows } from './review.ts'
+import type { Adjust } from './times.ts'
 import { dayLine, methodOf } from './today.ts'
 
 // Setup put off with Not now: for the session here, for good in $.store.
 const setupLater = atom({ plugin: 'muslim', key: 'salahSetupLater' } as const, false)
 const SETUP_LATER_KEY = 'salahSetupLater'
+// The review form's minutes while it is open; null when closed. Kept in
+// $.state so it survives the reload that saving the place causes.
+const review = atom({ plugin: 'muslim', key: 'salahReview' } as const, null as Adjust | null)
 
 const HELP = [
   '/salah                         today\'s times',
@@ -20,6 +25,7 @@ const HELP = [
   '/salah on | off                next prayer under the prompt',
   '/salah city <name>             your city, in any language; or latitude, longitude',
   '/salah method <name>           auto (the country\'s own), or: ' + Object.keys(METHODS).join(', '),
+  '/salah adjust                  check today\'s times against your mosque\'s',
   `/salah adjust <prayer> <±min>  move one prayer by up to ${ADJUST_MAX} minutes, e.g. adjust asr +5`,
 ].join('\n')
 
@@ -68,9 +74,11 @@ const askCity = async ($: EngineInterface, guess: Place | undefined): Promise<Ci
   return cityFrom($, answer)
 }
 
-// Saves the city; the module reloads with it.
+// Saves the city and opens the review form; the module reloads with the city.
 const savePlace = async ($: EngineInterface, city: City, options: Options): Promise<string> => {
+  await update($, review, () => options.salahAdjust)
   const { deny } = await $.config.set({ key: 'muslim.salahPlace', value: writePlace(city) })
+  if (deny) await update($, review, () => null)
 
   return deny ? `Not changed: ${deny}` : `${city.name} · ${METHODS[methodOf(options, city)].name}`
 }
@@ -124,6 +132,12 @@ export const install = (on: On, options: Options) => {
 
       return { text: `Method is auto, or one of: ${Object.keys(METHODS).join(', ')}.` }
     }
+    if (word === 'adjust' && first === '') {
+      if (!options.salahPlace) return { text: 'Set your city first: /salah setup' }
+      await update($, review, () => options.salahAdjust)
+
+      return { text: 'Check today\'s times above the prompt.' }
+    }
     if (word === 'adjust') {
       const prayer = prayerNamed(first)
       const minutes = Number(second)
@@ -137,6 +151,43 @@ export const install = (on: On, options: Options) => {
     }
 
     return { text: HELP }
+  })
+
+  // After the place is saved, or on /salah adjust: today's times to check
+  // against the user's mosque, each moved a minute at a time, then saved.
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    const theirs = await next(e)
+    const place = options.salahPlace
+    const draft = await read($, review)
+    if (!place || !draft || e.props.hasSurvey) return theirs
+    const { Box, Button, Text } = $.ui.resolve(e)
+    const rows = reviewRows(place, methodOf(options, place), draft, await $.clock.now())
+    const move = (prayer: Prayer, step: number) => update($, review, now => (now ? nudge(now, prayer, step) : now))
+    const save = async () => {
+      const { deny } = await $.config.set({ key: 'muslim.salahAdjust', value: writeAdjust(draft) })
+      if (deny) return void $.ui.toast(`Not changed: ${deny}`)
+      await update($, review, () => null)
+    }
+
+    return (
+      <Box flexDirection="column">
+        <Text key="salah-review" color="claude">{`Check today's times in ${place.name} against your mosque's, then save.`}</Text>
+        {rows.map(row => (
+          <Box key={`salah-${row.prayer}`} gap={1}>
+            <Text>{row.name}</Text>
+            <Text bold>{row.time}</Text>
+            <Button key={`salah-${row.prayer}-minus`} label="−" onPress={() => move(row.prayer, -1)} />
+            <Text dimColor>{row.minutes}</Text>
+            <Button key={`salah-${row.prayer}-plus`} label="+" onPress={() => move(row.prayer, 1)} />
+          </Box>
+        ))}
+        <Box key="salah-review-actions" gap={1}>
+          <Button key="salah-save" label="Save" variant="primary" onPress={save} />
+          <Button key="salah-skip" label="Skip" dimColor onPress={() => update($, review, () => null)} />
+        </Box>
+        {theirs}
+      </Box>
+    )
   })
 
   // Until a place is saved: one line above the prompt asking for it.

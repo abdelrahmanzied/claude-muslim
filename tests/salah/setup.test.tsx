@@ -1,5 +1,5 @@
 import type { On } from 'claude-code'
-import { expect, test } from 'claude-code/testing'
+import { expect, mock, test } from 'claude-code/testing'
 
 const SURFACES = ['terminal', 'desktop'] as const
 
@@ -91,5 +91,46 @@ test('a saved place shows no setup band', { options: { salahPlace: 'Munich, Germ
   const shown = await $.ui.mount(band('terminal'))
 
   expect(await shown.find({ type: 'Button', key: 'salah-city' })).toBeUndefined()
+  await shown.unmount()
+})
+
+const AT_MUNICH = { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berlin; DE' }
+
+test('/salah adjust opens the review form: minutes move a prayer, Save keeps them', { options: AT_MUNICH }, async ($, on) => {
+  mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
+  engineBand(on)
+  const written = settingsWriter(on)
+
+  await $.command.run({ command: 'salah', args: 'adjust', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+  for (const surface of SURFACES) {
+    const shown = await $.ui.mount(band(surface))
+    expect(await shown.find({ type: 'Text', text: '15:59' })).toBeDefined()
+    await shown.unmount()
+  }
+
+  const shown = await $.ui.mount(band('terminal'))
+  for (let i = 0; i < 5; i++) await shown.press({ key: 'salah-asr-plus' })
+  await shown.press({ key: 'salah-isha-minus' })
+  expect(await shown.find({ type: 'Text', text: '16:04' })).toBeDefined()
+  expect(await shown.find({ type: 'Text', text: '20:11' })).toBeDefined()
+
+  await shown.press({ key: 'salah-save' })
+  expect(written).toEqual([{ key: 'muslim.salahAdjust', value: '0 0 0 5 0 -1' }])
+  expect(await shown.find({ type: 'Button', key: 'salah-save' })).toBeUndefined()
+  await shown.unmount()
+})
+
+test('Skip closes the review form without saving', { options: AT_MUNICH }, async ($, on) => {
+  mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
+  engineBand(on)
+  const written = settingsWriter(on)
+
+  await $.command.run({ command: 'salah', args: 'adjust', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+  const shown = await $.ui.mount(band('desktop'))
+  await shown.press({ key: 'salah-asr-plus' })
+  await shown.press({ key: 'salah-skip' })
+
+  expect(await shown.find({ type: 'Button', key: 'salah-save' })).toBeUndefined()
+  expect(written).toEqual([])
   await shown.unmount()
 })
