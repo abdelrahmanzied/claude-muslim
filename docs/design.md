@@ -5,7 +5,7 @@ Three features, each shipped in its own PR:
 | Feature | Command | Status |
 | --- | --- | --- |
 | Thikr line | `/thikr` | 0.2.0 |
-| Morning and evening athkar | `/athkar` | planned |
+| Morning and evening athkar | `/athkar` | 0.3.0 |
 | Salah | `/salah` | planned — issue #2 |
 
 Cross-cutting issues: languages (#1), Arabic in terminals that don't shape (#3).
@@ -77,7 +77,46 @@ Full text with tashkeel: `src/features/thikr/phrases.ts`.
 
 `/thikr` alone shows the current settings and help.
 
+## Morning and evening athkar (0.3.0)
+
+A reader above the prompt for the morning athkar (05:00 to 17:00) and the evening athkar (17:00 to 05:00), from Hisn al-Muslim 75 to 98 (`src/features/athkar/data.ts`). 93 is the same words as 92, so they are one thikr with a ١٠ | ١٠٠ choice; 91 and 98 have the choice too.
+
+### Reading
+
+- **Cover:** the title (أَذْكَارُ الصَّبَاحِ or أَذْكَارُ الْمَسَاءِ) and the keys. The first click opens the reader and never counts.
+- **Count:** click, Space or Enter adds one. Right click or Backspace takes one back, or goes to the thikr before at 0. ← next, → previous (Arabic reads right to left). Esc gives the prompt back.
+- **Circles:** one per count up to 10, numbered in Arabic-Indic digits. A count above 10 shows ten circles of a tenth each; the one being counted fills in the main color with a white number.
+- **Moves on** by itself 650 ms after a thikr's last count.
+- **Progress:** Horizon glow, a soft line along the bottom filled from the right, its head pulsing slowly and easing forward on each count. Each thikr is an equal share, partial counts included: `Σ min(count / times, 1) / n`.
+- **End:** اللَّهُمَّ تَقَبَّلْ on the right, `/athkar morning reset to read again` on the left, and on desktop stars fall across the sky. A click hides it.
+- **×** hides the band and keeps the reading; `/athkar` brings it back.
+- **Saved** per day and period in `$.store`. A day runs 05:00 to 05:00, so evening athkar read after midnight still count for that evening. A new day starts fresh; a finished period does not show again that day.
+
+### Looks
+
+| Look | Surface | Drawn as |
+| --- | --- | --- |
+| Sky (default) | desktop | A sky that follows the clock: dawn 4–6, sunrise 6–8, clear day 8–17, rose 17–18, blue hour 18–19, crescent 19–4. Rich motion: stars, sun, clouds, birds, shooting stars. Faded until clicked, then in color. |
+| Sky | terminal | The same sky's color as a plain background. |
+| Sand, Outline | both | A sand background or a main-color outline; the frame breathes while reading. |
+
+On every sky: open circles ringed in the main color, done circles filled with a white number, the 10 | 100 switch's picked side filled, the other white. Sunrise takes dark words; every other sky white.
+
+### Settings
+
+| `/config` field | Command | Default |
+| --- | --- | --- |
+| `athkar` | `/athkar on` · `off` | on |
+| `athkarStyle` | `/athkar style sky` · `sand` · `outline` | sky |
+| `athkarColor` | `/athkar color orange` · `green` · `gold` · `blue` | orange |
+
+`/athkar morning reset` · `/athkar evening reset` start that period again. `/athkar` shows the status and help.
+
+Not settable: the font (Tajawal in the design) and the text size. The mod API sets neither; the reader uses Claude's font and follows the app's zoom.
+
 ### To verify live
+
+- Athkar: the sky picture's size behind the reader on desktop (it is sized from an estimate of the cell size), right click on desktop, and Arabic alignment in the reader.
 
 - Desktop: step text and thikr side by side read well at narrow widths.
 - End-of-turn line: how Claude joins the word and the duration (e.g. "… for 3s") in an RTL phrase.

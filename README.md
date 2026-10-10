@@ -19,7 +19,11 @@ A thikr phrase joins Claude's working line (the spinner). Claude's step, timer a
 
 **Salawat mode:** `/thikr mode salawat` shows one salawat on the Prophet ﷺ for each whole request, a different one each request.
 
-More features are planned: morning and evening athkar, and prayer times.
+### Morning and evening athkar (`/athkar`)
+
+A reader above the prompt for the morning athkar (05:00–17:00) and the evening athkar (17:00–05:00), from Hisn al-Muslim. Click, Space or Enter to count; right click or Backspace to take one back; ← → to move. It moves on by itself after each thikr, and your reading is saved for the day. On desktop it sits on a sky that follows the time of day.
+
+Prayer times are planned.
 
 ## Install
 
@@ -67,6 +71,11 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/thikr tashkeel on` · `off` | Show or hide diacritics |
 | `/thikr end on` · `off` | تَمَّ بِحَمْدِ اللَّهِ at the end of a turn |
 | `/thikr mode all` · `salawat` | Every group in turn, or one salawat per request |
+| `/athkar` | Show today's athkar status and help, and show the athkar again if hidden |
+| `/athkar on` · `off` | Turn the athkar on or off |
+| `/athkar morning reset` · `evening reset` | Read that period again from the start |
+| `/athkar style sky` · `sand` · `outline` | The look: a sky that follows the time of day (default), or plain |
+| `/athkar color orange` · `green` · `gold` · `blue` | The main color |
 | `/muslim` | Show the installed version |
 
 Every setting is also in `/config`.

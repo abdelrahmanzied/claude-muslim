@@ -249,8 +249,9 @@ test('/thikr speed refuses out-of-range values', async $ => {
   expect(ran.text).toContain('auto, or a whole number of seconds from 1 to 60')
 })
 
-test('a usage limit shows hasbiyallah above the prompt until it resets', async ($, on) => {
+test('a usage limit shows hasbiyallah above the prompt until it resets', { options: { athkar: false } }, async ($, on) => {
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T12:00:00Z') })
+  mock.store(on)
   on('session.usage', async () => ({
     value: {
       startedAt: 0,

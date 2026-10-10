@@ -1,0 +1,93 @@
+import { expect, test } from 'claude-code/testing'
+
+import { ATHKAR } from '../../src/features/athkar/data.ts'
+import { arabicDigits, dayOf, emptyReading, listFor, overall, periodAt, readDay, shouldAdvance, skyAt, step, textOf } from '../../src/features/athkar/logic.ts'
+import type { Reading } from '../../src/features/athkar/logic.ts'
+import { circlesFor, lookFor, skySvg } from '../../src/features/athkar/look.ts'
+
+test('morning runs 05:00 to 17:00, evening the rest', async () => {
+  expect([4, 5, 12, 16, 17, 23, 0].map(periodAt)).toEqual(['evening', 'morning', 'morning', 'morning', 'evening', 'evening', 'evening'])
+})
+
+test('the sky follows the clock', async () => {
+  expect([4.5, 6.5, 12, 17.5, 18.5, 20, 2].map(skyAt)).toEqual(['dawn', 'sunrise', 'day', 'rose', 'bluehour', 'crescent', 'crescent'])
+})
+
+test('after midnight the evening still belongs to the day before', async () => {
+  expect(dayOf(new Date(2026, 9, 11, 2, 0))).toBe('2026-10-10')
+  expect(dayOf(new Date(2026, 9, 11, 5, 0))).toBe('2026-10-11')
+})
+
+test('a stored day from another day starts fresh', async () => {
+  const stored = { day: '2026-10-09', morning: { ...emptyReading(), index: 4 }, evening: emptyReading() }
+  expect(readDay(stored, '2026-10-10').morning.index).toBe(0)
+  expect(readDay(stored, '2026-10-09').morning.index).toBe(4)
+  expect(readDay('junk', '2026-10-10').day).toBe('2026-10-10')
+})
+
+test('93 is merged into 92; each period has its own thikrs and wording', async () => {
+  expect(ATHKAR.some(t => t.id === '93')).toBe(false)
+  const morning = listFor('morning').map(t => t.id)
+  const evening = listFor('evening').map(t => t.id)
+  expect(morning).toContain('94')
+  expect(morning).not.toContain('97')
+  expect(evening).toContain('97')
+  expect(evening).not.toContain('94')
+  const t77 = ATHKAR.find(t => t.id === '77')!
+  expect(textOf(t77, 'evening').startsWith('أَمْسَيْنَا')).toBe(true)
+  expect(ATHKAR.filter(t => t.choices).map(t => t.id)).toEqual(['91', '92', '98'])
+})
+
+test('counting fills the thikr, moves on past its end, and back undoes', async () => {
+  let r: Reading = emptyReading()
+  r = step('morning', r, { act: 'count' })
+  expect(r.counts['75']).toBe(1)
+  // 75 is said once: another count moves on.
+  const done = r
+  r = step('morning', r, { act: 'count' })
+  expect(r.index).toBe(1)
+  expect(shouldAdvance('morning', emptyReading(), done)).toBe(true)
+  // Back at 0 goes to the thikr before; back with a count undoes one.
+  r = step('morning', r, { act: 'back' })
+  expect(r.index).toBe(0)
+  r = step('morning', r, { act: 'back' })
+  expect(r.counts['75']).toBe(0)
+})
+
+test('progress gives each thikr an equal share, partial counts included', async () => {
+  const n = listFor('morning').length
+  const r: Reading = { ...emptyReading(), counts: { '75': 1, '91': 50 } }
+  expect(Math.abs(overall('morning', r) - 1.5 / n)).toBeLessThan(1e-9)
+})
+
+test('a picked count replaces the thikr\'s times, and only its own choices', async () => {
+  const at92 = { ...emptyReading(), index: listFor('morning').findIndex(t => t.id === '92') }
+  expect(step('morning', at92, { act: 'choose', times: 100 }).choices['92']).toBe(100)
+  expect(step('morning', at92, { act: 'choose', times: 7 }).choices['92']).toBeUndefined()
+})
+
+test('the last thikr counted to its end finishes the period', async () => {
+  const list = listFor('evening')
+  const last = list[list.length - 1]!
+  let r: Reading = { ...emptyReading(), index: list.length - 1, counts: { [last.id]: last.times - 1 } }
+  r = step('evening', r, { act: 'count' })
+  expect(r.isDone).toBe(false)
+  r = step('evening', r, { act: 'next' })
+  expect(r.isDone).toBe(true)
+})
+
+test('a hundred shows ten circles, the current one filling', async () => {
+  const look = lookFor('sky', 'orange', 'crescent', true, false)
+  const circles = circlesFor(35, 100, look)
+  expect(circles).toHaveLength(10)
+  expect(circles.slice(0, 3).every(c => c.state === 'done')).toBe(true)
+  expect(circles[3]).toMatchObject({ state: 'filling', label: arabicDigits(35) })
+  expect(circles[4]?.state).toBe('open')
+})
+
+test('the sky picture is bounded and carries its motion', async () => {
+  const svg = skySvg('crescent', 900, 160, true)
+  expect(svg.length).toBeLessThan(131072)
+  expect(svg).toContain('<animate')
+  expect(svg).toContain('✦')
+})

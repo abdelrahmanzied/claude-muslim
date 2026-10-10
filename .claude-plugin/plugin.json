@@ -1,6 +1,6 @@
 {
   "name": "muslim",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A Claude Code mod for Muslim developers.",
   "author": {
     "name": "Abdelrahman Zied"
@@ -47,6 +47,35 @@
         "salawat"
       ],
       "default": "all"
+    },
+    "athkar": {
+      "type": "boolean",
+      "title": "Athkar",
+      "description": "Morning and evening athkar above the prompt, to read and count",
+      "default": true
+    },
+    "athkarStyle": {
+      "type": "string",
+      "title": "Athkar style",
+      "description": "sky: a sky that follows the time of day; sand or outline: plain",
+      "options": [
+        "sky",
+        "sand",
+        "outline"
+      ],
+      "default": "sky"
+    },
+    "athkarColor": {
+      "type": "string",
+      "title": "Athkar color",
+      "description": "The main color of the athkar",
+      "options": [
+        "orange",
+        "green",
+        "gold",
+        "blue"
+      ],
+      "default": "orange"
     }
   }
 }

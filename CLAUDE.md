@@ -14,7 +14,7 @@ Claude Code mod (function-hooks plugin). Plugin name is `muslim` — Claude Code
 - Pure logic (no `$`) lives beside `install` in the feature folder and gets plain unit tests.
 - Use string literals (not constants) for command names in `$.command.register` and `command.run` matchers, so `claude plugin validate` recognises the hook as answering its own command.
 - Settings are `userConfig` fields in `plugin.json` (shown in `/config`); commands change them with `$.config.set({ key: 'muslim.<field>' })`, which reloads the module. Read them through `src/config.ts`.
-- Text only: use Claude's own font, size and colors (theme keys like `color="claude"`). No drawing (SVG/images) — it must work the same on Windows, macOS and Linux, terminal and desktop.
+- Text only: use Claude's own font, size and colors (theme keys like `color="claude"`). No drawing (SVG/images) — it must work the same on Windows, macOS and Linux, terminal and desktop. The one exception is the athkar reader (Client module, desktop Svg sky, hex colors); see `DESIGN.md` Exceptions.
 - Religious text is authored data with tashkeel; never generated. Display may strip tashkeel, never change words.
 - Every value kept in `$.state` is declared in `types/index.d.ts` under `PluginState['muslim']`. The contract exports types only.
 - Every feature gets tests in `tests/<feature>/` (`.tsx` when a test uses JSX).

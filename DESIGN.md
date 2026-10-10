@@ -5,7 +5,7 @@ The rules every feature follows. Read this before designing a new feature; the p
 ## 1. Principles
 
 1. **Claude stays Claude.** We add a layer of thikr to Claude's interface; we never redesign it. Claude's own text (timer, token counts, `esc to interrupt`, tool output) is never translated, reworded or hidden.
-2. **Text only.** Everything is plain text in Claude's own font, size and colors. No SVG, images, custom fonts or drawing. It must look right on Windows, macOS and Linux, in the terminal and the desktop app, follow the user's theme and scale with zoom.
+2. **Text only.** Everything is plain text in Claude's own font, size and colors. No SVG, images, custom fonts or drawing. It must look right on Windows, macOS and Linux, in the terminal and the desktop app, follow the user's theme and scale with zoom. **One exception: the athkar reader** (see Exceptions).
 3. **Quiet by default.** A reminder, never an interruption. Nothing blocks work, steals focus, plays sound, or appears more than once for the same moment.
 4. **Authentic content.** Every phrase is authored data with tashkeel and, where it has one, a source (Quran ayah or Hisn al-Muslim number). Nothing is generated at runtime. Display may strip tashkeel; it never changes words.
 5. **No scores.** We never count the user's worship, show streaks, rewards or guilt. Counting exists only where the user counts themselves (athkar reader), and stays private on their machine.
@@ -25,7 +25,17 @@ Pick the lightest surface that does the job. Each comes from the mod API (`/plug
 | Notification | `$.ui.notify` | Only for time-critical moments the user opted into | Prayer time |
 | Command reply | `command.run` → `{ text }` | Status, help, changing settings | `/thikr` |
 
-Not used: custom Panes for passive content, Images, Svg, Raster, Client modules.
+Not used: custom Panes for passive content, Images, Raster. Svg and Client modules only in the athkar reader.
+
+### Exceptions: the athkar reader
+
+The athkar reader is the one feature the person sits with, so it is drawn:
+
+- **Client module** (`src/features/athkar/reader.tsx`) for the reader: it takes clicks and keys, keeps the cover and the active look, and posts each count to the hooks module. Terminal and desktop.
+- **Svg** (desktop only) for the Sky look: a sky that follows the time of day with slow SMIL motion, drawn behind the reader. The terminal and the Sand and Outline looks use a plain background color.
+- **Hex colors** for the reader's main color (orange, green, gold, blue, in a light and a dark shade) and the skies, since a theme key cannot be blended or placed on a sky.
+
+Everything else (font, size) stays Claude's: the API sets neither, so the reader follows the app's zoom.
 
 ## 3. Color
 

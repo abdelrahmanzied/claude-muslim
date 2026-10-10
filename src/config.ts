@@ -1,3 +1,4 @@
+import type { Accent, Style } from './features/athkar/look.ts'
 import type { Speed } from './features/thikr/rotation.ts'
 
 // Typed view of the manifest's userConfig values, defaults filled in.
@@ -7,6 +8,9 @@ export type Options = {
   thikrTashkeel: boolean
   thikrEnd: boolean
   thikrMode: Mode
+  athkar: boolean
+  athkarStyle: Style
+  athkarColor: Accent
 }
 
 // `all`: every group in turn; `salawat`: one salawat for the whole turn.
@@ -21,6 +25,9 @@ export const readOptions = (raw: Record<string, unknown>): Options => ({
   thikrTashkeel: raw.thikrTashkeel !== false,
   thikrEnd: raw.thikrEnd !== false,
   thikrMode: raw.thikrMode === 'salawat' ? 'salawat' : 'all',
+  athkar: raw.athkar !== false,
+  athkarStyle: raw.athkarStyle === 'sand' || raw.athkarStyle === 'outline' ? raw.athkarStyle : 'sky',
+  athkarColor: raw.athkarColor === 'green' || raw.athkarColor === 'gold' || raw.athkarColor === 'blue' ? raw.athkarColor : 'orange',
 })
 
 // `auto`, or whole seconds from SPEED_MIN to SPEED_MAX; anything else is auto.

@@ -2,6 +2,7 @@ import type { Register } from 'claude-code'
 
 import { readOptions } from '../src/config.ts'
 import { PLUGIN, VERSION } from '../src/constants.ts'
+import { install as installAthkar } from '../src/features/athkar/install.tsx'
 import { install as installThikr } from '../src/features/thikr/install.tsx'
 
 // Entry point. Commands are all registered here (one session.start per module);
@@ -21,6 +22,10 @@ export const register: Register = (on, options) => {
       name: 'thikr',
       description: "Tasabih in Claude's working line: on, off, speed, tashkeel, end",
     })
+    await $.command.register({
+      name: 'athkar',
+      description: 'Morning and evening athkar above the prompt: on, off, reset, style, color',
+    })
 
     return next(e)
   })
@@ -30,4 +35,5 @@ export const register: Register = (on, options) => {
   })
 
   installThikr(on, settings)
+  installAthkar(on, settings)
 }
