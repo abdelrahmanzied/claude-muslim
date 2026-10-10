@@ -39,6 +39,8 @@ const GLOW_MS = 700
 const FOCUS_GRACE_MS = 600
 // Faded again after this long with no input.
 const IDLE_MS = 90_000
+// How long the pointer may be off the band before it fades.
+const LEAVE_MS = 1500
 
 const isStyle = (value: string): value is Style => (STYLES as readonly string[]).includes(value)
 const isColor = (value: string): value is Accent => (COLORS as readonly string[]).includes(value)
@@ -100,6 +102,8 @@ type Message =
   | { act: 'size'; columns: number; rows: number }
   | { act: 'hide' }
   | { act: 'choose'; times: number }
+  | { act: 'enter' }
+  | { act: 'leave' }
 
 const isMessage = (value: unknown): value is Message => {
   if (!value || typeof value !== 'object') return false
@@ -109,7 +113,7 @@ const isMessage = (value: unknown): value is Message => {
   if (m.act === 'size') return typeof m.columns === 'number' && typeof m.rows === 'number'
   if (m.act === 'choose') return typeof m.times === 'number'
 
-  return m.act === 'hide'
+  return m.act === 'hide' || m.act === 'enter' || m.act === 'leave'
 }
 
 // Where the picture's controls sit, in CSS pixels as the band lays them out:
@@ -131,7 +135,14 @@ export const hitsFor = (m: Pick<BandModel, 'phase' | 'times' | 'choices' | 'heig
 }
 
 // This session's view: past the cover, lit, and when it fades.
-const view = { isOpen: false, isActive: false, idle: undefined as { cancel: () => void } | undefined, pressedAt: 0 }
+const view = {
+  isOpen: false,
+  isActive: false,
+  idle: undefined as { cancel: () => void } | undefined,
+  // Set while the pointer is off the band: it fades unless it comes back.
+  leave: undefined as { cancel: () => void } | undefined,
+  pressedAt: 0,
+}
 
 // Lights the band, and fades it again after a while with no input.
 const wake = ($: EngineInterface) => {
@@ -141,6 +152,15 @@ const wake = ($: EngineInterface) => {
     view.isActive = false
     $.ui.invalidate('ui.render')
   })
+  $.ui.invalidate('ui.render')
+}
+
+// Fades the band, as at rest: the person has moved on from it.
+const rest = ($: EngineInterface) => {
+  view.leave?.cancel()
+  if (!view.isActive) return
+  view.isActive = false
+  view.idle?.cancel()
   $.ui.invalidate('ui.render')
 }
 
@@ -206,6 +226,19 @@ export const install = (on: On, options: Options) => {
 
       return {}
     }
+    // The engine says nothing of a click elsewhere: the pointer leaving the
+    // band, or typing in the prompt, is the person moving on.
+    if (m.act === 'enter') {
+      view.leave?.cancel()
+
+      return {}
+    }
+    if (m.act === 'leave') {
+      view.leave?.cancel()
+      if (view.isActive) view.leave = $.clock.after(LEAVE_MS, () => rest($))
+
+      return {}
+    }
     if (m.act === 'hide' || m.act === 'choose') {
       await apply($, m)
 
@@ -257,11 +290,13 @@ export const install = (on: On, options: Options) => {
 
   // A click elsewhere takes the focus off the band: it fades, as at rest.
   on('ui.focus', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (e.plugin !== 'muslim' && view.isActive && Date.now() - view.pressedAt > FOCUS_GRACE_MS) {
-      view.isActive = false
-      view.idle?.cancel()
-      $.ui.invalidate('ui.render')
-    }
+    if (e.plugin !== 'muslim' && Date.now() - view.pressedAt > FOCUS_GRACE_MS) rest($)
+
+    return next(e)
+  })
+
+  on('prompt.edit', async ($, e, next) => {
+    rest($)
 
     return next(e)
   })

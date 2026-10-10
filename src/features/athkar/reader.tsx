@@ -53,6 +53,7 @@ const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
   }
 
   surface.onPointer(event => {
+    if (event.type === 'enter' || event.type === 'leave') surface.post({ act: event.type })
     if (event.type !== 'down') return
     surface.post({ act: 'pointer', button: event.button ?? 'left', x: event.x, y: event.y, columns: surface.columns, rows: surface.rows })
   })
