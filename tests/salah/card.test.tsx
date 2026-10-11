@@ -137,7 +137,7 @@ test('a minaret left by a reload is cleared after rendering, not during it', { o
   engineBand(on)
   let isStale = true
   on('state.get', { plugin: 'muslim', key: 'salahMinaret' }, async (_$, e, next) =>
-    isStale ? { value: { value: { prayer: 'isha', frame: ROWS_COUNT }, version: 1 } } : next(e),
+    isStale ? { value: { value: { pray: 'isha', frame: ROWS_COUNT }, version: 1 } } : next(e),
   )
   on('state.set', { plugin: 'muslim', key: 'salahMinaret' }, async (_$, e, next) => {
     const result = await next(e)

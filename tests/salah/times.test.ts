@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { hijriMonth, localTime } from '../../src/features/salah/clock.ts'
-import { PRAYERS } from '../../src/features/salah/methods.ts'
-import { clockText, lastPrayer, NO_ADJUST, nextPrayer, timesOn } from '../../src/features/salah/times.ts'
+import { PRAYS } from '../../src/features/salah/methods.ts'
+import { clockText, lastPray, NO_ADJUST, nextPray, timesOn } from '../../src/features/salah/times.ts'
 
 const MUNICH = { latitude: 48.1372, longitude: 11.5755, timeZone: 'Europe/Berlin' }
 const CAIRO = { latitude: 30.05, longitude: 31.25, timeZone: 'Africa/Cairo' }
@@ -15,7 +15,7 @@ const MINUTE = 60_000
 const day = (where: typeof MUNICH, method: Parameters<typeof timesOn>[1], at = OCT_10, adjust = NO_ADJUST) => {
   const times = timesOn(where, method, adjust, at)
 
-  return PRAYERS.map(prayer => clockText(times[prayer], where.timeZone))
+  return PRAYS.map(pray => clockText(times[pray], where.timeZone))
 }
 
 describe('timesOn', () => {
@@ -35,7 +35,7 @@ describe('timesOn', () => {
     expect((ramadan.isha - ramadan.maghrib) / MINUTE).toBe(120)
   })
 
-  test('the user\'s minutes move each prayer on its own', async () => {
+  test('the user\'s minutes move each pray on its own', async () => {
     expect(day(MUNICH, 'mwl', OCT_10, { ...NO_ADJUST, asr: 5, isha: -10 }))
       .toEqual(['05:42', '07:26', '13:02', '16:04', '18:35', '20:02'])
   })
@@ -50,24 +50,24 @@ describe('timesOn', () => {
   })
 })
 
-describe('nextPrayer and lastPrayer', () => {
+describe('nextPray and lastPray', () => {
   test('mid-morning: Dhuhr is next, Fajr was last', async () => {
-    expect(nextPrayer(MUNICH, 'mwl', NO_ADJUST, Date.parse('2026-10-10T08:00:00Z')).prayer).toBe('dhuhr')
-    expect(lastPrayer(MUNICH, 'mwl', NO_ADJUST, Date.parse('2026-10-10T08:00:00Z')).prayer).toBe('fajr')
+    expect(nextPray(MUNICH, 'mwl', NO_ADJUST, Date.parse('2026-10-10T08:00:00Z')).pray).toBe('dhuhr')
+    expect(lastPray(MUNICH, 'mwl', NO_ADJUST, Date.parse('2026-10-10T08:00:00Z')).pray).toBe('fajr')
   })
 
   test('before dawn: Fajr is next, yesterday\'s Isha was last', async () => {
     const at = Date.parse('2026-10-10T01:00:00Z')
 
-    expect(clockText(nextPrayer(MUNICH, 'mwl', NO_ADJUST, at).at, MUNICH.timeZone)).toBe('05:42')
-    expect(lastPrayer(MUNICH, 'mwl', NO_ADJUST, at).prayer).toBe('isha')
+    expect(clockText(nextPray(MUNICH, 'mwl', NO_ADJUST, at).at, MUNICH.timeZone)).toBe('05:42')
+    expect(lastPray(MUNICH, 'mwl', NO_ADJUST, at).pray).toBe('isha')
   })
 
   test('after Isha: tomorrow\'s Fajr is next', async () => {
     const at = Date.parse('2026-10-10T20:00:00Z')
-    const next = nextPrayer(MUNICH, 'mwl', NO_ADJUST, at)
+    const next = nextPray(MUNICH, 'mwl', NO_ADJUST, at)
 
-    expect(next.prayer).toBe('fajr')
+    expect(next.pray).toBe('fajr')
     expect(localTime(next.at, MUNICH.timeZone).day).toBe(11)
   })
 })

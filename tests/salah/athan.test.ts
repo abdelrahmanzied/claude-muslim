@@ -6,7 +6,7 @@ import { CalculationMethod, Coordinates, PrayerTimes } from '../../src/features/
 const minutes = (date: Date) => date.getUTCHours() * 60 + date.getUTCMinutes()
 const clock = (text: string) => Number(text.slice(0, 2)) * 60 + Number(text.slice(3, 5))
 
-// the public prayer-times API for 10 October 2026, in UTC (Munich +2, Cairo +3, Makkah +3).
+// the public pray-times API for 10 October 2026, in UTC (Munich +2, Cairo +3, Makkah +3).
 // Its Asr runs up to 3 minutes later than the athan library's; both sit within a few minutes
 // of the sun's actual position.
 const CASES = [

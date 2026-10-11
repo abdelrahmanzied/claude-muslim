@@ -15,7 +15,7 @@ describe('minaret', () => {
     expect(TOTAL_MS).toBeLessThanOrEqual(3200)
   })
 
-  test('plays once for a prayer that has just come in', async () => {
+  test('plays once for a pray that has just come in', async () => {
     expect(isDue(1000, 1000, null)).toBe(true)
     expect(isDue(1000, 1000 + FRESH_MS, null)).toBe(true)
     expect(isDue(1000, 1000 + FRESH_MS + 1, null)).toBe(false)

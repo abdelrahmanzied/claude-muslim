@@ -8,14 +8,14 @@ import type { Options } from '../../config.ts'
 import { CITY_MODEL, CITY_SYSTEM, cityPrompt, parseCities, parseCoordinates, type City } from './city.ts'
 import { salahHelp } from './help.ts'
 import { guessPlace, systemTimeZone } from './location.ts'
-import { METHODS, type Prayer } from './methods.ts'
-import { ENGLISH, prayerNamed } from '../../shared/pray/names.ts'
+import { METHODS, type Pray } from './methods.ts'
+import { ENGLISH, prayNamed } from '../../shared/pray/names.ts'
 import { writePlace, type Place } from './place.ts'
-import { athanText, isInWindow, prayerLine } from '../../shared/pray/line.ts'
+import { athanText, isInWindow, prayLine } from '../../shared/pray/line.ts'
 import { ACCENT_ROWS, FRAME_MS, HOLD_MS, isDue, LABEL_ROW, minaretRows, ROWS_COUNT } from './minaret.ts'
 import { nudge, reviewRows } from './review.ts'
 import { CARD_HEIGHT, CARD_MS, cardSvg, cardWidth } from './card.ts'
-import { clockText, lastPrayer, nextSalah, type Adjust } from './times.ts'
+import { clockText, lastPray, nextSalah, type Adjust } from './times.ts'
 import { methodOf, settingsTable, timesTable } from './today.ts'
 
 // The engine follows $ only into same-file top-level functions, so the
@@ -69,12 +69,12 @@ const SETUP_LATER_KEY = 'salahSetupLater'
 // The review form's minutes while it is open; null when closed. Kept in
 // $.state so it survives the reload that saving the place causes.
 const review = atom({ plugin: 'muslim', key: 'salahReview' } as const, null as Adjust | null)
-// The prayer whose reminder window we are in, for the thikr line to read.
+// The pray whose reminder window we are in, for the thikr line to read.
 const inWindow = atom({ plugin: 'muslim', key: 'salahWindow' } as const, null as SalahWindow | null)
 
-// The minaret's frame while it plays, and the prayer time it last played for.
+// The minaret's frame while it plays, and the pray time it last played for.
 const minaret = atom({ plugin: 'muslim', key: 'salahMinaret' } as const, null as SalahMinaret | null)
-// The prayer line drawn in the footer's mode labels; null when there is none.
+// The pray line drawn in the footer's mode labels; null when there is none.
 const line = atom({ plugin: 'muslim', key: 'salahLine' } as const, null as string | null)
 // The desktop athan card while it shows; null otherwise.
 const card = atom({ plugin: 'muslim', key: 'salahCard' } as const, null as SalahCard | null)
@@ -82,12 +82,12 @@ const athanShown = atom({ plugin: 'muslim', key: 'salahAthanShown' } as const, n
 // A minaret started by this load still has its timers; only a reload's is stale.
 let hasPlayedMinaret = false
 
-// How often the prayer line is redrawn: every second inside the reminder
+// How often the pray line is redrawn: every second inside the reminder
 // window (the live countdown), else every 30 seconds.
 const TICK_MS = 30_000
 const WINDOW_TICK_MS = 1000
 
-// The prayer line's timer and the period it runs at, and the one-shot timer
+// The pray line's timer and the period it runs at, and the one-shot timer
 // for the moment the next reminder window opens (so the 1 s countdown starts
 // on time, not on the next 30 s tick).
 type Timer = {
@@ -133,7 +133,7 @@ const cityFrom = async ($: EngineInterface, typed: string): Promise<City | strin
 // The setup question: the guessed city, or one typed under Other.
 const askCity = async ($: EngineInterface, guess: Place | undefined): Promise<City | string> => {
   const question = guess
-    ? `Prayer times for ${guess.name}, or type your city under Other?`
+    ? `Pray times for ${guess.name}, or type your city under Other?`
     : 'Which city are you in? Type it under Other, in any language.'
   const options = guess ? [guess.name, 'Cancel'] : ['Cancel', 'Not now']
   const answer = await $.ui.ask(question, { header: 'Salah', options }).catch(() => 'Cancel')
@@ -152,28 +152,28 @@ const savePlace = async ($: EngineInterface, city: City, options: Options): Prom
   return deny ? `Not changed: ${deny}` : `${city.name} · ${METHODS[methodOf(options, city)].name}`
 }
 
-// Keeps the prayer line's row in step; writes only on a change.
+// Keeps the pray line's row in step; writes only on a change.
 const setLine = async ($: EngineInterface, text: string | undefined) => {
   const now = text ?? null
   if ((await read($, line)) !== now) await update($, line, () => now)
 }
 
-// Redraws the prayer line and the athan moment.
+// Redraws the pray line and the athan moment.
 // Resolves whether `now` is inside the reminder window.
 const tick = async ($: EngineInterface, options: Options, place: Place, timer: Timer): Promise<boolean> => {
   const now = await $.clock.now()
   const method = methodOf(options, place)
   const next = nextSalah(place, method, options.salahAdjust, now)
-  const last = lastPrayer(place, method, options.salahAdjust, now)
+  const last = lastPray(place, method, options.salahAdjust, now)
   const view = { mode: options.salah, reminder: options.salahReminder, isAthan: options.salahAthan }
-  await setLine($, prayerLine(next, clockText(next.at, place.timeZone), last, now, view))
+  await setLine($, prayLine(next, clockText(next.at, place.timeZone), last, now, view))
   if (options.salah !== 'off' && options.salahAthan && isDue(last.at, now, await read($, athanShown))) {
     await update($, athanShown, () => last.at)
-    await showAthan($, last.prayer === 'sunrise' ? 'fajr' : last.prayer, clockText(last.at, place.timeZone), now)
+    await showAthan($, last.pray === 'sunrise' ? 'fajr' : last.pray, clockText(last.at, place.timeZone), now)
   }
 
   const isWindow = options.salah !== 'off' && isInWindow(next, now, options.salahReminder)
-  await publishWindow($, isWindow && next.prayer !== 'sunrise' ? { prayer: next.prayer, at: next.at } : null)
+  await publishWindow($, isWindow && next.pray !== 'sunrise' ? { pray: next.pray, at: next.at } : null)
   scheduleOpen($, options, place, timer, options.salah !== 'off' && !isWindow ? next.at - options.salahReminder * 60_000 : undefined, now)
 
   return isWindow
@@ -195,20 +195,20 @@ const scheduleOpen = ($: EngineInterface, options: Options, place: Place, timer:
 }
 
 // Plays the minaret once: a row every FRAME_MS from the base up, a short hold, then it goes.
-const playMinaret = async ($: EngineInterface, prayer: SalahMinaret['prayer']) => {
+const playMinaret = async ($: EngineInterface, pray: SalahMinaret['pray']) => {
   hasPlayedMinaret = true
-  await update($, minaret, () => ({ prayer, frame: 1 }))
+  await update($, minaret, () => ({ pray, frame: 1 }))
   for (let frame = 2; frame <= ROWS_COUNT; frame++) {
-    $.clock.after((frame - 1) * FRAME_MS, () => void update($, minaret, () => ({ prayer, frame })))
+    $.clock.after((frame - 1) * FRAME_MS, () => void update($, minaret, () => ({ pray, frame })))
   }
   $.clock.after(ROWS_COUNT * FRAME_MS + HOLD_MS, () => void update($, minaret, () => null))
 }
 
 // The athan moment: the card on the desktop and the minaret in the terminal
 // (each surface draws only its own), and the card ends by itself with the call's window.
-const showAthan = async ($: EngineInterface, prayer: SalahMinaret['prayer'], time: string, now: number) => {
-  await playMinaret($, prayer)
-  await update($, card, () => ({ prayer, time, until: now + CARD_MS }))
+const showAthan = async ($: EngineInterface, pray: SalahMinaret['pray'], time: string, now: number) => {
+  await playMinaret($, pray)
+  await update($, card, () => ({ pray, time, until: now + CARD_MS }))
   $.clock.after(CARD_MS, () => void update($, card, () => null))
 }
 
@@ -221,21 +221,21 @@ const readPhoto = async ($: EngineInterface): Promise<string | undefined> => {
   return typeof bytes === 'object' ? bytes.base64 : undefined
 }
 
-// `/salah athan test`: shows the athan moment now for the next prayer, without
+// `/salah athan test`: shows the athan moment now for the next pray, without
 // touching settings or the shown-once mark.
 const playTest = async ($: EngineInterface, options: Options, place: Place) => {
   const now = await $.clock.now()
   const next = nextSalah(place, methodOf(options, place), options.salahAdjust, now)
-  const prayer = next.prayer === 'sunrise' ? 'fajr' : next.prayer
-  await showAthan($, prayer, clockText(next.at, place.timeZone), now)
+  const pray = next.pray === 'sunrise' ? 'fajr' : next.pray
+  await showAthan($, pray, clockText(next.at, place.timeZone), now)
 
-  return `Showing the athan moment for ${ENGLISH[prayer]}.`
+  return `Showing the athan moment for ${ENGLISH[pray]}.`
 }
 
-// Tells the thikr line which prayer's window we are in; writes only on a change.
+// Tells the thikr line which pray's window we are in; writes only on a change.
 const publishWindow = async ($: EngineInterface, moment: SalahWindow | null) => {
   const current = await read($, inWindow)
-  if (current?.prayer === moment?.prayer && current?.at === moment?.at) return
+  if (current?.pray === moment?.pray && current?.at === moment?.at) return
   await update($, inWindow, () => moment)
 }
 
@@ -254,7 +254,7 @@ const putOff = async ($: EngineInterface) => {
   await $.store.set(SETUP_LATER_KEY, true)
 }
 
-// Starts the prayer line's timer: a minaret left mid-play by a reload would
+// Starts the pray line's timer: a minaret left mid-play by a reload would
 // stay, so it starts clean, and the first tick runs right after the caller.
 const begin = async ($: EngineInterface, options: Options, place: Place, timer: Timer) => {
   $.clock.after(0, async () => {
@@ -268,7 +268,7 @@ const begin = async ($: EngineInterface, options: Options, place: Place, timer: 
 export const install = (on: On, options: Options) => {
   const arabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
   const guess = guessPlace(systemTimeZone())
-  // The prayer line's timer, started once per module load by whichever of the
+  // The pray line's timer, started once per module load by whichever of the
   // prompt band or the footer is drawn first (a reload, e.g. after any setting
   // change, starts it again; register also asks for a redraw at session.start).
   let hasTicker = false
@@ -287,7 +287,7 @@ export const install = (on: On, options: Options) => {
 
     if (word === '') {
       const place = options.salahPlace
-      if (!place) return { text: ['Prayer times are not set up yet: /salah city', '', HINT].join('\n') }
+      if (!place) return { text: ['Pray times are not set up yet: /salah city', '', HINT].join('\n') }
 
       // The host puts `muslim: ` before the first line, so a title goes there, not a table.
       return {
@@ -301,7 +301,7 @@ export const install = (on: On, options: Options) => {
         return { text: `Reminder takes whole minutes from ${REMINDER_MIN} to ${REMINDER_MAX}, e.g. /salah reminder 20.` }
       }
 
-      return set('salahReminder', minutes, `reminder ${minutes} min before each prayer`)
+      return set('salahReminder', minutes, `reminder ${minutes} min before each pray`)
     }
     if (word === 'always' || word === 'reminder' || word === 'off') return set('salah', word, `salah ${word}`)
     if (word === 'athan' && first === 'test') {
@@ -330,21 +330,21 @@ export const install = (on: On, options: Options) => {
       return { text: 'Check today\'s times above the prompt.' }
     }
     if (word === 'adjust') {
-      const prayer = prayerNamed(first)
+      const pray = prayNamed(first)
       const minutes = Number(second)
-      if (!prayer || second === '' || !Number.isInteger(minutes)) {
-        return { text: 'Adjust takes a prayer and whole minutes, e.g. adjust asr +5.' }
+      if (!pray || second === '' || !Number.isInteger(minutes)) {
+        return { text: 'Adjust takes a pray and whole minutes, e.g. adjust asr +5.' }
       }
-      const adjust = { ...options.salahAdjust, [prayer]: minutes }
+      const adjust = { ...options.salahAdjust, [pray]: minutes }
       const sign = minutes > 0 ? '+' : ''
 
-      return set('salahAdjust', writeAdjust(adjust), `${ENGLISH[prayer]} ${sign}${minutes} min`)
+      return set('salahAdjust', writeAdjust(adjust), `${ENGLISH[pray]} ${sign}${minutes} min`)
     }
 
     return { text: salahHelp() }
   })
 
-  // Starts the prayer line's timer (or clears the line when off) on the first draw of the band or the footer.
+  // Starts the pray line's timer (or clears the line when off) on the first draw of the band or the footer.
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
     const place = options.salahPlace
     if (options.salah !== 'off' && place && !hasTicker) {
@@ -384,7 +384,7 @@ export const install = (on: On, options: Options) => {
     if (!place || !draft || e.props.hasSurvey) return theirs
     const { Box, Button, Text } = $.ui.resolve(e)
     const rows = reviewRows(place, methodOf(options, place), draft, await $.clock.now())
-    const move = (prayer: Prayer, step: number) => update($, review, now => (now ? nudge(now, prayer, step) : now))
+    const move = (pray: Pray, step: number) => update($, review, now => (now ? nudge(now, pray, step) : now))
     const save = async () => {
       const { deny } = await $.config.set({ key: 'muslim.salahAdjust', value: writeAdjust(draft) })
       if (deny) return void $.ui.toast(`Not changed: ${deny}`)
@@ -395,12 +395,12 @@ export const install = (on: On, options: Options) => {
       <Box flexDirection="column">
         <Text key="salah-review" color="claude">{`Check today's times in ${place.name} against your mosque's, then save.`}</Text>
         {rows.map(row => (
-          <Box key={`salah-${row.prayer}`} gap={1}>
+          <Box key={`salah-${row.pray}`} gap={1}>
             <Text>{row.name}</Text>
             <Text bold>{row.time}</Text>
-            <Button key={`salah-${row.prayer}-minus`} label="−" onPress={() => move(row.prayer, -1)} />
+            <Button key={`salah-${row.pray}-minus`} label="−" onPress={() => move(row.pray, -1)} />
             <Text dimColor>{row.minutes}</Text>
-            <Button key={`salah-${row.prayer}-plus`} label="+" onPress={() => move(row.prayer, 1)} />
+            <Button key={`salah-${row.pray}-plus`} label="+" onPress={() => move(row.pray, 1)} />
           </Box>
         ))}
         <Box key="salah-review-actions" gap={1}>
@@ -412,7 +412,7 @@ export const install = (on: On, options: Options) => {
     )
   })
 
-  // The prayer line: plain text in the mode labels at the right of the prompt
+  // The pray line: plain text in the mode labels at the right of the prompt
   // footer, before the model name, beside whatever else draws there.
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
     const theirs = await next(e)
@@ -437,7 +437,7 @@ export const install = (on: On, options: Options) => {
     if (!playing || e.props.hasSurvey || e.surface === 'desktop') return theirs
     const { Box, Text } = $.ui.resolve(e)
 
-    const label = await renderArabic($, e.surface, athanText(playing.prayer), arabicCache)
+    const label = await renderArabic($, e.surface, athanText(playing.pray), arabicCache)
 
     return (
       <Box flexDirection="column">
@@ -470,7 +470,7 @@ export const install = (on: On, options: Options) => {
       // The desktop pads the band in a card: the picture reaches a cell and half a line past it.
       <Box flexDirection="column">
         <Box key="salah-athan-card" gap={1}>
-          <Svg source={cardSvg(photo.base64, shown.prayer, shown.time, width)} alt={athanText(shown.prayer)} width={width} height={CARD_HEIGHT} isInteractive />
+          <Svg source={cardSvg(photo.base64, shown.pray, shown.time, width)} alt={athanText(shown.pray)} width={width} height={CARD_HEIGHT} isInteractive />
           <Button key="salah-athan-close" plain label="×" onPress={() => update($, card, () => null)} />
         </Box>
         {theirs ?? <Box key="salah-athan-end" height={0} />}
@@ -493,7 +493,7 @@ export const install = (on: On, options: Options) => {
     return (
       <Box flexDirection="column">
         <Box key="salah-setup" gap={1}>
-          <Text color="claude">{guess ? `Prayer times for ${guess.name}?` : 'Set up prayer times?'}</Text>
+          <Text color="claude">{guess ? `Pray times for ${guess.name}?` : 'Set up pray times?'}</Text>
           {guess ? <Button key="salah-yes" label="Yes" hotkey="1" plain onPress={async () => done(await savePlace($, guess, options))} /> : null}
           <Button key="salah-city" label={guess ? 'Another city' : 'Pick city'} hotkey={guess ? '2' : '1'} plain onPress={choose} />
           <Button key="salah-later" label="Not now" hotkey={guess ? '3' : '2'} plain dimColor onPress={() => putOff($)} />

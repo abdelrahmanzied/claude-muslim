@@ -50,8 +50,8 @@
     },
     "salah": {
       "type": "string",
-      "title": "Prayer times",
-      "description": "always: next prayer all day; reminder: only in the reminder window before a prayer; off: nothing",
+      "title": "Pray times",
+      "description": "always: next pray all day; reminder: only in the reminder window before a pray; off: nothing",
       "options": [
         "always",
         "reminder",
@@ -61,27 +61,27 @@
     },
     "salahReminder": {
       "type": "number",
-      "title": "Prayer reminder minutes",
-      "description": "Minutes before a prayer when the countdown and reminder start, from 5 to 60",
+      "title": "Pray reminder minutes",
+      "description": "Minutes before a pray when the countdown and reminder start, from 5 to 60",
       "min": 5,
       "max": 60,
       "default": 20
     },
     "salahAthan": {
       "type": "boolean",
-      "title": "Prayer call",
-      "description": "Show حان وقت صلاة … for 15 minutes once a prayer comes in",
+      "title": "Pray call",
+      "description": "Show حان وقت صلاة … for 15 minutes once a pray comes in",
       "default": true
     },
     "salahPlace": {
       "type": "string",
-      "title": "Prayer place",
+      "title": "Pray place",
       "description": "name; latitude, longitude; time zone; country, e.g. Munich, Germany; 48.14, 11.58; Europe/Berlin; DE. Empty until set up",
       "default": ""
     },
     "salahMethod": {
       "type": "string",
-      "title": "Prayer calculation method",
+      "title": "Pray calculation method",
       "description": "auto uses the place's country's own method; or name an authority's Fajr and Isha angles",
       "options": [
         "auto",
@@ -109,7 +109,7 @@
     },
     "salahAdjust": {
       "type": "string",
-      "title": "Prayer minutes",
+      "title": "Pray minutes",
       "description": "Any whole number of minutes added to Fajr, Sunrise, Dhuhr, Asr, Maghrib and Isha, e.g. 0 0 0 90 0 -120",
       "default": "0 0 0 0 0 0"
     }

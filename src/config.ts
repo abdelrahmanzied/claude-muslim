@@ -1,4 +1,4 @@
-import { METHODS, PRAYERS, type MethodId, type Prayer } from './features/salah/methods.ts'
+import { METHODS, PRAYS, type MethodId, type Pray } from './features/salah/methods.ts'
 import { readPlace, type Place } from './features/salah/place.ts'
 import type { Speed } from './features/thikr/rotation.ts'
 
@@ -14,10 +14,10 @@ export type Options = {
   salahAthan: boolean
   salahPlace: Place | undefined
   salahMethod: MethodId | 'auto'
-  salahAdjust: Record<Prayer, number>
+  salahAdjust: Record<Pray, number>
 }
 
-// `always`: next prayer all day; `reminder`: only in the reminder window; `off`: nothing.
+// `always`: next pray all day; `reminder`: only in the reminder window; `off`: nothing.
 export type SalahMode = 'always' | 'reminder' | 'off'
 
 // `all`: every group in turn; `salawat`: one salawat for the whole turn.
@@ -73,15 +73,15 @@ export const readReminder = (value: unknown): number => {
 export const isMethod = (value: unknown): value is MethodId => typeof value === 'string' && Object.hasOwn(METHODS, value)
 
 // Six whole minutes, Fajr to Isha; anything else is 0.
-export const readAdjust = (value: unknown): Record<Prayer, number> => {
+export const readAdjust = (value: unknown): Record<Pray, number> => {
   const words = typeof value === 'string' ? value.trim().split(/\s+/) : []
-  const entries = PRAYERS.map((prayer, i) => {
+  const entries = PRAYS.map((pray, i) => {
     const minutes = Number(words[i])
 
-    return [prayer, Number.isInteger(minutes) ? minutes : 0] as const
+    return [pray, Number.isInteger(minutes) ? minutes : 0] as const
   })
 
-  return Object.fromEntries(entries) as Record<Prayer, number>
+  return Object.fromEntries(entries) as Record<Pray, number>
 }
 
-export const writeAdjust = (adjust: Record<Prayer, number>): string => PRAYERS.map(prayer => adjust[prayer]).join(' ')
+export const writeAdjust = (adjust: Record<Pray, number>): string => PRAYS.map(pray => adjust[pray]).join(' ')

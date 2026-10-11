@@ -26,10 +26,10 @@ export const register: Register = (on, options) => {
     })
     await $.command.register({
       name: 'salah',
-      description: 'Prayer times: today, help, always, reminder, off, athan, city, method, adjust',
+      description: 'Pray times: today, help, always, reminder, off, athan, city, method, adjust',
     })
 
-    // Older versions pinned the prayer line in the status line; clear what a
+    // Older versions pinned the pray line in the status line; clear what a
     // reload may have left there. The mod no longer sets it.
     $.ui.status(undefined)
     // A reload fires this again: ask for a redraw so the salah timer re-arms.

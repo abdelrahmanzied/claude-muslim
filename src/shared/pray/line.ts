@@ -1,12 +1,12 @@
-// The prayer line, its own row above the prompt: the next prayer's time, a live mm:ss
+// The pray line, its own row above the prompt: the next pray's time, a live mm:ss
 // countdown in the minutes before it, and the call once it is in.
 // Sunrise has no line and no reminder.
 
 import type { SalahMode } from '../../config.ts'
 import { ARABIC } from './names.ts'
-import type { Prayer } from './names.ts'
+import type { Pray } from './names.ts'
 
-// How long `حان وقت صلاة …` stays after a prayer comes in.
+// How long `حان وقت صلاة …` stays after a pray comes in.
 export const IN_MS = 15 * 60_000
 
 const DIGITS = '٠١٢٣٤٥٦٧٨٩'
@@ -21,18 +21,18 @@ export const minutesText = (minutes: number): string => {
   return `${arabicDigits(String(minutes))} ${minutes <= 10 ? 'دقائق' : 'دقيقة'}`
 }
 
-// The line once a prayer is in, and the words beside the terminal minaret.
-export const athanText = (prayer: Prayer): string => `حان وقت صلاة ${ARABIC[prayer]}`
+// The line once a pray is in, and the words beside the terminal minaret.
+export const athanText = (pray: Pray): string => `حان وقت صلاة ${ARABIC[pray]}`
 
-export type Moment = { prayer: Prayer; at: number }
+export type Moment = { pray: Pray; at: number }
 
-// What the prayer line shows besides the times: the mode, the minutes before
-// a prayer the countdown starts, and whether the call shows once it is in.
+// What the pray line shows besides the times: the mode, the minutes before
+// a pray the countdown starts, and whether the call shows once it is in.
 export type View = { mode: SalahMode; reminder: number; isAthan: boolean }
 
 const MINUTE_MS = 60_000
 
-// Whether `now` is in the reminder window before the next prayer.
+// Whether `now` is in the reminder window before the next pray.
 export const isInWindow = (next: Moment, now: number, reminder: number): boolean => next.at - now <= reminder * MINUTE_MS && next.at > now
 
 // `mm:ss` in Arabic digits for the time left, rounded up to the second.
@@ -43,14 +43,14 @@ export const countdownText = (leftMs: number): string => {
   return arabicDigits(`${pad(Math.floor(seconds / 60))}:${pad(seconds % 60)}`)
 }
 
-// The line for `now`, given the next prayer (never sunrise), the last one and
+// The line for `now`, given the next pray (never sunrise), the last one and
 // its HH:MM; undefined when the line is empty (off, or `reminder` outside its window).
-export const prayerLine = (next: Moment, nextClock: string, last: Moment, now: number, view: View): string | undefined => {
+export const prayLine = (next: Moment, nextClock: string, last: Moment, now: number, view: View): string | undefined => {
   if (view.mode === 'off') return undefined
-  if (view.isAthan && now - last.at < IN_MS) return athanText(last.prayer)
+  if (view.isAthan && now - last.at < IN_MS) return athanText(last.pray)
   const left = next.at - now
-  if (left <= view.reminder * MINUTE_MS) return `☾ ${ARABIC[next.prayer]} ${countdownText(left)}`
-  if (view.mode === 'always') return `☾ ${ARABIC[next.prayer]} ${arabicDigits(nextClock)}`
+  if (left <= view.reminder * MINUTE_MS) return `☾ ${ARABIC[next.pray]} ${countdownText(left)}`
+  if (view.mode === 'always') return `☾ ${ARABIC[next.pray]} ${arabicDigits(nextClock)}`
 
   return undefined
 }

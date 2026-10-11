@@ -1,10 +1,10 @@
-// Prayer time calculation methods: each authority's twilight angles and
+// Pray time calculation methods: each authority's twilight angles and
 // minute adjustments. The numbers are each authority's published parameters,
-// as listed by the vendored athan library (see athan/VENDOR.md) and the public prayer-times API's methods list.
+// as listed by the vendored athan library (see athan/VENDOR.md) and the public pray-times API's methods list.
 // Asr follows the majority (shadow equals the object) for every method. Sunni
 // authorities only: a country whose official method is not gets mwl.
 
-import type { Prayer } from '../../shared/pray/names.ts'
+import type { Pray } from '../../shared/pray/names.ts'
 
 export type MethodId =
   | 'mwl'
@@ -27,9 +27,9 @@ export type MethodId =
   | 'jordan'
   | 'portugal'
 
-export type { Prayer }
+export type { Pray }
 
-export const PRAYERS: readonly Prayer[] = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha']
+export const PRAYS: readonly Pray[] = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha']
 
 export type Method = {
   name: string
@@ -42,7 +42,7 @@ export type Method = {
   // Isha's minutes after Maghrib in Ramadan, where the authority changes it.
   ramadanIshaMinutes?: number
   // Minutes added to each computed time.
-  adjust?: Partial<Record<Prayer, number>>
+  adjust?: Partial<Record<Pray, number>>
 }
 
 export const METHODS: Readonly<Record<MethodId, Method>> = {

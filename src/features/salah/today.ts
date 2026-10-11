@@ -2,7 +2,7 @@
 
 import type { Options } from '../../config.ts'
 import { REMINDER_MAX, REMINDER_MIN } from '../../config.ts'
-import { METHODS, methodFor, PRAYERS, type MethodId } from './methods.ts'
+import { METHODS, methodFor, PRAYS, type MethodId } from './methods.ts'
 import { ENGLISH } from '../../shared/pray/names.ts'
 import type { Place } from './place.ts'
 import { clockText, nextSalah, timesOn } from './times.ts'
@@ -11,40 +11,40 @@ import { clockText, nextSalah, timesOn } from './times.ts'
 export const methodOf = (options: Options, place: Place): MethodId =>
   options.salahMethod === 'auto' ? methodFor(place.country) : options.salahMethod
 
-// Today's times as a table, the next prayer marked; a moved prayer shows its minutes.
+// Today's times as a table, the next pray marked; a moved pray shows its minutes.
 export const timesTable = (options: Options, place: Place, at: number): string => {
   const method = methodOf(options, place)
   const times = timesOn(place, method, options.salahAdjust, at)
   const next = nextSalah(place, method, options.salahAdjust, at)
-  const rows = PRAYERS.map(prayer => {
-    const moved = options.salahAdjust[prayer]
-    const time = clockText(times[prayer], place.timeZone) + (moved === 0 ? '' : ` (${moved > 0 ? '+' : ''}${moved} min)`)
-    const name = next.at === times[prayer] ? `**${ENGLISH[prayer]}** · next` : ENGLISH[prayer]
+  const rows = PRAYS.map(pray => {
+    const moved = options.salahAdjust[pray]
+    const time = clockText(times[pray], place.timeZone) + (moved === 0 ? '' : ` (${moved > 0 ? '+' : ''}${moved} min)`)
+    const name = next.at === times[pray] ? `**${ENGLISH[pray]}** · next` : ENGLISH[pray]
 
     return `| ${name} | ${time} |`
   })
 
-  return ['| Prayer | Time |', '| --- | --- |', ...rows].join('\n')
+  return ['| Pray | Time |', '| --- | --- |', ...rows].join('\n')
 }
 
-// What each prayer line mode shows, for the settings table.
+// What each pray line mode shows, for the settings table.
 const LINE = {
-  always: () => 'always: next prayer all day',
-  reminder: (minutes: number) => `reminder: only ${minutes} min before a prayer`,
+  always: () => 'always: next pray all day',
+  reminder: (minutes: number) => `reminder: only ${minutes} min before a pray`,
   off: () => 'off: hidden',
 } as const
 
 // The settings in effect, each with the command that changes it.
 export const settingsTable = (options: Options, place: Place): string => {
   const method = METHODS[methodOf(options, place)].name + (options.salahMethod === 'auto' ? ' (auto)' : '')
-  const moved = PRAYERS.filter(prayer => options.salahAdjust[prayer] !== 0)
+  const moved = PRAYS.filter(pray => options.salahAdjust[pray] !== 0)
   const rows: readonly (readonly [string, string, string])[] = [
     ['City', place.name, '/salah city'],
     ['Method', method, '/salah method <name>'],
-    ['Prayer line', LINE[options.salah](options.salahReminder), '/salah always` · `reminder` · `off'],
+    ['Pray line', LINE[options.salah](options.salahReminder), '/salah always` · `reminder` · `off'],
     ['Reminder', `${options.salahReminder} min before`, `/salah reminder <${REMINDER_MIN}-${REMINDER_MAX}>`],
     ['Athan', options.salahAthan ? 'on' : 'off', '/salah athan on` · `off'],
-    ['Adjust', moved.length === 0 ? 'none' : moved.map(prayer => `${ENGLISH[prayer]} ${options.salahAdjust[prayer] > 0 ? '+' : ''}${options.salahAdjust[prayer]}`).join(', '), '/salah adjust'],
+    ['Adjust', moved.length === 0 ? 'none' : moved.map(pray => `${ENGLISH[pray]} ${options.salahAdjust[pray] > 0 ? '+' : ''}${options.salahAdjust[pray]}`).join(', '), '/salah adjust'],
   ]
 
   return ['| Setting | Value | Change with |', '| --- | --- | --- |', ...rows.map(([name, value, command]) => `| ${name} | ${value} | \`${command}\` |`)].join('\n')

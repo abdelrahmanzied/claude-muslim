@@ -6,7 +6,7 @@ import { NO_ADJUST } from '../../src/features/salah/times.ts'
 const MUNICH = { name: 'Munich, Germany', latitude: 48.1372, longitude: 11.5755, timeZone: 'Europe/Berlin', country: 'DE' }
 
 describe('review', () => {
-  test('rows show each prayer\'s time with its minutes', async () => {
+  test('rows show each pray\'s time with its minutes', async () => {
     const rows = reviewRows(MUNICH, 'mwl', { ...NO_ADJUST, asr: 5, isha: -2 }, Date.parse('2026-10-10T10:00:00Z'))
 
     expect(rows.map(row => [row.name.trim(), row.time, row.minutes.trim()])).toEqual([
@@ -15,7 +15,7 @@ describe('review', () => {
     ])
   })
 
-  test('nudge moves one prayer beyond an hour in either direction', async () => {
+  test('nudge moves one pray beyond an hour in either direction', async () => {
     expect(nudge(NO_ADJUST, 'fajr', 1).fajr).toBe(1)
     expect(nudge({ ...NO_ADJUST, fajr: 60 }, 'fajr', 1).fajr).toBe(61)
     expect(nudge({ ...NO_ADJUST, fajr: -60 }, 'fajr', -1).fajr).toBe(-61)

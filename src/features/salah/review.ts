@@ -1,28 +1,28 @@
-// The review form: today's times with the user's minutes, one row a prayer,
+// The review form: today's times with the user's minutes, one row a pray,
 // each moved a minute at a time.
 
-import { PRAYERS, type MethodId, type Prayer } from './methods.ts'
+import { PRAYS, type MethodId, type Pray } from './methods.ts'
 import { ENGLISH } from '../../shared/pray/names.ts'
 import type { Place } from './place.ts'
 import { clockText, timesOn, type Adjust } from './times.ts'
 
-export type Row = { prayer: Prayer; name: string; time: string; minutes: string }
+export type Row = { pray: Pray; name: string; time: string; minutes: string }
 
 const signed = (minutes: number) => (minutes > 0 ? `+${minutes}` : String(minutes))
 
 export const reviewRows = (place: Place, method: MethodId, draft: Adjust, at: number): Row[] => {
   const times = timesOn(place, method, draft, at)
 
-  return PRAYERS.map(prayer => ({
-    prayer,
-    name: ENGLISH[prayer].padEnd(8),
-    time: clockText(times[prayer], place.timeZone),
-    minutes: signed(draft[prayer]).padStart(3),
+  return PRAYS.map(pray => ({
+    pray,
+    name: ENGLISH[pray].padEnd(8),
+    time: clockText(times[pray], place.timeZone),
+    minutes: signed(draft[pray]).padStart(3),
   }))
 }
 
-// The draft with one prayer moved by `step` minutes.
-export const nudge = (draft: Adjust, prayer: Prayer, step: number): Adjust => ({
+// The draft with one pray moved by `step` minutes.
+export const nudge = (draft: Adjust, pray: Pray, step: number): Adjust => ({
   ...draft,
-  [prayer]: draft[prayer] + step,
+  [pray]: draft[pray] + step,
 })

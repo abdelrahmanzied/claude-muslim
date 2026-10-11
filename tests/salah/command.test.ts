@@ -40,7 +40,7 @@ describe('settings', () => {
 test('/salah before setup says so', async $ => {
   const ran = await $.command.run(salah(''))
 
-  expect(ran.text).toContain('Prayer times are not set up yet: /salah city')
+  expect(ran.text).toContain('Pray times are not set up yet: /salah city')
 })
 
 test('/salah shows today\'s times and the settings as tables, each setting with its command', { options: MUNICH }, async ($, on) => {
@@ -48,14 +48,14 @@ test('/salah shows today\'s times and the settings as tables, each setting with 
   const ran = await $.command.run(salah(''))
 
   expect(ran.text?.split('\n')[0]).toBe('**Muslim › Salah**')
-  expect(ran.text).toContain('\n### Today in Munich, Germany\n\n| Prayer | Time |')
+  expect(ran.text).toContain('\n### Today in Munich, Germany\n\n| Pray | Time |')
   expect(ran.text).toContain('\n### Settings\n\n| Setting | Value | Change with |')
   expect(ran.text).toContain('| Fajr | 05:42 |')
   expect(ran.text).toContain('| **Dhuhr** · next | 13:02 |')
   expect(ran.text).toContain('| Isha | 20:12 |')
   expect(ran.text).toContain('| City | Munich, Germany | `/salah city` |')
   expect(ran.text).toContain('| Method | Muslim World League (auto) | `/salah method <name>` |')
-  expect(ran.text).toContain('| Prayer line | reminder: only 20 min before a prayer | `/salah always` · `reminder` · `off` |')
+  expect(ran.text).toContain('| Pray line | reminder: only 20 min before a pray | `/salah always` · `reminder` · `off` |')
   expect(ran.text).toContain('| Adjust | none | `/salah adjust` |')
   expect(ran.text).toContain('/salah help')
 })
@@ -90,13 +90,13 @@ test('/salah always, reminder <min> and athan save their settings', { options: M
 test('/salah adjust and method refuse what they cannot take', { options: MUNICH }, async ($, on) => {
   const written = settingsWriter(on)
   for (const args of ['adjust noon 5', 'adjust asr 1.5', 'adjust isha', 'adjust isha -', 'adjust asr nope', 'adjust asr Infinity']) {
-    expect((await $.command.run(salah(args))).text).toBe('Adjust takes a prayer and whole minutes, e.g. adjust asr +5.')
+    expect((await $.command.run(salah(args))).text).toBe('Adjust takes a pray and whole minutes, e.g. adjust asr +5.')
   }
   expect(written).toEqual([])
   expect((await $.command.run(salah('method tehran'))).text).toContain('Method is auto, or one of: mwl, egypt')
 })
 
-test('/salah adjust saves one prayer\'s minutes', { options: MUNICH }, async ($, on) => {
+test('/salah adjust saves one pray\'s minutes', { options: MUNICH }, async ($, on) => {
   // Stands for the engine's settings writer.
   const written: { key: string; value: unknown }[] = []
   on('config.set', async (_$, e) => (written.push({ key: e.key, value: e.value }), { value: e.value }))
@@ -171,7 +171,7 @@ test('/salah help is a table of every subcommand; unknown words answer with it',
   const help = (await $.command.run(salah('help'))).text
 
   expect(help).toContain('| Command | What it does |')
-  for (const word of ['/salah help', '/salah always', '/salah reminder <5-60>', '/salah athan on', '/salah city', '/salah method', '/salah adjust <prayer>']) {
+  for (const word of ['/salah help', '/salah always', '/salah reminder <5-60>', '/salah athan on', '/salah city', '/salah method', '/salah adjust <pray>']) {
     expect(help).toContain(word)
   }
   for (const gone of ['/salah setup', '/salah on', '/salah notify']) expect(help).not.toContain(gone)
