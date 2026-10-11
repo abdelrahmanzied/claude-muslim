@@ -12,16 +12,30 @@ In `/config`, the title is **Fix Arabic in the terminal** and the description
 is: "auto detects terminals that can't show Arabic; on/off forces it. Terminal
 only; the desktop is never changed."
 
-On the first terminal prompt, even with auto detection, one small row compares
-`سلام` unchanged (1) with its fixed form (2). "1 looks right" sets off;
-"2 looks right" sets on. The likely answer is the first button, without
-renumbering the samples. "Later" keeps the current mode. Any choice is saved
-as `arabicFixAnswered: true` in the plugin's machine-local `$.store`, so it is
-never asked again on that machine. Later users can change the mode through the
-command or `/config`. A denied setting does not consume the check.
+The first eligible terminal prompt shows two short rows. The first identifies
+`muslim` in Claude's accent color and asks, in dim text,
+" · Which Arabic word reads correctly here?" The second has three buttons:
+logical `سلام`, its fixed form, and dim "Not now". Each sample is alone in its
+button label, with no digits or Latin mixed into the Arabic. The likely sample
+comes first: fixed for Apple Terminal in auto, logical for Warp/unknown in auto;
+explicit on/off follows the selected mode.
 
-The row yields to surveys and never appears on desktop; neither event consumes
-an unanswered check. No released settings require migration.
+Press logical to set off, fixed to set on, or Not now to keep the mode. Any
+press hides the check, including a denied setting. A confirmation toast says
+`muslim: Arabic fix on — change with /muslim arabic-fix` (using the resulting
+mode); a denial reports why the setting was not changed and the same command.
+
+The check appears in only one session on the machine. On its first display,
+`$.store.set('arabicFixAnswered', true)` immediately consumes the machine-local
+check, even if no button is ever pressed. Session state keeps it visible until
+a press, across redraws and reloads. Because drawing cannot write session state,
+a zero-delay clock callback records `arabicFixShown`; a temporary flag bridges
+the first draw until that callback runs. No visible timer is used. Next session
+never asks again, whether answered or not. Existing stored answers stay consumed.
+
+Surveys suppress the check without consuming it, and desktop never draws it or
+reads/writes its store. Users can always change the mode through the command or
+`/config`. No released settings require migration.
 
 Design: [arabic-fix-design.md](arabic-fix-design.md).
 
@@ -94,22 +108,21 @@ shipped, and the update bug remains unresolved in this build.
 ### Verification
 
 Automated tests cover detection, explicit modes, command validation/denial,
-first-run persistence and Later, ordering, survey/desktop exclusion, preservation
+first-display persistence and Not now, ordering, survey/desktop exclusion, preservation
 of the underlying band, and fresh shaping on each thikr text change. They do
 not execute the real terminal renderer's ANSI output.
 
-- **Warp:** on a machine without the stored answer, check both samples and
-  the likely "1 looks right" button first. Pick 1; check spinner/usage-limit/end
-  text and digit order, reload and start a new session: no repeated check.
-  Try Later on a fresh store: it also dismisses permanently without a mode
-  write. `/muslim arabic-fix auto` and off should use logical Arabic in Warp.
-- **Apple Terminal:** expect "2 looks right" first in auto; pick 2. Verify
-  joined Arabic at first draw, then watch several rotating thikr phrases and transitions between
-  working moments; resize and restore the
-  window too. Record whether corruption remains until a full host redraw.
-  This is a check of the documented unresolved renderer bug, not a claim that
-  the mod now fixes it. Compare on/off/auto, including a lam-alef phrase (لا إله إلا الله).
-- **Both:** a survey hides the check without answering it; closing it brings
-  the unanswered row back. The usage-limit band and other rows still work. At
-  80 columns the row remains short. Desktop has no Arabic check and keeps
-  its original Arabic and tashkeel.
+- **Warp:** on a machine without the stored marker, check the muslim label,
+  question and isolated sample buttons, with the logical sample first. Press it;
+  spinner/usage-limit/end text stays logical. The confirmation names the plugin
+  and command. Reload and start a new session: no repeated check.
+- **Apple Terminal:** expect the fixed sample first in auto. Verify joined
+  Arabic on the first draw and while thikr rotates. Compare on/off/auto and a
+  lam-alef phrase (لا إله إلا الله). Record any corruption until a full host
+  redraw: the documented renderer update bug remains unresolved.
+- **One session only:** leave the check unanswered, redraw and reload in the
+  same session: it stays visible. Start a new session: it never returns. Not now
+  hides it without changing the mode and confirms how to change it later.
+- **Both:** a survey hides the check without consuming an unseen check. Other
+  band rows still work. Desktop has no check and keeps its original Arabic
+  and tashkeel. Render-tree tests do not prove physical terminal bidi behavior.
