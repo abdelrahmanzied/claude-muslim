@@ -194,7 +194,7 @@ const cover = (m: BandModel) =>
   `<div class="cover cv-inline"><div class="cover-title">${esc(m.title)}</div><div class="cover-keys">`
   + `<span class="cover-go">${MOUSE('left')} ${m.hasBegun ? 'continue' : 'start'}</span>`
   + `<span>${kc('⎵')}${kc('↵')} count</span><span>${kc('←')}${kc('→')} move</span>`
-  + `<span>${MOUSE('right')}${kc('⌫')} undo</span><span>${kc('esc')} pause</span></div></div>`
+  + `<span>${MOUSE('right')}${kc('⌫')} undo</span></div></div>`
 
 const reading = (m: BandModel) => `<div class="text">${esc(m.text)}</div><span class="pos">${esc(m.position)}</span>`
 

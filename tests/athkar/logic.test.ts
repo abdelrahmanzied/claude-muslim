@@ -222,6 +222,9 @@ test('the cover stands at the open reading height, whatever the text, and its wo
   expect(Math.abs(coverFit(200) - 9 / 10.5)).toBeLessThan(0.001)
   expect(bandSvg(model({ phase: 'cover', width: 400, height: 77 }))).toContain(`--cv:${coverFit(400)}`)
   expect(bandSvg(model({ phase: 'cover', width: 400, height: 77 }))).toContain('max(9px, calc(26px * var(--cv, 1)))')
+
+  // No Esc on the cover: the mod never receives it.
+  expect(bandSvg(model({ phase: 'cover', width: 600, height: 77 }))).not.toContain('pause')
 })
 
 test('on the folded row the × hides the band and anywhere else opens it', async () => {

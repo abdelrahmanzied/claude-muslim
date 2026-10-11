@@ -26,7 +26,7 @@ const TICK_MS = 100
 // One full pulse of the progress head, in frames.
 const PULSE = Math.round(2600 / TICK_MS)
 
-const COVER_KEYS = '⎵ ↵ count · ← → move · right click ⌫ undo · esc pause'
+const COVER_KEYS = '⎵ ↵ count · ← → move · right click ⌫ undo'
 
 // How long a press lights the band here before the hooks module must agree.
 const LIT_MS = 3000

@@ -24,6 +24,7 @@ The rules the athkar reader follows. The feature spec (what it shows, settings, 
 
 - The first click on a faded band only lights it; it never counts.
 - On the cover, the next click opens the reading; it does not count either. After that, clicks count.
+- The cover lists no Esc key: the mod never receives Esc (see rule 4).
 - Click, Space or Enter counts. Right click or Backspace takes one back. ← next, → previous.
 - × hides the band for this period and keeps the reading. `/athkar` brings it back.
 
