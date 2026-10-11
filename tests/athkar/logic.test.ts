@@ -5,7 +5,7 @@ import { arabicDigits, dayOf, END, isAct, emptyReading, listFor, overall, period
 import type { Reading } from '../../src/features/athkar/logic.ts'
 import { bandHeight, bandSvg, closeArea, coverFit, doneFit, finaleSize, fitOf, pixelOf } from '../../src/features/athkar/band.ts'
 import type { BandModel } from '../../src/features/athkar/band.ts'
-import { SIZE_DEFAULT, readSize } from '../../src/config.ts'
+import { SIZE_DEFAULT, readOptions, readSize } from '../../src/config.ts'
 import { hitsFor } from '../../src/features/athkar/install.tsx'
 
 test('morning runs 05:00 to 17:00, evening the rest', async () => {
@@ -282,4 +282,10 @@ test('the end verse stays on one line: the hint goes first, then the verse shrin
   expect(finaleSize(END, 860)).toBeLessThanOrEqual(30)
   expect(finaleSize(END, 380)).toBeLessThan(finaleSize(END, 860))
   expect(finaleSize(END, 380)).toBeGreaterThanOrEqual(9)
+})
+
+test('the look is sky or outline; the dropped sand falls back to sky', () => {
+  expect(readOptions({}).athkarStyle).toBe('sky')
+  expect(readOptions({ athkarStyle: 'outline' }).athkarStyle).toBe('outline')
+  expect(readOptions({ athkarStyle: 'sand' }).athkarStyle).toBe('sky')
 })

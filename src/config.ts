@@ -27,7 +27,7 @@ export const readOptions = (raw: Record<string, unknown>): Options => ({
   thikrEnd: raw.thikrEnd !== false,
   thikrMode: raw.thikrMode === 'salawat' ? 'salawat' : 'all',
   athkar: raw.athkar !== false,
-  athkarStyle: raw.athkarStyle === 'sand' || raw.athkarStyle === 'outline' ? raw.athkarStyle : 'sky',
+  athkarStyle: raw.athkarStyle === 'outline' ? raw.athkarStyle : 'sky',
   athkarColor: raw.athkarColor === 'green' || raw.athkarColor === 'gold' || raw.athkarColor === 'blue' ? raw.athkarColor : 'orange',
   athkarSize: readSize(raw.athkarSize),
 })

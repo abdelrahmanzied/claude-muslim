@@ -99,7 +99,7 @@ A reader above the prompt for the morning athkar (05:00 to 17:00) and the evenin
 | --- | --- | --- |
 | Sky (default) | desktop | A sky that follows the clock: dawn 4–6, sunrise 6–8, clear day 8–17, rose 17–18, blue hour 18–19, crescent 19–4. Rich motion: stars, sun, clouds, birds, shooting stars. Faded until clicked, then in color. |
 | Sky | terminal | The same sky's color as a plain background. |
-| Sand, Outline | both | A sand background or a main-color outline; the frame breathes while reading. |
+| Outline | both | A main-color outline; the frame breathes while reading. |
 
 On every sky the pill is the main color with a white number. Sunrise takes dark words; every other sky white.
 
@@ -108,7 +108,7 @@ On every sky the pill is the main color with a white number. Sunrise takes dark 
 | `/config` field | Command | Default |
 | --- | --- | --- |
 | `athkar` | `/athkar on` · `off` | on |
-| `athkarStyle` | `/athkar style sky` · `sand` · `outline` | sky |
+| `athkarStyle` | `/athkar style sky` · `outline` | sky |
 | `athkarColor` | `/athkar color orange` · `green` · `gold` · `blue` | orange |
 | `athkarSize` | `/athkar size 12` … `28` | 14 |
 

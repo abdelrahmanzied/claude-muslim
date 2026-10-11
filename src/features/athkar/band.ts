@@ -173,7 +173,7 @@ const EXTRA_CSS = `
 @keyframes riseMsg { 0% { opacity: 0; transform: translate(-50%, 30px); } 30% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -110px); } }
 /* Skies have no edge line, colored or white: the picture is the edge. */
 .band.band.band.sky, .band.band.band.sky.edge:not(.framed) { border-color: transparent !important; }
-/* Sand and Outline: at rest the app's own quiet line; lit, the accent line
+/* Outline: at rest the app's own quiet line; lit, the accent line
    and the glow breathing inside the edge, since the picture ends at it. */
 .band.band.al-breathe:not(.active) { border-color: var(--desk-line) !important; }
 .band.band.al-breathe.active { border-color: var(--b-acc) !important; animation: breatheIn 5.5s ease-in-out infinite; animation-delay: var(--t, 0s); }

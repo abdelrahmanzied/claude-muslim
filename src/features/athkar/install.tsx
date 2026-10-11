@@ -18,14 +18,14 @@ const dayRef = atom({ plugin: 'muslim', key: 'athkar' } as const, null as Day | 
 // Kept across sessions; today's reading for both periods.
 const STORE_KEY = 'athkar'
 
-const STYLES: readonly Style[] = ['sky', 'sand', 'outline']
+const STYLES: readonly Style[] = ['sky', 'outline']
 const COLORS = Object.keys(ACCENTS) as Accent[]
 
 const HELP = [
   '/athkar                          status, and show the athkar again',
   '/athkar on | off                 the athkar above the prompt',
   '/athkar morning | evening reset  read that period again from the start',
-  '/athkar style sky | sand | outline',
+  '/athkar style sky | outline',
   '/athkar color orange | green | gold | blue',
   '/athkar size 12 … 28                text size in pixels, 14 by default',
 ].join('\n')

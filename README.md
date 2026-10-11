@@ -74,7 +74,7 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/athkar` | Show today's athkar status and help, and show the athkar again if hidden |
 | `/athkar on` · `off` | Turn the athkar on or off |
 | `/athkar morning reset` · `evening reset` | Read that period again from the start |
-| `/athkar style sky` · `sand` · `outline` | The look: a sky that follows the time of day (default), or plain |
+| `/athkar style sky` · `outline` | The look: a sky that follows the time of day (default), or plain |
 | `/athkar color orange` · `green` · `gold` · `blue` | The main color |
 | `/athkar size 12` … `28` | The text size in pixels (14 by default) |
 | `/muslim` | Show the installed version |

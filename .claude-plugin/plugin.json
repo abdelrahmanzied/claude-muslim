@@ -57,10 +57,9 @@
     "athkarStyle": {
       "type": "string",
       "title": "Athkar style",
-      "description": "sky: a sky that follows the time of day; sand or outline: plain",
+      "description": "sky: a sky that follows the time of day; outline: plain",
       "options": [
         "sky",
-        "sand",
         "outline"
       ],
       "default": "sky"

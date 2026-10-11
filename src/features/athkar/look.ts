@@ -3,7 +3,7 @@ import type { Period } from './data.ts'
 import { arabicDigits, countOf, currentOf, END, hasBegun, listFor, overall, textOf, timesOf, TITLE } from './logic.ts'
 import type { Reading, Sky } from './logic.ts'
 
-export type Style = 'sky' | 'sand' | 'outline'
+export type Style = 'sky' | 'outline'
 export type Accent = 'orange' | 'green' | 'gold' | 'blue'
 
 // The main color, for a light theme and a dark one.
@@ -32,7 +32,6 @@ export const SKIES: Record<Sky, SkyLook> = {
   crescent: { stops: ['#060c22', '#121d48', '#26346a'], base: '#101a40', isBright: false },
 }
 
-const SAND = { light: '#f3ede4', dark: '#2b2622' }
 const PAGE = { light: '#ffffff', dark: '#1f1e1d' }
 
 export type Look = {
@@ -81,7 +80,7 @@ export const lookFor = (style: Style, accent: Accent, sky: Sky, isDark: boolean,
       under: base,
     }
   }
-  const page = style === 'sand' ? SAND[isDark ? 'dark' : 'light'] : PAGE[isDark ? 'dark' : 'light']
+  const page = PAGE[isDark ? 'dark' : 'light']
   const ink = isDark ? '#ece8e2' : '#26231f'
 
   return {
@@ -90,7 +89,7 @@ export const lookFor = (style: Style, accent: Accent, sky: Sky, isDark: boolean,
     ink,
     dim: blend(ink, page, 0.4),
     track: blend(page, ink, 0.18),
-    background: style === 'sand' ? page : undefined,
+    background: undefined,
     under: page,
   }
 }

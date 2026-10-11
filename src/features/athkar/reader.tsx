@@ -118,7 +118,7 @@ const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
 
   const { look } = props
   const isLit = props.isActive
-  // Skies light up from faded; Sand and Outline breathe.
+  // Skies light up from faded; Outline breathes.
   const accent = isLit || look.style !== 'sky' ? look.ring : look.dim
   const wave = (1 - Math.cos(((local.frame % PULSE) / PULSE) * Math.PI * 2)) / 2
   const frame = look.style === 'sky' ? undefined : isLit ? mixHex(look.ring, look.under, 0.55 * (1 - wave)) : look.track
