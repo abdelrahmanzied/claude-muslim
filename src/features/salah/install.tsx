@@ -10,7 +10,7 @@ import { guessPlace, systemTimeZone } from './location.ts'
 import { METHODS, type Prayer } from './methods.ts'
 import { ENGLISH, prayerNamed } from '../../shared/pray/names.ts'
 import { writePlace, type Place } from './place.ts'
-import { athanText, isInWindow, reminderText, prayerLine } from '../../shared/pray/line.ts'
+import { athanText, isInWindow, prayerLine } from '../../shared/pray/line.ts'
 import { ACCENT_ROWS, FRAME_MS, HOLD_MS, isDue, LABEL_ROW, minaretRows, ROWS_COUNT } from './minaret.ts'
 import { nudge, reviewRows } from './review.ts'
 import { CARD_HEIGHT, CARD_MS, cardSvg, cardWidth } from './card.ts'
@@ -23,7 +23,6 @@ const SETUP_LATER_KEY = 'salahSetupLater'
 // The review form's minutes while it is open; null when closed. Kept in
 // $.state so it survives the reload that saving the place causes.
 const review = atom({ plugin: 'muslim', key: 'salahReview' } as const, null as Adjust | null)
-const notified = atom({ plugin: 'muslim', key: 'salahNotified' } as const, null as number | null)
 // The prayer whose reminder window we are in, for the thikr line to read.
 const inWindow = atom({ plugin: 'muslim', key: 'salahWindow' } as const, null as SalahWindow | null)
 
@@ -111,7 +110,7 @@ const setLine = async ($: EngineInterface, text: string | undefined) => {
   if ((await read($, line)) !== now) await update($, line, () => now)
 }
 
-// Redraws the prayer line, and shows a toast once when a prayer's reminder window starts.
+// Redraws the prayer line and the athan moment.
 // Resolves whether `now` is inside the reminder window.
 const tick = async ($: EngineInterface, options: Options, place: Place, timer: Timer): Promise<boolean> => {
   const now = await $.clock.now()
@@ -123,11 +122,6 @@ const tick = async ($: EngineInterface, options: Options, place: Place, timer: T
   if (options.salah !== 'off' && options.salahAthan && isDue(last.at, now, await read($, athanShown))) {
     await update($, athanShown, () => last.at)
     await showAthan($, last.prayer === 'sunrise' ? 'fajr' : last.prayer, clockText(last.at, place.timeZone), now)
-  }
-  const text = reminderText(next, now, await read($, notified), options.salahReminder)
-  if (text) {
-    await update($, notified, () => next.at)
-    $.ui.toast(text)
   }
 
   const isWindow = options.salah !== 'off' && isInWindow(next, now, options.salahReminder)
@@ -211,12 +205,21 @@ const putOff = async ($: EngineInterface) => {
   await $.store.set(SETUP_LATER_KEY, true)
 }
 
+// Starts the prayer line's timer: a minaret left mid-play by a reload would
+// stay, so it starts clean, and the first tick runs right after the caller.
+const begin = async ($: EngineInterface, options: Options, place: Place, timer: Timer) => {
+  if (await read($, minaret)) await update($, minaret, () => null)
+  $.clock.after(0, () => void run($, options, place, timer))
+}
+
 export const install = (on: On, options: Options) => {
   const guess = guessPlace(systemTimeZone())
-  // The prayer line's timer, started on the first draw of the prompt.
+  // The prayer line's timer, started once per module load by whichever of the
+  // prompt band or the footer is drawn first (a reload, e.g. after any setting
+  // change, starts it again; register also asks for a redraw at session.start).
   let hasTicker = false
-  const timer: Timer = { handle: undefined, ms: 0, opens: undefined }
   let isLineCleared = false
+  const timer: Timer = { handle: undefined, ms: 0, opens: undefined }
   // The card's photo (base64), read the first time the card is drawn.
   const photo: { base64: string | undefined } = { base64: undefined }
 
@@ -287,15 +290,27 @@ export const install = (on: On, options: Options) => {
     return { text: salahHelp() }
   })
 
-  // The prayer line's timer, from the first time the prompt is drawn.
+  // Starts the prayer line's timer (or clears the line when off) on the first draw of the band or the footer.
+  on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
+    const place = options.salahPlace
+    if (options.salah !== 'off' && place && !hasTicker) {
+      hasTicker = true
+      await begin($, options, place, timer)
+    }
+    if (!(options.salah !== 'off' && place) && !isLineCleared) {
+      isLineCleared = true
+      await setLine($, undefined)
+      await publishWindow($, null)
+    }
+
+    return next(e)
+  })
+
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const place = options.salahPlace
     if (options.salah !== 'off' && place && !hasTicker) {
       hasTicker = true
-      // A minaret left mid-play by a reload would stay; start clean.
-      if (await read($, minaret)) await update($, minaret, () => null)
-      // Drawing is pure: the first tick writes state, so it runs right after the draw.
-      $.clock.after(0, () => void run($, options, place, timer))
+      await begin($, options, place, timer)
     }
     if (!(options.salah !== 'off' && place) && !isLineCleared) {
       isLineCleared = true

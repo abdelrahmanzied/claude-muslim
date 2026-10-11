@@ -54,11 +54,3 @@ export const prayerLine = (next: Moment, nextClock: string, last: Moment, now: n
 
   return undefined
 }
-
-// The toast text when `now` is in the `reminder` minutes before a prayer
-// not yet reminded of.
-export const reminderText = (next: Moment, now: number, notifiedAt: number | null, reminder: number): string | undefined => {
-  if (next.prayer === 'sunrise' || notifiedAt === next.at || next.at - now > reminder * MINUTE_MS || next.at <= now) return undefined
-
-  return `صلاة ${ARABIC[next.prayer]} بعد ${minutesText(Math.max(1, Math.ceil((next.at - now) / MINUTE_MS)))}`
-}

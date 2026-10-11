@@ -31,6 +31,8 @@ export const register: Register = (on, options) => {
     // Older versions pinned the prayer line in the status line; clear what a
     // reload may have left there. The mod no longer sets it.
     $.ui.status(undefined)
+    // A reload fires this again: ask for a redraw so the salah timer re-arms.
+    $.clock.after(0, () => $.ui.invalidate('ui.render'))
 
     return next(e)
   })

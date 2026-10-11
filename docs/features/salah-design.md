@@ -33,7 +33,6 @@ Rows stack, never compete: each feature's AbovePrompt hook keeps what `next(e)` 
 | City saved, or `/salah adjust` | AbovePrompt band | Today's times, − and + per prayer, **Save**, **Skip** |
 | All day (mode `always`) | SessionMode (footer, before the model), `color="claude"`, no card | `☾ العصر ١٥:٥٩`; empty in `reminder` mode |
 | Reminder window (`salahReminder`, 20 min by default) | SessionMode, same text | `☾ العصر ١٩:٤٢`, a live mm:ss countdown, once a second |
-| Reminder starts | Toast (in-app) | One short line, closes by itself |
 | Prayer comes in | AbovePrompt band, once, and the SessionMode line | Terminal: the rising minaret (~3 s) beside `حان وقت صلاة العصر`. Desktop: the photo card until closed or 15 minutes. The footer line keeps the call for 15 minutes (`salahAthan`) |
 | Claude works in the window | Spinner (thikr line) | حَيَّ عَلَى الصَّلَاةِ joins the thikr rotation |
 | Settings and help | Command reply | `/salah`, `/salah help` table, `/muslim help` |
@@ -46,7 +45,6 @@ What the user chose:
 | --- | --- |
 | Placement | The prayer line sits in the prompt footer beside the model: plain text, `color="claude"`, terminal and desktop alike; no status line. A row of its own above the prompt was dropped because the desktop draws that area as a card |
 | Digits | Arabic-Indic |
-| Toast | «صلاة العصر بعد ٢٠ دقيقة» |
 | Countdown | Live `mm:ss` in the footer line inside the reminder window, `☾ العصر ١٩:٤٢` |
 | Thikr | The first phrase of a thikr turn inside the window is «حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د» ([thikr.md](thikr.md#before-a-prayer)) |
 | Terminal athan moment | The rising text minaret above |
@@ -54,7 +52,7 @@ What the user chose:
 
 ## Never
 
-- **No OS notification.** Banners show in meetings and screen shares; reminders stay inside Claude Code (footer line and toast).
+- **No OS notification.** Banners show in meetings and screen shares; reminders stay inside Claude Code (the footer line).
 - **No sound** unless a later setting asks for it.
 - **No location service or IP lookup.** The city comes from the time zone or what the user types.
 
@@ -63,7 +61,7 @@ What the user chose:
 - Prayer names in Arabic in lines (الفجر، الظهر، العصر، المغرب، العشاء), in English in commands (Fajr, Dhuhr, Asr, Maghrib, Isha).
 - حان وقت صلاة … and حَيَّ عَلَى الصَّلَاةِ are authored text with tashkeel, never generated.
 - Digits: Arabic-Indic (`١٥:٥٩`, `١٩:٤٢`).
-- Countdown: `mm:ss` in Arabic digits inside the reminder window, redrawn each second only there (30 s outside). The toast keeps minutes in words.
+- Countdown: `mm:ss` in Arabic digits inside the reminder window, redrawn each second only there (30 s outside).
 - Minutes in words: دقيقة، دقيقتين، ٣ دقائق، ١١ دقيقة.
 
 ## Checklist for a change

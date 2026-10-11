@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { arabicDigits, countdownText, isInWindow, minutesText, reminderText, prayerLine, type View } from '../../../src/shared/pray/line.ts'
+import { arabicDigits, countdownText, isInWindow, minutesText, prayerLine, type View } from '../../../src/shared/pray/line.ts'
 
 const MINUTE = 60_000
 const ASR = { prayer: 'asr' as const, at: 1_000 * MINUTE }
@@ -56,21 +56,5 @@ describe('status line', () => {
   test('minutes read as Arabic says them', async () => {
     expect([1, 2, 3, 10, 11, 20].map(minutesText)).toEqual(['دقيقة', 'دقيقتين', '٣ دقائق', '١٠ دقائق', '١١ دقيقة', '٢٠ دقيقة'])
     expect(arabicDigits('05:42')).toBe('٠٥:٤٢')
-  })
-})
-
-describe('reminder toast', () => {
-  test('once, in the 20 minutes before', async () => {
-    expect(reminderText(ASR, 970 * MINUTE, null, 20)).toBe(undefined)
-    expect(reminderText(ASR, 980 * MINUTE, null, 20)).toBe('صلاة العصر بعد ٢٠ دقيقة')
-    expect(reminderText(ASR, 985 * MINUTE, ASR.at, 20)).toBe(undefined)
-  })
-
-  test('the window follows the reminder minutes', async () => {
-    expect(reminderText(ASR, 970 * MINUTE, null, 30)).toBe('صلاة العصر بعد ٣٠ دقيقة')
-  })
-
-  test('sunrise has no reminder', async () => {
-    expect(reminderText({ prayer: 'sunrise', at: ASR.at }, 990 * MINUTE, null, 20)).toBe(undefined)
   })
 })

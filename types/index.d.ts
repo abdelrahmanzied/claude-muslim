@@ -25,8 +25,6 @@ declare module 'claude-code' {
       salahSetupLater: boolean
       // The prayer times review form's minutes while it is open, else null.
       salahReview: SalahAdjust | null
-      // The prayer time (ms since epoch) last toasted, so a reload does not toast it again.
-      salahNotified: number | null
       salahWindow: SalahWindow | null
       // The prayer time (ms since epoch) whose minaret has played, so it plays once.
       salahAthanShown: number | null

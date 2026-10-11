@@ -171,7 +171,7 @@ test('Skip closes the review form without saving', { options: AT_MUNICH }, async
   await shown.unmount()
 })
 
-test('always: the prayer row shows the next prayer, counts down, and toasts once', { options: { ...AT_MUNICH, salah: 'always' } }, async ($, on) => {
+test('always: the prayer row shows the next prayer, counts down, and never toasts', { options: { ...AT_MUNICH, salah: 'always' } }, async ($, on) => {
   // 13:30 in Munich on 10 October 2026; Asr is at 15:59.
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
   engineBand(on)
@@ -188,7 +188,7 @@ test('always: the prayer row shows the next prayer, counts down, and toasts once
   expect(await prayerRow(shown)).toBe('☾ العصر ٢٠:٠٠')
   await clock.advance(20 * 60_000 + 30_000)
   expect(await prayerRow(shown)).toBe('حان وقت صلاة العصر')
-  expect(toasts).toEqual(['صلاة العصر بعد ٢٠ دقيقة'])
+  expect(toasts).toEqual([])
   await shown.unmount()
 })
 
@@ -352,5 +352,27 @@ test('the review form shows in the band while the prayer line shows in the foote
   expect(await shown.find({ type: 'Button', key: 'salah-save' })).toBeDefined()
   expect(await prayerRow(modes)).toMatch(/^☾ العصر ١[٣٤]:/)
   await modes.unmount()
+  await shown.unmount()
+})
+
+test('the countdown ticks from the load alone: no prompt draw needed (off, then reminder 60)', { options: { ...AT_MUNICH, salah: 'reminder', salahReminder: 60 } }, async ($, on) => {
+  // 14:30 in Munich: Asr at 15:59 is 89 minutes off, the 60-minute window opens at 14:59.
+  const clock = mock.clock(on, { now: Date.parse('2026-10-10T12:30:00Z') })
+  engineModes(on)
+  const toasts: string[] = []
+  on('ui.toast', async (_$, e) => (toasts.push(e.text), { value: undefined }))
+
+  // Only the footer is mounted: the band is never drawn.
+  const shown = await $.ui.mount(footer('desktop'))
+  await clock.advance(1000)
+  expect(await prayerRow(shown)).toBe(undefined)
+  await clock.advance(29 * 60_000)
+  const seen = new Set<string | undefined>()
+  for (let i = 0; i < 5; i++) {
+    await clock.advance(1_000)
+    seen.add(await prayerRow(shown))
+  }
+  expect(seen.size).toBe(5)
+  expect(toasts).toEqual([])
   await shown.unmount()
 })

@@ -28,10 +28,10 @@ Prayer times for the user's city, calculated on their machine with
    - When a prayer comes in and `salahAthan` is on, the athan moment shows once per prayer, never during a survey, and not for a prayer first seen more than 2 minutes late (a late start or reload). In the terminal a small Unicode minaret rises row by row above the prompt for about 3 seconds beside «حان وقت صلاة العصر»; the minaret is terminal only. On the desktop a full-width card with a photo of the Haram sits above the prompt with «حان وقت صلاة المغرب» and the time in Arabic digits, and a × at its top left; it stays until the user closes it or the call's 15 minutes end. The prayer line keeps the call for 15 minutes either way.
    - `salahAthan` off drops the minaret, the card and the `حان وقت` line: the line goes straight back to the
      next prayer (`always`) or to empty (`reminder`).
-   - The prayer line redraws every 30 seconds, and every second only while inside the reminder window (the live countdown); it goes back to 30 seconds when the window ends. A timer set for the exact moment the window opens starts the countdown on time, not on the next 30 s tick.
+   - The prayer line redraws every 30 seconds, and every second only while inside the reminder window (the live countdown); it goes back to 30 seconds when the window ends. A timer set for the exact moment the window opens starts the countdown on time, not on the next 30 s tick. The timer starts on every module load (the first draw of the footer or the band, and a redraw asked at session start), so it re-arms after `/salah off` then `/salah reminder 60`.
    - Sunrise is in today's times only: no countdown and no reminder for it.
    - While inside the window, salah also publishes it for the [thikr line](thikr.md#before-a-prayer), which opens its turns with حَيَّ عَلَى الصَّلَاةِ.
-   - One in-app toast when the window starts for each prayer (`always` and `reminder`, not `off`): «صلاة العصر بعد ٢٠ دقيقة». No OS notification.
+   - No toast when the window starts: the footer line is the only reminder. No OS notification.
 
 ## Calculation
 
