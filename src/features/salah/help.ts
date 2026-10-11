@@ -1,16 +1,15 @@
 // The `/salah help` table: every subcommand and what it does.
 
 import { commandTable } from '../../table.ts'
-import { REMINDER_MAX, REMINDER_MIN } from '../../config.ts'
+import { ALWAYS_COUNTDOWN } from '../../config.ts'
 import { METHODS } from './methods.ts'
 
 export const SALAH_COMMANDS: readonly (readonly [string, string])[] = [
   ['/salah', 'Today\'s times (next marked), then each setting with the command that changes it'],
   ['/salah help', 'This table'],
-  ['/salah line always', 'Pray line all day: the next pray, then a countdown in the reminder minutes'],
-  ['/salah line countdown', 'Pray line only as the countdown before a pray (default)'],
-  ['/salah line off', 'No pray line, no reminder'],
-  [`/salah reminder <${REMINDER_MIN}-${REMINDER_MAX}>`, 'How many minutes before a pray the reminder and countdown start'],
+  ['/salah show always', `Show the next pray all day, counting down its last ${ALWAYS_COUNTDOWN} min`],
+  ['/salah show <minutes>', 'Show it only that many minutes before a pray, counting down; e.g. show 20 (default)'],
+  ['/salah show off', 'Hide it'],
   ['/salah athan on` · `off', 'Show حان وقت صلاة … when a pray comes in'],
   ['/salah athan test', 'Play the athan moment now for the next pray (desktop: the athan card); changes nothing'],
   ['/salah city', 'Pick your city (a question, any language)'],

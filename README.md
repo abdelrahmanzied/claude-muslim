@@ -21,7 +21,7 @@ A thikr phrase joins Claude's working line (the spinner). Claude's step, timer a
 
 ### Prayer times (`/salah`)
 
-The next prayer under the prompt (`☾ العصر ١٥:٥٩`) all day, or only in the reminder window before it (20 minutes by default, 5 to 60), with a live mm:ss countdown (`☾ العصر ١٩:٤٢`) and, when it comes in, a small minaret that rises above the prompt for about 3 seconds (a photo card with a × on the desktop app), then `حان وقت صلاة …` (no toast, no OS notification). Calculated on your machine; on first use the mod offers the city of your time zone, or any city you type in any language, then shows today's times so you can match them to your mosque. While Claude works inside that window, the thikr turn opens with `حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د`. Details: [docs/features/salah.md](docs/features/salah.md).
+The next prayer under the prompt (`☾ العصر ١٥:٥٩`) all day, or only the minutes before it (20 by default), with a live mm:ss countdown (`☾ العصر ١٩:٤٢`) and, when it comes in, a small minaret that rises above the prompt for about 3 seconds (a photo card with a × on the desktop app), then `حان وقت صلاة …` (no toast, no OS notification). Calculated on your machine; on first use the mod offers the city of your time zone, or any city you type in any language, then shows today's times so you can match them to your mosque. While Claude works inside that window, the thikr turn opens with `حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د`. Details: [docs/features/salah.md](docs/features/salah.md).
 
 More features are planned: morning and evening athkar.
 
@@ -76,8 +76,7 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/salah city` · `city <name or lat, lng>` | Pick your city by question, or by name in any language |
 | `/salah adjust` | Match today's times to your mosque, a minute at a time |
 | `/salah method <name>` | `auto` (your country's own) or a named method |
-| `/salah line always` · `countdown` · `off` | Pray line all day, only as the countdown before a pray, or nothing |
-| `/salah reminder <5-60>` | How many minutes before a pray the reminder and countdown start |
+| `/salah show always` · `<minutes>` · `off` | Show the next pray all day, only that many minutes before it (e.g. `show 20`), or hide it |
 | `/salah athan on` · `off` | `حان وقت صلاة …` when a prayer comes in |
 | `/muslim` | Show the installed version |
 | `/muslim help` · `help <feature>` | Command tables of every feature, or one (`thikr`, `salah`) |

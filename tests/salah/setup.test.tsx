@@ -201,7 +201,7 @@ test('Skip closes the review form without saving', { options: AT_MUNICH }, async
   await shown.unmount()
 })
 
-test('always: the pray row shows the next pray, counts down, and never toasts', { options: { ...AT_MUNICH, salah: 'always' } }, async ($, on) => {
+test('always: the pray row shows the next pray, counts down, and never toasts', { options: { ...AT_MUNICH, salahShow: 'always' } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   // 13:30 in Munich on 10 October 2026; Asr is at 15:59.
@@ -224,7 +224,7 @@ test('always: the pray row shows the next pray, counts down, and never toasts', 
   await shown.unmount()
 })
 
-test('off leaves no pray row', { options: { ...AT_MUNICH, salah: 'off' } }, async ($, on) => {
+test('off leaves no pray row', { options: { ...AT_MUNICH, salahShow: 'off' } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   engineBand(on)
@@ -235,7 +235,7 @@ test('off leaves no pray row', { options: { ...AT_MUNICH, salah: 'off' } }, asyn
   await shown.unmount()
 })
 
-test('line off hides a line left by the last load and clears it after drawing, not during it', { options: { ...AT_MUNICH, salah: 'off' } }, async ($, on) => {
+test('show off hides a line left by the last load and clears it after drawing, not during it', { options: { ...AT_MUNICH, salahShow: 'off' } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
@@ -258,7 +258,7 @@ test('line off hides a line left by the last load and clears it after drawing, n
   await shown.unmount()
 })
 
-test('reminder: the line is empty until the window, counts down, calls, then clears', { options: AT_MUNICH }, async ($, on) => {
+test('show minutes: the line is empty until the window, counts down, calls, then clears', { options: AT_MUNICH }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
@@ -276,7 +276,7 @@ test('reminder: the line is empty until the window, counts down, calls, then cle
   await shown.unmount()
 })
 
-test('a shorter reminder moves the window; no athan skips the call', { options: { ...AT_MUNICH, salahReminder: 5, salahAthan: false } }, async ($, on) => {
+test('fewer show minutes move the window; no athan skips the call', { options: { ...AT_MUNICH, salahShow: '5', salahAthan: false } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:44:00Z') })
@@ -392,7 +392,7 @@ test('the countdown starts the second the window opens, not on the next 30 s tic
   await shown.unmount()
 })
 
-test('the pray line sits in the footer modes in claude color, beside the engine\'s labels, on both surfaces', { options: { ...AT_MUNICH, salah: 'always' } }, async ($, on) => {
+test('the pray line sits in the footer modes in claude color, beside the engine\'s labels, on both surfaces', { options: { ...AT_MUNICH, salahShow: 'always' } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
@@ -430,7 +430,7 @@ test('the review form shows in the band while the pray line shows in the footer'
   await shown.unmount()
 })
 
-test('the countdown ticks from the load alone: no prompt draw needed (off, then reminder 60)', { options: { ...AT_MUNICH, salah: 'countdown', salahReminder: 60 } }, async ($, on) => {
+test('the countdown ticks from the load alone: no prompt draw needed (off, then show 60)', { options: { ...AT_MUNICH, salahShow: '60' } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   // 14:30 in Munich: Asr at 15:59 is 89 minutes off, the 60-minute window opens at 14:59.

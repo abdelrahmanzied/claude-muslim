@@ -12,7 +12,7 @@ const engineBand = (on: On) => on('ui.render', { component: 'AbovePrompt' }, asy
   const { Text } = $.ui.resolve(e)
   return <Text key="engine-band">engine band</Text>
 })
-const OPTIONS = { thikr: false, tashkeel: true, salah: 'off', salahPlace: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' }
+const OPTIONS = { thikr: false, tashkeel: true, salahShow: 'off', salahPlace: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' }
 const sample = 'بِسْمِ اللَّهِ'
 const rows = { type: 'Button' as const }
 

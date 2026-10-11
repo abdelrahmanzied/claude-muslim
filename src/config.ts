@@ -9,16 +9,16 @@ export type Options = {
   tashkeel: boolean
   thikrEnd: boolean
   thikrMode: Mode
-  salah: SalahMode
-  salahReminder: number
+  salahShow: Show
   salahAthan: boolean
   salahPlace: Place | undefined
   salahMethod: MethodId | 'auto'
   salahAdjust: Record<Pray, number>
 }
 
-// `always`: next pray all day; `countdown`: only while counting down the reminder minutes before a pray; `off`: nothing.
-export type SalahMode = 'always' | 'countdown' | 'off'
+// When the pray line shows: `always` (next pray all day), a number (only that
+// many minutes before a pray, counting down) or `off`.
+export type Show = 'always' | 'off' | number
 
 // `all`: every group in turn; `salawat`: one salawat for the whole turn.
 export type Mode = 'all' | 'salawat'
@@ -32,8 +32,7 @@ export const readOptions = (raw: Record<string, unknown>): Options => ({
   tashkeel: raw.tashkeel === undefined ? raw.thikrTashkeel !== false : raw.tashkeel !== false,
   thikrEnd: raw.thikrEnd !== false,
   thikrMode: raw.thikrMode === 'salawat' ? 'salawat' : 'all',
-  salah: readSalahMode(raw.salah),
-  salahReminder: readReminder(raw.salahReminder),
+  salahShow: readShow(raw),
   // "salahAdhan" is the old saved key name (data, read as is).
   salahAthan: (raw.salahAthan ?? raw.salahAdhan) !== false,
   salahPlace: readPlace(raw.salahPlace),
@@ -49,27 +48,33 @@ export const readSpeed = (value: unknown): Speed => {
   return seconds >= SPEED_MIN && seconds <= SPEED_MAX ? seconds : 'auto'
 }
 
-export const REMINDER_MIN = 5
-export const REMINDER_MAX = 60
-export const REMINDER_DEFAULT = 20
+export const SHOW_MIN = 1
+export const SHOW_MAX = 720
+export const SHOW_DEFAULT = 20
+// With `always`, the countdown runs in the last minutes before a pray.
+export const ALWAYS_COUNTDOWN = 20
 
-// `always`, `countdown` or `off`; the old `reminder` and `before` and the old
-// boolean true read as countdown, false as off.
-export const readSalahMode = (value: unknown): SalahMode => {
+// `always`, `off` or whole minutes from SHOW_MIN to SHOW_MAX; else undefined.
+export const parseShow = (value: unknown): Show | undefined => {
   if (value === 'always' || value === 'off') return value
-  if (value === false) return 'off'
-
-  return 'countdown'
-}
-
-// Whole minutes from REMINDER_MIN to REMINDER_MAX; anything else is the default.
-export const readReminder = (value: unknown): number => {
   const minutes = Number(value)
 
-  return value !== '' && value !== null && Number.isInteger(minutes) && minutes >= REMINDER_MIN && minutes <= REMINDER_MAX
-    ? minutes
-    : REMINDER_DEFAULT
+  return value !== '' && value !== null && typeof value !== 'boolean' && Number.isInteger(minutes) && minutes >= SHOW_MIN && minutes <= SHOW_MAX ? minutes : undefined
 }
+
+// `salahShow`; before it, the old `salah` mode (true, `reminder`, `before`,
+// `countdown` meant minutes) and its `salahReminder` minutes are read.
+export const readShow = (raw: Record<string, unknown>): Show => {
+  const show = parseShow(raw.salahShow)
+  if (show !== undefined) return show
+  if (raw.salah === 'always' || raw.salah === 'off') return raw.salah
+  if (raw.salah === false) return 'off'
+
+  return parseShow(raw.salahReminder) ?? SHOW_DEFAULT
+}
+
+// The minutes the countdown runs before a pray; 0 when off.
+export const countdownMinutes = (show: Show): number => (show === 'always' ? ALWAYS_COUNTDOWN : show === 'off' ? 0 : show)
 
 export const isMethod = (value: unknown): value is MethodId => typeof value === 'string' && Object.hasOwn(METHODS, value)
 

@@ -1,4 +1,4 @@
-// The call that opens a thikr turn inside a pray's reminder window.
+// The call that opens a thikr turn inside a pray's countdown window.
 // Pure; the pray name and digits come from the shared pray helpers (src/shared/pray).
 
 import type { SalahWindow } from '../../../types'

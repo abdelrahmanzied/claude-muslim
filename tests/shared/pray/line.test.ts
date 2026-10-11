@@ -4,8 +4,8 @@ import { arabicDigits, countdownText, isInWindow, minutesText, prayLine, type Vi
 
 const MINUTE = 60_000
 const ASR = { pray: 'asr' as const, at: 1_000 * MINUTE }
-const ALWAYS: View = { mode: 'always', reminder: 20, isAthan: true }
-const REMINDER: View = { ...ALWAYS, mode: 'countdown' }
+const ALWAYS: View = { show: 'always', isAthan: true }
+const MINUTES: View = { show: 20, isAthan: true }
 const DHUHR = { pray: 'dhuhr' as const, at: 800 * MINUTE }
 
 describe('status line', () => {
@@ -20,7 +20,7 @@ describe('status line', () => {
     expect(prayLine(ASR, '15:59', DHUHR, 999.5 * MINUTE, ALWAYS)).toBe('☾ العصر ٠٠:٣٠')
   })
 
-  test('countdown rounds up to the second and window is the reminder minutes', async () => {
+  test('countdown rounds up to the second and window is the show minutes', async () => {
     expect(countdownText(59_001)).toBe('٠١:٠٠')
     expect(countdownText(500)).toBe('٠٠:٠١')
     expect(isInWindow(ASR, 979 * MINUTE, 20)).toBe(false)
@@ -33,24 +33,24 @@ describe('status line', () => {
     expect(prayLine(ASR, '15:59', DHUHR, 816 * MINUTE, ALWAYS)).toBe('☾ العصر ١٥:٥٩')
   })
 
-  test('reminder mode is empty outside the window, and after the call', async () => {
-    expect(prayLine(ASR, '15:59', DHUHR, 900 * MINUTE, REMINDER)).toBe(undefined)
-    expect(prayLine(ASR, '15:59', DHUHR, 816 * MINUTE, REMINDER)).toBe(undefined)
-    expect(prayLine(ASR, '15:59', DHUHR, 801 * MINUTE, REMINDER)).toBe('حان وقت صلاة الظهر')
-    expect(prayLine(ASR, '15:59', DHUHR, 980 * MINUTE, REMINDER)).toBe('☾ العصر ٢٠:٠٠')
+  test('show minutes is empty outside the window, and after the call', async () => {
+    expect(prayLine(ASR, '15:59', DHUHR, 900 * MINUTE, MINUTES)).toBe(undefined)
+    expect(prayLine(ASR, '15:59', DHUHR, 816 * MINUTE, MINUTES)).toBe(undefined)
+    expect(prayLine(ASR, '15:59', DHUHR, 801 * MINUTE, MINUTES)).toBe('حان وقت صلاة الظهر')
+    expect(prayLine(ASR, '15:59', DHUHR, 980 * MINUTE, MINUTES)).toBe('☾ العصر ٢٠:٠٠')
   })
 
-  test('the window follows the reminder minutes', async () => {
-    const view = { ...ALWAYS, reminder: 30 }
+  test('the window follows the show minutes', async () => {
+    const view: View = { ...ALWAYS, show: 30 }
 
     expect(prayLine(ASR, '15:59', DHUHR, 970 * MINUTE, view)).toBe('☾ العصر ٣٠:٠٠')
     expect(prayLine(ASR, '15:59', DHUHR, 970 * MINUTE, ALWAYS)).toBe('☾ العصر ١٥:٥٩')
   })
 
   test('off is empty; the call can be turned off', async () => {
-    expect(prayLine(ASR, '15:59', DHUHR, 980 * MINUTE, { ...ALWAYS, mode: 'off' })).toBe(undefined)
+    expect(prayLine(ASR, '15:59', DHUHR, 980 * MINUTE, { ...ALWAYS, show: 'off' })).toBe(undefined)
     expect(prayLine(ASR, '15:59', DHUHR, 801 * MINUTE, { ...ALWAYS, isAthan: false })).toBe('☾ العصر ١٥:٥٩')
-    expect(prayLine(ASR, '15:59', DHUHR, 801 * MINUTE, { ...REMINDER, isAthan: false })).toBe(undefined)
+    expect(prayLine(ASR, '15:59', DHUHR, 801 * MINUTE, { ...MINUTES, isAthan: false })).toBe(undefined)
   })
 
   test('minutes read as Arabic says them', async () => {

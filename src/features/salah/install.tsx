@@ -3,7 +3,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 import type { SalahMinaret, SalahCard, SalahWindow } from '../../../types'
 
-import { isMethod, REMINDER_MAX, REMINDER_MIN, writeAdjust } from '../../config.ts'
+import { countdownMinutes, isMethod, parseShow, SHOW_MAX, SHOW_MIN, writeAdjust } from '../../config.ts'
 import type { Options } from '../../config.ts'
 import { CITY_MODEL, CITY_SYSTEM, cityPrompt, parseCities, parseCoordinates, type City } from './city.ts'
 import { salahHelp } from './help.ts'
@@ -16,7 +16,7 @@ import { ACCENT_ROWS, FRAME_MS, HOLD_MS, isDue, LABEL_ROW, minaretRows, ROWS_COU
 import { nudge, reviewRows } from './review.ts'
 import { CARD_HEIGHT, CARD_MS, cardSvg, cardWidth } from './card.ts'
 import { clockText, lastPray, nextSalah, type Adjust } from './times.ts'
-import { lineText, methodOf, settingsTable, timesTable } from './today.ts'
+import { methodOf, settingsTable, showText, timesTable } from './today.ts'
 
 // The engine follows $ only into same-file top-level functions, so the
 // terminal's Arabic mode is resolved here as in thikr.
@@ -69,7 +69,7 @@ const SETUP_LATER_KEY = 'salahSetupLater'
 // The review form's minutes while it is open; null when closed. Kept in
 // $.state so it survives the reload that saving the place causes.
 const review = atom({ plugin: 'muslim', key: 'salahReview' } as const, null as Adjust | null)
-// The pray whose reminder window we are in, for the thikr line to read.
+// The pray whose countdown window we are in, for the thikr line to read.
 const inWindow = atom({ plugin: 'muslim', key: 'salahWindow' } as const, null as SalahWindow | null)
 
 // The minaret's frame while it plays, and the pray time it last played for.
@@ -82,13 +82,13 @@ const athanShown = atom({ plugin: 'muslim', key: 'salahAthanShown' } as const, n
 // A minaret started by this load still has its timers; only a reload's is stale.
 let hasPlayedMinaret = false
 
-// How often the pray line is redrawn: every second inside the reminder
+// How often the pray line is redrawn: every second inside the countdown
 // window (the live countdown), else every 30 seconds.
 const TICK_MS = 30_000
 const WINDOW_TICK_MS = 1000
 
 // The pray line's timer and the period it runs at, and the one-shot timer
-// for the moment the next reminder window opens (so the 1 s countdown starts
+// for the moment the next countdown window opens (so the 1 s countdown starts
 // on time, not on the next 30 s tick).
 type Timer = {
   handle: { cancel: () => void } | undefined
@@ -159,27 +159,27 @@ const setLine = async ($: EngineInterface, text: string | undefined) => {
 }
 
 // Redraws the pray line and the athan moment.
-// Resolves whether `now` is inside the reminder window.
+// Resolves whether `now` is inside the countdown window.
 const tick = async ($: EngineInterface, options: Options, place: Place, timer: Timer): Promise<boolean> => {
   const now = await $.clock.now()
   const method = methodOf(options, place)
   const next = nextSalah(place, method, options.salahAdjust, now)
   const last = lastPray(place, method, options.salahAdjust, now)
-  const view = { mode: options.salah, reminder: options.salahReminder, isAthan: options.salahAthan }
+  const view = { show: options.salahShow, isAthan: options.salahAthan }
   await setLine($, prayLine(next, clockText(next.at, place.timeZone), last, now, view))
-  if (options.salah !== 'off' && options.salahAthan && isDue(last.at, now, await read($, athanShown))) {
+  if (options.salahShow !== 'off' && options.salahAthan && isDue(last.at, now, await read($, athanShown))) {
     await update($, athanShown, () => last.at)
     await showAthan($, last.pray === 'sunrise' ? 'fajr' : last.pray, clockText(last.at, place.timeZone), now)
   }
 
-  const isWindow = options.salah !== 'off' && isInWindow(next, now, options.salahReminder)
+  const isWindow = options.salahShow !== 'off' && isInWindow(next, now, countdownMinutes(options.salahShow))
   await publishWindow($, isWindow && next.pray !== 'sunrise' ? { pray: next.pray, at: next.at } : null)
-  scheduleOpen($, options, place, timer, options.salah !== 'off' && !isWindow ? next.at - options.salahReminder * 60_000 : undefined, now)
+  scheduleOpen($, options, place, timer, options.salahShow !== 'off' && !isWindow ? next.at - countdownMinutes(options.salahShow) * 60_000 : undefined, now)
 
   return isWindow
 }
 
-// Runs one tick at the exact moment the reminder window opens (`opensAt`,
+// Runs one tick at the exact moment the countdown window opens (`opensAt`,
 // undefined when there is nothing to wait for: inside the window, or off).
 // Replaces an earlier timer only when the moment changed.
 const scheduleOpen = ($: EngineInterface, options: Options, place: Place, timer: Timer, opensAt: number | undefined, now: number) => {
@@ -303,23 +303,13 @@ export const install = (on: On, options: Options) => {
       }
     }
     if (word === 'help') return { text: salahHelp() }
-    // `line` picks when the pray line shows; `reminder` only sets the minutes.
-    if (word === 'line') {
-      if (first === '') return { text: `**Pray line:** ${lineText(options.salah, options.salahReminder)}\nChange: \`/salah line always\` · \`before\` · \`off\`` }
-      if ((first === 'always' || first === 'countdown' || first === 'off') && second === '') {
-        return set('salah', first, `**Pray line:** ${lineText(first, options.salahReminder)}`)
-      }
+    // `show` picks when the pray line shows: always, minutes before a pray, or off.
+    if (word === 'show') {
+      if (first === '') return { text: `**Show:** ${showText(options.salahShow)}\nChange: \`/salah show always\` · \`<minutes>\` · \`off\`` }
+      const show = second === '' ? parseShow(first) : undefined
+      if (show === undefined) return { text: `Use \`/salah show always\`, \`/salah show off\`, or minutes from ${SHOW_MIN} to ${SHOW_MAX}, e.g. \`/salah show 20\`.` }
 
-      return { text: 'Use `/salah line always` · `countdown` · `off`.' }
-    }
-    if (word === 'reminder') {
-      if (first === '') return { text: `**Reminder:** ${options.salahReminder} min before a pray\nChange: \`/salah reminder <${REMINDER_MIN}-${REMINDER_MAX}>\`` }
-      const minutes = Number(first)
-      if (!Number.isInteger(minutes) || minutes < REMINDER_MIN || minutes > REMINDER_MAX) {
-        return { text: `Use whole minutes from ${REMINDER_MIN} to ${REMINDER_MAX}, e.g. \`/salah reminder 20\`.` }
-      }
-
-      return set('salahReminder', minutes, `**Reminder:** ${minutes} min before a pray`)
+      return set('salahShow', String(show), `**Show:** ${showText(show)}`)
     }
     if (word === 'athan' && first === 'test') {
       const place = options.salahPlace
@@ -364,11 +354,11 @@ export const install = (on: On, options: Options) => {
   // Starts the pray line's timer (or clears the line when off) on the first draw of the band or the footer.
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
     const place = options.salahPlace
-    if (options.salah !== 'off' && place && !hasTicker) {
+    if (options.salahShow !== 'off' && place && !hasTicker) {
       hasTicker = true
       await begin($, options, place, timer)
     }
-    if (!(options.salah !== 'off' && place) && !isLineCleared) {
+    if (!(options.salahShow !== 'off' && place) && !isLineCleared) {
       isLineCleared = true
       clearLine($)
     }
@@ -378,11 +368,11 @@ export const install = (on: On, options: Options) => {
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const place = options.salahPlace
-    if (options.salah !== 'off' && place && !hasTicker) {
+    if (options.salahShow !== 'off' && place && !hasTicker) {
       hasTicker = true
       await begin($, options, place, timer)
     }
-    if (!(options.salah !== 'off' && place) && !isLineCleared) {
+    if (!(options.salahShow !== 'off' && place) && !isLineCleared) {
       isLineCleared = true
       clearLine($)
     }
@@ -432,7 +422,7 @@ export const install = (on: On, options: Options) => {
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
     const theirs = await next(e)
     // A line left by the last load is not drawn while it is cleared.
-    const text = options.salah === 'off' || !options.salahPlace ? null : await read($, line)
+    const text = options.salahShow === 'off' || !options.salahPlace ? null : await read($, line)
     if (!text) return theirs
     const { Box, Text } = $.ui.resolve(e)
 

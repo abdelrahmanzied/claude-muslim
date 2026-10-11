@@ -43,7 +43,7 @@ export const SALAWAT = [
   'اللَّهُمَّ صَلِّ وَسَلِّمْ وَبَارِكْ عَلَىٰ سَيِّدِنَا مُحَمَّدٍ',
 ]
 
-// Opens the thikr turn inside a pray's reminder window, before the usual
+// Opens the thikr turn inside a pray's countdown window, before the usual
 // phrases: the call to pray, then the pray and the minutes left.
 export const CALL_TO_PRAY = 'حَيَّ عَلَى الصَّلَاةِ'
 

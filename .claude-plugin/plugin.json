@@ -48,24 +48,11 @@
       ],
       "default": "all"
     },
-    "salah": {
+    "salahShow": {
       "type": "string",
-      "title": "Pray times",
-      "description": "always: next pray all day; countdown: only while counting down the reminder minutes before a pray; off: nothing",
-      "options": [
-        "always",
-        "countdown",
-        "off"
-      ],
-      "default": "countdown"
-    },
-    "salahReminder": {
-      "type": "number",
-      "title": "Pray reminder minutes",
-      "description": "Minutes before a pray when the pray line and countdown start, from 5 to 60",
-      "min": 5,
-      "max": 60,
-      "default": 20
+      "title": "Show pray line",
+      "description": "always: next pray all day; a number: only that many minutes before a pray, counting down (e.g. 20); off: hidden",
+      "default": "20"
     },
     "salahAthan": {
       "type": "boolean",

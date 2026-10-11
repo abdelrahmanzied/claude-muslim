@@ -31,8 +31,8 @@ Rows stack, never compete: each feature's AbovePrompt hook keeps what `next(e)` 
 | --- | --- | --- |
 | No city yet | AbovePrompt band | One line: the guessed city, **Yes**, **Another city**, **Not now** |
 | City saved, or `/salah adjust` | AbovePrompt band | Today's times, − and + per prayer with no minute bounds, **Save**, **Skip** |
-| All day (mode `always`) | SessionMode (footer, before the model), bold, `color="claude"`, no card | `☾ العصر ١٥:٥٩`; empty in `countdown` mode |
-| Reminder window (`salahReminder`, 20 min by default) | SessionMode, same text | `☾ العصر ١٩:٤٢`, a live mm:ss countdown, once a second |
+| All day (mode `always`) | SessionMode (footer, before the model), bold, `color="claude"`, no card | `☾ العصر ١٥:٥٩`; empty with minutes |
+| Countdown window (`/salah show <minutes>`, 20 by default; the last 20 min with `always`) | SessionMode, same text | `☾ العصر ١٩:٤٢`, a live mm:ss countdown, once a second |
 | Prayer comes in | AbovePrompt band, once, and the SessionMode line | Terminal: the rising minaret (~3 s) beside `حان وقت صلاة العصر`. Desktop: the photo card until closed or 15 minutes. The footer line keeps the call for 15 minutes (`salahAthan`) |
 | Claude works in the window | Spinner (thikr line) | حَيَّ عَلَى الصَّلَاةِ joins the thikr rotation |
 | Settings and help | Command reply | `/salah`, `/salah help` table, `/muslim help` |
@@ -45,7 +45,7 @@ What the user chose:
 | --- | --- |
 | Placement | The prayer line sits in the prompt footer beside the model: plain text, `color="claude"`, terminal and desktop alike; no status line. A row of its own above the prompt was dropped because the desktop draws that area as a card |
 | Digits | Arabic-Indic |
-| Countdown | Live `mm:ss` in the footer line inside the reminder window, `☾ العصر ١٩:٤٢` |
+| Countdown | Live `mm:ss` in the footer line inside the countdown window, `☾ العصر ١٩:٤٢` |
 | Thikr | The first phrase of a thikr turn inside the window is «حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د» ([thikr.md](thikr.md#before-a-prayer)) |
 | Terminal athan moment | The rising text minaret above |
 | Desktop athan card | A photo-background card above the prompt, as described above |
@@ -63,7 +63,7 @@ What the user chose:
 - Prayer names in Arabic in lines (الفجر، الظهر، العصر، المغرب، العشاء), in English in commands (Fajr, Dhuhr, Asr, Maghrib, Isha).
 - حان وقت صلاة … and حَيَّ عَلَى الصَّلَاةِ are authored text with tashkeel, never generated.
 - Digits: Arabic-Indic (`١٥:٥٩`, `١٩:٤٢`).
-- Countdown: `mm:ss` in Arabic digits inside the reminder window, redrawn each second only there (30 s outside).
+- Countdown: `mm:ss` in Arabic digits inside the countdown window, redrawn each second only there (30 s outside).
 - Minutes in words: دقيقة، دقيقتين، ٣ دقائق، ١١ دقيقة.
 
 ## Checklist for a change

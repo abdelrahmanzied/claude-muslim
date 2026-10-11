@@ -18,20 +18,19 @@ Prayer times for the user's city, calculated on their machine with
 2. **Review.** Saving the place shows today's times above the prompt, one row
    per prayer with − and +. The user matches them to their mosque and saves the
    minutes, or skips.
-3. **Every day.** What the prayer line (plain text in the prompt footer's mode labels, before the model name) shows depends on the mode (`salah`):
-   - `always`: the next prayer all day, `☾ العصر ١٥:٥٩`; in the reminder window
-     before it (20 minutes by default), a live mm:ss countdown, `☾ العصر ١٩:٤٢`,
+3. **Every day.** What the prayer line (plain text in the prompt footer's mode labels, before the model name) shows depends on `salahShow` (`/salah show`):
+   - `always`: the next prayer all day, `☾ العصر ١٥:٥٩`; in its last 20 minutes
+     a live mm:ss countdown, `☾ العصر ١٩:٤٢`,
      updated every second; for 15 minutes once it is in, `حان وقت صلاة العصر`.
-   - `countdown` (default; a saved `reminder` or `before` reads as countdown): empty outside the reminder window; the countdown
-     inside it; `حان وقت صلاة …` for 15 minutes, then empty again.
+   - minutes (default 20, any whole number from 1 to 720): empty until that many minutes before a prayer, then the countdown; `حان وقت صلاة …` for 15 minutes, then empty again.
    - `off`: nothing, and the line is cleared.
    - When a prayer comes in and `salahAthan` is on, the athan moment shows once per prayer, never during a survey, and not for a prayer first seen more than 2 minutes late (a late start or reload). In the terminal a small Unicode minaret rises row by row above the prompt for about 3 seconds beside «حان وقت صلاة العصر»; the minaret is terminal only. On the desktop a full-width card with a photo of the Haram sits above the prompt with «حان وقت صلاة المغرب» and the time in Arabic digits, and a × at its top left; it appears at once in an isolated view and stays until the user closes it or the call's 15 minutes end. The prayer line keeps the call for 15 minutes either way.
    - `salahAthan` off drops the minaret, the card and the `حان وقت` line: the line goes straight back to the
-     next prayer (`always`) or to empty (`countdown`).
-   - The prayer line redraws every 30 seconds, and every second only while inside the reminder window (the live countdown); it goes back to 30 seconds when the window ends. A timer set for the exact moment the window opens starts the countdown on time, not on the next 30 s tick. The timer starts on every module load (the first draw of the footer or the band, and a redraw asked at session start), so it re-arms after `/salah line off` then `/salah line countdown`.
-   - Sunrise is in today's times only: no countdown and no reminder for it.
+     next prayer (`always`) or to empty (minutes).
+   - The prayer line redraws every 30 seconds, and every second only while inside the countdown window (the live countdown); it goes back to 30 seconds when the window ends. A timer set for the exact moment the window opens starts the countdown on time, not on the next 30 s tick. The timer starts on every module load (the first draw of the footer or the band, and a redraw asked at session start), so it re-arms after `/salah show off` then `/salah show 60`.
+   - Sunrise is in today's times only: no countdown for it.
    - While inside the window, salah also publishes it for the [thikr line](thikr.md#before-a-prayer), which opens its turns with حَيَّ عَلَى الصَّلَاةِ.
-   - No toast when the window starts: the footer line is the only reminder. No OS notification.
+   - No toast when the window starts: the footer line is the only notice. No OS notification.
 
 ## Calculation
 
@@ -54,9 +53,8 @@ Prayer times for the user's city, calculated on their machine with
 
 ## Commands
 
-`/salah` shows a title, then two tables under their own headings: today's times (the next prayer marked, a moved prayer with its minutes), then the settings (city, method, prayer line, reminder, athan, adjust), each with the command that changes it, and a hint to `/salah help`.
-`/salah help` is a table of every subcommand: `line always` · `countdown` · `off`,
-`reminder <5-60>`, `athan on` · `off`, `athan test` (plays the athan moment now for the next prayer, changes nothing; shows the card on the desktop and the minaret in the terminal), `city` (the setup question) and
+`/salah` shows a title, then two tables under their own headings: today's times (the next prayer marked, a moved prayer with its minutes), then the settings (city, method, show, athan, adjust), each with the command that changes it, and a hint to `/salah help`.
+`/salah help` is a table of every subcommand: `show always` · `<minutes>` · `off`, `athan on` · `off`, `athan test` (plays the athan moment now for the next prayer, changes nothing; shows the card on the desktop and the minaret in the terminal), `city` (the setup question) and
 `city <name or lat, lng>`, `method <auto or name>`, `adjust` and
 `adjust <prayer> <±min>` (any whole number of minutes, such as `+90` or `-120`; missing or malformed minutes are an error). An unknown word answers with the table.
 `/muslim help` shows the tables of thikr and salah; `/muslim help salah` only salah's.
@@ -67,8 +65,7 @@ Terminal Arabic: the footer line and the minaret label follow the shared per-ter
 
 | Field | Command | Default |
 | --- | --- | --- |
-| `salah` | `/salah line always` · `countdown` · `off` | countdown |
-| `salahReminder` | `/salah reminder <5-60>` | 20 (minutes) |
+| `salahShow` | `/salah show always` · `<minutes>` · `off` | 20 (minutes) |
 | `salahAthan` | `/salah athan on` · `off` (the minaret and the `حان وقت` line) | on |
 | `salahPlace` | `/salah city` (question) · `/salah city <name or lat, lng>` | empty |
 | `salahMethod` | `/salah method <name>` | auto |
@@ -94,7 +91,7 @@ Surfaces, the athan moment's look and what salah never does: [salah-design.md](s
 | `card.ts` | the desktop athan card (Svg markup around a photo in `assets/`, with the embedded font in `card-font.ts`) |
 | `today.ts` | the times and settings tables for `/salah`, and the method in effect |
 
-Shared with thikr, in `src/shared/pray/`: `names.ts` (prayer names in English and Arabic, the `Prayer` type) and `line.ts` (the prayer line, countdown, reminder text, Arabic digits). Neither feature imports the other's folder.
+Shared with thikr, in `src/shared/pray/`: `names.ts` (prayer names in English and Arabic, the `Prayer` type) and `line.ts` (the prayer line, countdown, Arabic digits). Neither feature imports the other's folder.
 
 ## To verify live
 

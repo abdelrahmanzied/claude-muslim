@@ -7,7 +7,7 @@ export type UsageLimit = { until: number | null }
 // Minutes the user adds to each pray time.
 export type SalahAdjust = Record<'fajr' | 'sunrise' | 'dhuhr' | 'asr' | 'maghrib' | 'isha', number>
 
-// The reminder window of the next pray, while now is inside it: salah
+// The countdown window of the next pray, while now is inside it: salah
 // writes it, thikr reads it. `null` outside the window, or with salah off.
 export type SalahWindow = { pray: 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'; at: number }
 
