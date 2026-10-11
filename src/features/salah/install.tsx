@@ -9,7 +9,7 @@ import { guessPlace, systemTimeZone } from './location.ts'
 import { METHODS, type Prayer } from './methods.ts'
 import { ENGLISH, prayerNamed } from './names.ts'
 import { writePlace, type Place } from './place.ts'
-import { reminderText, statusText } from './line.ts'
+import { isInWindow, reminderText, statusText } from './line.ts'
 import { nudge, reviewRows } from './review.ts'
 import { clockText, lastPrayer, nextSalah, type Adjust } from './times.ts'
 import { dayLine, methodOf } from './today.ts'
@@ -22,8 +22,13 @@ const SETUP_LATER_KEY = 'salahSetupLater'
 const review = atom({ plugin: 'muslim', key: 'salahReview' } as const, null as Adjust | null)
 const notified = atom({ plugin: 'muslim', key: 'salahNotified' } as const, null as number | null)
 
-// How often the status line is redrawn.
+// How often the status line is redrawn: every second inside the reminder
+// window (the live countdown), else every 30 seconds.
 const TICK_MS = 30_000
+const WINDOW_TICK_MS = 1000
+
+// The status line's timer and the period it runs at.
+type Timer = { handle: { cancel: () => void } | undefined; ms: number }
 
 const HINT = 'Help: /salah help'
 
@@ -82,7 +87,8 @@ const savePlace = async ($: EngineInterface, city: City, options: Options): Prom
 }
 
 // Redraws the status line, and shows a toast once when a prayer's reminder window starts.
-const tick = async ($: EngineInterface, options: Options, place: Place) => {
+// Resolves whether `now` is inside the reminder window.
+const tick = async ($: EngineInterface, options: Options, place: Place): Promise<boolean> => {
   const now = await $.clock.now()
   const method = methodOf(options, place)
   const next = nextSalah(place, method, options.salahAdjust, now)
@@ -90,9 +96,22 @@ const tick = async ($: EngineInterface, options: Options, place: Place) => {
   const view = { mode: options.salah, reminder: options.salahReminder, isAdhan: options.salahAdhan }
   $.ui.status(statusText(next, clockText(next.at, place.timeZone), last, now, view))
   const text = reminderText(next, now, await read($, notified), options.salahReminder)
-  if (!text) return
-  await update($, notified, () => next.at)
-  $.ui.toast(text)
+  if (text) {
+    await update($, notified, () => next.at)
+    $.ui.toast(text)
+  }
+
+  return options.salah !== 'off' && isInWindow(next, now, options.salahReminder)
+}
+
+// One tick, then the timer runs every second in the window and every 30 s outside it.
+const run = async ($: EngineInterface, options: Options, place: Place, timer: Timer) => {
+  const isWindow = await tick($, options, place)
+  const ms = isWindow ? WINDOW_TICK_MS : TICK_MS
+  if (ms === timer.ms) return
+  timer.handle?.cancel()
+  timer.ms = ms
+  timer.handle = $.clock.every(ms, () => void run($, options, place, timer))
 }
 
 const putOff = async ($: EngineInterface) => {
@@ -103,7 +122,8 @@ const putOff = async ($: EngineInterface) => {
 export const install = (on: On, options: Options) => {
   const guess = guessPlace(systemTimeZone())
   // The status line's timer, started on the first draw of the prompt.
-  let ticker: { cancel: () => void } | undefined
+  let hasTicker = false
+  const timer: Timer = { handle: undefined, ms: 0 }
   let isLineCleared = false
 
   on('command.run', { command: 'salah' }, async ($, e) => {
@@ -170,9 +190,9 @@ export const install = (on: On, options: Options) => {
   // The next prayer under the prompt, from the first time the prompt is drawn.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const place = options.salahPlace
-    if (options.salah !== 'off' && place && !ticker) {
-      ticker = $.clock.every(TICK_MS, () => void tick($, options, place))
-      await tick($, options, place)
+    if (options.salah !== 'off' && place && !hasTicker) {
+      hasTicker = true
+      await run($, options, place, timer)
     }
     if (!(options.salah !== 'off' && place) && !isLineCleared) {
       isLineCleared = true

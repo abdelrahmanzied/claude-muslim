@@ -19,7 +19,7 @@ The salah feature's own design. It adds to the shared base in [DESIGN.md](../../
 | No city yet | AbovePrompt band | One line: the guessed city, **Yes**, **Another city**, **Not now** |
 | City saved, or `/salah adjust` | AbovePrompt band | Today's times, − and + per prayer, **Save**, **Skip** |
 | All day (mode `always`) | Status line | `☾ العصر ١٥:٥٩`; empty in `reminder` mode |
-| Reminder window (`salahReminder`, 20 min by default) | Status line | `☾ العصر بعد ٢٠ دقيقة`, counting down |
+| Reminder window (`salahReminder`, 20 min by default) | Status line | `☾ العصر ١٩:٤٢`, a live mm:ss countdown, once a second |
 | Reminder starts | Toast (in-app) | One short line, closes by itself |
 | Prayer comes in | Status line (+ the adhan look) | `حان وقت صلاة العصر` for 15 minutes (`salahAdhan`) |
 | Claude works in the window | Spinner (thikr line) | حَيَّ عَلَى الصَّلَاةِ joins the thikr rotation |
@@ -36,6 +36,7 @@ The salah feature's own design. It adds to the shared base in [DESIGN.md](../../
 - Prayer names in Arabic in lines (الفجر، الظهر، العصر، المغرب، العشاء), in English in commands (Fajr, Dhuhr, Asr, Maghrib, Isha).
 - حان وقت صلاة … and حَيَّ عَلَى الصَّلَاةِ are authored text with tashkeel, never generated.
 - Digits: Arabic-Indic by default (`١٥:٥٩`); a Latin option is being chosen in the lab.
+- Countdown: `mm:ss` in Arabic digits inside the reminder window, redrawn each second only there (30 s outside). The toast keeps minutes in words.
 - Minutes in words: دقيقة، دقيقتين، ٣ دقائق، ١١ دقيقة.
 
 ## Checklist for a change

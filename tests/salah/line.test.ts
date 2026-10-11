@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { arabicDigits, minutesText, reminderText, statusText, type View } from '../../src/features/salah/line.ts'
+import { arabicDigits, countdownText, isInWindow, minutesText, reminderText, statusText, type View } from '../../src/features/salah/line.ts'
 
 const MINUTE = 60_000
 const ASR = { prayer: 'asr' as const, at: 1_000 * MINUTE }
@@ -13,10 +13,19 @@ describe('status line', () => {
     expect(statusText(ASR, '15:59', DHUHR, 900 * MINUTE, ALWAYS)).toBe('☾ العصر ١٥:٥٩')
   })
 
-  test('a countdown in the last 20 minutes', async () => {
-    expect(statusText(ASR, '15:59', DHUHR, 980 * MINUTE, ALWAYS)).toBe('☾ العصر بعد ٢٠ دقيقة')
-    expect(statusText(ASR, '15:59', DHUHR, 995 * MINUTE, ALWAYS)).toBe('☾ العصر بعد ٥ دقائق')
-    expect(statusText(ASR, '15:59', DHUHR, 999.5 * MINUTE, ALWAYS)).toBe('☾ العصر بعد دقيقة')
+  test('a live mm:ss countdown in the last 20 minutes', async () => {
+    expect(statusText(ASR, '15:59', DHUHR, 980 * MINUTE, ALWAYS)).toBe('☾ العصر ٢٠:٠٠')
+    expect(statusText(ASR, '15:59', DHUHR, 980 * MINUTE + 18_000, ALWAYS)).toBe('☾ العصر ١٩:٤٢')
+    expect(statusText(ASR, '15:59', DHUHR, 995 * MINUTE, ALWAYS)).toBe('☾ العصر ٠٥:٠٠')
+    expect(statusText(ASR, '15:59', DHUHR, 999.5 * MINUTE, ALWAYS)).toBe('☾ العصر ٠٠:٣٠')
+  })
+
+  test('countdown rounds up to the second and window is the reminder minutes', async () => {
+    expect(countdownText(59_001)).toBe('٠١:٠٠')
+    expect(countdownText(500)).toBe('٠٠:٠١')
+    expect(isInWindow(ASR, 979 * MINUTE, 20)).toBe(false)
+    expect(isInWindow(ASR, 980 * MINUTE, 20)).toBe(true)
+    expect(isInWindow(ASR, ASR.at, 20)).toBe(false)
   })
 
   test('the call for 15 minutes after a prayer comes in', async () => {
@@ -28,13 +37,13 @@ describe('status line', () => {
     expect(statusText(ASR, '15:59', DHUHR, 900 * MINUTE, REMINDER)).toBe(undefined)
     expect(statusText(ASR, '15:59', DHUHR, 816 * MINUTE, REMINDER)).toBe(undefined)
     expect(statusText(ASR, '15:59', DHUHR, 801 * MINUTE, REMINDER)).toBe('حان وقت صلاة الظهر')
-    expect(statusText(ASR, '15:59', DHUHR, 980 * MINUTE, REMINDER)).toBe('☾ العصر بعد ٢٠ دقيقة')
+    expect(statusText(ASR, '15:59', DHUHR, 980 * MINUTE, REMINDER)).toBe('☾ العصر ٢٠:٠٠')
   })
 
   test('the window follows the reminder minutes', async () => {
     const view = { ...ALWAYS, reminder: 30 }
 
-    expect(statusText(ASR, '15:59', DHUHR, 970 * MINUTE, view)).toBe('☾ العصر بعد ٣٠ دقيقة')
+    expect(statusText(ASR, '15:59', DHUHR, 970 * MINUTE, view)).toBe('☾ العصر ٣٠:٠٠')
     expect(statusText(ASR, '15:59', DHUHR, 970 * MINUTE, ALWAYS)).toBe('☾ العصر ١٥:٥٩')
   })
 

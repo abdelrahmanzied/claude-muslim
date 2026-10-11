@@ -20,13 +20,14 @@ Prayer times for the user's city, calculated on their machine with
    minutes, or skips.
 3. **Every day.** What the status line shows depends on the mode (`salah`):
    - `always`: the next prayer all day, `☾ العصر ١٥:٥٩`; in the reminder window
-     before it (20 minutes by default), `☾ العصر بعد ٢٠ دقيقة`; for 15 minutes
-     once it is in, `حان وقت صلاة العصر`.
+     before it (20 minutes by default), a live mm:ss countdown, `☾ العصر ١٩:٤٢`,
+     updated every second; for 15 minutes once it is in, `حان وقت صلاة العصر`.
    - `reminder` (default): empty outside the reminder window; the countdown
      inside it; `حان وقت صلاة …` for 15 minutes, then empty again.
    - `off`: nothing, and the line is cleared.
    - `salahAdhan` off drops the `حان وقت` line: the line goes straight back to the
      next prayer (`always`) or to empty (`reminder`).
+   - The status line redraws every 30 seconds, and every second only while inside the reminder window (the live countdown); it goes back to 30 seconds when the window ends.
    - Sunrise is in today's times only: no countdown and no reminder for it.
    - One in-app toast when the window starts for each prayer (`always` and `reminder`, not `off`): «صلاة العصر بعد ٢٠ دقيقة». No OS notification.
 
@@ -85,7 +86,7 @@ Surfaces, the adhan moment's look and what salah never does: [salah-design.md](s
 | `city.ts` | Claude's prompt for a typed city and the checks on its reply |
 | `place.ts` | the saved place's one-setting format |
 | `review.ts` | the review form's rows |
-| `line.ts` | the status line and reminder toast text |
+| `line.ts` | the status line (live countdown) and reminder toast text |
 | `names.ts` | prayer names in English and Arabic |
 | `today.ts` | today's line for `/salah` and the method in effect |
 

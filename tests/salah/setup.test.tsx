@@ -155,7 +155,7 @@ test('always: the status line shows the next prayer, counts down, and toasts onc
 
   // 15:39: twenty minutes before Asr, then on to Asr itself.
   await clock.advance(129 * 60_000)
-  expect(lines.at(-1)).toBe('☾ العصر بعد ٢٠ دقيقة')
+  expect(lines.at(-1)).toBe('☾ العصر ٢٠:٠٠')
   await clock.advance(20 * 60_000 + 30_000)
   expect(lines.at(-1)).toBe('حان وقت صلاة العصر')
   expect(toasts).toEqual(['صلاة العصر بعد ٢٠ دقيقة'])
@@ -180,7 +180,7 @@ test('reminder: the line is empty until the window, counts down, calls, then cle
   const shown = await $.ui.mount(band('terminal'))
   expect(lines.at(-1)).toBe(undefined)
   await clock.advance(129 * 60_000)
-  expect(lines.at(-1)).toBe('☾ العصر بعد ٢٠ دقيقة')
+  expect(lines.at(-1)).toBe('☾ العصر ٢٠:٠٠')
   await clock.advance(20 * 60_000 + 30_000)
   expect(lines.at(-1)).toBe('حان وقت صلاة العصر')
   await clock.advance(16 * 60_000)
@@ -196,8 +196,27 @@ test('a shorter reminder moves the window; no adhan skips the call', { options: 
   const shown = await $.ui.mount(band('terminal'))
   expect(lines.at(-1)).toBe(undefined)
   await clock.advance(10 * 60_000)
-  expect(lines.at(-1)).toBe('☾ العصر بعد ٥ دقائق')
+  expect(lines.at(-1)).toBe('☾ العصر ٠٥:٠٠')
   await clock.advance(20 * 60_000)
   expect(lines.at(-1)).toBe(undefined)
+  await shown.unmount()
+})
+
+test('the countdown ticks every second in the window, every 30 s outside it', { options: AT_MUNICH }, async ($, on) => {
+  const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
+  engineBand(on)
+  const lines = statusLines(on)
+
+  const shown = await $.ui.mount(band('terminal'))
+  await clock.advance(60_000)
+  const outside = lines.length
+  expect(outside).toBeLessThanOrEqual(4)
+
+  // Into the window, then ten seconds of it.
+  await clock.advance(128 * 60_000)
+  const before = lines.length
+  await clock.advance(10_000)
+  expect(lines.length - before).toBe(10)
+  expect(lines.at(-1)).toBe('☾ العصر ١٩:٥٠')
   await shown.unmount()
 })

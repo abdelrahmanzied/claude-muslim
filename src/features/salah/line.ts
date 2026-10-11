@@ -1,5 +1,5 @@
-// The status line under the prompt: the next prayer's time, a countdown in
-// the minutes before it, and the call once it is in.
+// The status line under the prompt: the next prayer's time, a live mm:ss
+// countdown in the minutes before it, and the call once it is in.
 // Sunrise has no line and no reminder.
 
 import type { Prayer } from './methods.ts'
@@ -29,13 +29,24 @@ export type View = { mode: SalahMode; reminder: number; isAdhan: boolean }
 
 const MINUTE_MS = 60_000
 
+// Whether `now` is in the reminder window before the next prayer.
+export const isInWindow = (next: Moment, now: number, reminder: number): boolean => next.at - now <= reminder * MINUTE_MS && next.at > now
+
+// `mm:ss` in Arabic digits for the time left, rounded up to the second.
+export const countdownText = (leftMs: number): string => {
+  const seconds = Math.max(1, Math.ceil(leftMs / 1000))
+  const pad = (n: number) => String(n).padStart(2, '0')
+
+  return arabicDigits(`${pad(Math.floor(seconds / 60))}:${pad(seconds % 60)}`)
+}
+
 // The line for `now`, given the next prayer (never sunrise), the last one and
 // its HH:MM; undefined when the line is empty (off, or `reminder` outside its window).
 export const statusText = (next: Moment, nextClock: string, last: Moment, now: number, view: View): string | undefined => {
   if (view.mode === 'off') return undefined
   if (view.isAdhan && now - last.at < IN_MS) return `حان وقت صلاة ${ARABIC[last.prayer]}`
   const left = next.at - now
-  if (left <= view.reminder * MINUTE_MS) return `☾ ${ARABIC[next.prayer]} بعد ${minutesText(Math.max(1, Math.ceil(left / MINUTE_MS)))}`
+  if (left <= view.reminder * MINUTE_MS) return `☾ ${ARABIC[next.prayer]} ${countdownText(left)}`
   if (view.mode === 'always') return `☾ ${ARABIC[next.prayer]} ${arabicDigits(nextClock)}`
 
   return undefined
