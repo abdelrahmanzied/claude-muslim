@@ -33,7 +33,7 @@ for (const program of ['Apple_Terminal', 'WarpTerminal', 'unknown']) {
     on('state.get', { plugin: 'muslim', key: 'usageLimit' }, async () => ({ value: { value: { until: null }, version: 1 } }))
     for (const surface of ['terminal', 'desktop'] as const) {
       const phrase = SALAWAT[surface === 'terminal' ? 0 : 1]!
-      const shown = (text: string) => terminalArabic(surface, surface === 'terminal' ? defaultArabicMode(program) : 'none', text)
+      const shown = (text: string) => terminalArabic(surface, defaultArabicMode(program), text)
       await $.turn.start({ text: 'hi', turnId: surface })
       await $.ui.render({ surface, component: 'Spinner', requestId: 'spinner', props: { word: 'Working', message: 'Compacting conversation', suffix: '…', mode: 'thinking' } })
       expect(seen.at(-1)?.word).toBe(shown(phrase))
@@ -63,7 +63,7 @@ test('thikr uses the saved current-terminal mode and desktop keeps logical Arabi
     for (let index = 0; index < SALAWAT.length; index++) {
       await $.turn.start({ text: 'hi', turnId: `${surface}-${index}` })
       await $.ui.render({ surface, component: 'Spinner', requestId: 'updates', props: { word: 'Working', message: null, suffix: '…', mode: 'thinking' } })
-      expect(word).toBe(terminalArabic(surface, surface === 'terminal' ? 'joined' : 'none', SALAWAT[index]!))
+      expect(word).toBe(terminalArabic(surface, surface === 'terminal' ? 'joined' : 'plain', SALAWAT[index]!))
     }
   }
 })

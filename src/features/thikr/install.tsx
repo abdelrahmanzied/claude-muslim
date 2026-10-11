@@ -39,7 +39,7 @@ const terminalId = async ($: EngineInterface): Promise<string> => {
 
 // Resolve once per terminal per session; the Arabic picker refreshes this atom on a choice.
 const renderArabic = async ($: EngineInterface, surface: string, text: string, cache: { current: { terminalId: string; mode: ArabicMode } | null }): Promise<string> => {
-  if (surface !== 'terminal') return terminalArabic(surface, 'none', text)
+  if (surface !== 'terminal') return terminalArabic(surface, 'plain', text)
   const id = await terminalId($)
   const selected = await read($, cachedArabicMode)
   let cached = selected?.terminalId === id ? selected : cache.current
@@ -115,7 +115,6 @@ export const install = (on: On, options: Options) => {
     }
     if (word === 'on' || word === 'off') return set('thikr', word === 'on', `thikr ${word}`)
     if (word === 'mode' && isMode(value)) return set('thikrMode', value, `mode ${value}`)
-    if (word === 'tashkeel') return { text: 'Tashkeel is plugin-wide now: /muslim tashkeel on | off' }
     if (word === 'end' && (value === 'on' || value === 'off')) return set('thikrEnd', value === 'on', `end ${value}`)
     if (word === 'speed') {
       const speed = readSpeed(value)

@@ -50,7 +50,7 @@ Never use `error` or `warning` for religious text.
 ## 4. Typography and Arabic
 
 - **Font and size:** Claude's. We cannot and do not change them.
-- **Tashkeel:** one plugin-wide setting, on by default; shared Arabic display uses `withTashkeel(text, on)`.
+- **Tashkeel:** desktop-only setting, on by default; terminal display always strips tashkeel regardless of this setting.
 - **Direction:** a line that starts with Arabic is read right to left by the surface. When Claude's own Latin text or numbers sit in the same line, keep them as a separate run (e.g. a separator `·`), and never convert Claude's numbers.
 - **Our numbers** (counts, times we compute) use Arabic-Indic digits (`١٥:٢٤`, `٢/٣`) inside Arabic lines.
 - **Length:** spinner and band phrases fit one line at 80 columns. Longer texts (athkar) live only in the reader, never truncated.
@@ -64,7 +64,7 @@ Never use `error` or `warning` for religious text.
 
 ## 6. Commands and settings
 
-- One command per feature, named in Arabic transliteration with the `th` spelling: `/thikr`, `/athkar`, `/salah`. `/muslim` shows the version.
+- One command per feature, named in Arabic transliteration with the `th` spelling: `/thikr`, `/athkar`, `/salah`. `/muslim` shows the version and a settings table (setting, value, command to change it), the same on every surface; a feature's row shows on/off and points to its own help for the rest.
 - Shape: `/<feature>` = status + help; `/<feature> on|off`; `/<feature> <setting> <value>`.
 - Every setting is a `userConfig` field named `<feature><Setting>` (`thikrSpeed`), so it also appears in `/config`. Commands change it with `$.config.set({ key: 'muslim.<field>' })`.
 - Defaults are chosen so a new user needs no setup, except where the feature cannot work without input (prayer location).
@@ -93,7 +93,7 @@ Wire it in `hooks/register.tsx` (`install<Feature>(on, settings)`), register its
 - [ ] Spec added to `docs/design.md` (moments, phrases with sources, settings).
 - [ ] Phrases reviewed by a person; sources noted.
 - [ ] Off switch in `/config` and the command; off leaves Claude untouched.
-- [ ] Colors via theme keys; tashkeel setting respected.
+- [ ] Colors via theme keys; desktop tashkeel setting respected and terminal tashkeel stripped.
 - [ ] Tests on `terminal` and `desktop`; `claude plugin validate`, `claude plugin test`, `tsc` pass.
 - [ ] Tried live in a terminal and the desktop app.
 - [ ] `CHANGELOG.md` and version bumped.

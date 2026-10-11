@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 import type { Options } from '../../config.ts'
-import { ARABIC_MODES, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode, type TerminalEnvironment } from './terminal.ts'
+import { ARABIC_MODES, defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode, type TerminalEnvironment } from './terminal.ts'
 
 
 const manual = atom({ plugin: 'muslim', key: 'arabicSurveyManualTerminal' } as const, null as string | null)
@@ -44,11 +44,23 @@ const choose = async ($: EngineInterface, termId: string, mode: ArabicMode): Pro
   $.ui.toast(`muslim: Arabic for ${termId} set — /muslim terminal-arabic to redo`)
 }
 
+// This terminal's saved Arabic mode for the /muslim settings table; empty off the terminal.
+const terminalLine = async ($: EngineInterface): Promise<string> => {
+  if (await $.session.surface() !== 'terminal') return ''
+  const id = await terminalId($)
+  const saved = await $.store.get(MODES_KEY) as Record<string, unknown> | undefined
+  const mode = saved?.[id]
+  const shown = isArabicMode(mode) ? mode : `${defaultArabicMode(id)} (default, not chosen yet)`
+
+  return `${shown} for ${id}`
+}
+
 export const install = (on: On, _options: Options): void => {
   on('command.run', { command: 'muslim' }, async ($, e, next) => {
     const args = e.args.trim()
     const words = args ? args.split(/\s+/) : []
     const [command] = words
+    if (command === undefined) return { text: await terminalLine($) }
     if (command !== 'terminal-arabic') return next(e).catch(() => ({ text: 'Usage: /muslim terminal-arabic' }))
     if (words.length !== 1) return { text: 'Usage: /muslim terminal-arabic' }
     if (await $.session.surface() !== 'terminal') return { text: 'The Arabic display check is available in the terminal only.' }
@@ -81,7 +93,7 @@ export const install = (on: On, _options: Options): void => {
             </Button>
           ))}
         </Box>
-        <Text dimColor>Press 1–4</Text>
+        <Text dimColor>Press 1–3</Text>
         {theirs}
       </Box>
     )

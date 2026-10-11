@@ -5,7 +5,7 @@ The shared terminal Arabic behavior, storage, defaults, reset steps, and limitat
 ## AbovePrompt check
 
 - The label reads `muslim · Terminal Arabic Setup · Which word is written correctly?`, with the dim hint `Some terminals break Arabic letters apart or reverse them — pick the one you can read.` below it.
-- Four vertical plain Button rows use hotkeys 1–4; each Arabic sample is a `Text` child, and the hint reads `Press 1–4`.
+- Three vertical plain Button rows use hotkeys 1–3; each Arabic sample is a `Text` child, and the hint reads `Press 1–3`.
 - The picker preserves the rest of the AbovePrompt band and waits while another survey is active.
 - Selecting a row hides the picker; `/muslim terminal-arabic` opens it again for the active terminal.
 - Desktop shows no picker and replies that the check is terminal-only.

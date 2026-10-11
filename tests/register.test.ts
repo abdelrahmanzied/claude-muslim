@@ -7,10 +7,12 @@ const muslim = (args: string) => ({
   presentation: { isFullscreen: false, columns: 80 },
 })
 
-test('/muslim answers with version and a hint', async $ => {
+test('/muslim shows each setting with its state and how to change it', { options: { tashkeel: false } }, async $ => {
   const ran = await $.command.run(muslim(''))
-  expect(ran.text).toContain('/muslim tashkeel on | off — show or hide Arabic diacritics everywhere')
-  expect(ran.text).toContain('/muslim terminal-arabic — choose how Arabic shows in this terminal (applies to all features)')
+  expect(ran.text).toContain('| Tashkeel | off — desktop only; the terminal never shows diacritics | `/muslim tashkeel on` · `off` |')
+  expect(ran.text).toContain('| Thikr | on | `/thikr on` · `off` · all options: `/thikr help` |')
+  expect(ran.text).toContain('| Terminal Arabic | terminal only | `/muslim terminal-arabic` |')
+  expect(ran.text).toContain('Help: /muslim help')
 })
 
 test('/muslim help lists the terminal picker and thikr', async $ => {
@@ -26,7 +28,8 @@ test('/muslim tashkeel reads and changes the plugin-wide setting', async ($, on)
   const writes: unknown[] = []
   on('config.set', async (_$, e) => (writes.push(e), { value: e.value }))
   expect((await $.command.run(muslim('tashkeel'))).text).toContain('Tashkeel on')
-  expect((await $.command.run(muslim('tashkeel off'))).text).toBe('Tashkeel off')
+  expect((await $.command.run(muslim('tashkeel off'))).text).toContain('Tashkeel off on desktop')
+  expect((await $.command.run(muslim('tashkeel'))).text).toContain('the terminal never shows diacritics')
   expect(writes).toEqual([expect.objectContaining({ key: 'muslim.tashkeel', value: false })])
 })
 

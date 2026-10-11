@@ -1,11 +1,11 @@
 import { arabicJoined, arabicReordered, stripTashkeel } from './visual.ts'
 
-export type ArabicMode = 'none' | 'plain' | 'joined' | 'reversed'
+export type ArabicMode = 'plain' | 'joined' | 'reversed'
 
-export const ARABIC_MODES: readonly ArabicMode[] = ['none', 'plain', 'joined', 'reversed']
+export const ARABIC_MODES: readonly ArabicMode[] = ['plain', 'joined', 'reversed']
 
 export const isArabicMode = (value: unknown): value is ArabicMode =>
-  value === 'none' || value === 'plain' || value === 'joined' || value === 'reversed'
+  value === 'plain' || value === 'joined' || value === 'reversed'
 
 export type TerminalEnvironment = {
   TERM_PROGRAM?: string
@@ -39,11 +39,11 @@ export const defaultArabicMode = (termId: string): ArabicMode => {
   if (termId === 'WarpTerminal') return 'joined'
   if (termId === 'WindowsConsole') return 'reversed'
 
-  return 'none'
+  return 'plain'
 }
 
 export const terminalArabic = (surface: string, mode: ArabicMode, text: string): string => {
-  if (surface !== 'terminal' || mode === 'none') return text
+  if (surface !== 'terminal') return text
   if (mode === 'plain') return stripTashkeel(text)
   if (mode === 'joined') return arabicJoined(text)
 

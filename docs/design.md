@@ -76,7 +76,7 @@ Full text with tashkeel: `src/features/thikr/phrases.ts`.
 
 `/thikr` alone shows the current settings and help.
 
-Tashkeel is controlled plugin-wide by [`/muslim tashkeel`](terminal.md#tashkeel).
+Tashkeel is a desktop-only choice controlled by [`/muslim tashkeel`](terminal.md#tashkeel); terminal Arabic always strips it.
 
 ### To verify live
 
