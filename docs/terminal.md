@@ -37,7 +37,19 @@ Surveys wait while Claude is showing another survey. An unanswered terminal rema
 
 ## Storage and reset
 
-The terminal ID is `TERM_PROGRAM`, or `unknown` when it is unset. Claude Code persists the plugin store in:
+The terminal ID resolver checks these environment variables in order and uses the first match:
+
+1. `TERM_PROGRAM` is used verbatim (`Apple_Terminal`, `WarpTerminal`, `iTerm.app`, `vscode`, `ghostty`, `WezTerm`, and other values remain valid IDs).
+2. `TERMINAL_EMULATOR` is used verbatim (for example, `JetBrains-JediTerm`).
+3. `__CFBundleIdentifier` is used verbatim (for example, `com.jetbrains.pycharm` or `com.mitchellh.ghostty`).
+4. Presence of `WT_SESSION` gives `WindowsTerminal`.
+5. `KONSOLE_VERSION` gives `Konsole`; `VTE_VERSION` gives `VTE`; `KITTY_WINDOW_ID` gives `kitty`; `ALACRITTY_WINDOW_ID` or `ALACRITTY_SOCKET` gives `Alacritty`.
+6. `OS === 'Windows_NT'` gives `WindowsConsole`.
+7. If none match, the ID is `unknown`.
+
+Each ID gets its own answer; there is no prebuilt list of supported terminals to maintain. Only the built-in defaults need entries: Apple Terminal is `plain`, Warp is `joined`, Windows Console is `reversed`, and all other IDs (including `WindowsTerminal`) default to `none`. Existing store entries keyed by `TERM_PROGRAM` remain valid because that source still takes priority and is used verbatim.
+
+Claude Code persists the plugin store in:
 
 ```text
 ~/.claude/plugins/store/muslim_<source>.json
@@ -60,7 +72,7 @@ Session state is declared in `types/index.d.ts`: `arabicSurveyManualTerminal` id
 
 ## Using the shared treatment in a feature
 
-At draw time, each feature should first check that `e.surface === 'terminal'`, read `TERM_PROGRAM` (falling back to `unknown`), resolve the saved mode from `arabicTerminals` or `defaultArabicMode(termId)`, and pass its authored display text through `terminalArabic(surface, mode, text)` from `src/shared/arabic/terminal.ts`. `terminalArabic` itself returns the input unchanged for non-terminal surfaces. Keep any helper that reads `$` in the same source file as the hook, as required by `CLAUDE.md`; the pure mode and transform functions are shared.
+At draw time, each feature should first check that `e.surface === 'terminal'`, read the environment variables above through `$.env.get`, resolve the ID with the pure `terminalIdFromEnv(env)` function, look up the saved mode in `arabicTerminals` or use `defaultArabicMode(termId)`, then pass its authored display text through `terminalArabic(surface, mode, text)` from `src/shared/arabic/terminal.ts`. `terminalArabic` itself returns the input unchanged for non-terminal surfaces. Keep any helper that reads `$` in the same source file as the hook, as required by `CLAUDE.md`; the pure mode, ID, and transform functions are shared.
 
 Tashkeel is stripped from display text only. Stored/authored words are never changed. The treatments are pure functions in `src/shared/arabic/visual.ts` and `terminal.ts`.
 

@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 import type { Options } from '../../config.ts'
-import { ARABIC_MODES, defaultArabicMode, isArabicMode, terminalArabic, type ArabicMode } from './terminal.ts'
+import { ARABIC_MODES, defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode, type TerminalEnvironment } from './terminal.ts'
 
 const manual = atom({ plugin: 'muslim', key: 'arabicSurveyManualTerminal' } as const, null as string | null)
 const cachedMode = atom({ plugin: 'muslim', key: 'arabicTerminalMode' } as const, null as { terminalId: string; mode: ArabicMode } | null)
@@ -9,7 +9,29 @@ const MODES_KEY = 'arabicTerminals'
 export const ARABIC_SAMPLE = 'بِسْمِ اللَّهِ'
 const QUESTION = 'Which line reads correctly in this terminal?'
 
-const terminalId = async ($: EngineInterface): Promise<string> => (await $.env.get('TERM_PROGRAM')) || 'unknown'
+const terminalId = async ($: EngineInterface): Promise<string> => {
+  const termProgram = await $.env.get('TERM_PROGRAM')
+  if (termProgram) return terminalIdFromEnv({ TERM_PROGRAM: termProgram })
+  const emulator = await $.env.get('TERMINAL_EMULATOR')
+  if (emulator) return terminalIdFromEnv({ TERMINAL_EMULATOR: emulator })
+  const bundle = await $.env.get('__CFBundleIdentifier')
+  if (bundle) return terminalIdFromEnv({ __CFBundleIdentifier: bundle })
+  const windowsTerminal = await $.env.get('WT_SESSION')
+  if (windowsTerminal !== undefined) return terminalIdFromEnv({ WT_SESSION: windowsTerminal })
+  const konsole = await $.env.get('KONSOLE_VERSION')
+  if (konsole) return terminalIdFromEnv({ KONSOLE_VERSION: konsole })
+  const vte = await $.env.get('VTE_VERSION')
+  if (vte) return terminalIdFromEnv({ VTE_VERSION: vte })
+  const kitty = await $.env.get('KITTY_WINDOW_ID')
+  if (kitty) return terminalIdFromEnv({ KITTY_WINDOW_ID: kitty })
+  const alacrittyWindow = await $.env.get('ALACRITTY_WINDOW_ID')
+  if (alacrittyWindow) return terminalIdFromEnv({ ALACRITTY_WINDOW_ID: alacrittyWindow })
+  const alacrittySocket = await $.env.get('ALACRITTY_SOCKET')
+  if (alacrittySocket) return terminalIdFromEnv({ ALACRITTY_SOCKET: alacrittySocket })
+  const os = await $.env.get('OS')
+
+  return terminalIdFromEnv({ OS: os })
+}
 
 const choose = async ($: EngineInterface, termId: string, choice: ArabicMode | 'keep'): Promise<void> => {
   const saved = await $.store.get(MODES_KEY) as Record<string, unknown> | undefined

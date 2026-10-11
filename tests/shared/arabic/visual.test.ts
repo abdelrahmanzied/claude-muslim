@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 import { arabicJoined, arabicReordered, arabicVisual, stripTashkeel } from '../../../src/shared/arabic/visual.ts'
-import { defaultArabicMode, terminalArabic } from '../../../src/shared/arabic/terminal.ts'
+import { defaultArabicMode, terminalArabic, terminalIdFromEnv } from '../../../src/shared/arabic/terminal.ts'
 import { END_OF_TURN, LONG, SALAWAT, STARTING, THINKING, USAGE_LIMIT, WRITING } from '../../../src/features/thikr/phrases.ts'
 
 // Escapes express physical left-to-right cell order, independent of this
@@ -91,5 +91,33 @@ test('modes transform terminal text and leave every non-terminal surface unchang
 test('built-in defaults are specific to known terminals', () => {
   expect(defaultArabicMode('Apple_Terminal')).toBe('plain')
   expect(defaultArabicMode('WarpTerminal')).toBe('joined')
+  expect(defaultArabicMode('WindowsConsole')).toBe('reversed')
   for (const termId of ['unknown', 'iTerm.app', 'xterm']) expect(defaultArabicMode(termId)).toBe('none')
+})
+
+describe('terminal id detection', () => {
+  test('keeps TERM_PROGRAM values and gives them highest priority', () => {
+    expect(terminalIdFromEnv({ TERM_PROGRAM: 'Apple_Terminal' })).toBe('Apple_Terminal')
+    expect(terminalIdFromEnv({ TERM_PROGRAM: 'WarpTerminal', TERMINAL_EMULATOR: 'JetBrains-JediTerm' })).toBe('WarpTerminal')
+  })
+  test('uses emulator and macOS launcher identifiers next', () => {
+    expect(terminalIdFromEnv({ TERMINAL_EMULATOR: 'JetBrains-JediTerm' })).toBe('JetBrains-JediTerm')
+    expect(terminalIdFromEnv({ __CFBundleIdentifier: 'com.jetbrains.pycharm' })).toBe('com.jetbrains.pycharm')
+  })
+  test('recognizes Windows Terminal by presence, including an empty session value', () => {
+    expect(terminalIdFromEnv({ WT_SESSION: '' })).toBe('WindowsTerminal')
+    expect(terminalIdFromEnv({ WT_SESSION: 'session', KONSOLE_VERSION: '1' })).toBe('WindowsTerminal')
+  })
+  test('checks terminal-specific markers in the requested order', () => {
+    expect(terminalIdFromEnv({ KONSOLE_VERSION: '1', VTE_VERSION: '2', KITTY_WINDOW_ID: '3' })).toBe('Konsole')
+    expect(terminalIdFromEnv({ VTE_VERSION: '1', KITTY_WINDOW_ID: '3' })).toBe('VTE')
+    expect(terminalIdFromEnv({ KITTY_WINDOW_ID: '3', ALACRITTY_SOCKET: 'sock' })).toBe('kitty')
+    expect(terminalIdFromEnv({ ALACRITTY_WINDOW_ID: '4' })).toBe('Alacritty')
+    expect(terminalIdFromEnv({ ALACRITTY_SOCKET: 'sock' })).toBe('Alacritty')
+  })
+  test('uses WindowsConsole only as the final platform fallback', () => {
+    expect(terminalIdFromEnv({ OS: 'Windows_NT' })).toBe('WindowsConsole')
+    expect(terminalIdFromEnv({ OS: 'Windows_NT', VTE_VERSION: '1' })).toBe('VTE')
+    expect(terminalIdFromEnv({})).toBe('unknown')
+  })
 })

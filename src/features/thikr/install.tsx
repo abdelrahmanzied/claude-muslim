@@ -1,4 +1,4 @@
-import { defaultArabicMode, isArabicMode, terminalArabic, type ArabicMode } from '../../shared/arabic/terminal.ts'
+import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
 import { atom, read } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
@@ -12,17 +12,41 @@ import type { Group, Speed } from './rotation.ts'
 
 const cachedArabicMode = atom({ plugin: 'muslim', key: 'arabicTerminalMode' } as const, null as { terminalId: string; mode: ArabicMode } | null)
 
+const terminalId = async ($: EngineInterface): Promise<string> => {
+  const termProgram = await $.env.get('TERM_PROGRAM')
+  if (termProgram) return terminalIdFromEnv({ TERM_PROGRAM: termProgram })
+  const emulator = await $.env.get('TERMINAL_EMULATOR')
+  if (emulator) return terminalIdFromEnv({ TERMINAL_EMULATOR: emulator })
+  const bundle = await $.env.get('__CFBundleIdentifier')
+  if (bundle) return terminalIdFromEnv({ __CFBundleIdentifier: bundle })
+  const windowsTerminal = await $.env.get('WT_SESSION')
+  if (windowsTerminal !== undefined) return terminalIdFromEnv({ WT_SESSION: windowsTerminal })
+  const konsole = await $.env.get('KONSOLE_VERSION')
+  if (konsole) return terminalIdFromEnv({ KONSOLE_VERSION: konsole })
+  const vte = await $.env.get('VTE_VERSION')
+  if (vte) return terminalIdFromEnv({ VTE_VERSION: vte })
+  const kitty = await $.env.get('KITTY_WINDOW_ID')
+  if (kitty) return terminalIdFromEnv({ KITTY_WINDOW_ID: kitty })
+  const alacrittyWindow = await $.env.get('ALACRITTY_WINDOW_ID')
+  if (alacrittyWindow) return terminalIdFromEnv({ ALACRITTY_WINDOW_ID: alacrittyWindow })
+  const alacrittySocket = await $.env.get('ALACRITTY_SOCKET')
+  if (alacrittySocket) return terminalIdFromEnv({ ALACRITTY_SOCKET: alacrittySocket })
+  const os = await $.env.get('OS')
+
+  return terminalIdFromEnv({ OS: os })
+}
+
 // Resolve once per terminal per session; the Arabic picker refreshes this atom on a choice.
 const renderArabic = async ($: EngineInterface, surface: string, text: string, cache: { current: { terminalId: string; mode: ArabicMode } | null }): Promise<string> => {
   if (surface !== 'terminal') return terminalArabic(surface, 'none', text)
-  const terminalId = (await $.env.get('TERM_PROGRAM')) || 'unknown'
+  const id = await terminalId($)
   const selected = await read($, cachedArabicMode)
-  let cached = selected?.terminalId === terminalId ? selected : cache.current
-  if (cached?.terminalId !== terminalId) {
+  let cached = selected?.terminalId === id ? selected : cache.current
+  if (cached?.terminalId !== id) {
     const saved = await $.store.get('arabicTerminals') as Record<string, unknown> | undefined
-    const storedMode = saved?.[terminalId]
-    const mode = isArabicMode(storedMode) ? storedMode : defaultArabicMode(terminalId)
-    cached = { terminalId, mode }
+    const storedMode = saved?.[id]
+    const mode = isArabicMode(storedMode) ? storedMode : defaultArabicMode(id)
+    cached = { terminalId: id, mode }
     cache.current = cached
   }
 
