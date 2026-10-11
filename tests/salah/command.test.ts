@@ -55,7 +55,7 @@ test('/salah shows today\'s times and the settings as tables, each setting with 
   expect(ran.text).toContain('| Isha | 20:12 |')
   expect(ran.text).toContain('| City | Munich, Germany | `/salah city` |')
   expect(ran.text).toContain('| Method | Muslim World League (auto) | `/salah method <name>` |')
-  expect(ran.text).toContain('| Prayer line | reminder | `/salah always` · `reminder` · `off` |')
+  expect(ran.text).toContain('| Prayer line | reminder: only 20 min before a prayer | `/salah always` · `reminder` · `off` |')
   expect(ran.text).toContain('| Adjust | none | `/salah adjust` |')
   expect(ran.text).toContain('/salah help')
 })
