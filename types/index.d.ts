@@ -7,10 +7,10 @@ export type UsageLimit = { until: number | null }
 declare module 'claude-code' {
   interface PluginState {
     muslim: {
-      // Terminal Arabic check dismissed by a press in this session.
-      arabicFixAnswered: boolean
-      // Prevent overlapping button presses while saving the answer.
-      arabicFixBusy: boolean
+      // Show the terminal Arabic hotkey picker in AbovePrompt.
+      arabicFixPicking: boolean
+      // Let an explicit command reopen the picker after automatic first-run.
+      arabicFixManual: boolean
       usageLimit: UsageLimit | null
     }
   }

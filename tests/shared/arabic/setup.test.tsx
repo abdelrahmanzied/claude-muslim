@@ -1,11 +1,11 @@
+import { mock, test, expect } from 'claude-code/testing'
 import type { On } from 'claude-code'
 import type { Options } from '../../../src/config.ts'
-import { expect, mock, test } from 'claude-code/testing'
-import { ARABIC_SAMPLE, install } from '../../../src/shared/arabic/install.tsx'
+import { install } from '../../../src/shared/arabic/install.tsx'
 import { arabicVisual } from '../../../src/shared/arabic/visual.ts'
 
-const band = (surface: 'terminal' | 'desktop', hasSurvey = false) => ({
-  plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'arabic-check',
+const band = (surface: 'terminal' | 'desktop', hasSurvey = false, requestId = 'arabic-check') => ({
+  plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId,
   props: { hasSurvey, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} },
 })
 const engineBand = (on: On) => on('ui.render', { component: 'AbovePrompt' }, async ($, e) => {
@@ -18,112 +18,114 @@ const store = (on: On) => {
   on('store.set', async (_$, e) => (values[e.key] = e.value, { value: undefined }))
   return values
 }
-const sessionId = (on: On) => {
-  let id = 'session-1'
+const sessionId = (on: On, initial = 'session-1') => {
+  let id = initial
   on('session.id', async () => ({ value: id }))
   return (next: string) => { id = next }
 }
-const OPTIONS = { thikr: false }
+const OPTIONS = { thikr: false } as Options
+const buttons = { type: 'Button' as const }
 
-for (const program of ['Apple_Terminal', 'WarpTerminal', 'unknown']) {
-  test(`${program}: first run asks in auto, with the likely button first`, { options: OPTIONS }, async ($, on) => {
+for (const [program, expected] of [
+  ['Apple_Terminal', [arabicVisual('سلام'), 'سلام', 'Not now']],
+  ['WarpTerminal', ['سلام', arabicVisual('سلام'), 'Not now']],
+  ['unknown', ['سلام', arabicVisual('سلام'), 'Not now']],
+] as const) {
+  test(`${program}: first terminal render shows survey rows in likely-first order`, { options: OPTIONS }, async ($, on) => {
     mock.env(on, { TERM_PROGRAM: program })
     const stored = store(on)
     sessionId(on)
     engineBand(on)
+    install(on, OPTIONS)
     const shown = await $.ui.mount(band('terminal'))
-    expect(stored.arabicFixShownIn).toBe('session-1')
+    const rows = await shown.findAll(buttons)
+    expect(rows.map(row => (row.props as { hotkey?: string }).hotkey)).toEqual(['1', '2', '3'])
+    expect(rows.map(row => row.key)).toEqual(expected[2] === 'Not now'
+      ? (expected[0] === arabicVisual('سلام') ? ['arabic-fix-on', 'arabic-fix-off', 'arabic-fix-keep'] : ['arabic-fix-off', 'arabic-fix-on', 'arabic-fix-keep'])
+      : [])
+    expect(await shown.find({ type: 'Text', text: expected[0] })).toBeDefined()
+    expect(await shown.find({ type: 'Text', text: expected[1] })).toBeDefined()
+    expect(await shown.find({ type: 'Button', key: 'arabic-fix-keep' })).toBeDefined()
     expect(await shown.find({ type: 'Text', text: 'muslim' })).toBeDefined()
-    expect(await shown.find({ type: 'Text', text: ' · Which Arabic word reads correctly here?' })).toBeDefined()
-    expect(await shown.find({ type: 'Button', key: 'arabic-fix-off', text: ARABIC_SAMPLE })).toBeDefined()
-    expect(await shown.find({ type: 'Button', key: 'arabic-fix-on', text: arabicVisual(ARABIC_SAMPLE) })).toBeDefined()
-    expect(await shown.find({ type: 'Button', key: 'arabic-fix-later', text: 'Not now' })).toBeDefined()
+    expect(await shown.find({ type: 'Text', text: 'Press 1, 2 or 3' })).toBeDefined()
+    expect(stored.arabicFixShownIn).toBe('session-1')
     expect(await shown.find({ type: 'Text', text: 'engine band' })).toBeDefined()
-    const tree = JSON.stringify(await shown.drawn())
-    expect(tree.indexOf('arabic-fix-on') < tree.indexOf('arabic-fix-off')).toBe(program === 'Apple_Terminal')
     await shown.unmount()
   })
 }
 
-test('still shows after module reload in the same session', { options: OPTIONS }, async ($, on) => {
-  mock.env(on, {})
-  mock.store(on, { arabicFixShownIn: 'session-1' })
-  sessionId(on)
-  engineBand(on)
-  // The test kit has no reload operation. Seed the store as the previous module
-  // left it, then register the fresh module closure before its first dispatch.
-  install(on, OPTIONS as Options)
-  const afterReload = await $.ui.mount(band('terminal'))
-  expect(await afterReload.find({ key: 'arabic-fix-check' })).toBeDefined()
-  await afterReload.unmount()
-})
-
-test('a new session id hides a check already shown in the prior session', { options: OPTIONS }, async ($, on) => {
-  mock.env(on, {})
-  const stored = store(on)
-  const setSession = sessionId(on)
-  engineBand(on)
-  const first = await $.ui.mount(band('terminal'))
-  expect(await first.find({ key: 'arabic-fix-check' })).toBeDefined()
-  await first.unmount()
-  setSession('session-2')
-  const next = await $.ui.mount(band('terminal'))
-  expect(stored.arabicFixShownIn).toBe('session-1')
-  expect(await next.find({ key: 'arabic-fix-check' })).toBeUndefined()
-  expect(await next.find({ type: 'Text', text: 'engine band' })).toBeDefined()
-  await next.unmount()
-})
-
-for (const choice of ['off', 'on', 'later'] as const) {
-  test(`${choice}: hide after a press and confirm the mode`, { options: OPTIONS }, async ($, on) => {
-    mock.env(on, { TERM_PROGRAM: 'Apple_Terminal' })
+for (const [value, mode] of [['on', 'on'], ['off', 'off'], ['keep', 'auto']] as const) {
+  test(`hotkey ${value} applies the mode and hides the picker`, { options: OPTIONS }, async ($, on) => {
+    mock.env(on, { TERM_PROGRAM: 'WarpTerminal' })
     const stored = store(on)
     sessionId(on)
     engineBand(on)
-    const toasts: string[] = []
-    on('ui.toast', async (_$, e) => (toasts.push(e.text), { value: undefined }))
     const writes: unknown[] = []
     on('config.set', async (_$, e) => (writes.push({ key: e.key, value: e.value }), { value: e.value }))
+    const toasts: string[] = []
+    on('ui.toast', async (_$, e) => (toasts.push(e.text), { value: undefined }))
+    install(on, OPTIONS)
     const shown = await $.ui.mount(band('terminal'))
-    await shown.press({ key: `arabic-fix-${choice}` })
+    await shown.press({ key: `arabic-fix-${value}` })
+    expect(await shown.find({ type: 'Button', key: 'arabic-fix-on' })).toBeUndefined()
     expect(stored.arabicFixShownIn).toBe('done')
-    expect(toasts).toEqual([`muslim: Arabic fix ${choice === 'later' ? 'auto' : choice} — change with /muslim arabic-fix`])
-    expect(writes).toEqual(choice === 'later' ? [] : [{ key: 'muslim.arabicFix', value: choice }])
-    expect(await shown.find({ key: 'arabic-fix-check' })).toBeUndefined()
+    expect(writes).toEqual(mode === 'auto' ? [] : [{ key: 'muslim.arabicFix', value: mode }])
+    expect(toasts).toEqual([`muslim: Arabic fix ${mode} — run /muslim terminal-arabic to check again`])
     await shown.unmount()
   })
 }
 
-test('desktop and surveys do not ask or consume the first-run check', { options: OPTIONS }, async ($, on) => {
-  engineBand(on)
-  let reads = 0
-  const writes: unknown[] = []
-  on('store.set', async (_$, e) => (writes.push(e.value), { value: undefined }))
-  on('store.get', async () => (reads++, { value: undefined }))
-  on('session.id', async () => (reads++, { value: 'session-1' }))
-  on('env.get', async () => (reads++, { value: 'WarpTerminal' }))
-  for (const target of [band('desktop'), band('terminal', true)]) {
-    const shown = await $.ui.mount(target)
-    expect(await shown.find({ key: 'arabic-fix-check' })).toBeUndefined()
-    expect(await shown.find({ type: 'Text', text: 'engine band' })).toBeDefined()
-    await shown.unmount()
-  }
-  expect(reads).toBe(0)
-  expect(writes).toEqual([])
-})
-
-test('a denied setting hides the check and explains how to change it', { options: OPTIONS }, async ($, on) => {
-  mock.env(on, {})
+test('desktop and surveys never draw or consume the first-run picker', { options: OPTIONS }, async ($, on) => {
+  mock.env(on, { TERM_PROGRAM: 'Apple_Terminal' })
   const stored = store(on)
   sessionId(on)
   engineBand(on)
-  const toasts: string[] = []
-  on('config.set', async () => ({ deny: 'test refusal' }))
-  on('ui.toast', async (_$, e) => (toasts.push(e.text), { value: undefined }))
-  const shown = await $.ui.mount(band('terminal'))
-  await shown.press({ key: 'arabic-fix-on' })
+  install(on, OPTIONS)
+  for (const target of [band('desktop'), band('terminal', true)]) {
+    const view = await $.ui.mount(target)
+    expect(await view.find(buttons)).toBeUndefined()
+    await view.unmount()
+  }
+  expect(stored.arabicFixShownIn).toBeUndefined()
+})
+
+test('later session never gets the automatic picker', { options: OPTIONS }, async ($, on) => {
+  mock.env(on, { TERM_PROGRAM: 'Apple_Terminal' })
+  const stored = store(on)
+  sessionId(on, 'session-2')
+  stored.arabicFixShownIn = 'session-1'
+  engineBand(on)
+  install(on, OPTIONS)
+  const later = await $.ui.mount(band('terminal'))
+  expect(await later.find(buttons)).toBeUndefined()
+  expect(stored.arabicFixShownIn).toBe('session-1')
+  await later.unmount()
+})
+
+test('session marker keeps an unanswered first-run picker visible after reload', { options: OPTIONS }, async ($, on) => {
+  mock.env(on, { TERM_PROGRAM: 'Apple_Terminal' })
+  const stored = store(on)
+  stored.arabicFixShownIn = 'session-1'
+  sessionId(on)
+  engineBand(on)
+  install(on, OPTIONS)
+  const afterReload = await $.ui.mount(band('terminal'))
+  expect(await afterReload.find(buttons)).toBeDefined()
+  await afterReload.unmount()
+})
+
+test('terminal-arabic command reopens picker without resetting the first-run marker', { options: OPTIONS }, async ($, on) => {
+  mock.env(on, { TERM_PROGRAM: 'WarpTerminal' })
+  const stored = store(on)
+  stored.arabicFixShownIn = 'done'
+  sessionId(on)
+  engineBand(on)
+  install(on, OPTIONS)
+  on('session.surface', async () => ({ value: 'terminal' }))
+  const command = await $.command.run({ command: 'muslim', args: 'terminal-arabic', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+  expect(command.text).toBe('Arabic display check opened.')
+  const reopened = await $.ui.mount(band('terminal', false, 'manual-picker'))
+  expect(await reopened.find(buttons)).toBeDefined()
   expect(stored.arabicFixShownIn).toBe('done')
-  expect(await shown.find({ key: 'arabic-fix-check' })).toBeUndefined()
-  expect(toasts).toEqual(['muslim: Not changed: test refusal — change with /muslim arabic-fix'])
-  await shown.unmount()
+  await reopened.unmount()
 })

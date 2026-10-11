@@ -47,7 +47,7 @@ Full text with tashkeel: `src/features/thikr/phrases.ts`.
 
 ## Settings
 
-Shared Arabic display: `/muslim arabic-fix on | off | auto`, also `muslim.arabicFix` in `/config`. Auto applies the fallback only when `TERM_PROGRAM` is `Apple_Terminal`; Warp and unidentified terminals keep logical Arabic. Use `on` for another terminal without bidi/shaping, or `off` when the terminal handles Arabic itself. The fallback drops tashkeel and keeps times/counts in digit order; desktop output and saved text stay unchanged. The first terminal prompt also offers a one-time comparison; 1 selects off, 2 selects on, and Later keeps the current setting. Every choice is remembered on the machine. See [the Arabic check](arabic-fix.md), including the Apple Terminal update limitation.
+Shared Arabic display: `/muslim terminal-arabic`, also `muslim.arabicFix` in `/config`. Auto applies the fallback only when `TERM_PROGRAM` is `Apple_Terminal`; Warp and unidentified terminals keep logical Arabic. Choose the fixed sample to enable the fallback or the logical sample to disable it. The fallback drops tashkeel and keeps times/counts in digit order; desktop output and saved text stay unchanged. The first terminal session offers a one-time keyboard comparison. `/muslim terminal-arabic` reopens the picker on demand; every choice is remembered on the machine. See [the Arabic check](arabic-fix.md), including the Apple Terminal update limitation.
 
 | `/config` field | Command | Default |
 | --- | --- | --- |

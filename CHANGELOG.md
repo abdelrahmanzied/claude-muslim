@@ -2,9 +2,9 @@
 
 ## Unreleased
 
-- First-run terminal Arabic check: two rows identify muslim and offer isolated Arabic sample buttons plus Not now. Remember first display, ask in one session only, and confirm each press with the command for changing the mode later. Desktop unchanged.
+- First-run terminal Arabic check: show three vertical plain AbovePrompt Buttons with hotkeys 1/2/3, Arabic Text children, and Not now. Any pick closes the check; 1/2 update the mode and 3 keeps it. Show once in the first eligible terminal session; `/muslim terminal-arabic` reopens it without resetting first-run state. Desktop unchanged.
 
-- Shared terminal Arabic fix: contextual joining and visual RTL order for thikr, `/muslim arabic-fix on | off | auto`, and a machine-local first-run comparison. Auto enables only for Apple Terminal; desktop stays unchanged.
+- Shared terminal Arabic fix: contextual joining and visual RTL order for thikr, `/muslim terminal-arabic`, and a machine-local first-run comparison. Auto enables only for Apple Terminal; desktop stays unchanged.
 
 ## 0.2.0
 

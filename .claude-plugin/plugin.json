@@ -17,7 +17,7 @@
     "arabicFix": {
       "type": "string",
       "title": "Fix Arabic in the terminal",
-      "description": "auto detects terminals that can't show Arabic; on/off forces it. Terminal only; the desktop is never changed.",
+      "description": "auto detects terminals that can't show Arabic; on/off forces it. Use /muslim terminal-arabic to compare samples. Terminal only; the desktop is never changed.",
       "options": [
         "auto",
         "on",

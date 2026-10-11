@@ -1,6 +1,6 @@
 # Terminal Arabic check
 
-`/muslim arabic-fix on | off | auto` changes `muslim.arabicFix`:
+`/muslim terminal-arabic` opens the keyboard picker and updates `muslim.arabicFix` immediately when a sample is chosen:
 
 | Value | Meaning |
 | --- | --- |
@@ -12,29 +12,13 @@ In `/config`, the title is **Fix Arabic in the terminal** and the description
 is: "auto detects terminals that can't show Arabic; on/off forces it. Terminal
 only; the desktop is never changed."
 
-The first eligible terminal prompt shows two short rows. The first identifies
-`muslim` in Claude's accent color and asks, in dim text,
-" · Which Arabic word reads correctly here?" The second has three buttons:
-logical `سلام`, its fixed form, and dim "Not now". Each sample is alone in its
-button label, with no digits or Latin mixed into the Arabic. The likely sample
-comes first: fixed for Apple Terminal in auto, logical for Warp/unknown in auto;
-explicit on/off follows the selected mode.
+The first eligible terminal prompt draws the picker directly in AbovePrompt. Row one shows `muslim` and the question. Below it are three vertical plain survey Buttons: hotkey `1` holds fixed `arabicVisual('سلام')` (`on`) or logical `سلام` (`off`), hotkey `2` holds the other sample, and hotkey `3` is **Not now** (`keep`). Each Arabic sample is a `Text` child, matching the thikr display path. The likely choice comes first (fixed for Apple Terminal in auto; logical for Warp/unknown in auto). The dim hint reads `Press 1, 2 or 3`.
 
-Press logical to set off, fixed to set on, or Not now to keep the mode. Any
-press hides the check, including a denied setting. A confirmation toast says
-`muslim: Arabic fix on — change with /muslim arabic-fix` (using the resulting
-mode); a denial reports why the setting was not changed and the same command.
+Pressing 1 or 2 selects its sample. Pressing 3 selects Not now. Any pick hides the picker; Not now keeps the current mode. Selecting either sample hides it and immediately updates `muslim.arabicFix`; the toast reports the resulting mode and points to `/muslim terminal-arabic`. A denied setting reports why it was not changed.
 
-The check appears in only one session on the machine. On its first display,
-`$.store.set('arabicFixShownIn', await $.session.id())` records that session and
-keeps the check visible through redraws and module reloads. A later session sees
-the stored ID mismatch and skips it. Any button press stores `done` before a
-setting change can reload the module, and marks the check answered for the
-current session. No clock callback or timer is involved.
+The automatic picker is offered only in the first eligible terminal session on the machine. Its first eligible render stores that session ID; any selection stores `done`, and a later session skips it. The session `arabicFixPicking` state preserves an unanswered picker across module reloads. Surveys suppress the picker without consuming it, and desktop never draws it or reads/writes its store.
 
-Surveys suppress the check without consuming it, and desktop never draws it or
-reads/writes its store. Users can always change the mode through the command or
-`/config`. No released settings require migration.
+`/muslim terminal-arabic` reopens the same picker on demand without resetting the automatic first-run marker. On desktop it replies that the check is terminal only. Extra arguments return `Usage: /muslim terminal-arabic`. Users can also change the setting in `/config`.
 
 Design: [arabic-fix-design.md](arabic-fix-design.md).
 
@@ -106,22 +90,21 @@ shipped, and the update bug remains unresolved in this build.
 
 ### Verification
 
-Automated tests cover detection, explicit modes, command validation/denial,
-first-display persistence and Not now, ordering, survey/desktop exclusion, preservation
-of the underlying band, and fresh shaping on each thikr text change. They do
+Automated tests cover detection, explicit modes, the survey Button hotkeys and choices,
+command validation, first-display persistence, option ordering, survey/desktop exclusion,
+preservation of the underlying band, and fresh shaping on each thikr text change. They do
 not execute the real terminal renderer's ANSI output.
 
 - **Warp:** on a machine without the stored marker, check the muslim label,
-  question and isolated sample buttons, with the logical sample first. Press it;
+  question, vertical hotkey Button rows and hint, with the logical sample first. Press 1;
   spinner/usage-limit/end text stays logical. The confirmation names the plugin
   and command. Reload and start a new session: no repeated check.
 - **Apple Terminal:** expect the fixed sample first in auto. Verify joined
   Arabic on the first draw and while thikr rotates. Compare on/off/auto and a
   lam-alef phrase (لا إله إلا الله). Record any corruption until a full host
   redraw: the documented renderer update bug remains unresolved.
-- **One session only:** leave the check unanswered, redraw and reload in the
-  same session: it stays visible. Start a new session: it never returns. Not now
-  hides it without changing the mode and confirms how to change it later.
+- **One session only:** leave the picker unanswered, redraw and reload in the
+  same session: it stays visible. Start a new session: it never returns. Not now hides it and keeps the mode.
 - **Both:** a survey hides the check without consuming an unseen check. Other
   band rows still work. Desktop has no check and keeps its original Arabic
   and tashkeel. Render-tree tests do not prove physical terminal bidi behavior.

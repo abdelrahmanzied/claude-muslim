@@ -63,27 +63,6 @@ for (const mode of ['off', 'on'] as const) {
   })
 }
 
-test('/muslim arabic-fix validates, persists the override and reports denial', async ($, on) => {
-  const command = (args: string) => $.command.run({ command: 'muslim', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
-  const writes: unknown[] = []
-  on('config.set', async (_$, e) => {
-    writes.push({ key: e.key, value: e.value })
-    return e.value === 'off' ? { deny: 'test refusal' } : { value: e.value }
-  })
-  expect((await command('arabic-fix')).text).toContain('Arabic fix auto')
-  expect((await command('arabic-fix wrong')).text).toContain('is auto (detect), on')
-  expect((await command('arabic-fix on extra')).text).toContain('is auto (detect), on')
-  expect(writes).toEqual([])
-  expect((await command('arabic-fix on')).text).toBe('Arabic fix on')
-  expect((await command('arabic-fix auto')).text).toBe('Arabic fix auto')
-  expect((await command('arabic-fix off')).text).toBe('Not changed: test refusal')
-  expect(writes).toEqual([
-    { key: 'muslim.arabicFix', value: 'on' },
-    { key: 'muslim.arabicFix', value: 'auto' },
-    { key: 'muslim.arabicFix', value: 'off' },
-  ])
-})
-
 // Render-tree evidence only: this does not emulate a terminal's cell-diff repaint.
 test('each spinner update shapes fresh text while desktop keeps logical Arabic', { options: { thikrMode: 'salawat' } }, async ($, on) => {
   mock.env(on, { TERM_PROGRAM: 'Apple_Terminal' })

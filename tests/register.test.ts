@@ -9,14 +9,22 @@ const muslim = (args: string) => ({
 
 test('/muslim answers with version and a hint', async $ => {
   const ran = await $.command.run(muslim(''))
-
   expect(ran.text).toBe('muslim v0.2.0\n\nHelp: /muslim help')
 })
 
-test('/muslim help includes the shared Arabic setting and existing thikr command', async $ => {
+test('/muslim help lists the terminal picker and thikr', async $ => {
   const all = (await $.command.run(muslim('help'))).text
-  expect(all).toContain('/muslim arabic-fix on | off | auto')
+  expect(all).toContain('/muslim terminal-arabic')
   expect(all).toContain('/thikr')
-  expect(all).not.toContain('/salah')
-  expect((await $.command.run(muslim('help arabic-fix'))).text).toContain('/muslim arabic-fix')
+  expect(all).not.toContain('/muslim arabic-fix')
+  expect((await $.command.run(muslim('help terminal-arabic'))).text).toContain('/muslim terminal-arabic')
+})
+
+test('the old arabic-fix subcommand no longer handles or changes settings', async ($, on) => {
+  const writes: unknown[] = []
+  on('config.set', async (_$, e) => (writes.push(e), { value: e.value }))
+  on('command.run', { command: 'muslim' }, async () => ({ text: 'passed through' }))
+  const result = await $.command.run(muslim('arabic-fix on'))
+  expect(result.text).toBe('passed through')
+  expect(writes).toEqual([])
 })
