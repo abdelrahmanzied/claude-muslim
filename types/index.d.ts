@@ -7,6 +7,10 @@ export type UsageLimit = { until: number | null }
 declare module 'claude-code' {
   interface PluginState {
     muslim: {
+      // Terminal whose picker was opened by /muslim terminal-arabic.
+      arabicSurveyManualTerminal: string | null
+      // Per-terminal mode cached for this session's thikr renders.
+      arabicTerminalMode: { terminalId: string; mode: 'none' | 'plain' | 'joined' | 'reversed' } | null
       usageLimit: UsageLimit | null
     }
   }

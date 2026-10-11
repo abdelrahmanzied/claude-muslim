@@ -1,3 +1,5 @@
+import { install as installArabicFix } from '../src/shared/arabic/install.tsx'
+import { muslimHelp } from '../src/help.ts'
 import type { Register } from 'claude-code'
 
 import { readOptions } from '../src/config.ts'
@@ -15,7 +17,7 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'muslim',
-      description: `Show ${PLUGIN} version`,
+      description: `Show ${PLUGIN} version, terminal Arabic setup, and help`,
     })
     await $.command.register({
       name: 'thikr',
@@ -25,9 +27,14 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  on('command.run', { command: 'muslim' }, async () => {
-    return { text: `${PLUGIN} v${VERSION}` }
+  on('command.run', { command: 'muslim' }, async ($, e, next) => {
+    const [word = '', feature = ''] = e.args.trim().split(/\s+/)
+    if (word === 'help') return { text: muslimHelp(feature) }
+    if (word !== '') return next(e).catch(() => ({ text: muslimHelp() }))
+
+    return { text: `${PLUGIN} v${VERSION}\n\n/muslim terminal-arabic — choose how Arabic shows in this terminal (applies to all features)\n\nHelp: /muslim help` }
   })
 
   installThikr(on, settings)
+  installArabicFix(on, settings)
 }

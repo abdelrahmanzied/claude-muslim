@@ -1,3 +1,4 @@
+import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
 import { atom, read } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
@@ -8,6 +9,49 @@ import { limitUntil } from './limit.ts'
 import { END_OF_TURN, SALAWAT, STARTING, USAGE_LIMIT } from './phrases.ts'
 import { display, groupFor, isStepRow, phraseAt, pickStart, startOf, withThikr } from './rotation.ts'
 import type { Group, Speed } from './rotation.ts'
+
+const cachedArabicMode = atom({ plugin: 'muslim', key: 'arabicTerminalMode' } as const, null as { terminalId: string; mode: ArabicMode } | null)
+
+const terminalId = async ($: EngineInterface): Promise<string> => {
+  const termProgram = await $.env.get('TERM_PROGRAM')
+  if (termProgram) return terminalIdFromEnv({ TERM_PROGRAM: termProgram })
+  const emulator = await $.env.get('TERMINAL_EMULATOR')
+  if (emulator) return terminalIdFromEnv({ TERMINAL_EMULATOR: emulator })
+  const bundle = await $.env.get('__CFBundleIdentifier')
+  if (bundle) return terminalIdFromEnv({ __CFBundleIdentifier: bundle })
+  const windowsTerminal = await $.env.get('WT_SESSION')
+  if (windowsTerminal !== undefined) return terminalIdFromEnv({ WT_SESSION: windowsTerminal })
+  const konsole = await $.env.get('KONSOLE_VERSION')
+  if (konsole) return terminalIdFromEnv({ KONSOLE_VERSION: konsole })
+  const vte = await $.env.get('VTE_VERSION')
+  if (vte) return terminalIdFromEnv({ VTE_VERSION: vte })
+  const kitty = await $.env.get('KITTY_WINDOW_ID')
+  if (kitty) return terminalIdFromEnv({ KITTY_WINDOW_ID: kitty })
+  const alacrittyWindow = await $.env.get('ALACRITTY_WINDOW_ID')
+  if (alacrittyWindow) return terminalIdFromEnv({ ALACRITTY_WINDOW_ID: alacrittyWindow })
+  const alacrittySocket = await $.env.get('ALACRITTY_SOCKET')
+  if (alacrittySocket) return terminalIdFromEnv({ ALACRITTY_SOCKET: alacrittySocket })
+  const os = await $.env.get('OS')
+
+  return terminalIdFromEnv({ OS: os })
+}
+
+// Resolve once per terminal per session; the Arabic picker refreshes this atom on a choice.
+const renderArabic = async ($: EngineInterface, surface: string, text: string, cache: { current: { terminalId: string; mode: ArabicMode } | null }): Promise<string> => {
+  if (surface !== 'terminal') return terminalArabic(surface, 'none', text)
+  const id = await terminalId($)
+  const selected = await read($, cachedArabicMode)
+  let cached = selected?.terminalId === id ? selected : cache.current
+  if (cached?.terminalId !== id) {
+    const saved = await $.store.get('arabicTerminals') as Record<string, unknown> | undefined
+    const storedMode = saved?.[id]
+    const mode = isArabicMode(storedMode) ? storedMode : defaultArabicMode(id)
+    cached = { terminalId: id, mode }
+    cache.current = cached
+  }
+
+  return terminalArabic(surface, cached.mode, text)
+}
 
 const usageLimit = atom({ plugin: 'muslim', key: 'usageLimit' } as const, null as UsageLimit | null)
 
@@ -88,6 +132,8 @@ export const install = (on: On, options: Options) => {
 
   if (!options.thikr) return
 
+  const arabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
+
   on('turn.start', async ($, e, next) => {
     group = undefined
     lastStep = undefined
@@ -157,7 +203,7 @@ export const install = (on: On, options: Options) => {
     const text = options.thikrMode === 'salawat'
       ? SALAWAT[Math.max(0, turns - 1) % SALAWAT.length] ?? ''
       : phraseAt(current, now - groupSince, options.thikrSpeed)
-    const phrase = display(text, options.thikrTashkeel)
+    const phrase = await renderArabic($, e.surface, display(text, options.thikrTashkeel), arabicCache)
 
     const isStep = isStepRow(e.surface, e.props, lastStep, toolsSince.size > 0)
     if (isStep) lastStep = e.props.word
@@ -169,7 +215,7 @@ export const install = (on: On, options: Options) => {
 
   if (options.thikrEnd) {
     on('ui.render', { component: 'TurnDuration' }, async ($, e, next) =>
-      next({ ...e, props: { ...e.props, word: display(END_OF_TURN, options.thikrTashkeel) } }),
+      next({ ...e, props: { ...e.props, word: await renderArabic($, e.surface, display(END_OF_TURN, options.thikrTashkeel), arabicCache) } }),
     )
   }
 
@@ -197,7 +243,7 @@ export const install = (on: On, options: Options) => {
 
     return (
       <Box flexDirection="column">
-        <Text key="usage-limit" color="claude">{display(USAGE_LIMIT, options.thikrTashkeel)}</Text>
+        <Text key="usage-limit" color="claude">{await renderArabic($, e.surface, display(USAGE_LIMIT, options.thikrTashkeel), arabicCache)}</Text>
         {theirs}
       </Box>
     )

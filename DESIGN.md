@@ -2,6 +2,13 @@
 
 The rules every feature follows. Read this before designing a new feature; the per-feature specs live in `docs/design.md`.
 
+## Feature index
+
+| Feature | Command | Spec | Design | Status |
+| --- | --- | --- | --- | --- |
+| Thikr line | `/thikr` | [thikr.md](docs/features/thikr.md) | [thikr-design.md](docs/features/thikr-design.md) | 0.2.0 |
+| Terminal Arabic check ([shared guide](docs/terminal.md)) | `/muslim terminal-arabic` | [arabic-fix.md](docs/features/arabic-fix.md) | [arabic-fix-design.md](docs/features/arabic-fix-design.md) | Unreleased |
+
 ## 1. Principles
 
 1. **Claude stays Claude.** We add a layer of thikr to Claude's interface; we never redesign it. Claude's own text (timer, token counts, `esc to interrupt`, tool output) is never translated, reworded or hidden.
@@ -47,7 +54,7 @@ Never use `error` or `warning` for religious text.
 - **Direction:** a line that starts with Arabic is read right to left by the surface. When Claude's own Latin text or numbers sit in the same line, keep them as a separate run (e.g. a separator `·`), and never convert Claude's numbers.
 - **Our numbers** (counts, times we compute) use Arabic-Indic digits (`١٥:٢٤`, `٢/٣`) inside Arabic lines.
 - **Length:** spinner and band phrases fit one line at 80 columns. Longer texts (athkar) live only in the reader, never truncated.
-- **Terminals that don't shape Arabic:** tracked in issue #3; don't work around it per feature.
+- **Terminal Arabic:** every feature's Arabic on a terminal goes through `src/shared/arabic`; see the [terminal guide](docs/terminal.md) for modes, persistence, survey, and limits.
 
 ## 5. Voice
 
