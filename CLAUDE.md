@@ -24,9 +24,9 @@ Claude Code mod (function-hooks plugin). Plugin name is `muslim` — Claude Code
 ## Before committing
 
 ```bash
-claude plugin validate .
-claude plugin test .
-npx tsc -p .
+npm run check
 ```
+
+It runs `claude plugin validate .`, `claude plugin test .` and `tsc -p .` (TypeScript is a dev dependency: `npm install` once). The pre-push hook runs it too; enable it once per clone with `git config core.hooksPath .githooks`. No CI: the API types `tsc` needs are written only when Claude Code loads the mod.
 
 API reference: `.claude-plugin/types/claude-code/index.d.ts` (written by Claude Code on load; grep for the event or noun).
