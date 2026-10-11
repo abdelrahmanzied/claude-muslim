@@ -1,7 +1,8 @@
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
-import { CARD_HEIGHT, cardSvg, cardWidth } from '../../src/features/salah/card.ts'
+import { CARD_HEIGHT, CARD_MS, cardSvg, cardWidth } from '../../src/features/salah/card.ts'
+import { FRAME_MS, HOLD_MS, ROWS_COUNT } from '../../src/features/salah/minaret.ts'
 
 const MUNICH = { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berlin; DE' }
 const NOW = Date.parse('2026-10-10T10:00:00Z')
@@ -88,4 +89,57 @@ test('on the terminal the test plays the minaret only, no card', { options: MUNI
 
   expect(await terminal.find({ type: 'Svg' })).toBeUndefined()
   expect(await terminal.find({ text: '▐███▌' })).toBeDefined()
+})
+
+for (const surface of ['desktop', 'terminal'] as const) {
+  test(`${surface}: athan test before the first draw survives ticker startup`, { options: MUNICH }, async ($, on) => {
+    const clock = mock.clock(on, { now: NOW })
+    engineBand(on)
+    on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
+    await $.command.run(run('athan test'))
+    const mounted = await $.ui.mount(band(surface))
+
+    if (surface === 'desktop') {
+      expect(await mounted.find({ type: 'Svg' })).toBeDefined()
+      expect(await mounted.find({ text: '▐███▌' })).toBeUndefined()
+    } else {
+      expect(await mounted.find({ type: 'Svg' })).toBeUndefined()
+      expect(await mounted.find({ text: '▐███▌' })).toBeDefined()
+    }
+    await clock.settle()
+    if (surface === 'desktop') {
+      expect(await mounted.find({ type: 'Svg' })).toBeDefined()
+      await clock.advance(CARD_MS)
+      expect(await mounted.find({ type: 'Svg' })).toBeUndefined()
+    } else {
+      expect(await mounted.find({ text: '▐███▌' })).toBeDefined()
+      await clock.advance((ROWS_COUNT - 1) * FRAME_MS)
+      expect(await mounted.find({ text: '☾' })).toBeDefined()
+      await clock.advance(FRAME_MS + HOLD_MS)
+      expect(await mounted.find({ text: '▐███▌' })).toBeUndefined()
+    }
+  })
+}
+
+test('a minaret left by a reload is cleared after rendering, not during it', { options: MUNICH }, async ($, on) => {
+  const clock = mock.clock(on, { now: NOW })
+  engineBand(on)
+  let isStale = true
+  on('state.get', { plugin: 'muslim', key: 'salahMinaret' }, async (_$, e, next) =>
+    isStale ? { value: { value: { prayer: 'isha', frame: ROWS_COUNT }, version: 1 } } : next(e),
+  )
+  on('state.set', { plugin: 'muslim', key: 'salahMinaret' }, async (_$, e, next) => {
+    const result = await next(e)
+    if (e.value === null) isStale = false
+
+    return result
+  })
+  const terminal = await $.ui.mount(band('terminal'))
+
+  expect(await terminal.find({ text: '▐███▌' })).toBeDefined()
+  expect(isStale).toBe(true)
+  await clock.settle()
+  expect(isStale).toBe(false)
+  const redrawn = await $.ui.mount({ ...band('terminal'), requestId: 'after-cleanup' })
+  expect(await redrawn.find({ text: '▐███▌' })).toBeUndefined()
 })

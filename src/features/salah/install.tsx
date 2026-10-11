@@ -33,6 +33,8 @@ const line = atom({ plugin: 'muslim', key: 'salahLine' } as const, null as strin
 // The desktop athan card while it shows; null otherwise.
 const card = atom({ plugin: 'muslim', key: 'salahCard' } as const, null as SalahCard | null)
 const athanShown = atom({ plugin: 'muslim', key: 'salahAthanShown' } as const, null as number | null)
+// A minaret started by this load still has its timers; only a reload's is stale.
+let hasPlayedMinaret = false
 
 // How often the prayer line is redrawn: every second inside the reminder
 // window (the live countdown), else every 30 seconds.
@@ -148,6 +150,7 @@ const scheduleOpen = ($: EngineInterface, options: Options, place: Place, timer:
 
 // Plays the minaret once: a row every FRAME_MS from the base up, a short hold, then it goes.
 const playMinaret = async ($: EngineInterface, prayer: SalahMinaret['prayer']) => {
+  hasPlayedMinaret = true
   await update($, minaret, () => ({ prayer, frame: 1 }))
   for (let frame = 2; frame <= ROWS_COUNT; frame++) {
     $.clock.after((frame - 1) * FRAME_MS, () => void update($, minaret, () => ({ prayer, frame })))
@@ -208,8 +211,12 @@ const putOff = async ($: EngineInterface) => {
 // Starts the prayer line's timer: a minaret left mid-play by a reload would
 // stay, so it starts clean, and the first tick runs right after the caller.
 const begin = async ($: EngineInterface, options: Options, place: Place, timer: Timer) => {
-  if (await read($, minaret)) await update($, minaret, () => null)
-  $.clock.after(0, () => void run($, options, place, timer))
+  $.clock.after(0, async () => {
+    // Rendering is read-only. Clear only an orphan from a previous load,
+    // never a test moment started before the first band or footer draw.
+    if ((await read($, minaret)) && !hasPlayedMinaret) await update($, minaret, () => null)
+    await run($, options, place, timer)
+  })
 }
 
 export const install = (on: On, options: Options) => {
