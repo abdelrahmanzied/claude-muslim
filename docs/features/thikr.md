@@ -47,17 +47,18 @@ Full text with tashkeel: `src/features/thikr/phrases.ts`.
 
 ## Settings
 
-Shared Arabic display uses a mode saved per `TERM_PROGRAM`: none, plain (strip tashkeel), joined (shape in logical order), or reversed (shape and reorder). Defaults are plain for Apple Terminal, joined for Warp, and none otherwise. Thikr caches the current terminal mode for the session; the keyboard survey updates that cache immediately. Desktop output and saved text stay unchanged. Each terminal ID is asked once; `/muslim terminal-arabic` reopens its survey. See [the Arabic check](arabic-fix.md), including the Apple Terminal update limitation.
+Shared terminal Arabic display uses a mode saved per terminal: none, plain (strip tashkeel), joined (shape in logical order), or reversed (shape and reorder). Defaults are plain for Apple Terminal, joined for Warp, reversed for Windows Console, and none otherwise. Thikr caches the current terminal mode for the session; the keyboard survey updates that cache immediately. The global tashkeel setting also applies on desktop; saved text stays unchanged. Each terminal ID is asked once; `/muslim terminal-arabic` reopens its survey. See [the Arabic check](arabic-fix.md), including the Apple Terminal update limitation.
 
 | `/config` field | Command | Default |
 | --- | --- | --- |
 | `thikr` | `/thikr on` · `/thikr off` | on |
 | `thikrSpeed` | `/thikr speed auto` · `/thikr speed <1-60>` | auto |
-| `thikrTashkeel` | `/thikr tashkeel on` · `off` | on |
 | `thikrEnd` | `/thikr end on` · `off` | on |
 | `thikrMode` | `/thikr mode all` · `/thikr mode salawat` | all |
 
 `/thikr` alone shows the current settings and help.
+
+Tashkeel is controlled plugin-wide by [`/muslim tashkeel`](../terminal.md#tashkeel).
 
 ## To verify live
 
@@ -75,5 +76,5 @@ Text only, in Claude's font, size and colors: [thikr-design.md](thikr-design.md)
 | --- | --- |
 | `src/features/thikr/install.tsx` | the hooks: spinner text, end of turn, usage limit, and the `/thikr` command |
 | `src/features/thikr/phrases.ts` | the authored phrases with tashkeel: starting, thinking, writing, long, salawat, end of turn, usage limit |
-| `src/features/thikr/rotation.ts` | pure logic: moment to group, phrase timing and speed, start pick, joining thikr to Claude's words, tashkeel stripping |
+| `src/features/thikr/rotation.ts` | pure logic: moment to group, phrase timing and speed, start pick, joining thikr to Claude's words |
 | `src/features/thikr/limit.ts` | pure logic: when a usage limit ends, from the rate-limit windows |

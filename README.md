@@ -68,7 +68,7 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/thikr on` · `off` | Turn the thikr line on or off |
 | `/thikr speed auto` | Each phrase stays for its reading time: 1 s + 0.5 s per word (default) |
 | `/thikr speed <1-60>` | Every phrase stays the same number of seconds |
-| `/thikr tashkeel on` · `off` | Show or hide diacritics |
+| `/muslim tashkeel on` · `off` | Show or hide Arabic diacritics everywhere |
 | `/thikr end on` · `off` | تَمَّ بِحَمْدِ اللَّهِ at the end of a turn |
 | `/thikr mode all` · `salawat` | Every group in turn, or one salawat per request |
 | `/salah` | Place, method and mode, then today's prayer times |

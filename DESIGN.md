@@ -61,8 +61,8 @@ Never use `error` or `warning` for religious text.
 
 ## 4. Typography and Arabic
 
-- **Font and size:** text uses Claude's own, which we cannot change. A feature that draws states its own choices in its design doc.
-- **Tashkeel:** on by default; each feature respects a `…Tashkeel` setting through `display(text, tashkeel)`.
+- **Font and size:** Claude's. We cannot and do not change them.
+- **Tashkeel:** one plugin-wide setting, on by default; shared Arabic display uses `withTashkeel(text, on)`.
 - **Direction:** a line that starts with Arabic is read right to left by the surface. When Claude's own Latin text or numbers sit in the same line, keep them as a separate run (e.g. a separator `·`), and never convert Claude's numbers.
 - **Our numbers** (counts, times we compute) use Arabic-Indic digits (`١٥:٢٤`, `٢/٣`) inside Arabic lines.
 - **Length:** spinner and band phrases fit one line at 80 columns. Longer texts (athkar) live only in the reader, never truncated.

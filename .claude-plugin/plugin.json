@@ -26,10 +26,10 @@
       "description": "auto (1s + 0.5s per word), or whole seconds per phrase from 1 to 60",
       "default": "auto"
     },
-    "thikrTashkeel": {
+    "tashkeel": {
       "type": "boolean",
-      "title": "Thikr tashkeel",
-      "description": "Show diacritics on the phrases",
+      "title": "Tashkeel",
+      "description": "Show diacritics on Arabic in every feature",
       "default": true
     },
     "thikrEnd": {

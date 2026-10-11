@@ -1,13 +1,16 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 import type { Options } from '../../config.ts'
-import { ARABIC_MODES, defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode, type TerminalEnvironment } from './terminal.ts'
+import { ARABIC_MODES, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode, type TerminalEnvironment } from './terminal.ts'
+
 
 const manual = atom({ plugin: 'muslim', key: 'arabicSurveyManualTerminal' } as const, null as string | null)
 const cachedMode = atom({ plugin: 'muslim', key: 'arabicTerminalMode' } as const, null as { terminalId: string; mode: ArabicMode } | null)
 const MODES_KEY = 'arabicTerminals'
 export const ARABIC_SAMPLE = 'بِسْمِ اللَّهِ'
-const QUESTION = 'Which line reads correctly in this terminal?'
+const TITLE = 'Terminal Arabic Setup'
+const QUESTION = 'Which word is written correctly?'
+const HINT = 'Some terminals break Arabic letters apart or reverse them — pick the one you can read.'
 
 const terminalId = async ($: EngineInterface): Promise<string> => {
   const termProgram = await $.env.get('TERM_PROGRAM')
@@ -33,9 +36,8 @@ const terminalId = async ($: EngineInterface): Promise<string> => {
   return terminalIdFromEnv({ OS: os })
 }
 
-const choose = async ($: EngineInterface, termId: string, choice: ArabicMode | 'keep'): Promise<void> => {
+const choose = async ($: EngineInterface, termId: string, mode: ArabicMode): Promise<void> => {
   const saved = await $.store.get(MODES_KEY) as Record<string, unknown> | undefined
-  const mode = choice === 'keep' ? defaultArabicMode(termId) : choice
   await $.store.set(MODES_KEY, { ...(saved ?? {}), [termId]: mode })
   await update($, cachedMode, () => ({ terminalId: termId, mode }))
   await update($, manual, value => value === termId ? null : value)
@@ -69,17 +71,17 @@ export const install = (on: On, _options: Options): void => {
       <Box flexDirection="column">
         <Box>
           <Text color="claude">muslim</Text>
-          <Text dimColor> · {QUESTION}</Text>
+          <Text> · {TITLE} · {QUESTION}</Text>
         </Box>
+        <Text dimColor>{HINT}</Text>
         <Box flexDirection="column">
           {ARABIC_MODES.map((mode, index) => (
             <Button key={`arabic-mode-${mode}`} plain hotkey={String(index + 1)} onPress={() => choose($, id, mode)}>
               <Text>{terminalArabic('terminal', mode, ARABIC_SAMPLE)}</Text>
             </Button>
           ))}
-          <Button key="arabic-mode-keep" plain hotkey="5" onPress={() => choose($, id, 'keep')}>Not now</Button>
         </Box>
-        <Text dimColor>Press 1–5</Text>
+        <Text dimColor>Press 1–4</Text>
         {theirs}
       </Box>
     )

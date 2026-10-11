@@ -7,7 +7,6 @@ export const THIKR_COMMANDS: readonly (readonly [string, string])[] = [
   ['/thikr on` · `off', 'Show tasabih while Claude works'],
   ['/thikr speed auto', 'Reading time: 1s + 0.5s per word'],
   [`/thikr speed <${SPEED_MIN}-${SPEED_MAX}>`, 'Fixed seconds per phrase'],
-  ['/thikr tashkeel on` · `off', 'Show or hide diacritics'],
   ['/thikr end on` · `off', 'تَمَّ بِحَمْدِ اللَّهِ at the end of a turn'],
   ['/thikr mode all` · `salawat', 'Every group in turn, or one salawat for each whole turn'],
 ]
