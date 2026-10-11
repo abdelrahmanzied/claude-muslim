@@ -20,5 +20,6 @@ export const muslimHelp = (feature?: string): string => {
   if (feature === 'tashkeel') return TASHKEEL_HELP
   if (!isFeature(feature)) return `No feature "${feature}". Features: ${Object.keys(FEATURES).join(', ')}, terminal-arabic, tashkeel.`
 
-  return commandTable(FEATURES[feature])
+  // A title first: the host puts `muslim: ` before the first line.
+  return `**Muslim › ${feature.charAt(0).toUpperCase()}${feature.slice(1)} › Help**\n\n${commandTable(FEATURES[feature])}`
 }

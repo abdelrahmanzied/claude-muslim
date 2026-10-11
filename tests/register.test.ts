@@ -22,6 +22,7 @@ test('/muslim help shows every feature\'s table; with a feature, only its own', 
   expect(all).toContain('/muslim terminal-arabic')
   expect(all).toContain('/muslim tashkeel on | off')
   expect((await $.command.run(muslim('help terminal-arabic'))).text).toBe('/muslim terminal-arabic — choose how Arabic shows in this terminal (applies to all features)')
+  expect(salah?.split('\n')[0]).toBe('**Muslim › Salah › Help**')
   expect(salah).toContain('/salah city')
   expect(salah).not.toContain('/thikr')
   expect(thikr).toContain('/thikr mode')

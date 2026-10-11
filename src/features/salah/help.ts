@@ -19,4 +19,5 @@ export const SALAH_COMMANDS: readonly (readonly [string, string])[] = [
   [`/salah adjust <pray> <±min>`, 'Move one pray by any whole number of minutes, e.g. adjust asr +5'],
 ]
 
-export const salahHelp = (): string => commandTable(SALAH_COMMANDS)
+// The host puts `muslim: ` before the first line, so a title goes there, not the table.
+export const salahHelp = (): string => `**Muslim › Salah › Help**\n\n${commandTable(SALAH_COMMANDS)}`
