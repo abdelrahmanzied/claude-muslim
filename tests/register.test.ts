@@ -10,7 +10,7 @@ const muslim = (args: string) => ({
 test('/muslim answers with version and a hint', async $ => {
   const ran = await $.command.run(muslim(''))
 
-  expect(ran.text).toBe('muslim v0.4.0\n\nHelp: /muslim help')
+  expect(ran.text).toBe('muslim v0.3.0\n\nHelp: /muslim help')
 })
 
 test('/muslim help shows every feature\'s table; with a feature, only its own', async $ => {

@@ -1,11 +1,5 @@
 # Changelog
 
-## 0.4.0
-
-- Prayer line placement (P4a): the prayer line (`☾ العصر ١٥:٥٩`, the live countdown, `حان وقت صلاة العصر`) moves from the status line to its own row in the band above the prompt, right-aligned in Claude orange, in the terminal and the desktop app. The status line is no longer used. Rows stack: the setup and review rows, thikr's usage-limit row and the prayer row each stay. While the minaret plays it takes the prayer row's place.
-- The live countdown now starts the second the reminder window opens (a timer for that moment) instead of on the next 30 s tick.
-- Shared prayer helpers (names, digits, the prayer line text) moved to `src/prayer/`; thikr no longer imports salah's folder.
-
 ## 0.3.0
 
 - Prayer times (`/salah`): calculated on the machine with adhan-js, no location service or API. The first prompt after install offers the city named by the time zone, or any city typed in any language (Claude reads it into coordinates). Each country's official Sunni method, else Muslim World League; Asr by the majority.
@@ -15,6 +9,9 @@
 - Adhan moment (terminal and desktop): when a prayer comes in and `salahAdhan` is on, a text minaret rises row by row above the prompt for about 3 seconds beside «حان وقت صلاة العصر», once per prayer, never during a survey; the status line keeps the call for 15 minutes.
 - Thikr before a prayer: inside the reminder window the first phrase of each thikr turn is حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د (prayer and whole minutes left); salah shares the window through `$.state` `salahWindow`. Salawat mode shows it first too.
 - Settings in `/config`: `salah`, `salahReminder`, `salahAdhan`, `salahPlace`, `salahMethod`, `salahAdjust`.
+- Prayer line placement (P4a): the prayer line (`☾ العصر ١٥:٥٩`, the live countdown, `حان وقت صلاة العصر`) moves from the status line to its own row in the band above the prompt, right-aligned in Claude orange, in the terminal and the desktop app. The status line is no longer used. Rows stack: the setup and review rows, thikr's usage-limit row and the prayer row each stay. While the minaret plays it takes the prayer row's place.
+- The live countdown now starts the second the reminder window opens (a timer for that moment) instead of on the next 30 s tick.
+- Shared prayer helpers (names, digits, the prayer line text) moved to `src/prayer/`; thikr no longer imports salah's folder.
 
 ## 0.2.0
 

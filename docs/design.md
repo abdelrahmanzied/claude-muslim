@@ -5,7 +5,7 @@ Each feature has a spec (`docs/features/<feature>.md`) and a design (`docs/featu
 | Feature | Command | Spec | Design | Status |
 | --- | --- | --- | --- | --- |
 | Thikr line | `/thikr` | [features/thikr.md](features/thikr.md) | [features/thikr-design.md](features/thikr-design.md) | 0.2.0 |
-| Salah | `/salah` | [features/salah.md](features/salah.md) | [features/salah-design.md](features/salah-design.md) | 0.4.0 |
+| Salah | `/salah` | [features/salah.md](features/salah.md) | [features/salah-design.md](features/salah-design.md) | 0.3.0 |
 | Morning and evening athkar | `/athkar` | in progress in another branch | in progress | planned |
 
 Cross-cutting issues: languages (#1), Arabic in terminals that don't shape (#3).
