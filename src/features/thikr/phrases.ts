@@ -45,4 +45,4 @@ export const SALAWAT = [
 
 export const END_OF_TURN = 'تَمَّ بِحَمْدِ اللَّهِ'
 
-export const USAGE_LIMIT = 'حَسْبِيَ اللَّهُ وَنِعْمَ الْوَكِيلُ'
+export const USAGE_LIMIT = 'حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ'

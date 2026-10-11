@@ -15,7 +15,7 @@ A thikr phrase joins Claude's working line (the spinner). Claude's step, timer a
 | Writing the answer | رب زدني علما · اللهم علمنا ما ينفعنا |
 | Long waits (compacting, subagents, long commands) | لا إله إلا أنت سبحانك إني كنت من الظالمين · … |
 | End of a turn | تَمَّ بِحَمْدِ اللَّهِ |
-| Usage limit reached | حَسْبِيَ اللَّهُ وَنِعْمَ الْوَكِيلُ |
+| Usage limit reached | حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ |
 
 **Salawat mode:** `/thikr mode salawat` shows one salawat on the Prophet ﷺ for each whole request, a different one each request.
 

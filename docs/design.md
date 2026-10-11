@@ -63,7 +63,7 @@ Full text with tashkeel: `src/features/thikr/phrases.ts`.
 ### Special moments
 
 - **End of turn** (terminal): Claude's past-tense word ("Baked") becomes تَمَّ بِحَمْدِ اللَّهِ; Claude's duration stays. `/thikr end off` restores Claude's word.
-- **Usage limit**: when Claude stops with `rate_limit` and a usage window is at 100%, حَسْبِيَ اللَّهُ وَنِعْمَ الْوَكِيلُ shows above the prompt in Claude orange until that window resets (or the next turn, when the reset time is unknown). A passing throttle (no full window) shows nothing.
+- **Usage limit**: when Claude stops with `rate_limit` and a usage window is at 100%, حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ shows above the prompt in Claude orange until that window resets (or the next turn, when the reset time is unknown). A passing throttle (no full window) shows nothing.
 
 ### Settings
 
