@@ -188,11 +188,9 @@ describe('readSpeed', () => {
   })
 })
 
-describe('readOptions tashkeel migration', () => {
-  test('new setting wins and old saved values are the fallback', () => {
-    expect(readOptions({ tashkeel: false, thikrTashkeel: true }).tashkeel).toBe(false)
-    expect(readOptions({ thikrTashkeel: false }).tashkeel).toBe(false)
-    expect(readOptions({ thikrTashkeel: true }).tashkeel).toBe(true)
+describe('readOptions tashkeel', () => {
+  test('uses the setting and defaults to on', () => {
+    expect(readOptions({ tashkeel: false }).tashkeel).toBe(false)
     expect(readOptions({}).tashkeel).toBe(true)
   })
 })

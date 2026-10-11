@@ -6,7 +6,7 @@ import { commandTable } from './table.ts'
 
 const FEATURES = { thikr: THIKR_COMMANDS, salah: SALAH_COMMANDS } as const
 
-export const TASHKEEL_HELP = '/muslim tashkeel on | off — show or hide Arabic diacritics everywhere'
+export const TASHKEEL_HELP = '/muslim tashkeel on | off — show or hide Arabic diacritics on desktop (the terminal never shows them)'
 export const TERMINAL_ARABIC_HELP = '/muslim terminal-arabic — choose how Arabic shows in this terminal (applies to all features)'
 
 export const isFeature = (word: string): word is keyof typeof FEATURES => Object.hasOwn(FEATURES, word)

@@ -23,7 +23,7 @@ declare module 'claude-code' {
       // Terminal whose picker was opened by /muslim terminal-arabic.
       arabicSurveyManualTerminal: string | null
       // Per-terminal mode cached for this session's thikr renders.
-      arabicTerminalMode: { terminalId: string; mode: 'none' | 'plain' | 'joined' | 'reversed' } | null
+      arabicTerminalMode: { terminalId: string; mode: 'plain' | 'joined' | 'reversed' } | null
       usageLimit: UsageLimit | null
       // Pray times setup put off with Not now, for this session.
       salahSetupLater: boolean

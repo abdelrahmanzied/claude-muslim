@@ -58,7 +58,7 @@ Set up the Claude Code plugin "muslim" for all my sessions (user scope):
 3. Show me what each step printed, then tell me to run /reload-plugins.
 ```
 
-Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows the installed version.
+Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows the installed version and your settings.
 
 ## Use
 
@@ -68,7 +68,6 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/thikr on` · `off` | Turn the thikr line on or off |
 | `/thikr speed auto` | Each phrase stays for its reading time: 1 s + 0.5 s per word (default) |
 | `/thikr speed <1-60>` | Every phrase stays the same number of seconds |
-| `/muslim tashkeel on` · `off` | Show or hide Arabic diacritics everywhere |
 | `/thikr end on` · `off` | تَمَّ بِحَمْدِ اللَّهِ at the end of a turn |
 | `/thikr mode all` · `salawat` | Every group in turn, or one salawat per request |
 | `/salah` | Place, method and mode, then today's prayer times |
@@ -78,7 +77,9 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/salah method <name>` | `auto` (your country's own) or a named method |
 | `/salah show always` · `<minutes>` · `off` | Show the next pray all day, only that many minutes before it (e.g. `show 20`), or hide it |
 | `/salah athan on` · `off` | `حان وقت صلاة …` when a prayer comes in |
-| `/muslim` | Show the installed version |
+| `/muslim` | Version and a table of every setting, its value and the command that changes it |
+| `/muslim tashkeel on` · `off` | Show or hide Arabic diacritics on desktop (the terminal never shows them) |
+| `/muslim terminal-arabic` | Choose how Arabic shows in this terminal |
 | `/muslim help` · `help <feature>` | Command tables of every feature, or one (`thikr`, `salah`) |
 
 Every setting is also in `/config`.
@@ -99,7 +100,7 @@ Then restart Claude Code, or run `/reload-plugins` in an open session.
 
 **Inside any session, desktop app or terminal:** paste the same prompt from [Install](#install). It updates the mod when it is already installed.
 
-`/muslim` shows the version you are running; `CHANGELOG.md` lists what changed.
+`/muslim` shows the version you are running and your settings; `CHANGELOG.md` lists what changed.
 
 ## Uninstall
 

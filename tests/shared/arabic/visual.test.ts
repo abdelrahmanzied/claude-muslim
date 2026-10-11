@@ -84,12 +84,11 @@ test('the shared tashkeel setting preserves authored text or strips marks only',
 
 test('modes transform terminal text and leave every non-terminal surface unchanged', () => {
   const text = 'بِبِبِ'
-  expect(terminalArabic('terminal', 'none', text)).toBe(text)
   expect(terminalArabic('terminal', 'plain', text)).toBe('ببب')
   expect(terminalArabic('terminal', 'joined', text)).toBe('\ufe91\ufe92\ufe90')
   expect(terminalArabic('terminal', 'reversed', text)).toBe('\ufe90\ufe92\ufe91')
   for (const surface of ['desktop', 'mobile', 'vscode']) {
-    for (const mode of ['none', 'plain', 'joined', 'reversed'] as const) expect(terminalArabic(surface, mode, text)).toBe(text)
+    for (const mode of ['plain', 'joined', 'reversed'] as const) expect(terminalArabic(surface, mode, text)).toBe(text)
   }
 })
 
@@ -97,7 +96,7 @@ test('built-in defaults are specific to known terminals', () => {
   expect(defaultArabicMode('Apple_Terminal')).toBe('plain')
   expect(defaultArabicMode('WarpTerminal')).toBe('joined')
   expect(defaultArabicMode('WindowsConsole')).toBe('reversed')
-  for (const termId of ['unknown', 'iTerm.app', 'xterm']) expect(defaultArabicMode(termId)).toBe('none')
+  for (const termId of ['unknown', 'iTerm.app', 'xterm']) expect(defaultArabicMode(termId)).toBe('plain')
 })
 
 describe('terminal id detection', () => {

@@ -48,7 +48,7 @@ const terminalId = async ($: EngineInterface): Promise<string> => {
 
 // Resolve once per terminal per session; the Arabic picker refreshes this atom on a choice.
 const renderArabic = async ($: EngineInterface, surface: string, text: string, cache: { current: { terminalId: string; mode: ArabicMode } | null }): Promise<string> => {
-  if (surface !== 'terminal') return terminalArabic(surface, 'none', text)
+  if (surface !== 'terminal') return terminalArabic(surface, 'plain', text)
   const id = await terminalId($)
   const selected = await read($, cachedArabicMode)
   let cached = selected?.terminalId === id ? selected : cache.current
