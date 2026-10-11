@@ -79,7 +79,11 @@ Never use `error` or `warning` for religious text.
 - A timed moment (before prayer, after prayer, usage limit) appears once, clears itself when its moment passes, and survives `/clear` and reloads through `$.state` / `$.store`.
 - Timers run only while needed (e.g. the spinner ticker only during a turn).
 
-## 8. Code shape for a new feature
+## 8. Demo (planned, not built yet)
+
+Every feature ships a demo: scenes that play the feature's real UI on demand, through a future shared `/muslim demo` command. Scenes run on a fake clock and change no settings or state the user keeps. Scenes may live in one shared demo file or in a file inside each feature folder (e.g. `src/features/<feature>/demo.ts`). The command and the scene format are not built yet; until they are, a feature notes its scenes in its design doc.
+
+## 9. Code shape for a new feature
 
 ```
 src/features/<feature>/
@@ -93,7 +97,7 @@ docs/features/<feature>-design.md   the feature's design
 
 Wire it in `hooks/register.tsx` (`install<Feature>(on, settings)`), register its command there, add its fields to `plugin.json` `userConfig` and `src/config.ts`, declare any `$.state` values in `types/index.d.ts`.
 
-## 9. New feature checklist
+## 10. New feature checklist
 
 - [ ] Fits the shared base above; uses the lightest surface that does the job.
 - [ ] `docs/features/<feature>-design.md` written: surfaces, visual means, why, and the fallback where a surface is desktop-only; linked from the index above and from the spec's Design section.
@@ -102,5 +106,6 @@ Wire it in `hooks/register.tsx` (`install<Feature>(on, settings)`), register its
 - [ ] Off switch in `/config` and the command; off leaves Claude untouched.
 - [ ] Text colors via theme keys; tashkeel setting respected.
 - [ ] Tests on `terminal` and `desktop`; `claude plugin validate`, `claude plugin test`, `tsc` pass.
+- [ ] Demo scenes for the feature's real UI (planned: `/muslim demo`, fake clock, no settings changed).
 - [ ] Tried live in a terminal and the desktop app.
 - [ ] `CHANGELOG.md` and version bumped.

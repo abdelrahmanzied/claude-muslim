@@ -20,6 +20,7 @@ Claude Code mod (function-hooks plugin). Plugin name is `muslim` — Claude Code
 - Religious text is authored data with tashkeel; never generated. Display may strip tashkeel, never change words.
 - Every value kept in `$.state` is declared in `types/index.d.ts` under `PluginState['muslim']`. The contract exports types only.
 - Every feature gets tests in `tests/<feature>/` (`.tsx` when a test uses JSX).
+- Every feature ships a demo: scenes that play its real UI on demand through a future shared `/muslim demo` (fake clock, no settings changed); scenes live in a shared demo file or in a file inside the feature folder. Planned, not built yet (see DESIGN.md §8).
 - Bump `version` in both `.claude-plugin/plugin.json` and `src/constants.ts`, and note it in `CHANGELOG.md`.
 - Commits, PRs and issues use `me@abdelrahman.ai`; never a personal Gmail.
 
