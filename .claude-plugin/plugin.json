@@ -47,6 +47,58 @@
         "salawat"
       ],
       "default": "all"
+    },
+    "salahShow": {
+      "type": "string",
+      "title": "Show pray line",
+      "description": "always: next pray all day; a number: only that many minutes before a pray, counting down (e.g. 20); off: hidden",
+      "default": "20"
+    },
+    "salahAthan": {
+      "type": "boolean",
+      "title": "Pray call",
+      "description": "Show حان وقت صلاة … for 15 minutes once a pray comes in",
+      "default": true
+    },
+    "salahPlace": {
+      "type": "string",
+      "title": "Pray place",
+      "description": "name; latitude, longitude; time zone; country, e.g. Munich, Germany; 48.14, 11.58; Europe/Berlin; DE. Empty until set up",
+      "default": ""
+    },
+    "salahMethod": {
+      "type": "string",
+      "title": "Pray calculation method",
+      "description": "auto uses the place's country's own method; or name an authority's Fajr and Isha angles",
+      "options": [
+        "auto",
+        "mwl",
+        "egypt",
+        "ummAlQura",
+        "karachi",
+        "isna",
+        "dubai",
+        "kuwait",
+        "qatar",
+        "singapore",
+        "jakim",
+        "kemenag",
+        "turkey",
+        "france",
+        "russia",
+        "tunisia",
+        "algeria",
+        "morocco",
+        "jordan",
+        "portugal"
+      ],
+      "default": "auto"
+    },
+    "salahAdjust": {
+      "type": "string",
+      "title": "Pray minutes",
+      "description": "Any whole number of minutes added to Fajr, Sunrise, Dhuhr, Asr, Maghrib and Isha, e.g. 0 0 0 90 0 -120",
+      "default": "0 0 0 0 0 0"
     }
   }
 }

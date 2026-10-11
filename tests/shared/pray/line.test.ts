@@ -1,0 +1,60 @@
+import { describe, expect, test } from 'claude-code/testing'
+
+import { arabicDigits, countdownText, isInWindow, minutesText, prayLine, type View } from '../../../src/shared/pray/line.ts'
+
+const MINUTE = 60_000
+const ASR = { pray: 'asr' as const, at: 1_000 * MINUTE }
+const ALWAYS: View = { show: 'always', isAthan: true }
+const MINUTES: View = { show: 20, isAthan: true }
+const DHUHR = { pray: 'dhuhr' as const, at: 800 * MINUTE }
+
+describe('status line', () => {
+  test('the next pray\'s time, in Arabic digits', async () => {
+    expect(prayLine(ASR, '15:59', DHUHR, 900 * MINUTE, ALWAYS)).toBe('☾ العصر ١٥:٥٩')
+  })
+
+  test('a live mm:ss countdown in the last 20 minutes', async () => {
+    expect(prayLine(ASR, '15:59', DHUHR, 980 * MINUTE, ALWAYS)).toBe('☾ العصر ٢٠:٠٠')
+    expect(prayLine(ASR, '15:59', DHUHR, 980 * MINUTE + 18_000, ALWAYS)).toBe('☾ العصر ١٩:٤٢')
+    expect(prayLine(ASR, '15:59', DHUHR, 995 * MINUTE, ALWAYS)).toBe('☾ العصر ٠٥:٠٠')
+    expect(prayLine(ASR, '15:59', DHUHR, 999.5 * MINUTE, ALWAYS)).toBe('☾ العصر ٠٠:٣٠')
+  })
+
+  test('countdown rounds up to the second and window is the show minutes', async () => {
+    expect(countdownText(59_001)).toBe('٠١:٠٠')
+    expect(countdownText(500)).toBe('٠٠:٠١')
+    expect(isInWindow(ASR, 979 * MINUTE, 20)).toBe(false)
+    expect(isInWindow(ASR, 980 * MINUTE, 20)).toBe(true)
+    expect(isInWindow(ASR, ASR.at, 20)).toBe(false)
+  })
+
+  test('the call for 15 minutes after a pray comes in', async () => {
+    expect(prayLine(ASR, '15:59', DHUHR, 801 * MINUTE, ALWAYS)).toBe('حان وقت صلاة الظهر')
+    expect(prayLine(ASR, '15:59', DHUHR, 816 * MINUTE, ALWAYS)).toBe('☾ العصر ١٥:٥٩')
+  })
+
+  test('show minutes is empty outside the window, and after the call', async () => {
+    expect(prayLine(ASR, '15:59', DHUHR, 900 * MINUTE, MINUTES)).toBe(undefined)
+    expect(prayLine(ASR, '15:59', DHUHR, 816 * MINUTE, MINUTES)).toBe(undefined)
+    expect(prayLine(ASR, '15:59', DHUHR, 801 * MINUTE, MINUTES)).toBe('حان وقت صلاة الظهر')
+    expect(prayLine(ASR, '15:59', DHUHR, 980 * MINUTE, MINUTES)).toBe('☾ العصر ٢٠:٠٠')
+  })
+
+  test('the window follows the show minutes', async () => {
+    const view: View = { ...ALWAYS, show: 30 }
+
+    expect(prayLine(ASR, '15:59', DHUHR, 970 * MINUTE, view)).toBe('☾ العصر ٣٠:٠٠')
+    expect(prayLine(ASR, '15:59', DHUHR, 970 * MINUTE, ALWAYS)).toBe('☾ العصر ١٥:٥٩')
+  })
+
+  test('off is empty; the call can be turned off', async () => {
+    expect(prayLine(ASR, '15:59', DHUHR, 980 * MINUTE, { ...ALWAYS, show: 'off' })).toBe(undefined)
+    expect(prayLine(ASR, '15:59', DHUHR, 801 * MINUTE, { ...ALWAYS, isAthan: false })).toBe('☾ العصر ١٥:٥٩')
+    expect(prayLine(ASR, '15:59', DHUHR, 801 * MINUTE, { ...MINUTES, isAthan: false })).toBe(undefined)
+  })
+
+  test('minutes read as Arabic says them', async () => {
+    expect([1, 2, 3, 10, 11, 20].map(minutesText)).toEqual(['دقيقة', 'دقيقتين', '٣ دقائق', '١٠ دقائق', '١١ دقيقة', '٢٠ دقيقة'])
+    expect(arabicDigits('05:42')).toBe('٠٥:٤٢')
+  })
+})

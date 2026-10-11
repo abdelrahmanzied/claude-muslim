@@ -1,6 +1,6 @@
 import { mock, test, expect } from 'claude-code/testing'
 import type { On } from 'claude-code'
-import type { Options } from '../../../src/config.ts'
+import { readOptions } from '../../../src/config.ts'
 import { install } from '../../../src/shared/arabic/install.tsx'
 import { ARABIC_MODES, terminalArabic } from '../../../src/shared/arabic/terminal.ts'
 
@@ -12,7 +12,7 @@ const engineBand = (on: On) => on('ui.render', { component: 'AbovePrompt' }, asy
   const { Text } = $.ui.resolve(e)
   return <Text key="engine-band">engine band</Text>
 })
-const OPTIONS = { thikr: false, tashkeel: true } as Options
+const OPTIONS = { thikr: false, tashkeel: true, salahShow: 'off', salahPlace: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' }
 const sample = 'بِسْمِ اللَّهِ'
 const rows = { type: 'Button' as const }
 
@@ -20,7 +20,7 @@ test('survey rows use fixed mode order and Text samples', { options: OPTIONS }, 
   mock.env(on, { TERM_PROGRAM: 'Apple_Terminal' })
   mock.store(on)
   engineBand(on)
-  install(on, OPTIONS)
+  install(on, readOptions(OPTIONS))
   const shown = await $.ui.mount(band('terminal'))
   const buttons = await shown.findAll(rows)
   expect(buttons.map(button => button.props.hotkey)).toEqual(['1', '2', '3'])
@@ -42,7 +42,7 @@ for (const mode of ARABIC_MODES) {
     const toasts: string[] = []
     on('ui.toast', async (_$, e) => (toasts.push(e.text), { value: undefined }))
     engineBand(on)
-    install(on, OPTIONS)
+    install(on, readOptions(OPTIONS))
     const shown = await $.ui.mount(band('terminal'))
     await shown.press({ key: `arabic-mode-${mode}` })
     expect(stored.arabicTerminals).toEqual({ WarpTerminal: mode })
@@ -59,7 +59,7 @@ test('Apple and Warp answers are independent; a new unanswered terminal gets its
   on('store.get', async (_$, e) => ({ value: stored[e.key] }))
   on('store.set', async (_$, e) => (stored[e.key] = e.value, { value: undefined }))
   engineBand(on)
-  install(on, OPTIONS)
+  install(on, readOptions(OPTIONS))
   let shown = await $.ui.mount(band('terminal'))
   await shown.press({ key: 'arabic-mode-plain' })
   await shown.unmount()
@@ -74,7 +74,7 @@ test('desktop never draws the survey; command replies terminal-only there', { op
   mock.env(on, { TERM_PROGRAM: 'Apple_Terminal' })
   mock.store(on)
   engineBand(on)
-  install(on, OPTIONS)
+  install(on, readOptions(OPTIONS))
   on('session.surface', async () => ({ value: 'desktop' }))
   const desktop = await $.ui.mount(band('desktop'))
   expect(await desktop.find(rows)).toBeUndefined()
@@ -87,7 +87,7 @@ test('terminal-arabic reopens the survey for an answered terminal', { options: O
   mock.env(on, { TERM_PROGRAM: 'WarpTerminal' })
   mock.store(on, { arabicTerminals: { WarpTerminal: 'joined' } })
   engineBand(on)
-  install(on, OPTIONS)
+  install(on, readOptions(OPTIONS))
   on('session.surface', async () => ({ value: 'terminal' }))
   const automatic = await $.ui.mount(band('terminal', false, 'already-answered'))
   expect(await automatic.find(rows)).toBeUndefined()
@@ -103,7 +103,7 @@ test('survey remains visible after reload in the same unanswered terminal sessio
   mock.env(on, { TERM_PROGRAM: 'Apple_Terminal' })
   mock.store(on)
   engineBand(on)
-  install(on, OPTIONS)
+  install(on, readOptions(OPTIONS))
   const shown = await $.ui.mount(band('terminal'))
   expect(await shown.find(rows)).toBeDefined()
   await shown.unmount()
@@ -113,7 +113,7 @@ test('an invalid saved mode reopens the survey', { options: OPTIONS }, async ($,
   mock.env(on, { TERM_PROGRAM: 'WarpTerminal' })
   mock.store(on, { arabicTerminals: { WarpTerminal: 'none' } })
   engineBand(on)
-  install(on, OPTIONS)
+  install(on, readOptions(OPTIONS))
   const shown = await $.ui.mount(band('terminal'))
   expect(await shown.find(rows)).toBeDefined()
   await shown.unmount()

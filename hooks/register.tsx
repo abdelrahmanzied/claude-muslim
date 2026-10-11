@@ -1,9 +1,11 @@
 import { install as installArabicFix } from '../src/shared/arabic/install.tsx'
-import { muslimHelp } from '../src/help.ts'
 import type { Register } from 'claude-code'
 
 import { readOptions } from '../src/config.ts'
 import { PLUGIN, VERSION } from '../src/constants.ts'
+import { muslimHelp } from '../src/help.ts'
+import { showText } from '../src/features/salah/today.ts'
+import { install as installSalah } from '../src/features/salah/install.tsx'
 import { install as installThikr } from '../src/features/thikr/install.tsx'
 
 // Entry point. Commands are all registered here (one session.start per module);
@@ -23,6 +25,16 @@ export const register: Register = (on, options) => {
       name: 'thikr',
       description: "Tasabih in Claude's working line: on, off, speed, end",
     })
+    await $.command.register({
+      name: 'salah',
+      description: 'Pray times: today, help, show, athan, city, method, adjust',
+    })
+
+    // Older versions pinned the pray line in the status line; clear what a
+    // reload may have left there. The mod no longer sets it.
+    $.ui.status(undefined)
+    // A reload fires this again: ask for a redraw so the salah timer re-arms.
+    $.clock.after(0, () => $.ui.invalidate('ui.render'))
 
     return next(e)
   })
@@ -46,6 +58,7 @@ export const register: Register = (on, options) => {
     const rows = [
       ['Tashkeel', `${onOff(settings.tashkeel)} — desktop only; the terminal never shows diacritics`, '`/muslim tashkeel on` · `off`'],
       ['Thikr', onOff(settings.thikr), '`/thikr on` · `off` · all options: `/thikr help`'],
+      ['Salah', settings.salahPlace ? showText(settings.salahShow) : 'not set up', '`/salah show always` · `<minutes>` · `off` · all options: `/salah help`'],
       ['Terminal Arabic', terminal || 'terminal only', '`/muslim terminal-arabic`'],
     ]
 
@@ -65,5 +78,6 @@ export const register: Register = (on, options) => {
   })
 
   installThikr(on, settings)
+  installSalah(on, settings)
   installArabicFix(on, settings)
 }
