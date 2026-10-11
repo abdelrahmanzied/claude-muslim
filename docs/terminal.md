@@ -1,0 +1,75 @@
+# Terminal Arabic
+
+This is the shared reference for Arabic shown by every feature on a terminal surface. Each feature routes its own Arabic text through `src/shared/arabic`; Claude's text and desktop rendering are left alone.
+
+## Why treatments differ
+
+Terminals handle Arabic differently. Apple Terminal orders and joins letters itself, but paints tashkeel poorly, so its default strips tashkeel only. Warp orders Arabic but does not join letters, so its default shapes letters and keeps logical order. Windows conhost and some Linux terminals need letters shaped and reordered into visual RTL order. Claude's desktop app renders Arabic itself.
+
+| Mode | Display treatment | Use it when |
+| --- | --- | --- |
+| `none` | Keep authored text unchanged | The terminal handles Arabic shaping and tashkeel correctly; this is the default for unrecognized terminals. |
+| `plain` | Strip tashkeel only | Apple Terminal handles ordering and joining but paints marks poorly. |
+| `joined` | Strip tashkeel and apply contextual presentation forms; keep logical order | Warp orders text correctly but leaves letters unjoined. |
+| `reversed` | Strip tashkeel, shape, then reorder Arabic runs for visual RTL display | The terminal needs both shaping and visual reordering, such as Windows conhost or some Linux terminals. |
+
+Built-in defaults before a terminal has an answer are `plain` for `Apple_Terminal`, `joined` for `WarpTerminal`, and `none` for every other ID.
+
+## First-run survey
+
+The first time Claude Code opens with the plugin in a terminal ID with no saved answer, the first eligible AbovePrompt render shows:
+
+```text
+muslim · Which line reads correctly in this terminal?
+1: بِسْمِ اللَّهِ
+2: بسم الله
+3: <joined Arabic sample>
+4: <reversed Arabic sample>
+5: Not now
+Press 1–5
+```
+
+The placeholders stand for Arabic-only samples transformed by their modes; actual rows have no Latin mode labels. Every Arabic sample is drawn with the same `Text` renderer used by thikr. The option order is fixed so the number keys always mean the same treatment.
+
+Press 1–4 to save that mode for the current terminal. Press 5 to save its built-in default. The plugin confirms with `muslim: Arabic for <termId> set — /muslim terminal-arabic to redo`. That terminal is not asked again automatically. A different terminal ID with no answer gets its own survey. `/muslim terminal-arabic` reopens the current terminal's survey at any time. Desktop never shows the survey and never changes Arabic.
+
+Surveys wait while Claude is showing another survey. An unanswered terminal remains eligible after a module reload; the missing saved answer restores the automatic survey, and `arabicSurveyManualTerminal` in `$.state` keeps an explicitly reopened survey tied to its terminal.
+
+## Storage and reset
+
+The terminal ID is `TERM_PROGRAM`, or `unknown` when it is unset. Claude Code persists the plugin store in:
+
+```text
+~/.claude/plugins/store/muslim_<source>.json
+```
+
+There is one file per plugin install source. For example, `--plugin-dir` uses an `inline` source file. The store key is `arabicTerminals`, an object mapping terminal IDs to modes:
+
+```json
+{
+  "arabicTerminals": {
+    "Apple_Terminal": "plain",
+    "WarpTerminal": "joined"
+  }
+}
+```
+
+To ask again for one terminal, remove its property from `arabicTerminals`. To reset every terminal, remove the `arabicTerminals` property (or the install source's store file). Then open Claude Code again in that terminal.
+
+Session state is declared in `types/index.d.ts`: `arabicSurveyManualTerminal` identifies the terminal whose survey was explicitly reopened, and `arabicTerminalMode` caches the current terminal's mode for thikr renders. Automatic survey visibility is reload-safe because an answer is not saved until a choice is made; after a module reload during the session, the missing terminal entry still makes the survey eligible. The old global `userConfig` field `arabicFix` was removed.
+
+## Using the shared treatment in a feature
+
+At draw time, each feature should first check that `e.surface === 'terminal'`, read `TERM_PROGRAM` (falling back to `unknown`), resolve the saved mode from `arabicTerminals` or `defaultArabicMode(termId)`, and pass its authored display text through `terminalArabic(surface, mode, text)` from `src/shared/arabic/terminal.ts`. `terminalArabic` itself returns the input unchanged for non-terminal surfaces. Keep any helper that reads `$` in the same source file as the hook, as required by `CLAUDE.md`; the pure mode and transform functions are shared.
+
+Tashkeel is stripped from display text only. Stored/authored words are never changed. The treatments are pure functions in `src/shared/arabic/visual.ts` and `terminal.ts`.
+
+## Decisions and limits
+
+- Modes are per terminal, rather than one value per machine, because Apple Terminal and Warp need different treatments on the same machine.
+- The picker uses number-key `Button` rows and our own `Text` renderer. Claude's `AskUserQuestion` dialog and `Select` drew Arabic through a different path and could mislead users; `Select` also appeared as a one-line dropdown without taking focus.
+- Fixed option order keeps keys 1–4 stable; the defaults do not reorder the survey.
+- The first-run check survives module reloads because no answer is stored until the user chooses; “Not now” stores the terminal's default.
+- A changing Arabic line can still be partially repainted incorrectly by Apple Terminal. The plugin API cannot force a complete terminal redraw. Reversed-mode text copied from a terminal is in visual order.
+
+The per-terminal survey UI is specified in [the Arabic check design](features/arabic-fix-design.md). The thikr feature's use is described in [thikr docs](features/thikr.md).

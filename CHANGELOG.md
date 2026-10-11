@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Per-terminal Arabic treatments: none, tashkeel-stripped, joined logical order, and joined visual RTL order. Defaults are Apple Terminal plain, Warp joined, and none for other terminals. The AbovePrompt survey compares all four treatments with fixed hotkeys 1–4; 5 saves the built-in default. Each terminal ID is remembered independently; `/muslim terminal-arabic` reopens the current terminal's survey. Desktop remains unchanged.
+- Per-terminal Arabic setup now applies to every feature's Arabic shown on a terminal: none, tashkeel-stripped, joined logical order, and joined visual RTL order. Defaults are Apple Terminal plain, Warp joined, and none for other terminals. The AbovePrompt survey compares all four treatments with fixed hotkeys 1–4; 5 saves the built-in default. Each terminal ID is remembered independently; `/muslim terminal-arabic` reopens the current terminal's survey. Desktop remains unchanged.
 
 - Shared terminal Arabic rendering for thikr with transformations tailored and saved per terminal.
 

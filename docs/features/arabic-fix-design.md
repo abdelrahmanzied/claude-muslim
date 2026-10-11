@@ -1,17 +1,11 @@
-# Terminal Arabic check — design
+# Terminal Arabic check — feature design
 
-Shared terminal display support, used by thikr; the rules in [DESIGN.md](../../DESIGN.md) apply. Behavior and renderer investigation are in [arabic-fix.md](arabic-fix.md).
+Shared mode behavior and persistence are defined in the [terminal Arabic guide](../terminal.md). This spec covers the feature's visible surface only.
 
-- **Surface:** draw the picker in the terminal AbovePrompt render while the session picker terminal matches the current terminal ID. Return existing prompt rows too.
-- **Question and identity:** row one shows `muslim` in Claude color and the dim question ` · Which line reads correctly in this terminal?`.
-- **Picker:** five vertical `<Button plain hotkey="1|2|3|4|5">` rows in fixed order: none, plain, joined, reversed, Not now. Samples use `بِسْمِ اللَّهِ` transformed through the same pure mode functions as thikr and are nested `Text` children. The dim hint is `Press 1–5`.
-- **Actions:** choices 1–4 save that mode under the current terminal ID; 5 saves its built-in default. Every choice hides the picker and toasts `muslim: Arabic for <termId> set — /muslim terminal-arabic to redo`.
-- **Per terminal:** the store value `arabicTerminals` maps `TERM_PROGRAM` (or `unknown`) to a mode. Defaults are Apple Terminal `plain`, Warp `joined`, otherwise `none`. A saved terminal ID is skipped automatically; a different unanswered terminal ID gets its own survey. Session state keeps an unanswered picker visible across reloads.
-- **Manual command:** `/muslim terminal-arabic` reopens the current terminal's picker, even after it has a saved answer.
-- **Desktop:** never draw the picker or transform Arabic; the command replies that the check is terminal only. Surveys defer an unanswered check.
+- **Surface:** terminal `AbovePrompt`; return existing prompt rows alongside the survey.
+- **Header:** `muslim` in Claude color, followed by the dim question ` · Which line reads correctly in this terminal?`.
+- **Rows:** one vertical plain Button per choice, with its digit hotkey; Arabic samples are `Text` children. The choices follow the fixed order in the shared guide.
+- **Hint:** dim `Press 1–5`.
+- **Desktop:** no survey; `/muslim terminal-arabic` replies that the check is terminal-only.
 
-The install hook lives in `src/shared/arabic/install.tsx`.
-
-## Demo (planned)
-
-Fixed option order and hotkeys, Not now defaults, independent terminal IDs, manual reopen, survey suppression, reload persistence, and desktop with no picker.
+Visual and command checks live in [arabic-fix.md](arabic-fix.md). Shared terminal behavior lives only in [docs/terminal.md](../terminal.md).

@@ -8,7 +8,7 @@ Three features, each shipped in its own PR:
 | Morning and evening athkar | `/athkar` | planned |
 | Salah | `/salah` | planned — issue #2 |
 
-Cross-cutting issues: languages (#1), Arabic in terminals that don't shape (#3).
+Cross-cutting issues: languages (#1), Arabic in terminals that don't shape (#3; see the [terminal Arabic guide](terminal.md)).
 
 ## Principles
 

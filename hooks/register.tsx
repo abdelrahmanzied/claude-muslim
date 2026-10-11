@@ -17,7 +17,7 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'muslim',
-      description: `Show ${PLUGIN} version, Arabic fix settings, and help`,
+      description: `Show ${PLUGIN} version, terminal Arabic setup, and help`,
     })
     await $.command.register({
       name: 'thikr',
@@ -32,7 +32,7 @@ export const register: Register = (on, options) => {
     if (word === 'help') return { text: muslimHelp(feature) }
     if (word !== '') return next(e).catch(() => ({ text: muslimHelp() }))
 
-    return { text: `${PLUGIN} v${VERSION}\n\nHelp: /muslim help` }
+    return { text: `${PLUGIN} v${VERSION}\n\n/muslim terminal-arabic — choose how Arabic shows in this terminal (applies to all features)\n\nHelp: /muslim help` }
   })
 
   installThikr(on, settings)

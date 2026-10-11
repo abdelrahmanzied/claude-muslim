@@ -7,7 +7,7 @@ The rules every feature follows. Read this before designing a new feature; the p
 | Feature | Command | Spec | Design | Status |
 | --- | --- | --- | --- | --- |
 | Thikr line | `/thikr` | [thikr.md](docs/features/thikr.md) | [thikr-design.md](docs/features/thikr-design.md) | 0.2.0 |
-| Terminal Arabic check | `/muslim terminal-arabic` | [arabic-fix.md](docs/features/arabic-fix.md) | [arabic-fix-design.md](docs/features/arabic-fix-design.md) | Unreleased |
+| Terminal Arabic check ([shared guide](docs/terminal.md)) | `/muslim terminal-arabic` | [arabic-fix.md](docs/features/arabic-fix.md) | [arabic-fix-design.md](docs/features/arabic-fix-design.md) | Unreleased |
 
 ## 1. Principles
 
@@ -54,9 +54,7 @@ Never use `error` or `warning` for religious text.
 - **Direction:** a line that starts with Arabic is read right to left by the surface. When Claude's own Latin text or numbers sit in the same line, keep them as a separate run (e.g. a separator `·`), and never convert Claude's numbers.
 - **Our numbers** (counts, times we compute) use Arabic-Indic digits (`١٥:٢٤`, `٢/٣`) inside Arabic lines.
 - **Length:** spinner and band phrases fit one line at 80 columns. Longer texts (athkar) live only in the reader, never truncated.
-- **Terminal Arabic:** apply one of four treatments only to our Arabic display runs on `e.surface === 'terminal'`. `none` keeps text unchanged; `plain` strips tashkeel; `joined` strips tashkeel and shapes letters while preserving logical order; `reversed` also applies the existing visual RTL reorder. Desktop always uses `none`. Save modes per `TERM_PROGRAM` in `arabicTerminals`; defaults are `plain` for Apple Terminal, `joined` for Warp, and `none` otherwise. `/muslim terminal-arabic` opens the current terminal's keyboard check. Claude's own runs and stored authored words are untouched. The fallback keeps digit runs LTR and supports basic Arabic single-line RTL paragraphs; explicit bidi controls, automatic wrapping and letters outside the forms table are not supported. Reversed text copied from a fallback terminal has presentation forms and visual order.
-- **First terminal run:** for each terminal ID without a saved mode, draw the AbovePrompt survey with five vertical plain Buttons: `1` none, `2` plain, `3` joined, `4` reversed, `5` Not now. Each sample is a Text child and uses fixed order. Not now saves that terminal's built-in default. Session state preserves an unanswered survey across reloads; answered terminal IDs are skipped, while a new terminal ID gets its own check. `/muslim terminal-arabic` reopens the current terminal's survey; desktop replies terminal only. No picker during surveys. See [Arabic check design](docs/features/arabic-fix-design.md).
-- **Terminal updates:** a hook rerender is not a full terminal repaint. Width/padding or a new JSX key cannot force the renderer to rewrite unchanged cells. The Apple Terminal update limitation and measured widths are recorded in [the Arabic check investigation](docs/features/arabic-fix.md#apple-terminal-update-investigation).
+- **Terminal Arabic:** every feature's Arabic on a terminal goes through `src/shared/arabic`; see the [terminal guide](docs/terminal.md) for modes, persistence, survey, and limits.
 
 ## 5. Voice
 

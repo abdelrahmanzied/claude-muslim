@@ -16,6 +16,7 @@ Claude Code mod (function-hooks plugin). Plugin name is `muslim` — Claude Code
 - Settings are `userConfig` fields in `plugin.json` (shown in `/config`); commands change them with `$.config.set({ key: 'muslim.<field>' })`, which reloads the module. Read them through `src/config.ts`.
 - Text only: use Claude's own font, size and colors (theme keys like `color="claude"`). No drawing (SVG/images) — it must work the same on Windows, macOS and Linux, terminal and desktop.
 - Religious text is authored data with tashkeel; never generated. Display may strip tashkeel, never change words.
+- Every feature's Arabic shown on a terminal goes through `src/shared/arabic` (see `docs/terminal.md`); never shape or reorder Arabic elsewhere.
 - Every value kept in `$.state` is declared in `types/index.d.ts` under `PluginState['muslim']`. The contract exports types only.
 - Every feature gets tests in `tests/<feature>/` (`.tsx` when a test uses JSX).
 - Bump `version` in both `.claude-plugin/plugin.json` and `src/constants.ts`, and note it in `CHANGELOG.md`.
