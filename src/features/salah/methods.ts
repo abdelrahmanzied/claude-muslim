@@ -4,6 +4,8 @@
 // Asr follows the majority (shadow equals the object) for every method. Sunni
 // authorities only: a country whose official method is not gets mwl.
 
+import type { Prayer } from '../../prayer/names.ts'
+
 export type MethodId =
   | 'mwl'
   | 'egypt'
@@ -25,7 +27,7 @@ export type MethodId =
   | 'jordan'
   | 'portugal'
 
-export type Prayer = 'fajr' | 'sunrise' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'
+export type { Prayer }
 
 export const PRAYERS: readonly Prayer[] = ['fajr', 'sunrise', 'dhuhr', 'asr', 'maghrib', 'isha']
 

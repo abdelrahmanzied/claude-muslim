@@ -3,7 +3,7 @@
 
 import { ADJUST_MAX } from '../../config.ts'
 import { PRAYERS, type MethodId, type Prayer } from './methods.ts'
-import { ENGLISH } from './names.ts'
+import { ENGLISH } from '../../prayer/names.ts'
 import type { Place } from './place.ts'
 import { clockText, timesOn, type Adjust } from './times.ts'
 

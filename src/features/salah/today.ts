@@ -2,7 +2,7 @@
 
 import type { Options } from '../../config.ts'
 import { methodFor, PRAYERS, type MethodId } from './methods.ts'
-import { ENGLISH } from './names.ts'
+import { ENGLISH } from '../../prayer/names.ts'
 import type { Place } from './place.ts'
 import { clockText, timesOn } from './times.ts'
 

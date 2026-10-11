@@ -2,9 +2,9 @@
 // countdown in the minutes before it, and the call once it is in.
 // Sunrise has no line and no reminder.
 
-import type { Prayer } from './methods.ts'
-import type { SalahMode } from '../../config.ts'
+import type { SalahMode } from '../config.ts'
 import { ARABIC } from './names.ts'
+import type { Prayer } from './names.ts'
 
 // How long `حان وقت صلاة …` stays after a prayer comes in.
 export const IN_MS = 15 * 60_000

@@ -1,7 +1,7 @@
 // Prayer names: English transliteration for commands and help, Arabic for
 // the lines shown with Claude.
 
-import type { Prayer } from './methods.ts'
+export type Prayer = 'fajr' | 'sunrise' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'
 
 export const ENGLISH: Readonly<Record<Prayer, string>> = {
   fajr: 'Fajr',
