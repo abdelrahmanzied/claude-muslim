@@ -19,10 +19,9 @@ button:focus-visible {outline: 2px solid var(--accent); outline-offset: 2px;}
 .band.active .state {color: var(--b-acc);}
 .band {outline: none !important; transition: box-shadow .4s ease;}
 .band.active.al-breathe {animation: breathe 5.5s ease-in-out infinite;}
-.xabs {position: absolute; top: 4px; left: 6px; z-index: 4; opacity: .35; font-size: 17px; transition: opacity .2s, color .2s, transform .2s;}
-.band.active .xabs {opacity: 1; color: var(--ring); font-weight: 700;}
+.xabs {position: absolute; top: 4px; left: 6px; z-index: 4; opacity: .55; font-size: 17px; transition: opacity .2s, color .2s, transform .2s;}
+.band.active .xabs {font-weight: 700;}
 .xabs:hover {opacity: 1;}
-.band.active .xabs:hover {opacity: .45; transform: scale(.9);}
 .band[data-band] .text {font-size: var(--band-size, 16px) !important;}
 .bg-sand {background: var(--desk-side); border: 1px solid var(--desk-line);}
 .bg-outline {background: transparent; border: 1.5px solid var(--b-acc);}
@@ -58,7 +57,7 @@ button:focus-visible {outline: 2px solid var(--accent); outline-offset: 2px;}
 .fx .rays {right: -40px; top: -60px; width: 150px; height: 150px; border-radius: 50%; background: repeating-conic-gradient(from 0deg, rgba(255, 252, 230, .14) 0 6deg, rgba(255, 252, 230, 0) 6deg 18deg); -webkit-mask: radial-gradient(closest-side, #000 30%, transparent 100%); mask: radial-gradient(closest-side, #000 30%, transparent 100%); animation: fxSpin 60s linear infinite; animation-delay: var(--t, 0s);}
 .band.fx-rich.bg-crescent::before {animation: moonGlow 4s ease-in-out infinite alternate, fxFloat 7s ease-in-out infinite alternate;}
 @media (prefers-reduced-motion: reduce) { .fx i, .fx i::before {animation: none !important;} }
-.band.sky.nm-main.dark-ink .cover :not(.cover-title), .band.sky.nm-main.dark-ink > .x {color: var(--ring);}
+.band.sky.nm-main.dark-ink .cover :not(.cover-title) {color: var(--ring);}
 .band.sky.nm-main.dark-ink .cover .kc {border-color: color-mix(in srgb, var(--ring) 50%, transparent); background: color-mix(in srgb, var(--ring) 10%, transparent);}
 .band.sky {isolation: isolate;}
 .band.bg-dawn::after {content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: -1;}

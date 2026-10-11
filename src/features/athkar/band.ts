@@ -152,10 +152,9 @@ const EXTRA_CSS = `
 .band { min-height: 100%; }
 /* Faded, the reading folds to one row: the thikr cut short, then where it stands. */
 .band.band.rest { display: flex; align-items: center; padding: var(--ay, 0px) calc(14px + var(--ax, 0px)) var(--ay, 0px) calc(34px + var(--ax, 0px)); }
-/* The ×: a round 20px target; hovered, full and with a soft disc behind it. */
-.band .xabs { display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border-radius: 50%; }
+/* The ×: a round 20px target, quiet in the faded ink; hovered, full ink with a soft disc behind it. */
+.band .xabs { color: var(--b-ink); display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border-radius: 50%; }
 .band .xabs.hot { opacity: 1; color: var(--b-ink); background: color-mix(in srgb, var(--b-ink) 20%, transparent); }
-.band.active .xabs.hot { color: var(--ring); }
 /* A small muted × at the left edge hides the band; the sky's moon would sit on the position, so it goes. */
 .band.band.rest .xabs { top: 50%; margin-top: -10px; font-size: 14px; }
 .band.band.rest.bg-crescent::before { display: none; }
