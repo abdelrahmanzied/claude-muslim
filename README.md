@@ -21,7 +21,7 @@ A thikr phrase joins Claude's working line (the spinner). Claude's step, timer a
 
 ### Morning and evening athkar (`/athkar`)
 
-A reader above the prompt for the morning athkar (05:00–17:00) and the evening athkar (17:00–05:00), from Hisn al-Muslim. Click, Space or Enter to count; right click or Backspace to take one back; ← → to move. It moves on by itself after each thikr, and your reading is saved for the day. On desktop it sits on a sky that follows the time of day.
+A reader above the prompt for the morning athkar (05:00–17:00) and the evening athkar (17:00–05:00), from Hisn al-Muslim. Click, Space or Enter to count; right click or Backspace to take one back; ← → to move. It moves on by itself after each thikr, and your reading is saved for the day. On desktop it sits on a sky that follows the time of day. Details: [docs/features/athkar.md](docs/features/athkar.md).
 
 ### Prayer times (`/salah`)
 

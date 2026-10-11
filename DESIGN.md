@@ -4,20 +4,14 @@ The shared base every feature follows, and the index to each feature's own desig
 
 ## Feature index
 
-| Feature | Command | Spec | Design | Status |
-| --- | --- | --- | --- | --- |
-| Thikr line | `/thikr` | [thikr.md](docs/features/thikr.md) | [thikr-design.md](docs/features/thikr-design.md): text only | 0.2.0 |
-| Salah | `/salah` | [salah.md](docs/features/salah.md) | [salah-design.md](docs/features/salah-design.md): text, richer athan moment | Unreleased |
-| Morning and evening athkar | `/athkar` | in progress in another branch | in progress | planned |
+| Feature | Command | Spec | Design |
+| --- | --- | --- | --- |
+| Thikr line | `/thikr` | [thikr.md](docs/features/thikr.md) | [thikr-design.md](docs/features/thikr-design.md): text only |
+| Morning and evening athkar | `/athkar` | [athkar.md](docs/features/athkar.md) | [athkar-design.md](docs/features/athkar-design.md): a drawn reader (Client module, desktop Svg sky) |
+| Salah | `/salah` | [salah.md](docs/features/salah.md) | [salah-design.md](docs/features/salah-design.md): text, richer athan moment |
+| Terminal Arabic check ([shared guide](docs/terminal.md)) | `/muslim terminal-arabic` | [arabic-fix.md](docs/features/arabic-fix.md) | [arabic-fix-design.md](docs/features/arabic-fix-design.md) |
 
 Everything below is shared by every feature. A feature's doc may add to it, never contradict it.
-
-## Feature index
-
-| Feature | Command | Spec | Design | Status |
-| --- | --- | --- | --- | --- |
-| Thikr line | `/thikr` | [thikr.md](docs/features/thikr.md) | [thikr-design.md](docs/features/thikr-design.md) | 0.2.0 |
-| Terminal Arabic check ([shared guide](docs/terminal.md)) | `/muslim terminal-arabic` | [arabic-fix.md](docs/features/arabic-fix.md) | [arabic-fix-design.md](docs/features/arabic-fix-design.md) | Unreleased |
 
 ## 1. Principles
 
@@ -26,7 +20,6 @@ Everything below is shared by every feature. A feature's doc may add to it, neve
 3. **Authentic content.** Every phrase is authored data with tashkeel and, where it has one, a source (Quran ayah or Hisn al-Muslim number). Nothing is generated at runtime. Display may strip tashkeel; it never changes words.
 4. **No scores.** We never count the user's worship, show streaks, rewards or guilt. Counting exists only where the user counts themselves (athkar reader), and stays private on their machine.
 5. **One feature, one switch.** Every feature can be turned off on its own, in `/config` and by its command. Off means its hooks do nothing.
-
 6. **Each feature owns its visual means.** Text in Claude's font, size and colors is the default. A feature may use richer means (images, SVG, animation) only where its design doc says so and why. Anything drawn must work on every surface the feature targets, with a text fallback in the terminal when the richer surface is desktop-only, and must follow the theme and zoom.
 
 ## 2. Surfaces
@@ -116,4 +109,4 @@ Wire it in `hooks/register.tsx` (`install<Feature>(on, settings)`), register its
 - [ ] Tests on `terminal` and `desktop`; `claude plugin validate`, `claude plugin test`, `tsc` pass.
 - [ ] Demo scenes for the feature's real UI (planned: `/muslim demo`, fake clock, no settings changed).
 - [ ] Tried live in a terminal and the desktop app.
-- [ ] Change notes added under `## Unreleased` in `CHANGELOG.md` (never change the version; see CLAUDE.md).
+- [ ] Change notes added to `CHANGELOG.md` (see CLAUDE.md).

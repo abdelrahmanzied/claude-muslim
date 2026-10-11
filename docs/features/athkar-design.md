@@ -1,11 +1,30 @@
-# Athkar reader — design rules
+# Morning and evening athkar — design
 
-The athkar reader: what it shows, its looks and settings, and the rules it follows. The mod-wide rules are in [DESIGN.md](../DESIGN.md). Change a rule here first, then the code and its tests.
+The athkar reader's own design. It adds to the shared base in [DESIGN.md](../../DESIGN.md) and never contradicts it. What the feature does is in [athkar.md](athkar.md). Change a rule here first, then the code and its tests.
+
+## Visual means: a drawn reader
+
+The athkar reader is the one feature the person sits with, so it is drawn:
+
+- **Client module** (`src/features/athkar/reader.tsx`) for the reader: it takes clicks and keys, keeps the cover and the active look, and posts each count to the hooks module. Terminal and desktop.
+- **Svg** (desktop only) for the Sky look: a sky that follows the time of day with slow SMIL motion, drawn behind the reader. The terminal and the Frame look use a plain background color.
+- **Hex colors** for the reader's main color (orange, green, gold, blue, in a light and a dark shade) and the skies, since a theme key cannot be blended or placed on a sky.
+
+Everything else (font, size) stays Claude's: the API sets neither, so the reader follows the app's zoom.
+
+**Why:** reading two dozen athkar with counts needs a place to sit, click and see progress; a text row cannot hold it. The terminal gets the same reader as text on a plain background.
 
 ## Scope
 
 - Desktop app and terminal only. No phone layouts or phone-width checks.
 - Few settings, simple rules: on/off, style (sky or frame) and color. Nothing else is customizable.
+
+## Surfaces
+
+| Moment | Surface | What shows |
+| --- | --- | --- |
+| Reading | AbovePrompt band | The reader (Client module), folded or open |
+| Settings | Command reply | `/athkar` status and help, one line per change |
 
 ## Reading
 
@@ -13,10 +32,7 @@ The athkar reader: what it shows, its looks and settings, and the rules it follo
 - **Count:** click, Space or Enter adds one. Right click or Backspace takes one back, or goes to the thikr before at 0. ← next, → previous (Arabic reads right to left). Esc gives the prompt back. The band folds by itself once the person stops ([rules](#when-it-folds-collapse-rules)).
 - **Passage name:** Quran items show their name beside the set position on desktop and in the terminal: آية الكرسي and the three short surahs (الإخلاص، الفلق، الناس). Duas have no passage name.
 - **Count on the line:** no circles. The progress line along the bottom shows the whole set; a small pill on its glowing head shows the repetitions left on this thikr in Arabic-Indic digits (٣ then ٢, ١, ٠; ١ for a thikr said once), easing along with the head and kept clear of both ends of the line. The set position (e.g. ١٦ مِنْ ٢٢) sits small and muted at the line's left end. In the terminal the head is `` ٢ `` on the main color.
-- **Moves on** by itself 650 ms after a thikr's last count.
-- **Progress:** Horizon glow, a soft line along the bottom filled from the right, its head pulsing slowly and easing forward on each count. Each thikr is an equal share, partial counts included: `Σ min(count / times, 1) / n`.
-- **×** hides the band and keeps the reading; `/athkar` brings it back.
-- **Saved** per day and period in `$.store`. A day runs 05:00 to 05:00, so evening athkar read after midnight still count for that evening. A new day starts fresh; a finished period does not show again that day.
+- **Progress:** Horizon glow, a soft line along the bottom filled from the right, its head pulsing slowly and easing forward on each count. The share per thikr is in [athkar.md](athkar.md#reading).
 
 ## Looks
 
@@ -28,18 +44,6 @@ The athkar reader: what it shows, its looks and settings, and the rules it follo
 
 On every sky the pill is the main color with a white number. Sunrise takes dark words; every other sky white.
 
-## Settings
-
-| `/config` field | Command | Default |
-| --- | --- | --- |
-| `athkar` | `/athkar on` · `off` | on |
-| `athkarStyle` | `/athkar style sky` · `frame` | sky |
-| `athkarColor` | `/athkar color orange` · `green` · `gold` · `blue` | orange |
-
-`/athkar morning reset` · `/athkar evening reset` start that period again. `/athkar` shows the status and help.
-
-Not settable: the font (Tajawal in the design) and the text size (fixed at 14px). The mod API sets neither; the reader uses Claude's font and follows the app's zoom.
-
 ## Size
 
 - **Fixed height.** The open reading, the cover, the finale and the done row are one height for every thikr, count and width: 77px on desktop. Faded, they fold to one 24px row. Only two sizes ever show: open and folded.
@@ -47,11 +51,6 @@ Not settable: the font (Tajawal in the design) and the text size (fixed at 14px)
 - **Fixed text size: 14px.** There is no size setting.
 - **Long text shrinks to fit.** The text box is two lines of 14px. A thikr that does not fit shrinks just enough to fit the box, with no floor. In a very narrow window the words get small, but they never leave the box or cover the progress line. The band never grows taller.
 - **The person owns the window.** A narrow window means smaller words; that is their choice, not a case the band works around.
-
-## Counts
-
-- Every thikr's count comes from the data file (`src/features/athkar/data.ts`) only. There is no choice of counts at reading time (no 10 | 100 switch): 91 and 92 are a hundred, 98 is ten.
-- The repetitions left show in a pill on the progress line's head. No circles.
 
 ## Clicks and keys
 
@@ -92,3 +91,10 @@ Counting by keys with the pointer on the band keeps it open until the pointer le
 - The band always sits in the app's slot above the prompt; a mod cannot place it below the input or above the branch bar.
 - No signal for a click elsewhere or for Esc (see rules 4 and 5).
 - No cursor shape: the × shows its hover with a light disc instead of a pointer cursor.
+
+## Checklist for a change
+
+- [ ] The rule is changed here first, then the code and its tests.
+- [ ] Only two heights ever show: open (77px) and folded (24px).
+- [ ] Tests on `terminal` and `desktop`; the terminal shows no tashkeel, the desktop follows `/muslim tashkeel`.
+- [ ] Religious text unchanged from `data.ts`.
