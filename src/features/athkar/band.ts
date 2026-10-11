@@ -121,6 +121,7 @@ const READ_FOOT = 20
 const READ_LINE = 1.7
 const READ_CLEAR = 28
 const POS_ROOM = 60
+const POS_ROOM_WITH_NOTE = 150
 // The pill's half width, which the line keeps it that far from either end.
 const PILL_HALF = 20
 // The smallest the cover's and done row's one-line words shrink to, to fit the width.
@@ -141,8 +142,8 @@ const EXTRA_CSS = `
 .band.band.line.rd:not(.rest) { padding: calc(${READ_TOP}px + var(--ay, 0px)) calc(14px + var(--ax, 0px)) calc(${READ_FOOT}px + var(--ay, 0px)); align-content: start; }
 .band.band.line.rd .text { height: var(--th); line-height: ${READ_LINE}; display: grid; align-content: center; padding-left: ${READ_CLEAR}px; }
 /* The set's line runs from the position to the right edge; its head carries the pill. */
-.band.rd:not(.rest) > .pglow { left: calc(16px + var(--ax, 0px) + ${POS_ROOM}px); right: calc(16px + var(--ax, 0px)); bottom: calc(4px + var(--ay, 0px)); }
-.band.rd:not(.rest) > .pos { position: absolute; left: calc(16px + var(--ax, 0px)); bottom: calc(var(--ay, 0px) + 1px); width: ${POS_ROOM - 8}px; font: 400 11px/11px var(--font-band); color: var(--b-dim); direction: rtl; text-align: left; white-space: nowrap; pointer-events: none; z-index: 3; }
+.band.rd:not(.rest) > .pglow { left: calc(16px + var(--ax, 0px) + var(--pos-room, ${POS_ROOM}px)); right: calc(16px + var(--ax, 0px)); bottom: calc(4px + var(--ay, 0px)); }
+.band.rd:not(.rest) > .pos { position: absolute; left: calc(16px + var(--ax, 0px)); bottom: calc(var(--ay, 0px) + 1px); width: calc(var(--pos-room, ${POS_ROOM}px) - 8px); font: 400 11px/11px var(--font-band); color: var(--b-dim); direction: rtl; text-align: left; white-space: nowrap; pointer-events: none; z-index: 3; }
 .pill { position: absolute; bottom: 2px; right: clamp(${PILL_HALF}px, var(--p), calc(100% - ${PILL_HALF}px)); transform: translateX(50%); min-width: 22px; height: 14px; padding: 0 5px; border-radius: 7px 7px 0 0; background: var(--ring); color: #fff; font: 700 11px/14px var(--font-band); text-align: center; white-space: nowrap; box-shadow: 0 0 10px 2px color-mix(in srgb, var(--ring) 55%, transparent); animation: pillTo .7s cubic-bezier(.33, 1, .68, 1) both; }
 @keyframes pillTo { from { right: clamp(${PILL_HALF}px, var(--from), calc(100% - ${PILL_HALF}px)); } }
 .cv-inline .cover-title { font-size: max(9px, calc(26px * var(--cv, 1))); }
@@ -202,7 +203,14 @@ const cover = (m: BandModel) =>
   + `<span>${kc('⎵')}${kc('↵')} count</span>`
   + `<span>${MOUSE('right')}${kc('⌫')} undo</span><span>${kc('←')}${kc('→')} move</span></div></div>`
 
-const reading = (m: BandModel) => `<div class="text">${esc(m.text)}</div><span class="pos">${esc(m.position)}</span>`
+// The room at the line's left for the label: wider when a passage name goes before the position.
+const posRoomOf = (m: BandModel) => (m.note ? POS_ROOM_WITH_NOTE : POS_ROOM)
+
+const reading = (m: BandModel) => {
+  const label = [m.note, m.position].filter(Boolean).join(' · ')
+
+  return `<div class="text">${esc(m.text)}</div><span class="pos" style="--pos-room:${posRoomOf(m)}px">${esc(label)}</span>`
+}
 
 // The repetitions left on this thikr, riding on the progress line's head.
 const DONE_PILL = '<span class="pill" style="--p:100%;--from:100%">✓</span>'
@@ -288,7 +296,7 @@ export const bandHtml = (m: BandModel) => {
   // Reading, the pill carries the repetitions left; done, a ✓ at the full line's head.
   const isDoneRow = m.phase === 'done' && !isFinale && !isFolded(m)
   const head = m.phase === 'reading' && !isFolded(m) ? pill(m) : isDoneRow ? DONE_PILL : ''
-  const glow = `<div class="pglow${progress >= 100 ? ' full' : ''}${progress <= 0 ? ' empty' : ''}"><b style="width:${progress}%;--from:${from}%;animation-delay:-${m.glowMs ?? 0}ms"></b>${head}</div>`
+  const glow = `<div style="--pos-room:${posRoomOf(m)}px" class="pglow${progress >= 100 ? ' full' : ''}${progress <= 0 ? ' empty' : ''}"><b style="width:${progress}%;--from:${from}%;animation-delay:-${m.glowMs ?? 0}ms"></b>${head}</div>`
   const ms = m.finaleMs ?? 0
   const end = isFinale
     ? `<span class="endfx">${falling(m.height, ms)}<span class="rise-msg" style="--rs:${finaleSize(m.end, m.width)}px;animation-delay:-${ms}ms">${riseHtml(m.end)}</span></span>`

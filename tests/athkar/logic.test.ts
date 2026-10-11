@@ -195,7 +195,7 @@ test('the head of the progress line carries the repetitions left, and there are 
   expect(pillOf(bandSvg(model({ times: 1, count: 0 })))).toBe('١')
   expect(pillOf(bandSvg(model({ times: 1, count: 1 })))).toBe('٠')
   // The position sits at the line's left end, as a label of its own.
-  expect(svg).toContain('<span class="pos">١٦ مِنْ ٢٢</span>')
+  expect(svg).toContain('<span class="pos" style="--pos-room:60px">١٦ مِنْ ٢٢</span>')
   // The pill slides with the glow, and a redraw carries it on rather than restarting it.
   expect(bandSvg(model({ glowMs: 300, progress: 40, from: 30 }))).toContain('--p:40%;--from:30%;animation-delay:-300ms')
   // Held back from both ends of the line so it is never clipped.

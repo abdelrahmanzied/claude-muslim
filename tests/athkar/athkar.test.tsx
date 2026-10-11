@@ -1,6 +1,7 @@
 import type { JsonValue, On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
+import { ATHKAR } from '../../src/features/athkar/data.ts'
 import { listFor, TITLE } from '../../src/features/athkar/logic.ts'
 
 const SURFACES = ['terminal', 'desktop'] as const
@@ -76,6 +77,39 @@ test('the cover folds when faded, opens on a click that does not count, then sta
     expect(await isFirstCounted(ui, surface)).toBe(false)
     await ui.unmount()
   }
+})
+
+
+test('Quran passages have names and desktop reading reserves room for the label', async ($, on) => {
+  const notes = Object.fromEntries(ATHKAR.filter(thikr => thikr.note).map(thikr => [thikr.id, thikr.note]))
+  expect(notes).toEqual({
+    '75': 'آية الكرسي · البقرة ٢٥٥',
+    '76-ikhlas': 'سورة الإخلاص',
+    '76-falaq': 'سورة الفلق',
+    '76-nas': 'سورة الناس',
+  })
+
+  mock.clock(on, { now: MORNING })
+  mock.store(on)
+  engineBand(on)
+  await $.command.run({ command: 'athkar', args: 'morning reset', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+  const ui = await $.ui.mount(band('desktop'))
+  await press(ui, 'return')
+  await press(ui, 'return')
+  let html = await picture(ui)
+  expect(html).toContain('آية الكرسي · ١ مِنْ')
+  expect(html).toContain('<div style="--pos-room:150px" class="pglow')
+  expect(html).toContain('<span class="pos" style="--pos-room:150px">')
+  expect(html).toContain('left: calc(16px + var(--ax, 0px) + var(--pos-room, 60px))')
+  expect(Number((await ui.find({ in: 'athkar', type: 'Svg' }))?.props.height) - 20).toBe(77)
+
+  // Four next-key presses move past the three named surahs to the first dua.
+  for (let i = 0; i < 4; i++) await press(ui, 'left')
+  html = await picture(ui)
+  expect(html).toContain('<span class="pos" style="--pos-room:60px">٥ مِنْ')
+  expect(html).not.toContain('آية الكرسي')
+  expect(html).not.toContain('سورة الإخلاص')
+  await ui.unmount()
 })
 
 test('the desktop band draws in Tajawal at the slot width', async ($, on) => {
