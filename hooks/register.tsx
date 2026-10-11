@@ -28,6 +28,10 @@ export const register: Register = (on, options) => {
       description: 'Prayer times: today, help, always, reminder, off, adhan, city, method, adjust',
     })
 
+    // Older versions pinned the prayer line in the status line; clear what a
+    // reload may have left there. The mod no longer sets it.
+    $.ui.status(undefined)
+
     return next(e)
   })
 

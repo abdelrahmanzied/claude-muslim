@@ -26,3 +26,13 @@ test('/muslim help shows every feature\'s table; with a feature, only its own', 
   expect(thikr).not.toContain('/salah')
   expect((await $.command.run(muslim('help quran'))).text).toContain('Features: thikr, salah')
 })
+
+test('session start clears a status line left by an earlier version', async ($, on) => {
+  const seen: Array<string | undefined> = []
+  on('command.register', async (_$, e) => ({ value: { command: e.name } }))
+  on('session.start', async (_$, e) => ({ cwd: e.cwd }))
+  on('ui.status', async (_$, e) => (seen.push(e.text), { value: undefined }))
+  await $.session.start({ cwd: '/tmp', surface: 'terminal', isInteractive: true })
+
+  expect(seen).toEqual([undefined])
+})
