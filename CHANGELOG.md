@@ -9,6 +9,7 @@
 - Salah's footer line and minaret label use the per-terminal Arabic setting.
 - Restore the desktop athan card’s isolated view; keep its appearance, close action and terminal minaret.
 
+- Fix: `/salah line off` hid nothing, because the old line was cleared during drawing (refused); it is now hidden at once and cleared after the draw.
 - `/salah line always | before | off` picks when the pray line shows (mode `reminder` is now `before`; a saved `reminder` still reads); `/salah reminder <5-60>` only sets the minutes. Each reply says what changed; `/salah line` and `/salah reminder` alone show the current value.
 - `/salah` shows today's times and the settings as two tables; each setting names the command that changes it.
 - Code, commands, settings titles and help say "pray", never "prayer" (the vendored athan library is unchanged).

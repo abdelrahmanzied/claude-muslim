@@ -235,6 +235,29 @@ test('off leaves no pray row', { options: { ...AT_MUNICH, salah: 'off' } }, asyn
   await shown.unmount()
 })
 
+test('line off hides a line left by the last load and clears it after drawing, not during it', { options: { ...AT_MUNICH, salah: 'off' } }, async ($, on) => {
+  mock.env(on, {})
+  mock.store(on)
+  const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
+  engineBand(on)
+  engineModes(on)
+  let left: string | null = '☾ الفجر ٠٦:١٥'
+  on('state.get', { plugin: 'muslim', key: 'salahLine' }, async (_$, e, next) => (left ? { value: { value: left, version: 1 } } : next(e)))
+  on('state.set', { plugin: 'muslim', key: 'salahLine' }, async (_$, e, next) => {
+    const result = await next(e)
+    if (e.value === null) left = null
+
+    return result
+  })
+
+  const shown = await mountFooter($, 'terminal')
+  expect(await prayRow(shown)).toBe(undefined)
+  expect(left).not.toBe(null)
+  await clock.settle()
+  expect(left).toBe(null)
+  await shown.unmount()
+})
+
 test('reminder: the line is empty until the window, counts down, calls, then clears', { options: AT_MUNICH }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)

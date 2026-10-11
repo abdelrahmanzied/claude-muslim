@@ -256,6 +256,14 @@ const putOff = async ($: EngineInterface) => {
 
 // Starts the pray line's timer: a minaret left mid-play by a reload would
 // stay, so it starts clean, and the first tick runs right after the caller.
+// Drops a line and window left by the last load, after this draw: drawing is read-only.
+const clearLine = ($: EngineInterface) => {
+  $.clock.after(0, async () => {
+    await setLine($, undefined)
+    await publishWindow($, null)
+  })
+}
+
 const begin = async ($: EngineInterface, options: Options, place: Place, timer: Timer) => {
   $.clock.after(0, async () => {
     // Rendering is read-only. Clear only an orphan from a previous load,
@@ -362,8 +370,7 @@ export const install = (on: On, options: Options) => {
     }
     if (!(options.salah !== 'off' && place) && !isLineCleared) {
       isLineCleared = true
-      await setLine($, undefined)
-      await publishWindow($, null)
+      clearLine($)
     }
 
     return next(e)
@@ -377,8 +384,7 @@ export const install = (on: On, options: Options) => {
     }
     if (!(options.salah !== 'off' && place) && !isLineCleared) {
       isLineCleared = true
-      await setLine($, undefined)
-      await publishWindow($, null)
+      clearLine($)
     }
 
     return next(e)
@@ -425,7 +431,8 @@ export const install = (on: On, options: Options) => {
   // footer, before the model name, beside whatever else draws there.
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
     const theirs = await next(e)
-    const text = await read($, line)
+    // A line left by the last load is not drawn while it is cleared.
+    const text = options.salah === 'off' || !options.salahPlace ? null : await read($, line)
     if (!text) return theirs
     const { Box, Text } = $.ui.resolve(e)
 
