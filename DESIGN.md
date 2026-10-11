@@ -7,7 +7,7 @@ The shared base every feature follows, and the index to each feature's own desig
 | Feature | Command | Spec | Design | Status |
 | --- | --- | --- | --- | --- |
 | Thikr line | `/thikr` | [thikr.md](docs/features/thikr.md) | [thikr-design.md](docs/features/thikr-design.md): text only | 0.2.0 |
-| Salah | `/salah` | [salah.md](docs/features/salah.md) | [salah-design.md](docs/features/salah-design.md): text, richer adhan moment | 0.3.0 |
+| Salah | `/salah` | [salah.md](docs/features/salah.md) | [salah-design.md](docs/features/salah-design.md): text, richer adhan moment | 0.4.0 |
 | Morning and evening athkar | `/athkar` | in progress in another branch | in progress | planned |
 
 Everything below is shared by every feature. A feature's doc may add to it, never contradict it.
@@ -30,10 +30,10 @@ Pick the lightest surface that does the job. Each comes from the mod API (`/plug
 | --- | --- | --- | --- |
 | Spinner | Claude's working line | Short phrase while Claude works; rewrite `word`/`message`/`suffix` only | Thikr line |
 | TurnDuration | Line closing a turn (terminal) | One short phrase; keep Claude's duration | تَمَّ بِحَمْدِ اللَّهِ |
-| AbovePrompt band | Rows above the input | A suggestion or notice that needs to be seen; at most one line unless it is a reader | Usage limit, after-prayer suggestion, athkar reader |
-| Status line | `$.ui.status`, under the prompt | Always-on, glanceable fact; plain text, no color | Next prayer time |
+| AbovePrompt band | Rows above the input | A suggestion, notice or glanceable fact that needs to be seen; at most one line unless it is a reader. Each feature's hook keeps what `next(e)` returns and adds its own row, so rows stack | Usage limit, prayer line (right-aligned), athkar reader |
+| Status line | `$.ui.status`, under the prompt | Always-on, glanceable fact; plain text, no color | Not used by a feature yet (the prayer line is a band row) |
 | Toast | `$.ui.toast` | One-off confirmation after an action, or a timed reminder inside the app | "speed 3s" (prefer command reply), prayer reminder |
-| Notification | `$.ui.notify` | Not used: OS banners show in meetings and screen shares; use the status line or a toast | — |
+| Notification | `$.ui.notify` | Not used: OS banners show in meetings and screen shares; use a band row or a toast | — |
 | Command reply | `command.run` → `{ text }` | Status, help, changing settings | `/thikr` |
 
 Richer surfaces (Pane, Image, Svg, Raster, Client modules) are chosen per feature in its design doc, not here. Passive content does not get a Pane.

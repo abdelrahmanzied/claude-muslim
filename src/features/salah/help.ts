@@ -8,7 +8,7 @@ export const SALAH_COMMANDS: readonly (readonly [string, string])[] = [
   ['/salah', 'Place, method and mode, then today\'s times'],
   ['/salah help', 'This table'],
   ['/salah always', 'Next prayer all day, countdown in the reminder window'],
-  ['/salah reminder', 'Status line only in the reminder window (default)'],
+  ['/salah reminder', 'Prayer line only in the reminder window (default)'],
   ['/salah off', 'Nothing under the prompt, no reminder'],
   [`/salah reminder <${REMINDER_MIN}-${REMINDER_MAX}>`, 'Minutes before a prayer the reminder starts'],
   ['/salah adhan on` · `off', 'Show حان وقت صلاة … when a prayer comes in'],

@@ -10,7 +10,7 @@ import { guessPlace, systemTimeZone } from './location.ts'
 import { METHODS, type Prayer } from './methods.ts'
 import { ENGLISH, prayerNamed } from '../../prayer/names.ts'
 import { writePlace, type Place } from './place.ts'
-import { adhanText, isInWindow, reminderText, statusText } from '../../prayer/line.ts'
+import { adhanText, isInWindow, reminderText, prayerLine } from '../../prayer/line.ts'
 import { ACCENT_ROWS, FRAME_MS, HOLD_MS, isDue, LABEL_ROW, minaretRows, ROWS_COUNT } from './minaret.ts'
 import { nudge, reviewRows } from './review.ts'
 import { clockText, lastPrayer, nextSalah, type Adjust } from './times.ts'
@@ -28,14 +28,16 @@ const inWindow = atom({ plugin: 'muslim', key: 'salahWindow' } as const, null as
 
 // The minaret's frame while it plays, and the prayer time it last played for.
 const minaret = atom({ plugin: 'muslim', key: 'salahMinaret' } as const, null as SalahMinaret | null)
+// The prayer line drawn as its own row above the prompt; null when there is none.
+const line = atom({ plugin: 'muslim', key: 'salahLine' } as const, null as string | null)
 const adhanShown = atom({ plugin: 'muslim', key: 'salahAdhanShown' } as const, null as number | null)
 
-// How often the status line is redrawn: every second inside the reminder
+// How often the prayer line is redrawn: every second inside the reminder
 // window (the live countdown), else every 30 seconds.
 const TICK_MS = 30_000
 const WINDOW_TICK_MS = 1000
 
-// The status line's timer and the period it runs at, and the one-shot timer
+// The prayer line's timer and the period it runs at, and the one-shot timer
 // for the moment the next reminder window opens (so the 1 s countdown starts
 // on time, not on the next 30 s tick).
 type Timer = {
@@ -100,7 +102,13 @@ const savePlace = async ($: EngineInterface, city: City, options: Options): Prom
   return deny ? `Not changed: ${deny}` : `${city.name} · ${METHODS[methodOf(options, city)].name}`
 }
 
-// Redraws the status line, and shows a toast once when a prayer's reminder window starts.
+// Keeps the prayer line's row in step; writes only on a change.
+const setLine = async ($: EngineInterface, text: string | undefined) => {
+  const now = text ?? null
+  if ((await read($, line)) !== now) await update($, line, () => now)
+}
+
+// Redraws the prayer line, and shows a toast once when a prayer's reminder window starts.
 // Resolves whether `now` is inside the reminder window.
 const tick = async ($: EngineInterface, options: Options, place: Place, timer: Timer): Promise<boolean> => {
   const now = await $.clock.now()
@@ -108,7 +116,7 @@ const tick = async ($: EngineInterface, options: Options, place: Place, timer: T
   const next = nextSalah(place, method, options.salahAdjust, now)
   const last = lastPrayer(place, method, options.salahAdjust, now)
   const view = { mode: options.salah, reminder: options.salahReminder, isAdhan: options.salahAdhan }
-  $.ui.status(statusText(next, clockText(next.at, place.timeZone), last, now, view))
+  await setLine($, prayerLine(next, clockText(next.at, place.timeZone), last, now, view))
   if (options.salah !== 'off' && options.salahAdhan && isDue(last.at, now, await read($, adhanShown))) {
     await update($, adhanShown, () => last.at)
     await playMinaret($, last.prayer === 'sunrise' ? 'fajr' : last.prayer)
@@ -174,7 +182,7 @@ const putOff = async ($: EngineInterface) => {
 
 export const install = (on: On, options: Options) => {
   const guess = guessPlace(systemTimeZone())
-  // The status line's timer, started on the first draw of the prompt.
+  // The prayer line's timer, started on the first draw of the prompt.
   let hasTicker = false
   const timer: Timer = { handle: undefined, ms: 0, opens: undefined }
   let isLineCleared = false
@@ -240,7 +248,7 @@ export const install = (on: On, options: Options) => {
     return { text: salahHelp() }
   })
 
-  // The next prayer under the prompt, from the first time the prompt is drawn.
+  // The prayer line's timer, from the first time the prompt is drawn.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const place = options.salahPlace
     if (options.salah !== 'off' && place && !hasTicker) {
@@ -252,7 +260,7 @@ export const install = (on: On, options: Options) => {
     }
     if (!(options.salah !== 'off' && place) && !isLineCleared) {
       isLineCleared = true
-      $.ui.status(undefined)
+      await setLine($, undefined)
       await publishWindow($, null)
     }
 
@@ -296,12 +304,25 @@ export const install = (on: On, options: Options) => {
     )
   })
 
-  // The prayer came in: the minaret rises beside the call, once (terminal and desktop alike).
+  // The prayer line: its own row above the prompt, right-aligned. While the
+  // minaret plays (about 3 s) it takes the row's place, then the line returns.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)
     const playing = await read($, minaret)
-    if (!playing || e.props.hasSurvey) return theirs
+    const text = await read($, line)
+    if ((!playing && !text) || e.props.hasSurvey) return theirs
     const { Box, Text } = $.ui.resolve(e)
+
+    if (!playing) {
+      return (
+        <Box flexDirection="column">
+          <Box key="salah-line" justifyContent="flex-end">
+            <Text color="claude">{text}</Text>
+          </Box>
+          {theirs}
+        </Box>
+      )
+    }
 
     return (
       <Box flexDirection="column">

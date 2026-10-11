@@ -28,6 +28,8 @@ declare module 'claude-code' {
       // The prayer time (ms since epoch) whose minaret has played, so it plays once.
       salahAdhanShown: number | null
       salahMinaret: SalahMinaret | null
+      // The prayer line drawn as its own row above the prompt, else null.
+      salahLine: string | null
     }
   }
 }

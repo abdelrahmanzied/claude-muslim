@@ -1,4 +1,4 @@
-// The status line under the prompt: the next prayer's time, a live mm:ss
+// The prayer line, its own row above the prompt: the next prayer's time, a live mm:ss
 // countdown in the minutes before it, and the call once it is in.
 // Sunrise has no line and no reminder.
 
@@ -26,7 +26,7 @@ export const adhanText = (prayer: Prayer): string => `حان وقت صلاة ${A
 
 export type Moment = { prayer: Prayer; at: number }
 
-// What the status line shows besides the times: the mode, the minutes before
+// What the prayer line shows besides the times: the mode, the minutes before
 // a prayer the countdown starts, and whether the call shows once it is in.
 export type View = { mode: SalahMode; reminder: number; isAdhan: boolean }
 
@@ -45,7 +45,7 @@ export const countdownText = (leftMs: number): string => {
 
 // The line for `now`, given the next prayer (never sunrise), the last one and
 // its HH:MM; undefined when the line is empty (off, or `reminder` outside its window).
-export const statusText = (next: Moment, nextClock: string, last: Moment, now: number, view: View): string | undefined => {
+export const prayerLine = (next: Moment, nextClock: string, last: Moment, now: number, view: View): string | undefined => {
   if (view.mode === 'off') return undefined
   if (view.isAdhan && now - last.at < IN_MS) return adhanText(last.prayer)
   const left = next.at - now
