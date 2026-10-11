@@ -1,3 +1,4 @@
+import { lookFor } from '../../src/features/athkar/look.ts'
 import { expect, test } from 'claude-code/testing'
 
 import { ATHKAR } from '../../src/features/athkar/data.ts'
@@ -315,4 +316,15 @@ test('the open done row carries a ✓ at the full line\'s head; folded and the f
   const lit = bandSvg(model({ phase: 'done', isActive: true, end: END, progress: 100 }))
   expect(lit).toContain('<span class="pill" style="--p:100%;--from:100%">✓</span>')
   expect(bandSvg(model({ phase: 'done', end: END, finaleMs: 500 }))).not.toContain('class="pill"')
+})
+
+test('athkar takes the shared main color without changing body or sky colors', () => {
+  for (const style of ['sky', 'frame'] as const) {
+    for (const isDark of [false, true]) {
+      const orange = lookFor(style, 'orange', 'day', isDark, true)
+      const blue = lookFor(style, readOptions({ color: 'blue' }).color, 'day', isDark, true)
+      expect(blue.ring).toBe(isDark ? '#4a7fc0' : '#3a6aa3')
+      expect({ ...blue, ring: orange.ring }).toEqual(orange)
+    }
+  }
 })

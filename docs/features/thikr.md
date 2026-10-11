@@ -43,9 +43,11 @@ Full text with tashkeel: `src/features/thikr/phrases.ts`.
 ## Special moments
 
 - **End of turn** (terminal): Claude's past-tense word ("Baked") becomes تَمَّ بِحَمْدِ اللَّهِ; Claude's duration stays. `/thikr end off` restores Claude's word.
-- **Usage limit**: when Claude stops with `rate_limit` and a usage window is at 100%, حَسْبِيَ اللَّهُ وَنِعْمَ الْوَكِيلُ shows above the prompt in Claude orange until that window resets (or the next turn, when the reset time is unknown). A passing throttle (no full window) shows nothing.
+- **Usage limit**: when Claude stops with `rate_limit` and a usage window is at 100%, حَسْبِيَ اللَّهُ وَنِعْمَ الْوَكِيلُ shows above the prompt in the shared main color (default Claude orange) until that window resets (or the next turn, when the reset time is unknown). A passing throttle (no full window) shows nothing.
 
 ## Settings
+
+Main-color accents follow the plugin-wide `/muslim color orange | green | gold | blue` setting through `src/shared/color/`, default Claude orange. Other colors stay as they are.
 
 Terminal Arabic uses the shared three-mode behavior, and terminal output always strips tashkeel. The desktop-only tashkeel setting follows `/muslim tashkeel`; `/thikr tashkeel` was replaced by `/muslim tashkeel`. See [the Arabic check](arabic-fix.md) and the single [terminal Arabic reference](../terminal.md).
 

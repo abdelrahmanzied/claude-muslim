@@ -1,3 +1,4 @@
+import { isDarkTheme } from '../../shared/color/index.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
 import { atom, read } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
@@ -11,8 +12,8 @@ import type { BandModel } from './band.ts'
 import type { Period } from './data.ts'
 import { ADVANCE_MS, countOf, currentOf, dayOf, emptyReading, END, listFor, overall, periodAt, readDay, shouldAdvance, skyAt, step, textOf, timesOf, TITLE } from './logic.ts'
 import type { Act } from './logic.ts'
-import { ACCENTS, lookFor, plain, readerProps } from './look.ts'
-import type { Accent, Style } from './look.ts'
+import { lookFor, plain, readerProps } from './look.ts'
+import type { Style } from './look.ts'
 
 // The engine follows $ only into same-file top-level functions, so the
 // terminal's Arabic mode is resolved here as in thikr and salah.
@@ -66,7 +67,6 @@ const dayRef = atom({ plugin: 'muslim', key: 'athkar' } as const, null as Day | 
 const STORE_KEY = 'athkar'
 
 const STYLES: readonly Style[] = ['sky', 'frame']
-const COLORS = Object.keys(ACCENTS) as Accent[]
 
 
 // The width of a cell on the desktop in CSS pixels: the band picture is sized
@@ -98,7 +98,6 @@ const LEAVE_MS = 1000
 const KEY_REST_MS = 3000
 
 const isStyle = (value: string): value is Style => (STYLES as readonly string[]).includes(value)
-const isColor = (value: string): value is Accent => (COLORS as readonly string[]).includes(value)
 const isPeriod = (value: string): value is Period => value === 'morning' || value === 'evening'
 
 const localNow = async ($: EngineInterface) => new Date(await $.clock.now())
@@ -244,7 +243,7 @@ export const install = (on: On, options: Options) => {
 
       return {
         text: [
-          `athkar ${options.athkar ? 'on' : 'off'} · style ${await $.session.surface() === 'terminal' ? 'frame (terminal)' : options.athkarStyle} · color ${options.athkarColor}`,
+          `athkar ${options.athkar ? 'on' : 'off'} · style ${await $.session.surface() === 'terminal' ? 'frame (terminal)' : options.athkarStyle}`,
           `${statusOf(day, 'morning')} · ${statusOf(day, 'evening')}`,
           '',
           athkarHelp(),
@@ -255,7 +254,7 @@ export const install = (on: On, options: Options) => {
     if (word === 'on' || word === 'off') return set('athkar', word === 'on', `athkar ${word}`)
     if (word === 'style' && await $.session.surface() === 'terminal') return { text: 'The terminal always shows the frame; sky is desktop only. Change the style from the desktop app.' }
     if (word === 'style' && isStyle(value)) return set('athkarStyle', value, `style ${value}`)
-    if (word === 'color' && isColor(value)) return set('athkarColor', value, `color ${value}`)
+    if (word === 'color') return { text: 'Color is now /muslim color.' }
     if (isPeriod(word) && value === 'reset') {
       const { day } = await today($)
       await save($, { ...day, [word]: emptyReading() })
@@ -397,11 +396,11 @@ export const install = (on: On, options: Options) => {
 
     // Light themes take the deeper main colors.
     const theme = (await $.config.list().catch(() => [])).find(row => row.key === 'theme')
-    const isDark = !String(theme?.value ?? '').includes('light')
+    const isDark = isDarkTheme(theme?.value)
     const isPicture = e.surface === 'desktop'
     const sky = skyAt(hourOf(now))
     // Sky is desktop only; the terminal always draws the frame.
-    const look = lookFor(isPicture ? options.athkarStyle : 'frame', options.athkarColor, sky, isDark, isPicture)
+    const look = lookFor(isPicture ? options.athkarStyle : 'frame', options.color, sky, isDark, isPicture)
     // The shared Arabic path: the tashkeel setting, then this terminal's mode.
     const arabicMode = await arabicModeOf($, e.surface, arabicCache)
     const show = (text: string) => terminalArabic(e.surface, arabicMode, withTashkeel(text, options.tashkeel))
@@ -444,7 +443,7 @@ export const install = (on: On, options: Options) => {
       sky,
       style: options.athkarStyle,
       finaleMs,
-      accent: options.athkarColor,
+      accent: options.color,
       isDark,
       isActive: view.isActive,
       hasBegun: props.hasBegun,

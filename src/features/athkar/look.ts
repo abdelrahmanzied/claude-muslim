@@ -1,19 +1,10 @@
+import { accentHex, type Accent } from '../../shared/color/index.ts'
 import type { BandModel } from './band.ts'
 import type { Period } from './data.ts'
 import { arabicDigits, countOf, currentOf, END, END_NOTE, hasBegun, listFor, overall, textOf, timesOf, TITLE } from './logic.ts'
 import type { Reading, Sky } from './logic.ts'
 
 export type Style = 'sky' | 'frame'
-export type Accent = 'orange' | 'green' | 'gold' | 'blue'
-
-// The main color, for a light theme and a dark one.
-export const ACCENTS: Record<Accent, { light: string; dark: string }> = {
-  orange: { light: '#c8642d', dark: '#d97757' },
-  green: { light: '#0b7a50', dark: '#1a9466' },
-  gold: { light: '#c99a1f', dark: '#e8b93c' },
-  blue: { light: '#3a6aa3', dark: '#4a7fc0' },
-}
-
 type SkyLook = {
   // Top to bottom.
   stops: readonly string[]
@@ -65,7 +56,7 @@ export const blend = (from: string, to: string, amount: number) => {
 }
 
 export const lookFor = (style: Style, accent: Accent, sky: Sky, isDark: boolean, hasPicture: boolean): Look => {
-  const ring = ACCENTS[accent][isDark ? 'dark' : 'light']
+  const ring = accentHex(accent, isDark)
   if (style === 'sky') {
     const { base, isBright } = SKIES[sky]
     const ink = isBright ? '#141a2a' : '#ffffff'

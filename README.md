@@ -77,7 +77,7 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/athkar on` · `off` | Turn the athkar on or off |
 | `/athkar morning reset` · `evening reset` | Read that period again from the start |
 | `/athkar style sky` · `frame` | The look on desktop: a sky that follows the time of day (default), or plain. The terminal always shows the frame |
-| `/athkar color orange` · `green` · `gold` · `blue` | The main color |
+| `/muslim color` · `color orange` · `green` · `gold` · `blue` | Show or change the main color of the whole mod (default: Claude orange) |
 | `/salah` | Place, method and mode, then today's prayer times |
 | `/salah help` | Table of every `/salah` command |
 | `/salah city` · `city <name or lat, lng>` | Pick your city by question, or by name in any language |
@@ -90,7 +90,7 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/muslim terminal-arabic` | Choose how Arabic shows in this terminal |
 | `/muslim help` · `help <feature>` | Command tables of every feature, or one (`thikr`, `athkar`, `salah`) |
 
-Every setting is also in `/config`.
+Every setting is also in `/config`. The shared `color` setting changes existing main-color accents across athkar, salah, thikr's usage-limit line and the terminal Arabic survey label. Orange text follows Claude's theme; other choices use light/dark shades.
 
 ## Update
 

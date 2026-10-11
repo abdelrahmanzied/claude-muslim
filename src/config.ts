@@ -1,4 +1,5 @@
-import type { Accent, Style } from './features/athkar/look.ts'
+import { readColor, type Accent } from './shared/color/index.ts'
+import type { Style } from './features/athkar/look.ts'
 import { METHODS, PRAYS, type MethodId, type Pray } from './features/salah/methods.ts'
 import { readPlace, type Place } from './features/salah/place.ts'
 import type { Speed } from './features/thikr/rotation.ts'
@@ -12,7 +13,7 @@ export type Options = {
   thikrMode: Mode
   athkar: boolean
   athkarStyle: Style
-  athkarColor: Accent
+  color: Accent
   salahShow: Show
   salahAthan: boolean
   salahPlace: Place | undefined
@@ -39,7 +40,7 @@ export const readOptions = (raw: Record<string, unknown>): Options => ({
   athkar: raw.athkar !== false,
   // 'outline' is the old name of 'frame'.
   athkarStyle: raw.athkarStyle === 'frame' || raw.athkarStyle === 'outline' ? 'frame' : 'sky',
-  athkarColor: raw.athkarColor === 'green' || raw.athkarColor === 'gold' || raw.athkarColor === 'blue' ? raw.athkarColor : 'orange',
+  color: readColor(raw.color),
   salahShow: readShow(raw),
   // "salahAdhan" is the old saved key name (data, read as is).
   salahAthan: (raw.salahAthan ?? raw.salahAdhan) !== false,

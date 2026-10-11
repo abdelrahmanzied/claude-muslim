@@ -64,10 +64,10 @@
       ],
       "default": "sky"
     },
-    "athkarColor": {
+    "color": {
       "type": "string",
-      "title": "Athkar color",
-      "description": "The main color of the athkar",
+      "title": "Main color",
+      "description": "The main color of the whole mod",
       "options": [
         "orange",
         "green",

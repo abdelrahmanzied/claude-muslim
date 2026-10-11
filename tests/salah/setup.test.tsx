@@ -510,3 +510,57 @@ test('the countdown ticks from the load alone: no prompt draw needed (off, then 
   expect(toasts).toEqual([])
   await shown.unmount()
 })
+
+for (const surface of ['terminal', 'desktop'] as const) {
+  for (const [color, theme, expected] of [['orange', 'light', 'claude'], ['orange', 'dark', 'claude'], ['green', 'light', '#0b7a50'], ['green', 'dark', '#1a9466']] as const) {
+    test(`salah setup color ${surface} ${color} ${theme}`, { options: { athkar: false, color,  } }, async ($, on) => {
+      mock.env(on, {})
+      mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+      mock.clock(on, { now: Date.parse('2026-10-10T12:00:00Z') })
+      on('config.list', async () => ({ value: [{ key: 'theme', label: 'Theme', kind: 'choice', value: theme, provider: { plugin: 'engine', tier: 'core' }, isLocked: false }] }))
+      on('ui.render', { component: 'AbovePrompt' }, async ($, e) => {
+        const { Box } = $.ui.resolve(e)
+        return <Box />
+      })
+
+      const shown = await $.ui.mount({ plugin: 'muslim', surface, component: 'AbovePrompt', requestId: 'colors', props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} } })
+      const accent = (await shown.findAll({ type: 'Text' }))[0]
+      expect(accent?.props.color).toBe(expected)
+      await shown.unmount()
+    })
+  }
+}
+
+for (const [color, expected] of [['orange', 'claude'], ['blue', '#4a7fc0']] as const) {
+  test(`salah prayer, review and minaret accents follow ${color}`, { options: { ...AT_MUNICH, color, athkar: false, salahShow: 'always' } }, async ($, on) => {
+    mock.env(on, {})
+    mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+    const clock = mock.clock(on, { now: Date.parse('2026-10-10T12:00:00Z') })
+    on('config.list', async () => ({ value: [] }))
+    engineBand(on)
+    engineModes(on)
+    const run = (args: string) => $.command.run({ command: 'salah', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+    for (const surface of SURFACES) {
+      const modes = await $.ui.mount(footer(surface))
+      const line = (await modes.findAll({ type: 'Text' })).find(row => row.props.bold === true)
+      expect(line?.props.color).toBe(expected)
+      expect((await modes.find({ type: 'Text', text: 'focus' }))?.props.color).toBeUndefined()
+      await modes.unmount()
+      await run('adjust')
+      const review = await $.ui.mount(band(surface))
+      const heading = (await review.findAll({ type: 'Text' }))[0]
+      expect(heading?.text).toContain("Check today's times")
+      expect(heading?.props.color).toBe(expected)
+      expect((await review.find({ type: 'Text', text: 'Fajr' }))?.props.color).toBeUndefined()
+      await review.press({ key: 'salah-skip' })
+      await review.unmount()
+    }
+    await run('athan test')
+    const minaret = await $.ui.mount(band('terminal'))
+    await clock.advance(2500)
+    expect((await minaret.find({ type: 'Text', text: '   ☾   ' }))?.props.color).toBe(expected)
+    expect((await minaret.find({ type: 'Text', text: 'حان وقت صلاة العصر' }))?.props.color).toBe(expected)
+    expect((await minaret.find({ type: 'Text', text: ' ▐███▌ ' }))?.props.color).toBeUndefined()
+    await minaret.unmount()
+  })
+}

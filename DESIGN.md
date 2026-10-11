@@ -41,11 +41,11 @@ Richer surfaces (Pane, Image, Svg, Raster, Client modules) are chosen per featur
 
 ## 3. Color
 
-Wherever text is used, use theme keys, never hex, so every theme (light, dark, color-blind, ANSI) stays correct.
+The main color is one plugin-wide setting: `/muslim color orange | green | gold | blue`, default Claude orange. Every feature takes it from `src/shared/color/`; features never define their own palette. Orange text keeps the `claude` theme key so every Claude theme stays exact. Other main colors use the shared light/dark hex shade for the current theme; drawn surfaces use the shared hex palette. Text that is not already in the main color and Claude's own text and spinner keep their colors.
 
 | Role | Theme key | Use |
 | --- | --- | --- |
-| Thikr / accent | `claude` | Our phrases in bands; matches the spinner (`rgb(215,119,87)` in the default themes) |
+| Thikr / accent | Shared main color (`claude` for orange) | Our phrases in bands; matches the spinner (`rgb(215,119,87)` in the default themes) |
 | Body | `text` | Long Arabic text in the athkar reader |
 | Secondary | `subtle` / `dimColor` | Sources, counts, hints |
 | Done | `success` | Only for "completed" states the user caused (e.g. finished a reader section) |
@@ -71,7 +71,7 @@ Never use `error` or `warning` for religious text.
 
 - One command per feature, named in Arabic transliteration with the `th` spelling: `/thikr`, `/athkar`, `/salah`. `/muslim` shows the version and a settings table (setting, value, command to change it), the same on every surface; a feature's row shows its main state and points to its own help for the rest. `/muslim help [feature]` shows every feature's command table, or one; `/<feature> help` shows that table.
 - Shape: `/<feature>` = status + help; `/<feature> on|off`; `/<feature> <setting> <value>`.
-- Every setting is a `userConfig` field named `<feature><Setting>` (`thikrSpeed`), so it also appears in `/config`. Commands change it with `$.config.set({ key: 'muslim.<field>' })`.
+- Shared settings (`color`, `tashkeel`) use their own names; feature settings are `userConfig` fields named `<feature><Setting>` (`thikrSpeed`), so it also appears in `/config`. Commands change it with `$.config.set({ key: 'muslim.<field>' })`.
 - Defaults are chosen so a new user needs no setup, except where the feature cannot work without input (prayer location).
 
 ## 7. Time-based behavior
@@ -105,7 +105,7 @@ Wire it in `hooks/register.tsx` (`install<Feature>(on, settings)`), register its
 - [ ] Spec added to `docs/features/<feature>.md` (moments, phrases with sources, settings).
 - [ ] Phrases reviewed by a person; sources noted.
 - [ ] Off switch in `/config` and the command; off leaves Claude untouched.
-- [ ] Colors via theme keys; desktop tashkeel setting respected and terminal tashkeel stripped.
+- [ ] Main color via the shared module, other colors via theme keys; desktop tashkeel setting respected and terminal tashkeel stripped.
 - [ ] Tests on `terminal` and `desktop`; `claude plugin validate`, `claude plugin test`, `tsc` pass.
 - [ ] Demo scenes for the feature's real UI (planned: `/muslim demo`, fake clock, no settings changed).
 - [ ] Tried live in a terminal and the desktop app.

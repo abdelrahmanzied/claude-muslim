@@ -80,7 +80,7 @@ At draw time, each feature should first check that `e.surface === 'terminal'`, r
 
 ## Athkar in the terminal
 
-The athkar reader always draws the Frame look in the terminal. The Sky look is desktop only: `athkarStyle` applies to the desktop app, and `/athkar style` in a terminal answers that and changes nothing. The main color (`athkarColor`) applies on both. Its Arabic follows the shared treatment above, like every feature.
+The athkar reader always draws the Frame look in the terminal. The Sky look is desktop only: `athkarStyle` applies to the desktop app, and `/athkar style` in a terminal answers that and changes nothing. The plugin-wide main color (`color`, `/muslim color`, default Claude orange) applies on both, from `src/shared/color/`. Its Arabic follows the shared treatment above, like every feature.
 
 ## Decisions and limits
 

@@ -8,7 +8,6 @@ export const ATHKAR_COMMANDS: readonly (readonly [string, string])[] = [
   ['/athkar on` · `off', 'Morning and evening athkar above the prompt'],
   ['/athkar morning reset` · `evening reset', 'Read that period again from the start'],
   ['/athkar style sky` · `frame', 'The look. sky (DESKTOP ONLY, default): a sky that follows the time of day · frame: a plain frame in the main color'],
-  ['/athkar color orange` · `green` · `gold` · `blue', 'The main color'],
 ]
 
 // The host puts `muslim: ` before the first line, so a title goes there, not the table.

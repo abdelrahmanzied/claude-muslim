@@ -1,3 +1,4 @@
+import { isAccent } from '../src/shared/color/index.ts'
 import { install as installArabicFix } from '../src/shared/arabic/install.tsx'
 import type { Register } from 'claude-code'
 
@@ -28,7 +29,7 @@ export const register: Register = (on, options) => {
     })
     await $.command.register({
       name: 'athkar',
-      description: 'Morning and evening athkar above the prompt: help, on, off, reset, style, color',
+      description: 'Morning and evening athkar above the prompt: help, on, off, reset, style',
     })
     await $.command.register({
       name: 'salah',
@@ -47,6 +48,12 @@ export const register: Register = (on, options) => {
   on('command.run', { command: 'muslim' }, async ($, e, next) => {
     const words = e.args.trim().split(/\s+/).filter(Boolean)
     const [word = '', feature = ''] = words
+    if (word === 'color') {
+      if (words.length > 2 || (feature !== '' && !isAccent(feature))) return { text: 'Usage: /muslim color orange | green | gold | blue' }
+      if (feature === '') return { text: `Color ${settings.color}. Usage: /muslim color orange | green | gold | blue` }
+      const { deny } = await $.config.set({ key: 'muslim.color', value: feature })
+      return { text: deny ? `Not changed: ${deny}` : `Color ${feature}` }
+    }
     if (word === 'tashkeel') {
       const value = feature
       if (words.length > 2 || (value !== '' && value !== 'on' && value !== 'off')) return { text: 'Usage: /muslim tashkeel on | off' }
@@ -61,6 +68,7 @@ export const register: Register = (on, options) => {
     // The Arabic setup answers an empty /muslim with this terminal's mode; empty off the terminal.
     const terminal = await next(e).then(result => result.text ?? '', () => '')
     const rows = [
+      ['Color', settings.color, '`/muslim color orange` · `green` · `gold` · `blue`'],
       ['Tashkeel', `${onOff(settings.tashkeel)} — desktop only; the terminal never shows diacritics`, '`/muslim tashkeel on` · `off`'],
       ['Thikr', onOff(settings.thikr), '`/thikr on` · `off` · all options: `/thikr help`'],
       ['Athkar', onOff(settings.athkar), '`/athkar on` · `off` · all options: `/athkar help`'],

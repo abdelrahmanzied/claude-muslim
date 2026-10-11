@@ -1,3 +1,4 @@
+import { accentText, type Accent } from '../../shared/color/index.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
@@ -397,7 +398,7 @@ export const install = (on: On, options: Options) => {
 
     return (
       <Box flexDirection="column">
-        <Text key="salah-review" color="claude">{`Check today's times in ${place.name} against your mosque's, then save.`}</Text>
+        <Text key="salah-review" color={await mainColor($, options.color)}>{`Check today's times in ${place.name} against your mosque's, then save.`}</Text>
         {rows.map(row => (
           <Box key={`salah-${row.pray}`} gap={1}>
             <Text>{row.name}</Text>
@@ -432,7 +433,7 @@ export const install = (on: On, options: Options) => {
     return (
       <Box gap={1}>
         <Box key="salah-line">
-          <Text color="claude" bold>{await renderArabic($, e.surface, text, arabicCache)}</Text>
+          <Text color={await mainColor($, options.color)} bold>{await renderArabic($, e.surface, text, arabicCache)}</Text>
         </Box>
         {theirs}
       </Box>
@@ -446,14 +447,15 @@ export const install = (on: On, options: Options) => {
     if (!playing || e.props.hasSurvey || e.surface === 'desktop') return theirs
     const { Box, Text } = $.ui.resolve(e)
 
+    const accent = await mainColor($, options.color)
     const label = await renderArabic($, e.surface, athanText(playing.pray), arabicCache)
 
     return (
       <Box flexDirection="column">
         {minaretRows(playing.frame).map((row, i) => (
           <Box key={`salah-minaret-${i}`} gap={2}>
-            <Text color={i < ACCENT_ROWS ? 'claude' : undefined} dimColor={i >= ACCENT_ROWS}>{row}</Text>
-            {i === LABEL_ROW && playing.frame >= ROWS_COUNT - LABEL_ROW ? <Text color="claude">{label}</Text> : null}
+            <Text color={i < ACCENT_ROWS ? accent : undefined} dimColor={i >= ACCENT_ROWS}>{row}</Text>
+            {i === LABEL_ROW && playing.frame >= ROWS_COUNT - LABEL_ROW ? <Text color={accent}>{label}</Text> : null}
           </Box>
         ))}
         {theirs}
@@ -502,7 +504,7 @@ export const install = (on: On, options: Options) => {
     return (
       <Box flexDirection="column">
         <Box key="salah-setup" gap={1}>
-          <Text color="claude">{guess ? `Pray times for ${guess.name}?` : 'Set up pray times?'}</Text>
+          <Text color={await mainColor($, options.color)}>{guess ? `Pray times for ${guess.name}?` : 'Set up pray times?'}</Text>
           {guess ? <Button key="salah-yes" label="Yes" hotkey="1" plain onPress={async () => done(await savePlace($, guess, options))} /> : null}
           <Button key="salah-city" label={guess ? 'Another city' : 'Pick city'} hotkey={guess ? '2' : '1'} plain onPress={choose} />
           <Button key="salah-later" label="Not now" hotkey={guess ? '3' : '2'} plain dimColor onPress={() => putOff($)} />
@@ -511,4 +513,11 @@ export const install = (on: On, options: Options) => {
       </Box>
     )
   })
+}
+
+// Engine access stays in this file; the shared palette is pure.
+const mainColor = async ($: EngineInterface, color: Accent): Promise<string> => {
+  if (color === 'orange') return accentText(color, undefined)
+  const theme = (await $.config.list().catch(() => [])).find(row => row.key === 'theme')
+  return accentText(color, theme?.value)
 }

@@ -64,3 +64,36 @@ test('the old arabic-fix subcommand no longer handles or changes settings', asyn
   expect(result.text).toBe('passed through')
   expect(writes).toEqual([])
 })
+
+for (const color of ['orange', 'green', 'gold', 'blue']) {
+  test(`/muslim color reads and writes ${color}`, { options: { color } }, async ($, on) => {
+    const writes: unknown[] = []
+    on('config.set', async (_$, e) => (writes.push(e), { value: e.value }))
+    expect((await $.command.run(muslim('color'))).text).toContain(`Color ${color}.`)
+    expect((await $.command.run(muslim(`color ${color}`))).text).toBe(`Color ${color}`)
+    expect(writes).toEqual([expect.objectContaining({ key: 'muslim.color', value: color })])
+    expect((await $.command.run(muslim(''))).text).toContain(`| Color | ${color} |`)
+    expect((await $.command.run(muslim('help color'))).text).toContain('/muslim color orange | green | gold | blue')
+  })
+}
+test('/muslim color refuses unknown names and extra arguments', async ($, on) => {
+  const writes: unknown[] = []
+  on('config.set', async (_$, e) => (writes.push(e), { value: e.value }))
+  for (const args of ['color red', 'color green extra', 'color Orange']) {
+    expect((await $.command.run(muslim(args))).text).toBe('Usage: /muslim color orange | green | gold | blue')
+  }
+  expect(writes).toEqual([])
+})
+test('/muslim color reports a denied write', async ($, on) => {
+  on('config.set', async () => ({ deny: 'locked' }))
+  expect((await $.command.run(muslim('color blue'))).text).toBe('Not changed: locked')
+})
+test('/athkar color redirects without writing', async ($, on) => {
+  const writes: unknown[] = []
+  on('config.set', async (_$, e) => (writes.push(e), { value: e.value }))
+  for (const args of ['color', 'color green', 'color unknown']) {
+    expect((await $.command.run({ ...muslim(args), command: 'athkar' })).text).toBe('Color is now /muslim color.')
+  }
+  expect(writes).toEqual([])
+  expect((await $.command.run(muslim('help athkar'))).text).not.toContain('/athkar color')
+})

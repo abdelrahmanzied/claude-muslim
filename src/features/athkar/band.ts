@@ -1,8 +1,9 @@
+import { ACCENTS, accentHex, type Accent } from '../../shared/color/index.ts'
 import { BAND_CSS } from './band-css.ts'
 import type { Period } from './data.ts'
 import { AREF_RUQAA_BOLD, TAJAWAL_BOLD, TAJAWAL_REGULAR } from './fonts.ts'
 import type { Sky } from './logic.ts'
-import type { Accent, Style } from './look.ts'
+import type { Style } from './look.ts'
 import { SIZE_DEFAULT } from '../../config.ts'
 import { END_CITE_CHAR, END_CITE_EM, END_VERSE_CHAR, HINT_CHAR, TEXT_WIDTH } from './metrics.ts'
 
@@ -107,8 +108,8 @@ const SKY_FX: Record<Sky, string> = {
 }
 
 // The lab page's own colors and fonts, light and dark.
-const ROOT_LIGHT = '--desk-bg: #ffffff; --desk-side: #f7f6f2; --desk-ink: #1f1f1f; --desk-dim: #8b8b85; --desk-line: #e6e4dd; --claude: #c8642d; --claude-soft: #f8ebe2; --claude-faint: #fcf5f0; --green: #0b7a50; --green-soft: #d2ece0; --green-faint: #eef8f3; --gold: #c99a1f; --gold-soft: #f6eac8; --gold-faint: #fdf8ea; --blue: #3a6aa3; --blue-soft: #dbe6f3; --blue-faint: #f1f5fa;'
-const ROOT_DARK = '--desk-bg: #1f1e1c; --desk-side: #262522; --desk-ink: #ecebe6; --desk-dim: #8f8d86; --desk-line: #34322e; --claude: #d97757; --claude-soft: #3a2a22; --claude-faint: #2b2420; --green: #1a9466; --green-soft: #133328; --green-faint: #0f231c; --gold: #e8b93c; --gold-soft: #3b3018; --gold-faint: #272114; --blue: #4a7fc0; --blue-soft: #1c2a3d; --blue-faint: #161f2b;'
+const ROOT_LIGHT = '--desk-bg: #ffffff; --desk-side: #f7f6f2; --desk-ink: #1f1f1f; --desk-dim: #8b8b85; --desk-line: #e6e4dd; --claude-soft: #f8ebe2; --claude-faint: #fcf5f0; --green-soft: #d2ece0; --green-faint: #eef8f3; --gold-soft: #f6eac8; --gold-faint: #fdf8ea; --blue-soft: #dbe6f3; --blue-faint: #f1f5fa;'
+const ROOT_DARK = '--desk-bg: #1f1e1c; --desk-side: #262522; --desk-ink: #ecebe6; --desk-dim: #8f8d86; --desk-line: #34322e; --claude-soft: #3a2a22; --claude-faint: #2b2420; --green-soft: #133328; --green-faint: #0f231c; --gold-soft: #3b3018; --gold-faint: #272114; --blue-soft: #1c2a3d; --blue-faint: #161f2b;'
 const FONTS = '--font-band: "Tajawal", sans-serif; --font-ar: "Tajawal", sans-serif; --font-cover: "Aref Ruqaa", "Tajawal", serif; --font-ui: system-ui, -apple-system, "Segoe UI", sans-serif; --font-mono: ui-monospace, Menlo, monospace;'
 
 // The open reading's vertical layout, in CSS pixels: padding above, the room
@@ -316,7 +317,8 @@ export const bandHtml = (m: BandModel) => {
 export const bandSvg = (m: BandModel) => {
   const fonts = [fontFace('Tajawal', 400, TAJAWAL_REGULAR), fontFace('Tajawal', 700, TAJAWAL_BOLD)]
   if (m.phase === 'cover' || m.finaleMs !== undefined) fonts.push(fontFace('Aref Ruqaa', 700, AREF_RUQAA_BOLD))
-  const style = `${fonts.join('\n')}\n:root { ${m.isDark ? ROOT_DARK : ROOT_LIGHT} ${FONTS} }\n${BAND_CSS}\n${EXTRA_CSS}`
+  const mainColors = Object.keys(ACCENTS).map(color => `--${color === 'orange' ? 'claude' : color}: ${accentHex(color as Accent, m.isDark)};`).join(' ')
+  const style = `${fonts.join('\n')}\n:root { ${m.isDark ? ROOT_DARK : ROOT_LIGHT} ${mainColors} ${FONTS} }\n${BAND_CSS}\n${EXTRA_CSS}`
 
   const f = frameOf(m)
   const pad = m.card ? ` style="padding:${f.padY}px ${f.padX}px"` : ''

@@ -7,7 +7,7 @@ The thikr line's own design. It adds to the shared base in [DESIGN.md](../../DES
 Thikr is text only. This follows the shared text-only requirement.
 
 - **Claude's own font and size.** No custom fonts, no font size or weight changes.
-- **Theme colors only.** Phrases in bands use `color="claude"`; hints use `dimColor`. Never hex, never `error` or `warning`.
+- **Shared main color.** Phrases in bands use the shared main color (`claude` for orange, light/dark hex otherwise); hints use `dimColor`. Never `error` or `warning`.
 - **No drawing.** No SVG, images, raster, Client modules or panes.
 - **No animation of our own.** The phrase changes in place at its reading speed; Claude's glyph keeps its own animation.
 - **The same everywhere.** Windows, macOS and Linux, terminal and desktop app, every theme and zoom. No surface gets a richer version.
@@ -21,7 +21,7 @@ Thikr is text only. This follows the shared text-only requirement.
 | Claude works | Spinner | The words Claude lets a mod replace (`word`, `message`, `suffix`); glyph, timer and `esc to interrupt` stay |
 | Desktop step row | Spinner | The thikr follows the step's words after ` · ` |
 | End of turn (terminal) | TurnDuration | Claude's past-tense word becomes تَمَّ بِحَمْدِ اللَّهِ; the duration stays |
-| Usage limit | AbovePrompt band | One line in `color="claude"` until the window resets |
+| Usage limit | AbovePrompt band | One line in the shared main color (`claude` for orange, light/dark hex otherwise) until the window resets |
 | Settings | Command reply | `/thikr` status and help, one line per change |
 
 ## Text
@@ -36,6 +36,8 @@ Thikr is text only. This follows the shared text-only requirement.
 ## Checklist for a change
 
 - [ ] Still text only: no drawing, fonts or animation added.
-- [ ] Colors are theme keys.
+- [ ] Main-color text uses the shared palette; other text keeps its theme colors.
 - [ ] Looks the same in the terminal and the desktop app (tests on both surfaces).
 - [ ] Claude's own words and numbers untouched.
+
+The main color is the shared `/muslim color` setting, default Claude orange. It changes only existing main-color accents; Claude's spinner keeps its own color.

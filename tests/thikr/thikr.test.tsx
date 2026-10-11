@@ -357,3 +357,25 @@ test('a response reporting a full usage window shows hasbiyallah before any turn
   expect(await shown.find({ type: 'Text', text: stripTashkeel(USAGE_LIMIT) })).toBeDefined()
   await shown.unmount()
 })
+
+for (const surface of ['terminal', 'desktop'] as const) {
+  for (const [color, theme, expected] of [['orange', 'light', 'claude'], ['orange', 'dark', 'claude'], ['green', 'light', '#0b7a50'], ['green', 'dark', '#1a9466']] as const) {
+    test(`usage-limit color ${surface} ${color} ${theme}`, { options: { athkar: false, color,  } }, async ($, on) => {
+      mock.env(on, {})
+      mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+      mock.clock(on, { now: Date.parse('2026-10-10T12:00:00Z') })
+      on('config.list', async () => ({ value: [{ key: 'theme', label: 'Theme', kind: 'choice', value: theme, provider: { plugin: 'engine', tier: 'core' }, isLocked: false }] }))
+      on('ui.render', { component: 'AbovePrompt' }, async ($, e) => {
+        const { Box } = $.ui.resolve(e)
+        return <Box />
+      })
+      on('session.usage', async () => ({ value: { startedAt: 0, context: { window: 200_000 }, rateLimits: [{ kind: 'five_hour', percentUsed: 100, resetsAt: '2026-10-10T13:00:00Z' }] } }))
+      on('classic.StopFailure', async () => ({}))
+      await $.classic.StopFailure({ error: 'rate_limit' })
+      const shown = await $.ui.mount({ plugin: 'muslim', surface, component: 'AbovePrompt', requestId: 'colors', props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} } })
+      const accent = await shown.find({ type: 'Text', text: surface === 'terminal' ? stripTashkeel(USAGE_LIMIT) : USAGE_LIMIT })
+      expect(accent?.props.color).toBe(expected)
+      await shown.unmount()
+    })
+  }
+}

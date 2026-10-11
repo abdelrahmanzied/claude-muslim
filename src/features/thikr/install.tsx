@@ -1,3 +1,4 @@
+import { accentText, type Accent } from '../../shared/color/index.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
 import { atom, read } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
@@ -248,9 +249,16 @@ export const install = (on: On, options: Options) => {
 
     return (
       <Box flexDirection="column">
-        <Text key="usage-limit" color="claude">{await renderArabic($, e.surface, withTashkeel(USAGE_LIMIT, options.tashkeel), arabicCache)}</Text>
+        <Text key="usage-limit" color={await mainColor($, options.color)}>{await renderArabic($, e.surface, withTashkeel(USAGE_LIMIT, options.tashkeel), arabicCache)}</Text>
         {theirs}
       </Box>
     )
   })
+}
+
+// Engine access stays in this file; the shared palette is pure.
+const mainColor = async ($: EngineInterface, color: Accent): Promise<string> => {
+  if (color === 'orange') return accentText(color, undefined)
+  const theme = (await $.config.list().catch(() => [])).find(row => row.key === 'theme')
+  return accentText(color, theme?.value)
 }

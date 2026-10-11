@@ -4,8 +4,8 @@ The salah feature's own design. It adds to the shared base in [DESIGN.md](../../
 
 ## Visual means
 
-- **Text by default.** The prayer line, the setup line, the review form and command replies are text in Claude's font, size and theme colors (`color="claude"` for the accent, `dimColor` for hints).
-- **The athan moment is a short text look.** When a prayer comes in, a band above the prompt plays once (about 3 seconds), then rests as the prayer line `حان وقت صلاة …`. In the terminal it is a Unicode minaret rising row by row from the base (about 330 ms a row, `color="claude"` for the crescent and the point, `dimColor` for the rest) beside «حان وقت صلاة العصر»:
+- **Text by default.** The prayer line, the setup line, the review form and command replies are text in Claude's font, size and colors (the shared main color (`claude` for orange, light/dark hex otherwise) for the accent, `dimColor` for hints).
+- **The athan moment is a short text look.** When a prayer comes in, a band above the prompt plays once (about 3 seconds), then rests as the prayer line `حان وقت صلاة …`. In the terminal it is a Unicode minaret rising row by row from the base (about 330 ms a row, the shared main color (`claude` for orange, light/dark hex otherwise) for the crescent and the point, `dimColor` for the rest) beside «حان وقت صلاة العصر»:
 
   ```
      ☾
@@ -31,7 +31,7 @@ Rows stack, never compete: each feature's AbovePrompt hook keeps what `next(e)` 
 | --- | --- | --- |
 | No city yet | AbovePrompt band | One line: the guessed city, **Yes**, **Another city**, **Not now** |
 | City saved, or `/salah adjust` | AbovePrompt band | Today's times, − and + per prayer with no minute bounds, **Save**, **Skip** |
-| All day (mode `always`) | SessionMode (footer, before the model), bold, `color="claude"`, no card | `☾ العصر ١٥:٥٩`; empty with minutes |
+| All day (mode `always`) | SessionMode (footer, before the model), bold, the shared main color (`claude` for orange, light/dark hex otherwise), no card | `☾ العصر ١٥:٥٩`; empty with minutes |
 | Countdown window (`/salah show <minutes>`, 20 by default; the last 20 min with `always`) | SessionMode, same text | `☾ العصر ١٩:٤٢`, a live mm:ss countdown, once a second |
 | Prayer comes in | AbovePrompt band, once, and the SessionMode line | Terminal: the rising minaret (~3 s) beside `حان وقت صلاة العصر`. Desktop: the photo card until closed or 15 minutes. The footer line keeps the call for 15 minutes (`salahAthan`) |
 | Claude works in the window | Spinner (thikr line) | حَيَّ عَلَى الصَّلَاةِ joins the thikr rotation |
@@ -43,7 +43,7 @@ What the user chose:
 
 | Part | Pick |
 | --- | --- |
-| Placement | The prayer line sits in the prompt footer beside the model: plain text, `color="claude"`, terminal and desktop alike; no status line. A row of its own above the prompt was dropped because the desktop draws that area as a card |
+| Placement | The prayer line sits in the prompt footer beside the model: plain text, the shared main color (`claude` for orange, light/dark hex otherwise), terminal and desktop alike; no status line. A row of its own above the prompt was dropped because the desktop draws that area as a card |
 | Digits | Arabic-Indic |
 | Countdown | Live `mm:ss` in the footer line inside the countdown window, `☾ العصر ١٩:٤٢` |
 | Thikr | The first phrase of a thikr turn inside the window is «حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د» ([thikr.md](thikr.md#before-a-prayer)) |
@@ -70,5 +70,7 @@ What the user chose:
 
 - [ ] Every richer look has a terminal text fallback, tested on `terminal` and `desktop`.
 - [ ] No OS notification, no sound, no network.
-- [ ] Colors are theme keys where text is used.
+- [ ] Main-color text uses `src/shared/color/` and `/muslim color`; other text keeps its theme colors.
 - [ ] The moment plays once and clears itself (see DESIGN.md, Time-based behavior).
+
+The main color is the shared `/muslim color` setting, default Claude orange. It changes only existing main-color accents; Claude's spinner keeps its own color.

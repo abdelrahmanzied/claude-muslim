@@ -138,3 +138,19 @@ test('/muslim status shows the default when this terminal has no answer, and not
   surface = 'desktop'
   expect((await $.command.run(status)).text).toContain('| Terminal Arabic | terminal only |')
 })
+
+for (const [color, expected] of [['orange', 'claude'], ['gold', '#c99a1f']] as const) {
+  test(`terminal survey label follows ${color} without coloring the other text`, { options: { athkar: false, color } }, async ($, on) => {
+    mock.env(on, {})
+    mock.store(on)
+    on('config.list', async () => ({ value: [{ key: 'theme', label: 'Theme', kind: 'choice', value: 'light', provider: { plugin: 'engine', tier: 'core' }, isLocked: false }] }))
+    on('ui.render', { component: 'AbovePrompt' }, async ($, e) => {
+      const { Box } = $.ui.resolve(e)
+      return <Box />
+    })
+    const shown = await $.ui.mount({ plugin: 'muslim', surface: 'terminal', component: 'AbovePrompt', requestId: 'survey-colors', props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} } })
+    expect((await shown.find({ type: 'Text', text: 'muslim' }))?.props.color).toBe(expected)
+    expect((await shown.find({ type: 'Text', text: 'Press 1–3' }))?.props.color).toBeUndefined()
+    await shown.unmount()
+  })
+}
