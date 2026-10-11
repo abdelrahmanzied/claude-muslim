@@ -33,14 +33,35 @@ export const register: Register = (on, options) => {
     if (word === 'tashkeel') {
       const value = feature
       if (words.length > 2 || (value !== '' && value !== 'on' && value !== 'off')) return { text: 'Usage: /muslim tashkeel on | off' }
-      if (value === '') return { text: `Tashkeel ${settings.tashkeel ? 'on' : 'off'}. Usage: /muslim tashkeel on | off` }
+      if (value === '') return { text: `Tashkeel ${settings.tashkeel ? 'on' : 'off'} on desktop; the terminal never shows diacritics. Usage: /muslim tashkeel on | off` }
       const { deny } = await $.config.set({ key: 'muslim.tashkeel', value: value === 'on' })
-      return { text: deny ? `Not changed: ${deny}` : `Tashkeel ${value}` }
+      return { text: deny ? `Not changed: ${deny}` : `Tashkeel ${value} on desktop; the terminal never shows diacritics` }
     }
     if (word === 'help') return { text: muslimHelp(feature) }
     if (word !== '') return next(e).catch(() => ({ text: muslimHelp() }))
 
-    return { text: `${PLUGIN} v${VERSION}\n\n/muslim tashkeel on | off — show or hide Arabic diacritics everywhere\n/muslim terminal-arabic — choose how Arabic shows in this terminal (applies to all features)\n\nHelp: /muslim help` }
+    const onOff = (value: boolean) => (value ? 'on' : 'off')
+    // The Arabic setup answers an empty /muslim with this terminal's mode; empty off the terminal.
+    const terminal = await next(e).then(result => result.text ?? '', () => '')
+    const rows = [
+      ['Tashkeel', `${onOff(settings.tashkeel)} — desktop only; the terminal never shows diacritics`, '`/muslim tashkeel on` · `off`'],
+      ['Thikr', onOff(settings.thikr), '`/thikr on` · `off` · all options: `/thikr help`'],
+      ['Terminal Arabic', terminal || 'terminal only', '`/muslim terminal-arabic`'],
+    ]
+
+    return {
+      text: [
+        `**Muslim** · v${VERSION}`,
+        '',
+        '### Settings',
+        '',
+        '| Setting | Value | Change with |',
+        '| --- | --- | --- |',
+        ...rows.map(row => `| ${row.join(' | ')} |`),
+        '',
+        'Help: /muslim help',
+      ].join('\n'),
+    }
   })
 
   installThikr(on, settings)

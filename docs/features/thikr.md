@@ -47,7 +47,7 @@ Full text with tashkeel: `src/features/thikr/phrases.ts`.
 
 ## Settings
 
-Shared terminal Arabic display uses a mode saved per terminal: none, plain (strip tashkeel), joined (shape in logical order), or reversed (shape and reorder). Defaults are plain for Apple Terminal, joined for Warp, reversed for Windows Console, and none otherwise. Thikr caches the current terminal mode for the session; the keyboard survey updates that cache immediately. The global tashkeel setting also applies on desktop; saved text stays unchanged. Each terminal ID is asked once; `/muslim terminal-arabic` reopens its survey. See [the Arabic check](arabic-fix.md), including the Apple Terminal update limitation.
+Terminal Arabic uses the shared three-mode behavior, and terminal output always strips tashkeel. The desktop-only tashkeel setting follows `/muslim tashkeel`; `/thikr tashkeel` was replaced by `/muslim tashkeel`. See [the Arabic check](arabic-fix.md) and the single [terminal Arabic reference](../terminal.md).
 
 | `/config` field | Command | Default |
 | --- | --- | --- |
@@ -58,7 +58,7 @@ Shared terminal Arabic display uses a mode saved per terminal: none, plain (stri
 
 `/thikr` alone shows the current settings and help.
 
-Tashkeel is controlled plugin-wide by [`/muslim tashkeel`](../terminal.md#tashkeel).
+Tashkeel is controlled on desktop by [`/muslim tashkeel`](../terminal.md#tashkeel); terminals always strip it.
 
 ## To verify live
 

@@ -18,9 +18,10 @@ const spinner = (surface: (typeof SURFACES)[number], mode: Mode) => ({
   requestId: 'main',
   props: { word: 'Sauteing', message: null, suffix: '…', mode },
 })
+const shown = (surface: (typeof SURFACES)[number], text: string) => surface === 'terminal' ? stripTashkeel(text) : text
 
 test('spinner shows the thikr in order, keeping the desktop step', async ($, on) => {
-  mock.store(on, { arabicTerminals: { unknown: 'none' } })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   const clock = mock.clock(on, { now: 0 })
   answerTurns(on)
@@ -44,14 +45,14 @@ test('spinner shows the thikr in order, keeping the desktop step', async ($, on)
 
     // On desktop the step's row stays up after the tool, so its words stay too.
     const step = (thikr: string | undefined) => (surface === 'terminal' ? thikr : `Sauteing · ${thikr}`)
-    expect(STARTING).toContain(seen[0]?.word)
-    expect(seen.slice(1).map(s => s.word)).toEqual([THINKING[0], step(THINKING[1]), step(THINKING[1]), step(WRITING[0])])
+    expect(STARTING.map(text => shown(surface, text))).toContain(seen[0]?.word)
+    expect(seen.slice(1).map(s => s.word)).toEqual([shown(surface, THINKING[0]!), step(shown(surface, THINKING[1]!)), step(shown(surface, THINKING[1]!)), step(shown(surface, WRITING[0]!))])
     expect(seen.every(s => s.message === null && s.suffix === '')).toBe(true)
   }
 })
 
 test('a subagent plays the long group, then thinking returns', async ($, on) => {
-  mock.store(on, { arabicTerminals: { unknown: 'none' } })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   mock.clock(on, { now: 0 })
   answerTurns(on)
@@ -74,11 +75,11 @@ test('a subagent plays the long group, then thinking returns', async ($, on) => 
   await $.tool.call({ tool: 'Agent', description: 'look', prompt: 'look around', subagent_type: 'Explore' } as never)
   await $.ui.render(spinner('terminal', 'thinking'))
 
-  expect(seen).toEqual([THINKING[0], LONG[0], THINKING[0]])
+  expect(seen).toEqual([THINKING[0], LONG[0], THINKING[0]].map(text => stripTashkeel(text!)))
 })
 
 test('compacting plays the long group', async ($, on) => {
-  mock.store(on, { arabicTerminals: { unknown: 'none' } })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   mock.clock(on, { now: 0 })
   answerTurns(on)
@@ -102,7 +103,7 @@ test('compacting plays the long group', async ($, on) => {
 })
 
 test('each turn opens on a different starting phrase', async ($, on) => {
-  mock.store(on, { arabicTerminals: { unknown: 'none' } })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   mock.clock(on, { now: 0 })
   answerTurns(on)
@@ -119,12 +120,12 @@ test('each turn opens on a different starting phrase', async ($, on) => {
     await $.ui.render(spinner('terminal', 'requesting'))
   }
 
-  expect(seen.every(word => STARTING.includes(word))).toBe(true)
+  expect(seen.every(word => STARTING.some(text => stripTashkeel(text) === word))).toBe(true)
   expect(seen.every((word, i) => i === 0 || word !== seen[i - 1])).toBe(true)
 })
 
 test('a group resumes where it left off', async ($, on) => {
-  mock.store(on, { arabicTerminals: { unknown: 'none' } })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   const clock = mock.clock(on, { now: 0 })
   answerTurns(on)
@@ -144,11 +145,11 @@ test('a group resumes where it left off', async ($, on) => {
   await clock.advance(5000)
   await $.ui.render(spinner('terminal', 'thinking'))
 
-  expect(seen).toEqual([THINKING[0], THINKING[1], WRITING[0], THINKING[1]])
+  expect(seen).toEqual([THINKING[0], THINKING[1], WRITING[0], THINKING[1]].map(text => stripTashkeel(text!)))
 })
 
 test('salawat mode keeps one salawat for a whole turn, the next one each turn', { options: { thikrMode: 'salawat' } }, async ($, on) => {
-  mock.store(on, { arabicTerminals: { unknown: 'none' } })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   const clock = mock.clock(on, { now: 0 })
   answerTurns(on)
@@ -170,12 +171,12 @@ test('salawat mode keeps one salawat for a whole turn, the next one each turn', 
 
   const turns = SALAWAT.length + 1
   for (let turn = 0; turn < turns; turn++) {
-    expect(seen.slice(turn * 4, turn * 4 + 4)).toEqual(Array(4).fill(SALAWAT[turn % SALAWAT.length]))
+    expect(seen.slice(turn * 4, turn * 4 + 4)).toEqual(Array(4).fill(stripTashkeel(SALAWAT[turn % SALAWAT.length]!)))
   }
 })
 
 test('desktop keeps the step row\'s words after its tool ends', async ($, on) => {
-  mock.store(on, { arabicTerminals: { unknown: 'none' } })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   mock.clock(on, { now: 0 })
   answerTurns(on)
@@ -198,8 +199,8 @@ test('desktop keeps the step row\'s words after its tool ends', async ($, on) =>
   expect(words).toEqual([THINKING[0], `Running a command · ${THINKING[0]}`, `Running a command · ${THINKING[0]}`, THINKING[0]])
 })
 
-test('global tashkeel off strips the marks', { options: { tashkeel: false } }, async ($, on) => {
-  mock.store(on, { arabicTerminals: { unknown: 'none' } })
+test('terminal always strips tashkeel even when the desktop setting is on', { options: { tashkeel: true } }, async ($, on) => {
+  mock.store(on, { arabicTerminals: { unknown: 'reversed' } })
   mock.env(on, {})
   mock.clock(on, { now: 0 })
   answerTurns(on)
@@ -213,11 +214,29 @@ test('global tashkeel off strips the marks', { options: { tashkeel: false } }, a
   await $.turn.start({ text: 'hi', turnId: 't' })
   await $.ui.render(spinner('terminal', 'thinking'))
 
+  expect(word).not.toMatch(/[\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06ed]/)
+})
+
+test('desktop follows the tashkeel setting', { options: { tashkeel: false } }, async ($, on) => {
+  mock.env(on, {})
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+  mock.clock(on, { now: 0 })
+  answerTurns(on)
+  let word = ''
+  on('ui.render', { component: 'Spinner' }, async ($, e) => {
+    word = e.props.word
+    const { Text } = $.ui.resolve(e)
+
+    return <Text>{word}</Text>
+  })
+  await $.turn.start({ text: 'hi', turnId: 'desktop' })
+  await $.ui.render(spinner('desktop', 'thinking'))
+
   expect(word).toBe(stripTashkeel(THINKING[0] ?? ''))
 })
 
 test('off leaves Claude\'s words alone', { options: { thikr: false } }, async ($, on) => {
-  mock.store(on, { arabicTerminals: { unknown: 'none' } })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   let word = ''
   on('ui.render', { component: 'Spinner' }, async ($, e) => {
@@ -232,7 +251,7 @@ test('off leaves Claude\'s words alone', { options: { thikr: false } }, async ($
 })
 
 test('end of turn says tamma bihamdillah, and end off keeps Claude\'s word', async ($, on) => {
-  mock.store(on, { arabicTerminals: { unknown: 'none' } })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   let word = ''
   on('ui.render', { component: 'TurnDuration' }, async ($, e) => {
@@ -243,7 +262,7 @@ test('end of turn says tamma bihamdillah, and end off keeps Claude\'s word', asy
   })
   await $.ui.render({ surface: 'terminal', component: 'TurnDuration', requestId: 'm1', props: { word: 'Baked', durationMs: 3000 } })
 
-  expect(word).toBe(END_OF_TURN)
+  expect(word).toBe(stripTashkeel(END_OF_TURN))
 })
 
 test('/thikr shows status and help', async $ => {
@@ -258,9 +277,9 @@ test('/thikr shows status and help', async $ => {
   expect(ran.text).toContain('/thikr speed')
 })
 
-test('/thikr tashkeel redirects to the plugin-wide setting', async $ => {
+test('/thikr unknown subcommands show help', async $ => {
   const ran = await $.command.run({ command: 'thikr', args: 'tashkeel off', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
-  expect(ran.text).toBe('Tashkeel is plugin-wide now: /muslim tashkeel on | off')
+  expect(ran.text).toContain('/thikr                    status')
 })
 
 test('/thikr speed refuses out-of-range values', async $ => {
@@ -275,7 +294,7 @@ test('/thikr speed refuses out-of-range values', async $ => {
 })
 
 test('a usage limit shows hasbiyallah above the prompt until it resets', async ($, on) => {
-  mock.store(on, { arabicTerminals: { unknown: 'none' } })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T12:00:00Z') })
   on('session.usage', async () => ({
@@ -300,7 +319,7 @@ test('a usage limit shows hasbiyallah above the prompt until it resets', async (
 
   await $.classic.StopFailure({ error: 'rate_limit' })
   const shown = await $.ui.mount({ plugin: 'muslim', ...band })
-  expect(await shown.find({ type: 'Text', text: USAGE_LIMIT })).toBeDefined()
+  expect(await shown.find({ type: 'Text', text: stripTashkeel(USAGE_LIMIT) })).toBeDefined()
   await shown.unmount()
 
   await clock.advance(60 * 60 * 1000)

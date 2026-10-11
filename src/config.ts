@@ -18,7 +18,7 @@ export const SPEED_MAX = 60
 export const readOptions = (raw: Record<string, unknown>): Options => ({
   thikr: raw.thikr !== false,
   thikrSpeed: readSpeed(raw.thikrSpeed),
-  tashkeel: raw.tashkeel === undefined ? raw.thikrTashkeel !== false : raw.tashkeel !== false,
+  tashkeel: raw.tashkeel !== false,
   thikrEnd: raw.thikrEnd !== false,
   thikrMode: raw.thikrMode === 'salawat' ? 'salawat' : 'all',
 })

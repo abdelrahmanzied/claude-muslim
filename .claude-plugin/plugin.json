@@ -29,7 +29,7 @@
     "tashkeel": {
       "type": "boolean",
       "title": "Tashkeel",
-      "description": "Show diacritics on Arabic in every feature",
+      "description": "Show diacritics on Arabic on desktop and other non-terminal surfaces",
       "default": true
     },
     "thikrEnd": {

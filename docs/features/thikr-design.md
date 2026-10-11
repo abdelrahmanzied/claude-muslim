@@ -26,9 +26,9 @@ Thikr is text only. This follows the shared text-only requirement.
 
 ## Text
 
-- Terminal Arabic uses the current terminal's saved `none`, `plain`, `joined`, or `reversed` treatment. Thikr resolves the mode from the per-terminal store and caches it for the session; the picker refreshes that cache when a choice is made. Desktop always keeps the authored logical text. The shared [Arabic check](arabic-fix-design.md) is terminal-only and hidden during surveys.
+- Terminal rendering and tashkeel behavior follow the shared [terminal Arabic guide](../terminal.md). The shared [Arabic check](arabic-fix-design.md) is terminal-only and hidden during surveys.
 
-- Phrases are authored with tashkeel in `src/features/thikr/phrases.ts`; the plugin-wide [`/muslim tashkeel` setting](../terminal.md#tashkeel) controls display.
+- Phrases are authored with tashkeel in `src/features/thikr/phrases.ts`; the desktop-only [`/muslim tashkeel` setting](../terminal.md#tashkeel) controls desktop display.
 - Every phrase fits one line at 80 columns next to Claude's own text.
 - Claude's text and ours are separate runs joined by ` · `, so each keeps its own direction.
 - Claude's own numbers (timer, tokens) are never converted.

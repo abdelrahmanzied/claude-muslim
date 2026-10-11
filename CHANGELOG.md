@@ -2,11 +2,11 @@
 
 ## Unreleased
 
-- Arabic setup survey keeps the updated header and dim hint, now offers only choices 1–4 with no skip option, and uses plugin-wide `/muslim tashkeel on | off` in place of `/thikr tashkeel`.
-- Terminal detection now derives per-terminal IDs from `TERM_PROGRAM`, emulator and platform environment markers, with `WindowsConsole` defaulting to reversed Arabic. Any detected ID gets its own stored answer; no supported-terminal registry is needed.
-- Per-terminal Arabic setup now applies to every feature's Arabic shown on a terminal: none, tashkeel-stripped, joined logical order, and joined visual RTL order. Defaults are Apple Terminal plain, Warp joined, and none for other terminals. The AbovePrompt survey compares all four treatments with fixed hotkeys 1–4; 5 saves the built-in default. Each terminal ID is remembered independently; `/muslim terminal-arabic` reopens the current terminal's survey. Desktop remains unchanged.
-
-- Shared terminal Arabic rendering for thikr with transformations tailored and saved per terminal.
+- `/muslim` shows a settings table, the same on every surface: tashkeel, thikr, and terminal Arabic (this terminal's mode, or its default if not chosen yet; `terminal only` on desktop), each with the command that changes it.
+- Terminal Arabic has three per-terminal modes: `plain` strips tashkeel, `joined` also applies presentation forms in logical order, and `reversed` also reorders Arabic runs for visual RTL display. Tashkeel is always stripped on terminal because terminals draw marks poorly and partial redraws can garble them.
+- Defaults are Apple Terminal `plain`, Warp `joined`, Windows Console `reversed`, and `plain` for every other terminal ID. The first-run survey compares these treatments with hotkeys 1–3; invalid saved modes reopen the survey. `/muslim terminal-arabic` reopens it manually.
+- `/muslim tashkeel on | off` controls Arabic diacritics on desktop and non-terminal surfaces only. `/thikr tashkeel` was replaced by `/muslim tashkeel`.
+- Thikr spinner, end-of-turn, and usage-limit phrases all use the shared Arabic display path.
 
 ## 0.2.0
 
