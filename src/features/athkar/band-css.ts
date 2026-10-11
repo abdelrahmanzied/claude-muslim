@@ -88,7 +88,7 @@ button:focus-visible {outline: 2px solid var(--accent); outline-offset: 2px;}
 .cv-inline {grid-template-columns: max-content minmax(0, auto); justify-content: space-between; justify-items: stretch; align-items: center; direction: rtl; text-align: start; gap: 8px 20px; padding: 4px 4px;}
 .cv-inline .cover-title {font-size: 26px; line-height: 1.3;}
 .cover-title {white-space: nowrap;}
-.cv-inline .cover-keys {direction: ltr; grid-template-columns: repeat(3, max-content); justify-content: end; gap: 7px 16px;}
+.cv-inline .cover-keys {direction: ltr; grid-template-columns: repeat(2, max-content); justify-content: end; gap: 7px 16px;}
 .sky.dark-ink {--scrim: linear-gradient(rgba(255, 255, 255, .34), rgba(255, 255, 255, .34)); --b-ink: #141a2a; --b-dim: #3f4a63; --b-acc: var(--ring); --b-soft: color-mix(in srgb, var(--ring) 25%, transparent); --b-on: #ffffff; --b-track: rgba(28,34,51,.18);}
 .bg-dawn {background: var(--scrim), radial-gradient(1px 1px at 18% 20%, #fff, transparent 60%), radial-gradient(1px 1px at 52% 12%, #fff, transparent 60%), radial-gradient(1px 1px at 76% 28%, rgba(255,255,255,.7), transparent 60%), linear-gradient(180deg, #1f2c58 0%, #4f4a82 40%, #c4778a 78%, #f3b38f 100%);}
 .bg-sunrise {background: var(--scrim), radial-gradient(circle at 86% 112%, rgba(255,246,214,.75) 0, rgba(255,215,136,.55) 26px, rgba(255,176,98,.35) 64px, rgba(255,176,98,0) 150px), linear-gradient(180deg, #86b6e6 0%, #bcd2ea 42%, #f6d0a6 82%, #f4ac72 100%);}
