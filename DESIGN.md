@@ -38,6 +38,8 @@ The athkar reader is the one feature the person sits with, so it is drawn:
 
 Everything else (font, size) stays Claude's: the API sets neither, so the reader follows the app's zoom.
 
+The reader's own rules (fixed size, counts, clicks and keys, when it folds) are in [docs/athkar-design.md](docs/athkar-design.md).
+
 ## 3. Color
 
 Use theme keys, never hex, so every theme (light, dark, color-blind, ANSI) stays correct.

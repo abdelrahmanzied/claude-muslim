@@ -79,12 +79,14 @@ Full text with tashkeel: `src/features/thikr/phrases.ts`.
 
 ## Morning and evening athkar (0.3.0)
 
+The reader's rules (size, counts, clicks, when it folds): [athkar-design.md](athkar-design.md).
+
 A reader above the prompt for the morning athkar (05:00 to 17:00) and the evening athkar (17:00 to 05:00), from Hisn al-Muslim 75 to 98 (`src/features/athkar/data.ts`). 93 is the same words as 92, so they are one thikr. Counts come only from the data file: 91 and 92 a hundred, 98 ten.
 
 ### Reading
 
 - **Cover:** the title (أَذْكَارُ الصَّبَاحِ or أَذْكَارُ الْمَسَاءِ) and the keys. Faded, it folds to one slim row (24px, the reading's folded height): the title on the right, a muted one-line hint (`click to start`, or `click to continue`) at the left, the × at the left edge and the thin progress line. The first click only opens it (full cover with the keys); the next starts the reading; neither counts.
-- **Count:** click, Space or Enter adds one. Right click or Backspace takes one back, or goes to the thikr before at 0. ← next, → previous (Arabic reads right to left). Esc gives the prompt back.
+- **Count:** click, Space or Enter adds one. Right click or Backspace takes one back, or goes to the thikr before at 0. ← next, → previous (Arabic reads right to left). Esc gives the prompt back. The band folds by itself once the person stops ([rules](athkar-design.md#when-it-folds-collapse-rules)).
 - **Count on the line:** no circles. The progress line along the bottom shows the whole set; a small pill on its glowing head shows the repetitions left on this thikr in Arabic-Indic digits (٣ then ٢, ١, ٠; ١ for a thikr said once), easing along with the head and kept clear of both ends of the line. The set position (e.g. ١٦ مِنْ ٢٢) sits small and muted at the line's left end. In the terminal the head is `` ٢ `` on the main color.
 - **Sizes (desktop):** the open reading and the cover are one fixed height for every thikr, 77px, with the text at a fixed 14px (no size setting). The words keep 14px, or shrink just enough to fit their two-line box, with no floor: in a very narrow window the words get small but never leave the box; the cover's title and keys fit the width the same way. Faded, the reading and the cover fold to one row (24px); the done row is 56px.
 - **Moves on** by itself 650 ms after a thikr's last count.

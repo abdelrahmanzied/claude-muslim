@@ -173,7 +173,10 @@ test('faded, the reading folds to one row; a press opens it without counting', a
 
     // The pointer leaves: it fades and folds.
     await ui.post({ act: 'leave' })
-    await clock.advance(400)
+    // Not at once: a second of grace.
+    await clock.advance(500)
+    expect(await isFolded()).toBe(false)
+    await clock.advance(600)
     expect(await isFolded()).toBe(true)
     if (surface === 'desktop') {
       expect(await heightOf()).toBeLessThan(full / 2)
@@ -191,4 +194,44 @@ test('faded, the reading folds to one row; a press opens it without counting', a
     expect(await isFirstCounted(ui, surface)).toBe(true)
     await ui.unmount()
   }
+})
+
+test('counting by keys with the pointer off the band: it folds 3 seconds after the last key', async ($, on) => {
+  const clock = mock.clock(on, { now: MORNING })
+  mock.store(on)
+  engineBand(on)
+  await $.command.run({ command: 'athkar', args: 'morning reset', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+  const ui = await $.ui.mount(band('terminal'))
+  const isFolded = async () => (await ui.find({ in: 'athkar', key: 'rest' })) !== undefined
+  await press(ui, 'return')
+  await press(ui, 'return')
+  await press(ui, 'space')
+  // Each key starts the 3 seconds again.
+  await clock.advance(2000)
+  await press(ui, 'space')
+  await clock.advance(2000)
+  expect(await isFolded()).toBe(false)
+  await clock.advance(1100)
+  expect(await isFolded()).toBe(true)
+  await ui.unmount()
+})
+
+test('counting by keys with the pointer on the band: it stays open', async ($, on) => {
+  const clock = mock.clock(on, { now: MORNING })
+  mock.store(on)
+  engineBand(on)
+  await $.command.run({ command: 'athkar', args: 'morning reset', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+  const ui = await $.ui.mount(band('terminal'))
+  const isFolded = async () => (await ui.find({ in: 'athkar', key: 'rest' })) !== undefined
+  await ui.post({ act: 'enter' })
+  await press(ui, 'return')
+  await press(ui, 'return')
+  await press(ui, 'space')
+  await clock.advance(10_000)
+  expect(await isFolded()).toBe(false)
+  // The pointer leaves: a second later it folds.
+  await ui.post({ act: 'leave' })
+  await clock.advance(1100)
+  expect(await isFolded()).toBe(true)
+  await ui.unmount()
 })

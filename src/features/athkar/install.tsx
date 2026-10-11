@@ -53,7 +53,9 @@ const FOCUS_GRACE_MS = 600
 // Faded again after this long with no input.
 const IDLE_MS = 90_000
 // How long the pointer may be off the band before it fades.
-const LEAVE_MS = 300
+const LEAVE_MS = 1000
+// Counting by keys with the pointer off the band: it fades this long after the last key.
+const KEY_REST_MS = 3000
 
 const isStyle = (value: string): value is Style => (STYLES as readonly string[]).includes(value)
 const isColor = (value: string): value is Accent => (COLORS as readonly string[]).includes(value)
@@ -141,6 +143,8 @@ const view = {
   idle: undefined as { cancel: () => void } | undefined,
   // Set while the pointer is off the band: it fades unless it comes back.
   leave: undefined as { cancel: () => void } | undefined,
+  // The pointer is over the band.
+  isInside: false,
   pressedAt: 0,
 }
 
@@ -181,6 +185,7 @@ export const install = (on: On, options: Options) => {
   let region = { columns: 0, rows: 0 }
   view.isOpen = false
   view.isActive = false
+  view.isInside = false
 
   on('command.run', { command: 'athkar' }, async ($, e) => {
     const [word = '', value = ''] = e.args.trim().split(/\s+/)
@@ -234,11 +239,13 @@ export const install = (on: On, options: Options) => {
     // The engine says nothing of a click elsewhere: the pointer leaving the
     // band, or typing in the prompt, is the person moving on.
     if (m.act === 'enter') {
+      view.isInside = true
       view.leave?.cancel()
 
       return {}
     }
     if (m.act === 'leave') {
+      view.isInside = false
       view.leave?.cancel()
       if (view.isActive) view.leave = $.clock.after(LEAVE_MS, () => rest($))
 
@@ -253,7 +260,16 @@ export const install = (on: On, options: Options) => {
     // picture, in whole cells; its last row may be cut short.
     const columns = m.act === 'pointer' ? (m.columns ?? region.columns) : 0
     const rows = m.act === 'pointer' ? (m.rows ?? region.rows) : 0
-    if (m.act === 'pointer') view.pressedAt = Date.now()
+    if (m.act === 'pointer') {
+      view.pressedAt = Date.now()
+      view.isInside = true
+    }
+    // Keys with the pointer elsewhere: it fades a while after the last one,
+    // as the engine says nothing of a click elsewhere or of Escape.
+    if (m.act === 'key' && !view.isInside) {
+      view.leave?.cancel()
+      view.leave = $.clock.after(KEY_REST_MS, () => rest($))
+    }
     if (m.act === 'pointer' && m.button === 'left' && lastBand && columns > 0 && rows > 0) {
       // The × sits at the left, so a click is placed from the left edge.
       const { px, py } = pixelOf(lastBand, m.x, m.y, columns, rows)
