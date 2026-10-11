@@ -2,7 +2,7 @@ import { mock, test, expect } from 'claude-code/testing'
 import type { On } from 'claude-code'
 import type { Options } from '../../../src/config.ts'
 import { install } from '../../../src/shared/arabic/install.tsx'
-import { ARABIC_MODES, defaultArabicMode, terminalArabic } from '../../../src/shared/arabic/terminal.ts'
+import { ARABIC_MODES, terminalArabic } from '../../../src/shared/arabic/terminal.ts'
 
 const band = (surface: 'terminal' | 'desktop', hasSurvey = false, requestId = 'arabic-check') => ({
   plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId,
@@ -12,7 +12,7 @@ const engineBand = (on: On) => on('ui.render', { component: 'AbovePrompt' }, asy
   const { Text } = $.ui.resolve(e)
   return <Text key="engine-band">engine band</Text>
 })
-const OPTIONS = { thikr: false } as Options
+const OPTIONS = { thikr: false, tashkeel: true } as Options
 const sample = 'بِسْمِ اللَّهِ'
 const rows = { type: 'Button' as const }
 
@@ -23,12 +23,12 @@ test('survey rows use fixed mode order and Text samples', { options: OPTIONS }, 
   install(on, OPTIONS)
   const shown = await $.ui.mount(band('terminal'))
   const buttons = await shown.findAll(rows)
-  expect(buttons.map(button => button.props.hotkey)).toEqual(['1', '2', '3', '4', '5'])
+  expect(buttons.map(button => button.props.hotkey)).toEqual(['1', '2', '3', '4'])
   expect(buttons.map(button => button.key)).toEqual([
-    'arabic-mode-none', 'arabic-mode-plain', 'arabic-mode-joined', 'arabic-mode-reversed', 'arabic-mode-keep',
+    'arabic-mode-none', 'arabic-mode-plain', 'arabic-mode-joined', 'arabic-mode-reversed',
   ])
   for (const mode of ARABIC_MODES) expect(await shown.find({ type: 'Text', text: terminalArabic('terminal', mode, sample) })).toBeDefined()
-  expect(await shown.find({ type: 'Text', text: 'Press 1–5' })).toBeDefined()
+  expect(await shown.find({ type: 'Text', text: 'Press 1–4' })).toBeDefined()
   expect(await shown.find({ type: 'Text', text: 'engine band' })).toBeDefined()
   await shown.unmount()
 })
@@ -67,19 +67,6 @@ test('Apple and Warp answers are independent; a new unanswered terminal gets its
   shown = await $.ui.mount(band('terminal', false, 'warp'))
   expect(await shown.find(rows)).toBeDefined()
   expect(stored.arabicTerminals).toEqual({ Apple_Terminal: 'plain' })
-  await shown.unmount()
-})
-
-test('Not now saves the terminal built-in default', { options: OPTIONS }, async ($, on) => {
-  mock.env(on, { TERM_PROGRAM: 'Apple_Terminal' })
-  const stored: Record<string, unknown> = {}
-  on('store.get', async (_$, e) => ({ value: stored[e.key] }))
-  on('store.set', async (_$, e) => (stored[e.key] = e.value, { value: undefined }))
-  engineBand(on)
-  install(on, OPTIONS)
-  const shown = await $.ui.mount(band('terminal'))
-  await shown.press({ key: 'arabic-mode-keep' })
-  expect(stored.arabicTerminals).toEqual({ Apple_Terminal: defaultArabicMode('Apple_Terminal') })
   await shown.unmount()
 })
 

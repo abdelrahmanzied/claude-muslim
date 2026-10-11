@@ -71,11 +71,12 @@ Full text with tashkeel: `src/features/thikr/phrases.ts`.
 | --- | --- | --- |
 | `thikr` | `/thikr on` · `/thikr off` | on |
 | `thikrSpeed` | `/thikr speed auto` · `/thikr speed <1-60>` | auto |
-| `thikrTashkeel` | `/thikr tashkeel on` · `off` | on |
 | `thikrEnd` | `/thikr end on` · `off` | on |
 | `thikrMode` | `/thikr mode all` · `/thikr mode salawat` | all |
 
 `/thikr` alone shows the current settings and help.
+
+Tashkeel is controlled plugin-wide by [`/muslim tashkeel`](terminal.md#tashkeel).
 
 ### To verify live
 

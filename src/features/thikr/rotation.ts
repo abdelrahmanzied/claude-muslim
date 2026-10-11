@@ -109,10 +109,3 @@ export const withThikr = (
 
   return { word, message }
 }
-
-const TASHKEEL = /[ً-ٰٟ]/g
-
-export const stripTashkeel = (text: string): string => text.replace(TASHKEEL, '')
-
-export const display = (text: string, tashkeel: boolean): string =>
-  tashkeel ? text : stripTashkeel(text)

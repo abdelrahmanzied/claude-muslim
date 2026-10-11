@@ -4,7 +4,7 @@ import type { Speed } from './features/thikr/rotation.ts'
 export type Options = {
   thikr: boolean
   thikrSpeed: Speed
-  thikrTashkeel: boolean
+  tashkeel: boolean
   thikrEnd: boolean
   thikrMode: Mode
 }
@@ -18,7 +18,7 @@ export const SPEED_MAX = 60
 export const readOptions = (raw: Record<string, unknown>): Options => ({
   thikr: raw.thikr !== false,
   thikrSpeed: readSpeed(raw.thikrSpeed),
-  thikrTashkeel: raw.thikrTashkeel !== false,
+  tashkeel: raw.tashkeel === undefined ? raw.thikrTashkeel !== false : raw.tashkeel !== false,
   thikrEnd: raw.thikrEnd !== false,
   thikrMode: raw.thikrMode === 'salawat' ? 'salawat' : 'all',
 })

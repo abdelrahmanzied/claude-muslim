@@ -7,7 +7,8 @@ import { readSpeed, SPEED_MAX, SPEED_MIN } from '../../config.ts'
 import type { Mode, Options } from '../../config.ts'
 import { limitUntil } from './limit.ts'
 import { END_OF_TURN, SALAWAT, STARTING, USAGE_LIMIT } from './phrases.ts'
-import { display, groupFor, isStepRow, phraseAt, pickStart, startOf, withThikr } from './rotation.ts'
+import { groupFor, isStepRow, phraseAt, pickStart, startOf, withThikr } from './rotation.ts'
+import { withTashkeel } from '../../shared/arabic/visual.ts'
 import type { Group, Speed } from './rotation.ts'
 
 const cachedArabicMode = atom({ plugin: 'muslim', key: 'arabicTerminalMode' } as const, null as { terminalId: string; mode: ArabicMode } | null)
@@ -60,7 +61,6 @@ const HELP = [
   '/thikr on | off           show tasabih while Claude works',
   `/thikr speed auto          reading time: 1s + 0.5s per word`,
   `/thikr speed <${SPEED_MIN}-${SPEED_MAX}>       fixed seconds per phrase`,
-  '/thikr tashkeel on | off  show diacritics',
   '/thikr end on | off       تَمَّ بِحَمْدِ اللَّهِ at the end of a turn',
   '/thikr mode all | salawat  every group, or one salawat for each whole turn',
 ].join('\n')
@@ -107,7 +107,7 @@ export const install = (on: On, options: Options) => {
     if (word === '') {
       return {
         text: [
-          `thikr ${onOff(options.thikr)} · speed ${speedText(options.thikrSpeed)} · tashkeel ${onOff(options.thikrTashkeel)} · end ${onOff(options.thikrEnd)} · mode ${options.thikrMode}`,
+          `thikr ${onOff(options.thikr)} · speed ${speedText(options.thikrSpeed)} · end ${onOff(options.thikrEnd)} · mode ${options.thikrMode}`,
           '',
           HELP,
         ].join('\n'),
@@ -115,11 +115,8 @@ export const install = (on: On, options: Options) => {
     }
     if (word === 'on' || word === 'off') return set('thikr', word === 'on', `thikr ${word}`)
     if (word === 'mode' && isMode(value)) return set('thikrMode', value, `mode ${value}`)
-    if ((word === 'tashkeel' || word === 'end') && (value === 'on' || value === 'off')) {
-      const field = word === 'tashkeel' ? 'thikrTashkeel' : 'thikrEnd'
-
-      return set(field, value === 'on', `${word} ${value}`)
-    }
+    if (word === 'tashkeel') return { text: 'Tashkeel is plugin-wide now: /muslim tashkeel on | off' }
+    if (word === 'end' && (value === 'on' || value === 'off')) return set('thikrEnd', value === 'on', `end ${value}`)
     if (word === 'speed') {
       const speed = readSpeed(value)
       if (value === 'auto' || speed !== 'auto') return set('thikrSpeed', String(speed), `speed ${speedText(speed)}`)
@@ -203,7 +200,7 @@ export const install = (on: On, options: Options) => {
     const text = options.thikrMode === 'salawat'
       ? SALAWAT[Math.max(0, turns - 1) % SALAWAT.length] ?? ''
       : phraseAt(current, now - groupSince, options.thikrSpeed)
-    const phrase = await renderArabic($, e.surface, display(text, options.thikrTashkeel), arabicCache)
+    const phrase = await renderArabic($, e.surface, withTashkeel(text, options.tashkeel), arabicCache)
 
     const isStep = isStepRow(e.surface, e.props, lastStep, toolsSince.size > 0)
     if (isStep) lastStep = e.props.word
@@ -215,7 +212,7 @@ export const install = (on: On, options: Options) => {
 
   if (options.thikrEnd) {
     on('ui.render', { component: 'TurnDuration' }, async ($, e, next) =>
-      next({ ...e, props: { ...e.props, word: await renderArabic($, e.surface, display(END_OF_TURN, options.thikrTashkeel), arabicCache) } }),
+      next({ ...e, props: { ...e.props, word: await renderArabic($, e.surface, withTashkeel(END_OF_TURN, options.tashkeel), arabicCache) } }),
     )
   }
 
@@ -243,7 +240,7 @@ export const install = (on: On, options: Options) => {
 
     return (
       <Box flexDirection="column">
-        <Text key="usage-limit" color="claude">{await renderArabic($, e.surface, display(USAGE_LIMIT, options.thikrTashkeel), arabicCache)}</Text>
+        <Text key="usage-limit" color="claude">{await renderArabic($, e.surface, withTashkeel(USAGE_LIMIT, options.tashkeel), arabicCache)}</Text>
         {theirs}
       </Box>
     )
