@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 import type { SalahMinaret, SalahCard, SalahWindow } from '../../../types'
 
-import { ADJUST_MAX, isMethod, REMINDER_MAX, REMINDER_MIN, writeAdjust } from '../../config.ts'
+import { isMethod, REMINDER_MAX, REMINDER_MIN, writeAdjust } from '../../config.ts'
 import type { Options } from '../../config.ts'
 import { CITY_MODEL, CITY_SYSTEM, cityPrompt, parseCities, parseCoordinates, type City } from './city.ts'
 import { salahHelp } from './help.ts'
@@ -285,8 +285,8 @@ export const install = (on: On, options: Options) => {
     if (word === 'adjust') {
       const prayer = prayerNamed(first)
       const minutes = Number(second)
-      if (!prayer || !Number.isInteger(minutes) || Math.abs(minutes) > ADJUST_MAX) {
-        return { text: `Adjust takes a prayer and whole minutes from -${ADJUST_MAX} to +${ADJUST_MAX}, e.g. adjust asr +5.` }
+      if (!prayer || second === '' || !Number.isInteger(minutes)) {
+        return { text: 'Adjust takes a prayer and whole minutes, e.g. adjust asr +5.' }
       }
       const adjust = { ...options.salahAdjust, [prayer]: minutes }
       const sign = minutes > 0 ? '+' : ''

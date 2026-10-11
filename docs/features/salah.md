@@ -42,7 +42,7 @@ Prayer times for the user's city, calculated on their machine with
 - **Asr:** the majority (shadow equals the object).
 - **Ramadan:** Umm al-Qura's Isha is 120 minutes after Maghrib.
 - **High latitudes:** the library's recommended rule (seventh of the night above 48°).
-- **Minutes:** the user's own per prayer, up to an hour either way.
+- **Minutes:** the user's own per prayer, any whole number in either direction. Unreadable config values are 0.
 
 ## Data
 
@@ -58,7 +58,7 @@ Prayer times for the user's city, calculated on their machine with
 `/salah help` is a table of every subcommand: `always` · `reminder` · `off`,
 `reminder <5-60>`, `athan on` · `off`, `athan test` (plays the athan moment now for the next prayer, changes nothing; shows the card on the desktop and the minaret in the terminal), `city` (the setup question) and
 `city <name or lat, lng>`, `method <auto or name>`, `adjust` and
-`adjust <prayer> <±min>`. An unknown word answers with the table.
+`adjust <prayer> <±min>` (any whole number of minutes, such as `+90` or `-120`; missing or malformed minutes are an error). An unknown word answers with the table.
 `/muslim help` shows the tables of thikr and salah; `/muslim help salah` only salah's.
 
 ## Settings

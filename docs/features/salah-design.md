@@ -30,7 +30,7 @@ Rows stack, never compete: each feature's AbovePrompt hook keeps what `next(e)` 
 | Moment | Surface | Shows |
 | --- | --- | --- |
 | No city yet | AbovePrompt band | One line: the guessed city, **Yes**, **Another city**, **Not now** |
-| City saved, or `/salah adjust` | AbovePrompt band | Today's times, − and + per prayer, **Save**, **Skip** |
+| City saved, or `/salah adjust` | AbovePrompt band | Today's times, − and + per prayer with no minute bounds, **Save**, **Skip** |
 | All day (mode `always`) | SessionMode (footer, before the model), `color="claude"`, no card | `☾ العصر ١٥:٥٩`; empty in `reminder` mode |
 | Reminder window (`salahReminder`, 20 min by default) | SessionMode, same text | `☾ العصر ١٩:٤٢`, a live mm:ss countdown, once a second |
 | Prayer comes in | AbovePrompt band, once, and the SessionMode line | Terminal: the rising minaret (~3 s) beside `حان وقت صلاة العصر`. Desktop: the photo card until closed or 15 minutes. The footer line keeps the call for 15 minutes (`salahAthan`) |

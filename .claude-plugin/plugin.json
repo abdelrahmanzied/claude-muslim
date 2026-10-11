@@ -110,7 +110,7 @@
     "salahAdjust": {
       "type": "string",
       "title": "Prayer minutes",
-      "description": "Minutes added to Fajr, Sunrise, Dhuhr, Asr, Maghrib and Isha, e.g. 0 0 0 5 0 0",
+      "description": "Any whole number of minutes added to Fajr, Sunrise, Dhuhr, Asr, Maghrib and Isha, e.g. 0 0 0 90 0 -120",
       "default": "0 0 0 0 0 0"
     }
   }

@@ -1,7 +1,6 @@
 // The review form: today's times with the user's minutes, one row a prayer,
 // each moved a minute at a time.
 
-import { ADJUST_MAX } from '../../config.ts'
 import { PRAYERS, type MethodId, type Prayer } from './methods.ts'
 import { ENGLISH } from '../../shared/pray/names.ts'
 import type { Place } from './place.ts'
@@ -22,8 +21,8 @@ export const reviewRows = (place: Place, method: MethodId, draft: Adjust, at: nu
   }))
 }
 
-// The draft with one prayer moved by `step` minutes, within ±ADJUST_MAX.
+// The draft with one prayer moved by `step` minutes.
 export const nudge = (draft: Adjust, prayer: Prayer, step: number): Adjust => ({
   ...draft,
-  [prayer]: Math.max(-ADJUST_MAX, Math.min(ADJUST_MAX, draft[prayer] + step)),
+  [prayer]: draft[prayer] + step,
 })

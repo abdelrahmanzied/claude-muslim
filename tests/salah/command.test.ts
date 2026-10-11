@@ -16,7 +16,10 @@ const salah = (args: string) => ({
 describe('settings', () => {
   test('minutes read as six whole numbers, anything else 0', async () => {
     expect(readAdjust('0 0 0 5 0 -10')).toEqual({ fajr: 0, sunrise: 0, dhuhr: 0, asr: 5, maghrib: 0, isha: -10 })
-    expect(readAdjust('3 x 99')).toEqual({ fajr: 3, sunrise: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0 })
+    expect(readAdjust('3 x 99')).toEqual({ fajr: 3, sunrise: 0, dhuhr: 99, asr: 0, maghrib: 0, isha: 0 })
+    expect(writeAdjust(readAdjust('0 0 0 90 0 -120'))).toBe('0 0 0 90 0 -120')
+    expect(writeAdjust(readAdjust('1.5 - Infinity NaN'))).toBe('0 0 0 0 0 0')
+    expect(writeAdjust(readAdjust(undefined))).toBe('0 0 0 0 0 0')
     expect(writeAdjust(readAdjust('1 2 3 4 5 6'))).toBe('1 2 3 4 5 6')
   })
 
@@ -76,9 +79,12 @@ test('/salah always, reminder <min> and athan save their settings', { options: M
   ])
 })
 
-test('/salah adjust and method refuse what they cannot take', { options: MUNICH }, async $ => {
-  expect((await $.command.run(salah('adjust asr 90'))).text).toContain('whole minutes from -60 to +60')
-  expect((await $.command.run(salah('adjust noon 5'))).text).toContain('whole minutes from -60 to +60')
+test('/salah adjust and method refuse what they cannot take', { options: MUNICH }, async ($, on) => {
+  const written = settingsWriter(on)
+  for (const args of ['adjust noon 5', 'adjust asr 1.5', 'adjust isha', 'adjust isha -', 'adjust asr nope', 'adjust asr Infinity']) {
+    expect((await $.command.run(salah(args))).text).toBe('Adjust takes a prayer and whole minutes, e.g. adjust asr +5.')
+  }
+  expect(written).toEqual([])
   expect((await $.command.run(salah('method tehran'))).text).toContain('Method is auto, or one of: mwl, egypt')
 })
 
@@ -88,7 +94,13 @@ test('/salah adjust saves one prayer\'s minutes', { options: MUNICH }, async ($,
   on('config.set', async (_$, e) => (written.push({ key: e.key, value: e.value }), { value: e.value }))
 
   expect((await $.command.run(salah('adjust Asr +5'))).text).toBe('Asr +5 min')
-  expect(written).toEqual([{ key: 'muslim.salahAdjust', value: '0 0 0 5 0 0' }])
+  expect((await $.command.run(salah('adjust Asr +90'))).text).toBe('Asr +90 min')
+  expect((await $.command.run(salah('adjust isha -120'))).text).toBe('Isha -120 min')
+  expect(written).toEqual([
+    { key: 'muslim.salahAdjust', value: '0 0 0 5 0 0' },
+    { key: 'muslim.salahAdjust', value: '0 0 0 90 0 0' },
+    { key: 'muslim.salahAdjust', value: '0 0 0 0 0 -120' },
+  ])
 })
 
 // Stands for Claude reading a typed place.

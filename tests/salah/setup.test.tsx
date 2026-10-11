@@ -132,6 +132,22 @@ const AT_MUNICH = { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berli
 const prayerRow = async (shown: { find: (query: { key: string }) => Promise<{ text?: string } | undefined> }) =>
   (await shown.find({ key: 'salah-line' }))?.text
 
+test('review buttons cross the old minute bounds and save on both surfaces', { options: { ...AT_MUNICH, salahAdjust: '0 0 0 60 0 -60' } }, async ($, on) => {
+  mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
+  engineBand(on)
+  const written = settingsWriter(on)
+
+  for (const surface of SURFACES) {
+    await $.command.run({ command: 'salah', args: 'adjust', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+    const shown = await $.ui.mount(band(surface))
+    await shown.press({ key: 'salah-asr-plus' })
+    await shown.press({ key: 'salah-isha-minus' })
+    await shown.press({ key: 'salah-save' })
+    await shown.unmount()
+  }
+  expect(written).toEqual(SURFACES.map(() => ({ key: 'muslim.salahAdjust', value: '0 0 0 61 0 -61' })))
+})
+
 test('/salah adjust opens the review form: minutes move a prayer, Save keeps them', { options: AT_MUNICH }, async ($, on) => {
   mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
   engineBand(on)

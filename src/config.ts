@@ -72,15 +72,13 @@ export const readReminder = (value: unknown): number => {
 
 export const isMethod = (value: unknown): value is MethodId => typeof value === 'string' && Object.hasOwn(METHODS, value)
 
-export const ADJUST_MAX = 60
-
-// Six whole minutes, Fajr to Isha, each within ±ADJUST_MAX; anything else is 0.
+// Six whole minutes, Fajr to Isha; anything else is 0.
 export const readAdjust = (value: unknown): Record<Prayer, number> => {
   const words = typeof value === 'string' ? value.trim().split(/\s+/) : []
   const entries = PRAYERS.map((prayer, i) => {
     const minutes = Number(words[i])
 
-    return [prayer, Number.isInteger(minutes) && Math.abs(minutes) <= ADJUST_MAX ? minutes : 0] as const
+    return [prayer, Number.isInteger(minutes) ? minutes : 0] as const
   })
 
   return Object.fromEntries(entries) as Record<Prayer, number>
