@@ -201,7 +201,7 @@ test('Skip closes the review form without saving', { options: AT_MUNICH }, async
   await shown.unmount()
 })
 
-test('always: the pray row shows the next pray, counts down, and never toasts', { options: { ...AT_MUNICH, salahShow: 'always' } }, async ($, on) => {
+test('always: the pray row shows the next pray, then counts down, and never toasts', { options: { ...AT_MUNICH, salahShow: 'always' } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   // 13:30 in Munich on 10 October 2026; Asr is at 15:59.
@@ -215,10 +215,25 @@ test('always: the pray row shows the next pray, counts down, and never toasts', 
   await clock.advance(1)
   expect(await prayRow(shown)).toBe('☾ العصر ١٥:٥٩')
 
-  // 15:39: twenty minutes before Asr, then on to Asr itself.
+  // 15:39: twenty minutes before Asr.
   await clock.advance(129 * 60_000)
   expect(await prayRow(shown)).toBe('☾ العصر ٢٠:٠٠')
-  await clock.advance(20 * 60_000 + 30_000)
+  expect(toasts).toEqual([])
+  await shown.unmount()
+})
+
+test('always: the call shows once the pray is in, and never toasts', { options: { ...AT_MUNICH, salahShow: 'always' } }, async ($, on) => {
+  mock.env(on, {})
+  mock.store(on)
+  // 15:58 in Munich, a minute before Asr.
+  const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:58:00Z') })
+  engineBand(on)
+  engineModes(on)
+  const toasts: string[] = []
+  on('ui.toast', async (_$, e) => (toasts.push(e.text), { value: undefined }))
+
+  const shown = await mountFooter($, 'terminal')
+  await clock.advance(90_000)
   expect(await prayRow(shown)).toBe('حان وقت صلاة العصر')
   expect(toasts).toEqual([])
   await shown.unmount()
@@ -288,7 +303,7 @@ test('after off then always, the line shows at once, before any timer', { option
   await shown.unmount()
 })
 
-test('show minutes: the line is empty until the window, counts down, calls, then clears', { options: AT_MUNICH }, async ($, on) => {
+test('show minutes: the line is empty until the window, then counts down', { options: AT_MUNICH }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
@@ -299,7 +314,19 @@ test('show minutes: the line is empty until the window, counts down, calls, then
   expect(await prayRow(shown)).toBe(undefined)
   await clock.advance(129 * 60_000)
   expect(await prayRow(shown)).toBe('☾ العصر ٢٠:٠٠')
-  await clock.advance(20 * 60_000 + 30_000)
+  await shown.unmount()
+})
+
+test('show minutes: the call shows once the pray is in, then the line clears', { options: AT_MUNICH }, async ($, on) => {
+  mock.env(on, {})
+  mock.store(on)
+  // 15:58 in Munich, a minute before Asr.
+  const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:58:00Z') })
+  engineBand(on)
+  engineModes(on)
+
+  const shown = await mountFooter($, 'terminal')
+  await clock.advance(90_000)
   expect(await prayRow(shown)).toBe('حان وقت صلاة العصر')
   await clock.advance(16 * 60_000)
   expect(await prayRow(shown)).toBe(undefined)

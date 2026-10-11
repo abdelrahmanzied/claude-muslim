@@ -60,6 +60,13 @@ Prayer times for the user's city, calculated on their machine with
 `adjust <prayer> <±min>` (any whole number of minutes, such as `+90` or `-120`; missing or malformed minutes are an error). An unknown word answers with the table.
 `/muslim help` shows the tables of thikr and salah; `/muslim help salah` only salah's.
 
+Replies are short markdown: a bold title line first (`**Muslim › Salah**`, `**Show:** …`, `**Athan:** on`), then any heading or table. The engine prefixes a reply's first line with `muslim: `, so a table or heading on that line would not render. `/salah show` with no value shows the current one and how to change it; a value outside `always`, `off` or 1–720 answers with the accepted forms. Old saved values (`salah` on/off/always, `salahReminder` minutes) carry over to `salahShow`.
+
+### Rules behind the line
+
+- No `$.state` write while drawing: the engine refuses it. Clearing the line (show `off`, no place) is deferred to the next clock tick.
+- The footer computes the line from the clock and the settings at draw time, never from a value saved earlier, so `show off` hides it, `show 20` far from a pray empties it, and `show always` after `off` brings it back, all at once.
+
 ## Settings
 
 Terminal Arabic: the footer line and the minaret label follow the shared per-terminal setting (`/muslim terminal-arabic`, see the [terminal guide](../terminal.md)). The desktop footer and athan card keep logical text.
@@ -100,3 +107,22 @@ Shared with thikr, in `src/shared/pray/`: `names.ts` (prayer names in English an
 - The prayer line's place and Arabic direction in the footer's mode labels (`SessionMode`, before the model name), in the terminal and the desktop app, stacked with the setup row and thikr's usage-limit row.
 - The setup line and review form in a narrow terminal and the desktop app.
 - `Intl` time zones inside the hooks runtime (falls back to the runtime's local time).
+
+Terminal checklist (each reply opens with its title, tables render):
+
+| Run | Expect |
+| --- | --- |
+| `/salah` | title, today's times table (next pray bold), settings table, help hint |
+| `/salah help` | table of every command |
+| `/salah show` | the current value and how to change it |
+| `/salah show always` | `☾ <pray> <HH:MM>` in the footer at once |
+| `/salah show 20` far from a pray | the line disappears at once |
+| `/salah show 600` | the line shows, counting down |
+| `/salah show off`, then `show always` | hides, then comes back at once |
+| `/salah show 0` · `show abc` | the accepted forms, nothing changed |
+| `/salah athan test` | the minaret above the prompt, nothing saved |
+| `/salah athan off` · `on` | `**Athan:** off` · `on` |
+| `/salah adjust` · `adjust asr +5` | the review form · `**Adjust:** Asr +5 min` |
+| `/salah method auto` | `**Method:** auto (…)` |
+| `/salah city <name>` | `**City:** …` and today's times above the prompt |
+| `/salah reminder` (old word) | the help table |
