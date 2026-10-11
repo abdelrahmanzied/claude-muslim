@@ -21,6 +21,7 @@ const spinner = (surface: (typeof SURFACES)[number], mode: Mode) => ({
 })
 
 test('spinner shows the thikr in order, keeping the desktop step', async ($, on) => {
+  mock.env(on, {})
   const clock = mock.clock(on, { now: 0 })
   answerTurns(on)
   const seen: { word: string; message: string | null; suffix: string }[] = []
@@ -50,6 +51,7 @@ test('spinner shows the thikr in order, keeping the desktop step', async ($, on)
 })
 
 test('a subagent plays the long group, then thinking returns', async ($, on) => {
+  mock.env(on, {})
   mock.clock(on, { now: 0 })
   answerTurns(on)
   const seen: string[] = []
@@ -75,6 +77,7 @@ test('a subagent plays the long group, then thinking returns', async ($, on) => 
 })
 
 test('compacting plays the long group', async ($, on) => {
+  mock.env(on, {})
   mock.clock(on, { now: 0 })
   answerTurns(on)
   on('classic.PreCompact', async () => ({}))
@@ -97,6 +100,7 @@ test('compacting plays the long group', async ($, on) => {
 })
 
 test('each turn opens on a different starting phrase', async ($, on) => {
+  mock.env(on, {})
   mock.clock(on, { now: 0 })
   answerTurns(on)
   const seen: string[] = []
@@ -117,6 +121,7 @@ test('each turn opens on a different starting phrase', async ($, on) => {
 })
 
 test('a group resumes where it left off', async ($, on) => {
+  mock.env(on, {})
   const clock = mock.clock(on, { now: 0 })
   answerTurns(on)
   const seen: string[] = []
@@ -139,6 +144,7 @@ test('a group resumes where it left off', async ($, on) => {
 })
 
 test('salawat mode keeps one salawat for a whole turn, the next one each turn', { options: { thikrMode: 'salawat' } }, async ($, on) => {
+  mock.env(on, {})
   const clock = mock.clock(on, { now: 0 })
   answerTurns(on)
   const seen: string[] = []
@@ -164,6 +170,7 @@ test('salawat mode keeps one salawat for a whole turn, the next one each turn', 
 })
 
 test('desktop keeps the step row\'s words after its tool ends', async ($, on) => {
+  mock.env(on, {})
   mock.clock(on, { now: 0 })
   answerTurns(on)
   const words: string[] = []
@@ -186,6 +193,7 @@ test('desktop keeps the step row\'s words after its tool ends', async ($, on) =>
 })
 
 test('tashkeel off strips the marks', { options: { thikrTashkeel: false } }, async ($, on) => {
+  mock.env(on, {})
   mock.clock(on, { now: 0 })
   answerTurns(on)
   let word = ''
@@ -202,6 +210,7 @@ test('tashkeel off strips the marks', { options: { thikrTashkeel: false } }, asy
 })
 
 test('off leaves Claude\'s words alone', { options: { thikr: false } }, async ($, on) => {
+  mock.env(on, {})
   let word = ''
   on('ui.render', { component: 'Spinner' }, async ($, e) => {
     word = e.props.word
@@ -215,6 +224,7 @@ test('off leaves Claude\'s words alone', { options: { thikr: false } }, async ($
 })
 
 test('end of turn says tamma bihamdillah, and end off keeps Claude\'s word', async ($, on) => {
+  mock.env(on, {})
   let word = ''
   on('ui.render', { component: 'TurnDuration' }, async ($, e) => {
     word = e.props.word
@@ -251,6 +261,7 @@ test('/thikr speed refuses out-of-range values', async $ => {
 })
 
 test('a usage limit shows hasbiyallah above the prompt until it resets', async ($, on) => {
+  mock.env(on, {})
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T12:00:00Z') })
   on('session.usage', async () => ({
     value: {
@@ -319,6 +330,7 @@ const reachWindow = async ($: Engine, on: On, seen: string[], minutes: number) =
 }
 
 test('inside a prayer window the call opens the turn, then the usual thikr plays', { options: AT_MUNICH }, async ($, on) => {
+  mock.env(on, {})
   const seen: string[] = []
   const { clock, shown } = await reachWindow($, on, seen, 129)
 
@@ -338,6 +350,7 @@ test('inside a prayer window the call opens the turn, then the usual thikr plays
 })
 
 test('outside the window the turn is as it was', { options: AT_MUNICH }, async ($, on) => {
+  mock.env(on, {})
   const seen: string[] = []
   const { shown } = await reachWindow($, on, seen, 60)
 
@@ -349,6 +362,7 @@ test('outside the window the turn is as it was', { options: AT_MUNICH }, async (
 })
 
 test('salawat mode still shows the call first', { options: { ...AT_MUNICH, thikrMode: 'salawat' } }, async ($, on) => {
+  mock.env(on, {})
   const seen: string[] = []
   const { clock, shown } = await reachWindow($, on, seen, 129)
 
@@ -362,6 +376,7 @@ test('salawat mode still shows the call first', { options: { ...AT_MUNICH, thikr
 })
 
 test('thikr off shows no call', { options: { ...AT_MUNICH, thikr: false } }, async ($, on) => {
+  mock.env(on, {})
   const seen: string[] = []
   const { shown } = await reachWindow($, on, seen, 129)
 

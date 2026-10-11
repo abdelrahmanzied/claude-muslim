@@ -1,8 +1,8 @@
 // The desktop athan card: a full-width card above the prompt with a photo
 // behind the call, built the way the athkar band is: one SVG document holding
 // HTML and CSS in a foreignObject, with the font embedded as a base64
-// @font-face and the photo as a base64 data URL in CSS. Drawn as a plain
-// (non-interactive) Svg, an image. Pure; install.tsx reads the photo and shows it.
+// @font-face and the photo as a base64 data URL in CSS. Drawn in the Svg
+// sandboxed document. Pure; install.tsx reads the photo and shows it.
 
 import { arabicDigits, athanText, IN_MS } from '../../shared/pray/line.ts'
 import type { Prayer } from '../../shared/pray/names.ts'

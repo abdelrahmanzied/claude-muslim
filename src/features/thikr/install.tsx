@@ -1,3 +1,4 @@
+import { terminalArabic, type ArabicTerminal } from '../../shared/arabic/terminal.ts'
 import { atom, read } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
@@ -9,6 +10,13 @@ import { limitUntil } from './limit.ts'
 import { END_OF_TURN, SALAWAT, STARTING, USAGE_LIMIT } from './phrases.ts'
 import { display, durationOf, groupFor, isStepRow, phraseAt, pickStart, startOf, withThikr } from './rotation.ts'
 import type { Group, Speed } from './rotation.ts'
+
+// The engine follows $ only into same-file top-level functions.
+const renderArabic = async ($: EngineInterface, surface: string, mode: ArabicTerminal, text: string): Promise<string> => {
+  const program = surface === 'terminal' && mode === 'auto' ? await $.env.get('TERM_PROGRAM') : undefined
+
+  return terminalArabic(surface, mode, text, program)
+}
 
 const usageLimit = atom({ plugin: 'muslim', key: 'usageLimit' } as const, null as UsageLimit | null)
 
@@ -171,7 +179,7 @@ export const install = (on: On, options: Options) => {
       : options.thikrMode === 'salawat'
       ? SALAWAT[Math.max(0, turns - 1) % SALAWAT.length] ?? ''
       : phraseAt(current, now - groupSince, options.thikrSpeed)
-    const phrase = display(text, options.thikrTashkeel)
+    const phrase = await renderArabic($, e.surface, options.arabicTerminal, display(text, options.thikrTashkeel))
 
     const isStep = isStepRow(e.surface, e.props, lastStep, toolsSince.size > 0)
     if (isStep) lastStep = e.props.word
@@ -183,7 +191,7 @@ export const install = (on: On, options: Options) => {
 
   if (options.thikrEnd) {
     on('ui.render', { component: 'TurnDuration' }, async ($, e, next) =>
-      next({ ...e, props: { ...e.props, word: display(END_OF_TURN, options.thikrTashkeel) } }),
+      next({ ...e, props: { ...e.props, word: await renderArabic($, e.surface, options.arabicTerminal, display(END_OF_TURN, options.thikrTashkeel)) } }),
     )
   }
 
@@ -211,7 +219,7 @@ export const install = (on: On, options: Options) => {
 
     return (
       <Box flexDirection="column">
-        <Text key="usage-limit" color="claude">{display(USAGE_LIMIT, options.thikrTashkeel)}</Text>
+        <Text key="usage-limit" color="claude">{await renderArabic($, e.surface, options.arabicTerminal, display(USAGE_LIMIT, options.thikrTashkeel))}</Text>
         {theirs}
       </Box>
     )

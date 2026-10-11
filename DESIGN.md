@@ -59,7 +59,7 @@ Never use `error` or `warning` for religious text.
 - **Direction:** a line that starts with Arabic is read right to left by the surface. When Claude's own Latin text or numbers sit in the same line, keep them as a separate run (e.g. a separator `·`), and never convert Claude's numbers.
 - **Our numbers** (counts, times we compute) use Arabic-Indic digits (`١٥:٢٤`, `٢/٣`) inside Arabic lines.
 - **Length:** spinner and band phrases fit one line at 80 columns. Longer texts (athkar) live only in the reader, never truncated.
-- **Terminals that don't shape Arabic:** tracked in issue #3; don't work around it per feature.
+- **Terminal Arabic:** convert only our Arabic display runs on `e.surface === 'terminal'` through `src/shared/arabic/visual.ts`, at draw time. `muslim.arabicTerminal` is `auto` (default: `$.env.get('TERM_PROGRAM') === 'Apple_Terminal'` only), `shaped` (force contextual presentation forms and RTL visual order), or `plain` (keep logical text for a terminal that handles Arabic). `/muslim arabic auto | shaped | plain` changes it. Unknown terminals keep logical text; `TERM` is not a bidi capability. Desktop and other surfaces, authored words, stored values and Claude's own runs are untouched. The fallback drops Arabic combining marks after composing hamza/madda, keeps digit runs LTR and supports basic Arabic single-line RTL paragraphs; explicit bidi controls, automatic wrapping and letters outside the forms table are not supported. Visual text copied from a fallback terminal has presentation forms and visual order.
 
 ## 5. Voice
 

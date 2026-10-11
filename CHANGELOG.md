@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Fix terminal Arabic joining and RTL order with a shared fallback, auto-detected for Apple Terminal and overridden by `/muslim arabic auto | shaped | plain`; desktop stays unchanged.
+
+- Restore the desktop athan card’s isolated view; keep its appearance, close action and terminal minaret.
+
 - The prayer line in the footer is bold.
 - `/salah adjust` accepts any whole number of minutes; saved settings and the review form no longer cap adjustments at ±60.
 - Fix the athan moment being hidden when tested before the prayer display first appears; keep the desktop card and terminal minaret unchanged.

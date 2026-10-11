@@ -1,3 +1,4 @@
+import { terminalArabic, type ArabicTerminal } from '../../shared/arabic/terminal.ts'
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 import type { SalahMinaret, SalahCard, SalahWindow } from '../../../types'
@@ -16,6 +17,13 @@ import { nudge, reviewRows } from './review.ts'
 import { CARD_HEIGHT, CARD_MS, cardSvg, cardWidth } from './card.ts'
 import { clockText, lastPrayer, nextSalah, type Adjust } from './times.ts'
 import { dayLine, methodOf } from './today.ts'
+
+// The engine follows $ only into same-file top-level functions.
+const renderArabic = async ($: EngineInterface, surface: string, mode: ArabicTerminal, text: string): Promise<string> => {
+  const program = surface === 'terminal' && mode === 'auto' ? await $.env.get('TERM_PROGRAM') : undefined
+
+  return terminalArabic(surface, mode, text, program)
+}
 
 // Setup put off with Not now: for the session here, for good in $.store.
 const setupLater = atom({ plugin: 'muslim', key: 'salahSetupLater' } as const, false)
@@ -376,7 +384,7 @@ export const install = (on: On, options: Options) => {
     return (
       <Box gap={1}>
         <Box key="salah-line">
-          <Text color="claude" bold>{text}</Text>
+          <Text color="claude" bold>{await renderArabic($, e.surface, options.arabicTerminal, text)}</Text>
         </Box>
         {theirs}
       </Box>
@@ -390,12 +398,14 @@ export const install = (on: On, options: Options) => {
     if (!playing || e.props.hasSurvey || e.surface === 'desktop') return theirs
     const { Box, Text } = $.ui.resolve(e)
 
+    const label = await renderArabic($, e.surface, options.arabicTerminal, athanText(playing.prayer))
+
     return (
       <Box flexDirection="column">
         {minaretRows(playing.frame).map((row, i) => (
           <Box key={`salah-minaret-${i}`} gap={2}>
             <Text color={i < ACCENT_ROWS ? 'claude' : undefined} dimColor={i >= ACCENT_ROWS}>{row}</Text>
-            {i === LABEL_ROW && playing.frame >= ROWS_COUNT - LABEL_ROW ? <Text color="claude">{athanText(playing.prayer)}</Text> : null}
+            {i === LABEL_ROW && playing.frame >= ROWS_COUNT - LABEL_ROW ? <Text color="claude">{label}</Text> : null}
           </Box>
         ))}
         {theirs}
@@ -416,14 +426,13 @@ export const install = (on: On, options: Options) => {
     const { Box, Button, Svg } = $.ui.resolve(e)
     const width = cardWidth(e.props.bodyColumns)
 
+    // Keep the embedded HTML in a sandboxed document, as the working test card was.
     return (
       // The desktop pads the band in a card: the picture reaches a cell and half a line past it.
       <Box flexDirection="column">
-        <Box key="salah-athan-card" marginX={-1} marginY={-1} position="relative">
-          <Svg source={cardSvg(photo.base64, shown.prayer, shown.time, width)} alt={athanText(shown.prayer)} width={width} height={CARD_HEIGHT} />
-          <Box position="absolute" top={1} left={2}>
-            <Button key="salah-athan-close" plain label="×" onPress={() => update($, card, () => null)} />
-          </Box>
+        <Box key="salah-athan-card" gap={1}>
+          <Svg source={cardSvg(photo.base64, shown.prayer, shown.time, width)} alt={athanText(shown.prayer)} width={width} height={CARD_HEIGHT} isInteractive />
+          <Button key="salah-athan-close" plain label="×" onPress={() => update($, card, () => null)} />
         </Box>
         {theirs ?? <Box key="salah-athan-end" height={0} />}
       </Box>

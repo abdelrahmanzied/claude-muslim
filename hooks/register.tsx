@@ -1,3 +1,4 @@
+import { isArabicTerminal } from '../src/shared/arabic/terminal.ts'
 import type { Register } from 'claude-code'
 
 import { readOptions } from '../src/config.ts'
@@ -37,8 +38,15 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  on('command.run', { command: 'muslim' }, async (_$, e) => {
+  on('command.run', { command: 'muslim' }, async ($, e) => {
     const [word = '', feature = ''] = e.args.trim().split(/\s+/)
+    if (word === 'arabic') {
+      if (feature === '') return { text: `Arabic terminal ${settings.arabicTerminal}. /muslim arabic auto | shaped | plain` }
+      if (!isArabicTerminal(feature) || e.args.trim().split(/\s+/).length !== 2) return { text: 'Arabic terminal is auto, shaped (mod shapes Arabic), or plain (terminal handles Arabic).' }
+      const { deny } = await $.config.set({ key: 'muslim.arabicTerminal', value: feature })
+
+      return { text: deny ? `Not changed: ${deny}` : `Arabic terminal ${feature}` }
+    }
     if (word === 'help') return { text: muslimHelp(feature) }
     if (word !== '') return { text: muslimHelp() }
 

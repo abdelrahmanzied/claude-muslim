@@ -27,6 +27,8 @@ Thikr is text only. This is a requirement of this feature, not of the whole mod.
 
 ## Text
 
+- Terminal Arabic follows the shared fallback in [DESIGN.md](../../DESIGN.md#4-typography-and-arabic): auto for Apple Terminal, with `/muslim arabic shaped | plain | auto` to override. Shape and reorder our spinner phrase before joining Claude’s text, plus the end-of-turn word and usage-limit row; desktop keeps logical text and tashkeel.
+
 - Phrases are authored with tashkeel in `src/features/thikr/phrases.ts`; `thikrTashkeel` may strip it, never change words.
 - Every phrase fits one line at 80 columns next to Claude's own text.
 - Claude's text and ours are separate runs joined by ` · `, so each keeps its own direction.

@@ -11,7 +11,7 @@ export const isFeature = (word: string): word is keyof typeof FEATURES => Object
 // One feature's table, or all of them under a heading each.
 export const muslimHelp = (feature?: string): string => {
   if (feature === undefined || feature === '') {
-    return Object.entries(FEATURES).map(([name, rows]) => `**${name}**\n\n${commandTable(rows)}`).join('\n\n')
+    return 'Arabic terminal: /muslim arabic auto | shaped | plain\n\n' + Object.entries(FEATURES).map(([name, rows]) => `**${name}**\n\n${commandTable(rows)}`).join('\n\n')
   }
   if (!isFeature(feature)) return `No feature "${feature}". Features: ${Object.keys(FEATURES).join(', ')}.`
 

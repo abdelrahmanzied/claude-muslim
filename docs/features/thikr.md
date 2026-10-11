@@ -55,6 +55,8 @@ Full text with tashkeel: `src/features/thikr/phrases.ts`.
 
 ## Settings
 
+Shared Arabic display: `/muslim arabic auto | shaped | plain`, also `muslim.arabicTerminal` in `/config`. Auto applies the fallback only when `TERM_PROGRAM` is `Apple_Terminal`; Warp and unidentified terminals keep logical Arabic. Use `shaped` for another terminal without bidi/shaping, or `plain` when the terminal handles Arabic itself. The fallback drops tashkeel and keeps times/counts in digit order; desktop output and saved text stay unchanged.
+
 | `/config` field | Command | Default |
 | --- | --- | --- |
 | `thikr` | `/thikr on` · `/thikr off` | on |
@@ -69,7 +71,7 @@ Full text with tashkeel: `src/features/thikr/phrases.ts`.
 
 - Desktop: step text and thikr side by side read well at narrow widths.
 - End-of-turn line: how Claude joins the word and the duration (e.g. "… for 3s") in an RTL phrase.
-- Arabic joining and direction per terminal: issue #3.
+- With `auto`, check joined RTL phrases in Warp and Terminal.app, with HH:MM digits unchanged. On an unidentified terminal without bidi/shaping, select `shaped`; use `plain` when the terminal handles Arabic.
 
 ## Design
 

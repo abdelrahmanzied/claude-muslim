@@ -14,6 +14,13 @@
   ],
   "types": "./types/index.d.ts",
   "userConfig": {
+    "arabicTerminal": {
+      "type": "string",
+      "title": "Arabic terminal display",
+      "description": "auto: shape for Apple Terminal; shaped: mod shapes and orders Arabic; plain: terminal handles Arabic. Desktop is unchanged",
+      "options": ["auto", "shaped", "plain"],
+      "default": "auto"
+    },
     "thikr": {
       "type": "boolean",
       "title": "Thikr line",

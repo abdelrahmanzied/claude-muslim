@@ -1,9 +1,11 @@
+import { isArabicTerminal, type ArabicTerminal } from './shared/arabic/terminal.ts'
 import { METHODS, PRAYERS, type MethodId, type Prayer } from './features/salah/methods.ts'
 import { readPlace, type Place } from './features/salah/place.ts'
 import type { Speed } from './features/thikr/rotation.ts'
 
 // Typed view of the manifest's userConfig values, defaults filled in.
 export type Options = {
+  arabicTerminal: ArabicTerminal
   thikr: boolean
   thikrSpeed: Speed
   thikrTashkeel: boolean
@@ -27,6 +29,7 @@ export const SPEED_MIN = 1
 export const SPEED_MAX = 60
 
 export const readOptions = (raw: Record<string, unknown>): Options => ({
+  arabicTerminal: isArabicTerminal(raw.arabicTerminal) ? raw.arabicTerminal : 'auto',
   thikr: raw.thikr !== false,
   thikrSpeed: readSpeed(raw.thikrSpeed),
   thikrTashkeel: raw.thikrTashkeel !== false,

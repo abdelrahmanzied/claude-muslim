@@ -18,7 +18,7 @@ The salah feature's own design. It adds to the shared base in [DESIGN.md](../../
   ```
 
   The seven rows keep their height while it rises, it shows once per prayer (state `salahAthanShown`), never during a survey, and `salahAthan` off drops it.
-- **Desktop athan card.** On the desktop the minaret is never drawn; instead a full-width card sits above the prompt, built like the athkar band: one vector document holding HTML and CSS, with the calligraphic font and the photo of the Haram embedded in it, rounded corners, the card the same width and height as that band. It shows «حان وقت صلاة المغرب» large on the right and the time in Arabic digits under it, in one font and white; a × at the top left, on a round dark translucent disc with a thin light border so it reads over the photo, closes it. The photo is a wide strip cut from a larger original so it stays sharp across the card. It appears at once, without animation: the desktop draws it as a still picture. No bar. It stays until the user closes it or the call's 15 minutes end.
+- **Desktop athan card.** On the desktop the minaret is never drawn; instead a full-width card sits above the prompt, built like the athkar band: one vector document holding HTML and CSS, with the calligraphic font and the photo of the Haram embedded in it, rounded corners, the card the same width and height as that band. It shows «حان وقت صلاة المغرب» large on the right and the time in Arabic digits under it, in one font and white; a × at the top left, on a round dark translucent disc with a thin light border so it reads over the photo, closes it. The photo is a wide strip cut from a larger original so it stays sharp across the card. It appears at once, without animation, in an isolated view. No bar. It stays until the user closes it or the call's 15 minutes end.
 - **Test path.** `/salah athan test` shows the athan moment on demand for the next prayer (the card on the desktop, the minaret in the terminal), even before the prayer display first appears, without changing settings or marking it shown.
 
 **Why:** prayer time is a few moments a day and worth marking; the rest of the day salah stays a quiet line.
@@ -57,6 +57,8 @@ What the user chose:
 - **No location service or IP lookup.** The city comes from the time zone or what the user types.
 
 ## Text
+
+- Terminal Arabic follows the shared fallback in [DESIGN.md](../../DESIGN.md#4-typography-and-arabic): auto for Apple Terminal, with `/muslim arabic shaped | plain | auto` to override. Shape and reorder the footer and minaret label only at draw time; the desktop footer and athan card keep logical text.
 
 - Prayer names in Arabic in lines (الفجر، الظهر، العصر، المغرب، العشاء), in English in commands (Fajr, Dhuhr, Asr, Maghrib, Isha).
 - حان وقت صلاة … and حَيَّ عَلَى الصَّلَاةِ are authored text with tashkeel, never generated.
