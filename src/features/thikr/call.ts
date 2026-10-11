@@ -1,9 +1,9 @@
 // The call that opens a thikr turn inside a prayer's reminder window.
-// Pure; the prayer name and digits come from the shared prayer helpers (src/prayer).
+// Pure; the prayer name and digits come from the shared prayer helpers (src/shared/pray).
 
 import type { SalahWindow } from '../../../types'
-import { arabicDigits } from '../../prayer/line.ts'
-import { ARABIC } from '../../prayer/names.ts'
+import { arabicDigits } from '../../shared/pray/line.ts'
+import { ARABIC } from '../../shared/pray/names.ts'
 import { CALL_TO_PRAYER } from './phrases.ts'
 
 const MINUTE_MS = 60_000

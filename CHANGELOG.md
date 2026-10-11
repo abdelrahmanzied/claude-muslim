@@ -11,7 +11,7 @@
 - Settings in `/config`: `salah`, `salahReminder`, `salahAdhan`, `salahPlace`, `salahMethod`, `salahAdjust`.
 - Prayer line placement (P4a): the prayer line (`☾ العصر ١٥:٥٩`, the live countdown, `حان وقت صلاة العصر`) moves from the status line to its own row in the band above the prompt, right-aligned in Claude orange, in the terminal and the desktop app. The status line is no longer used. Rows stack: the setup and review rows, thikr's usage-limit row and the prayer row each stay. While the minaret plays it takes the prayer row's place.
 - The live countdown now starts the second the reminder window opens (a timer for that moment) instead of on the next 30 s tick.
-- Shared prayer helpers (names, digits, the prayer line text) moved to `src/prayer/`; thikr no longer imports salah's folder.
+- Shared prayer helpers (names, digits, the prayer line text) moved to `src/shared/pray/`; thikr no longer imports salah's folder.
 
 ## 0.2.0
 

@@ -4,7 +4,7 @@
 // Asr follows the majority (shadow equals the object) for every method. Sunni
 // authorities only: a country whose official method is not gets mwl.
 
-import type { Prayer } from '../../prayer/names.ts'
+import type { Prayer } from '../../shared/pray/names.ts'
 
 export type MethodId =
   | 'mwl'

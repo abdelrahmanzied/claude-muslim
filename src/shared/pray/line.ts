@@ -2,7 +2,7 @@
 // countdown in the minutes before it, and the call once it is in.
 // Sunrise has no line and no reminder.
 
-import type { SalahMode } from '../config.ts'
+import type { SalahMode } from '../../config.ts'
 import { ARABIC } from './names.ts'
 import type { Prayer } from './names.ts'
 

@@ -91,7 +91,7 @@ Surfaces, the adhan moment's look and what salah never does: [salah-design.md](s
 | `minaret.ts` | the minaret's rows, frame timing and when it is due |
 | `today.ts` | today's line for `/salah` and the method in effect |
 
-Shared with thikr, in `src/prayer/`: `names.ts` (prayer names in English and Arabic, the `Prayer` type) and `line.ts` (the prayer line, countdown, reminder text, Arabic digits). Neither feature imports the other's folder.
+Shared with thikr, in `src/shared/pray/`: `names.ts` (prayer names in English and Arabic, the `Prayer` type) and `line.ts` (the prayer line, countdown, reminder text, Arabic digits). Neither feature imports the other's folder.
 
 ## To verify live
 

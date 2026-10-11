@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { arabicDigits, countdownText, isInWindow, minutesText, reminderText, prayerLine, type View } from '../../src/prayer/line.ts'
+import { arabicDigits, countdownText, isInWindow, minutesText, reminderText, prayerLine, type View } from '../../../src/shared/pray/line.ts'
 
 const MINUTE = 60_000
 const ASR = { prayer: 'asr' as const, at: 1_000 * MINUTE }
