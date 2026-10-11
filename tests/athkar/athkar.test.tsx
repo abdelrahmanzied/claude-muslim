@@ -40,11 +40,11 @@ const isFirstCounted = async (ui: Ui, surface: (typeof SURFACES)[number]) =>
     : (await ui.find({ in: 'athkar', text: /^ ٠ $/ })) !== undefined
 
 const isCover = async (ui: Ui, surface: (typeof SURFACES)[number]) =>
-  surface === 'desktop' ? (await picture(ui)).includes('class="cover cv-inline"') : (await ui.find({ in: 'athkar', text: TITLE.morning })) !== undefined
+  surface === 'desktop' ? /class="(cover cv-inline|peek cv-peek)"/.test(await picture(ui)) : (await ui.find({ in: 'athkar', text: TITLE.morning })) !== undefined
 
 const press = (ui: Ui, key: string) => ui.post({ act: 'key', key })
 
-test('the cover opens on a click that does not count, then clicks count', async ($, on) => {
+test('the cover folds when faded, opens on a click that does not count, then starts, then clicks count', async ($, on) => {
   mock.clock(on, { now: MORNING })
   mock.store(on)
   engineBand(on)
@@ -54,6 +54,18 @@ test('the cover opens on a click that does not count, then clicks count', async 
     const ui = await $.ui.mount(band(surface))
     expect(await isCover(ui, surface)).toBe(true)
 
+    // Faded, the cover is one slim row; the first click only opens it.
+    const heightOf = async () => Number((await ui.find({ in: 'athkar', type: 'Svg' }))?.props.height ?? 0)
+    const isFoldedCover = async () => (surface === 'desktop' ? (await picture(ui)).includes('class="peek cv-peek"') : (await ui.find({ in: 'athkar', key: 'rest' })) !== undefined)
+    expect(await isFoldedCover()).toBe(true)
+    const slim = await heightOf()
+    await ui.pointer({ type: 'down', x: 40, y: 0, button: 'left' })
+    expect(await isFoldedCover()).toBe(false)
+    expect(await isCover(ui, surface)).toBe(true)
+    expect(await isFirstCounted(ui, surface)).toBe(false)
+    if (surface === 'desktop') expect(await heightOf()).toBeGreaterThan(slim)
+
+    // The next one starts the reading, still without counting.
     await ui.pointer({ type: 'down', x: 40, y: 1, button: 'left' })
     expect(await isCover(ui, surface)).toBe(false)
     expect(await isFirstCounted(ui, surface)).toBe(false)
@@ -85,6 +97,8 @@ test('the reader moves on by itself after the last count', async ($, on) => {
   mock.store(on)
   engineBand(on)
   const ui = await $.ui.mount(band('terminal'))
+  // The first press wakes the folded cover, the next starts the reading.
+  await press(ui, 'return')
   await press(ui, 'return')
 
   await press(ui, 'space')
@@ -98,6 +112,7 @@ test('finishing shows the end, and × hides the band keeping the reading', async
   mock.store(on)
   engineBand(on)
   const ui = await $.ui.mount(band('desktop'))
+  await press(ui, 'return')
   await press(ui, 'return')
   const list = listFor('morning')
   for (let i = 0; i < list.length; i++) {
@@ -146,6 +161,8 @@ test('faded, the reading folds to one row; a press opens it without counting', a
   for (const surface of SURFACES) {
     await $.command.run({ command: 'athkar', args: 'morning reset', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
     const ui = await $.ui.mount(band(surface))
+    // Wake the cover, then start the reading.
+    await ui.pointer({ type: 'down', x: 40, y: 1, button: 'left' })
     await ui.pointer({ type: 'down', x: 40, y: 1, button: 'left' })
     const heightOf = async () => Number((await ui.find({ in: 'athkar', type: 'Svg' }))?.props.height ?? 0)
     const isFolded = async () => (surface === 'desktop' ? (await picture(ui)).includes('class="peek"') : (await ui.find({ in: 'athkar', key: 'rest' })) !== undefined)

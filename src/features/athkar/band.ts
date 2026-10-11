@@ -64,9 +64,9 @@ export type BandModel = {
 const CARD_X = 8
 const cardY = (lh: number) => Math.max(0, (40 - lh) / 2)
 
-// The reading folds to one row while faded; a press lights it and it opens.
+// The reading and the cover fold to one row while faded; a press lights them and they open.
 export const isFolded = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight'>) =>
-  m.phase === 'reading' && !m.isActive && m.restHeight !== undefined
+  (m.phase === 'reading' || m.phase === 'cover') && !m.isActive && m.restHeight !== undefined
 
 // The height the band stands at now: the folded row, or the full band.
 export const heightOf = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' | 'height'>) => (isFolded(m) ? (m.restHeight ?? m.height) : m.height)
@@ -161,6 +161,8 @@ const EXTRA_CSS = `
 .band.band.rest.bg-crescent::before { display: none; }
 .band.rest .peek { display: flex; align-items: center; gap: 12px; width: 100%; direction: rtl; }
 .band.rest .pk-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: right; font-family: var(--font-band); font-size: 15px; line-height: 1.6; color: var(--b-ink); }
+.band.rest .cv-peek .pk-title { flex: none; font-family: var(--font-cover); font-size: 17px; line-height: 1.5; white-space: nowrap; color: var(--b-acc); }
+.band.rest .cv-peek .pk-hint { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: ltr; text-align: left; font-family: var(--font-ui); font-size: 13px; line-height: 1.6; color: var(--b-dim); }
 .band.rest .pk-pos { flex: none; white-space: nowrap; font-size: 11.5px; color: var(--b-dim); font-family: var(--font-band); }
 .band[data-band] .text, .band.line .text { font-size: var(--fs, 14px) !important; max-height: none; overflow: visible; }
 .pglow b { animation: glowTo .7s cubic-bezier(.33, 1, .68, 1) both; }
@@ -203,6 +205,15 @@ const pill = (m: BandModel) =>
 
 const folded = (m: BandModel) =>
   `<div class="peek"><span class="pk-text">${esc(m.text)}</span><span class="pk-pos">${esc(m.position)}</span></div>`
+
+// The folded cover: the title on the right, a short muted hint at the left.
+export const coverHint = (hasBegun: boolean) => `click to ${hasBegun ? 'continue' : 'start'}`
+
+const foldedCover = (m: BandModel) => {
+  const hint = coverHint(m.hasBegun)
+
+  return `<div class="peek cv-peek"><span class="pk-title">${esc(m.title)}</span><span class="pk-hint" style="font-size:${foldedHintSize(hint, m.width)}px">${hint}</span></div>`
+}
 
 // The end message is a verse and, after ' — ', where it is from.
 const splitEnd = (end: string) => {
@@ -258,10 +269,11 @@ const fontFace = (family: string, weight: number, data: string) =>
 
 export const bandHtml = (m: BandModel) => {
   const isFinale = m.phase === 'done' && m.finaleMs !== undefined
-  const inner = isFinale ? '' : m.phase === 'cover' ? cover(m) : m.phase === 'done' ? done(m) : isFolded(m) ? folded(m) : reading(m)
+  const inner = isFinale ? '' : m.phase === 'cover' ? (isFolded(m) ? foldedCover(m) : cover(m)) : m.phase === 'done' ? done(m) : isFolded(m) ? folded(m) : reading(m)
   const fx = m.style === 'sky' ? `<span class="fx">${SKY_FX[m.sky]}</span>` : ''
-  const progress = m.phase === 'reading' ? m.progress : 100
-  const from = m.phase === 'reading' ? m.from : 100
+  const hasLine = m.phase === 'reading' || (m.phase === 'cover' && isFolded(m))
+  const progress = hasLine ? m.progress : 100
+  const from = hasLine ? m.from : 100
   const head = m.phase === 'reading' && !isFolded(m) ? pill(m) : ''
   const glow = `<div class="pglow${progress >= 100 ? ' full' : ''}${progress <= 0 ? ' empty' : ''}"><b style="width:${progress}%;--from:${from}%;animation-delay:-${m.glowMs ?? 0}ms"></b>${head}</div>`
   const ms = m.finaleMs ?? 0
@@ -315,6 +327,19 @@ export const coverFit = (width: number) => {
   const k = room / (COVER_TITLE_W + COVER_KEYS_W)
 
   return Math.round(Math.min(1, Math.max(9 / 10.5, k)) * 1000) / 1000
+}
+
+// The folded cover's hint: 13px, shrunk to what the row leaves beside the
+// title and the ×, to the floor; never wrapped. Widths are estimates (CSS px).
+const HINT_BASE = 13
+const HINT_EM = 0.58
+// The row's padding (34 left, 14 right), the band's frame, the gap and the title at its folded size.
+const FOLD_COVER_SIDES = 34 + 14 + FRAME_PX + 12 + 70
+export const foldedHintSize = (hint: string, width: number) => {
+  const room = Math.max(60, width - FOLD_COVER_SIDES)
+  const size = Math.floor((room / (hint.length * HINT_EM)) * 2) / 2
+
+  return Math.max(FIT_MIN, Math.min(HINT_BASE, size))
 }
 
 // How the open reading's text sits: one area, two lines of the person's size

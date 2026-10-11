@@ -214,6 +214,8 @@ export const install = (on: On, options: Options) => {
       const { day } = await today($)
       await save($, { ...day, [word]: emptyReading() })
       view.isOpen = false
+      // Back at the cover, folded: the person has moved on to the prompt.
+      rest($)
 
       return { text: `${word} athkar start again from the first` }
     }
@@ -275,8 +277,15 @@ export const install = (on: On, options: Options) => {
 
       return {}
     }
-    // The first click opens or wakes the reader; it never counts.
-    if (!view.isOpen || !view.isActive) {
+    // The first click wakes the band, folded cover or reading; it never counts.
+    if (!view.isActive) {
+      if (!isCount) return {}
+      wake($)
+
+      return {}
+    }
+    // The next one on the open cover starts the reading; it does not count either.
+    if (!view.isOpen) {
       if (!isCount) return {}
       view.isOpen = true
       wake($)

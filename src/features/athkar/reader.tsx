@@ -1,6 +1,6 @@
 import type { ClientModule, RenderElement, SvgProps } from 'claude-code'
 
-import { bandSvg, closeArea, frameOf, pixelOf } from './band.ts'
+import { bandSvg, closeArea, coverHint, frameOf, pixelOf } from './band.ts'
 import type { ReaderProps } from './look.ts'
 
 // The athkar reader's input, and its drawing in the terminal. It runs on the
@@ -141,6 +141,16 @@ const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
   }
 
   if (props.phase === 'cover') {
+    // Faded, the cover folds to one line; a press opens it.
+    if (!isLit) {
+      return shell([
+        <Box key="rest" flexDirection="row-reverse" justifyContent="space-between" gap={2}>
+          <Text bold color={look.ring}>{props.title}</Text>
+          <Text color={look.dim} wrap="truncate-end">{coverHint(props.hasBegun)}</Text>
+        </Box>,
+      ])
+    }
+
     return shell([
       <Box key="cover" flexDirection="row-reverse" justifyContent="space-between" alignItems="center" paddingY={1} gap={2}>
         <Text bold color={look.ring}>{props.title}</Text>
