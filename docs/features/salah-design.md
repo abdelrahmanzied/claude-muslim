@@ -18,7 +18,7 @@ The salah feature's own design. It adds to the shared base in [DESIGN.md](../../
   ```
 
   The seven rows keep their height while it rises, it shows once per prayer (state `salahAdhanShown`), never during a survey, and `salahAdhan` off drops it.
-- **Desktop popup: planned, not built.** A card with a photo background (V9), top-right, 320×80, Arabic digits, to replace the minaret on the desktop. Pending the photo's licence and a live test of a JPEG inside `Svg`; until then the desktop shows the same text minaret.
+- **Desktop popup: planned, not built.** A card with a photo background (V9), top-right, 320×80, Arabic digits, to replace the minaret on the desktop. Picked: photo kaaba-2 (full photo 2: twin minarets and the Kaaba from above, `background-position` 50% 28%), with «حان وقت صلاة العصر» in the Aref Ruqaa font. Open question: the colour of the 2px progress bar at the card's bottom (the mock used a fixed gold #d9b25f) is undecided. Pending the photo's licence and a live test of a JPEG inside `Svg`; until then the desktop shows the same text minaret.
 
 **Why:** prayer time is a few moments a day and worth marking; the rest of the day salah stays a quiet line.
 
@@ -49,7 +49,7 @@ What the user chose from the Adhan Lab:
 | Countdown | B: live `mm:ss` in the prayer row inside the reminder window, `☾ العصر ١٩:٤٢` |
 | Thikr | C: the first phrase of a thikr turn inside the window is «حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د» ([thikr.md](thikr.md#before-a-prayer)) |
 | Terminal adhan moment | D: the rising text minaret above |
-| Desktop popup | V9: photo-background card, top-right, 320×80, Arabic digits. Planned, pending the photo's licence and a live test of a JPEG inside `Svg` |
+| Desktop popup | V9: photo-background card (kaaba-2, Aref Ruqaa), top-right, 320×80, Arabic digits. Planned, pending the photo's licence and a live test of a JPEG inside `Svg` |
 
 ## Never
 
