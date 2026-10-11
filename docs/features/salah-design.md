@@ -18,7 +18,7 @@ The salah feature's own design. It adds to the shared base in [DESIGN.md](../../
   ```
 
   The seven rows keep their height while it rises, it shows once per prayer (state `salahAthanShown`), never during a survey, and `salahAthan` off drops it.
-- **Desktop popup: planned, not built.** A card with a photo background (V9), top-right, 320×80, Arabic digits, to replace the minaret on the desktop. Picked: photo kaaba-2 (full photo 2: twin minarets and the Kaaba from above, `background-position` 50% 28%), with «حان وقت صلاة العصر» in the Aref Ruqaa font. The 2px progress bar at the card's bottom is in Claude orange (the theme accent, not gold). The second line «العصر · ١٥:٥٩» uses the same font (Aref Ruqaa) and the same text colour as the main line «حان وقت صلاة العصر»: all card text is one font, one colour. Pending the photo's licence and a live test of a JPEG inside `Svg`; until then the desktop shows the same text minaret.
+- **Desktop popup: planned, not built.** A card at the top right of the desktop with a photo of the Haram behind the text, to replace the minaret there. It shows «حان وقت صلاة العصر» and the time «العصر · ١٥:٥٩» in one calligraphic font and one colour, with Arabic digits. A thin bar in Claude's accent colour runs down along the bottom while the card shows, then the card closes by itself. Pending a live test that a photo shows inside `Svg` on desktop; until then the desktop shows the same text minaret, and the terminal always keeps the rising text minaret.
 
 **Why:** prayer time is a few moments a day and worth marking; the rest of the day salah stays a quiet line.
 
@@ -39,17 +39,17 @@ Rows stack, never compete: each feature's AbovePrompt hook keeps what `next(e)` 
 
 ## Picks
 
-What the user chose from the Athan Lab:
+What the user chose:
 
 | Part | Pick |
 | --- | --- |
-| Placement | P2 (SessionMode, footer before the model) · Digits: Arabic. The line is plain text, `color="claude"`, terminal and desktop alike; no status line. P4a (its own AbovePrompt row) was dropped because the desktop draws AbovePrompt as a card |
+| Placement | The prayer line sits in the prompt footer beside the model: plain text, `color="claude"`, terminal and desktop alike; no status line. A row of its own above the prompt was dropped because the desktop draws that area as a card |
 | Digits | Arabic-Indic |
-| Toast | A: «صلاة العصر بعد ٢٠ دقيقة» |
-| Countdown | B: live `mm:ss` in the footer line inside the reminder window, `☾ العصر ١٩:٤٢` |
-| Thikr | C: the first phrase of a thikr turn inside the window is «حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د» ([thikr.md](thikr.md#before-a-prayer)) |
-| Terminal athan moment | D: the rising text minaret above |
-| Desktop popup | V9: photo-background card (kaaba-2, Aref Ruqaa), top-right, 320×80, Arabic digits. Planned, pending the photo's licence and a live test of a JPEG inside `Svg` |
+| Toast | «صلاة العصر بعد ٢٠ دقيقة» |
+| Countdown | Live `mm:ss` in the footer line inside the reminder window, `☾ العصر ١٩:٤٢` |
+| Thikr | The first phrase of a thikr turn inside the window is «حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د» ([thikr.md](thikr.md#before-a-prayer)) |
+| Terminal athan moment | The rising text minaret above |
+| Desktop popup | A photo-background card at the top right, as described above. Planned, pending a live test that a photo shows inside `Svg` on desktop |
 
 ## Never
 
