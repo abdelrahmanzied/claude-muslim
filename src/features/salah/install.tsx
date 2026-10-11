@@ -289,7 +289,10 @@ export const install = (on: On, options: Options) => {
       const place = options.salahPlace
       if (!place) return { text: ['Prayer times are not set up yet: /salah city', '', HINT].join('\n') }
 
-      return { text: [timesTable(options, place, await $.clock.now()), '', settingsTable(options, place), '', HINT].join('\n') }
+      // The host puts `muslim: ` before the first line, so a title goes there, not a table.
+      return {
+        text: ['**Muslim › Salah**', '', `### Today in ${place.name}`, '', timesTable(options, place, await $.clock.now()), '', '### Settings', '', settingsTable(options, place), '', HINT].join('\n'),
+      }
     }
     if (word === 'help') return { text: salahHelp() }
     if (word === 'reminder' && first !== '') {

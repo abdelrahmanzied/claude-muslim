@@ -47,7 +47,9 @@ test('/salah shows today\'s times and the settings as tables, each setting with 
   mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
   const ran = await $.command.run(salah(''))
 
-  expect(ran.text).toContain('| Prayer | Time |')
+  expect(ran.text?.split('\n')[0]).toBe('**Muslim › Salah**')
+  expect(ran.text).toContain('\n### Today in Munich, Germany\n\n| Prayer | Time |')
+  expect(ran.text).toContain('\n### Settings\n\n| Setting | Value | Change with |')
   expect(ran.text).toContain('| Fajr | 05:42 |')
   expect(ran.text).toContain('| **Dhuhr** · next | 13:02 |')
   expect(ran.text).toContain('| Isha | 20:12 |')

@@ -54,7 +54,7 @@ Prayer times for the user's city, calculated on their machine with
 
 ## Commands
 
-`/salah` shows two tables: today's times (the next prayer marked, a moved prayer with its minutes), then the settings (city, method, prayer line, reminder, athan, adjust), each with the command that changes it, and a hint to `/salah help`.
+`/salah` shows a title, then two tables under their own headings: today's times (the next prayer marked, a moved prayer with its minutes), then the settings (city, method, prayer line, reminder, athan, adjust), each with the command that changes it, and a hint to `/salah help`.
 `/salah help` is a table of every subcommand: `always` · `reminder` · `off`,
 `reminder <5-60>`, `athan on` · `off`, `athan test` (plays the athan moment now for the next prayer, changes nothing; shows the card on the desktop and the minaret in the terminal), `city` (the setup question) and
 `city <name or lat, lng>`, `method <auto or name>`, `adjust` and
