@@ -17,7 +17,7 @@ Claude Code mod (function-hooks plugin). Plugin name is `muslim` — Claude Code
 - Pure logic (no `$`) lives beside `install` in the feature folder and gets plain unit tests.
 - Use string literals (not constants) for command names in `$.command.register` and `command.run` matchers, so `claude plugin validate` recognises the hook as answering its own command.
 - Settings are `userConfig` fields in `plugin.json` (shown in `/config`); commands change them with `$.config.set({ key: 'muslim.<field>' })`, which reloads the module. Read them through `src/config.ts`.
-- Visual means are decided per feature in `docs/features/<feature>-design.md` and nowhere else (thikr: text only, see `thikr-design.md`; salah: text plus a richer adhan moment, see `salah-design.md`). Shared: where text is used, use theme keys for colors (e.g. `color="claude"`); everything must work the same on Windows, macOS and Linux, terminal and desktop, with a terminal text fallback for any desktop-only richer surface.
+- Visual means are decided per feature in `docs/features/<feature>-design.md` and nowhere else (thikr: text only, see `thikr-design.md`; salah: text plus a richer athan moment, see `salah-design.md`). Shared: where text is used, use theme keys for colors (e.g. `color="claude"`); everything must work the same on Windows, macOS and Linux, terminal and desktop, with a terminal text fallback for any desktop-only richer surface.
 - Religious text is authored data with tashkeel; never generated. Display may strip tashkeel, never change words.
 - Every value kept in `$.state` is declared in `types/index.d.ts` under `PluginState['muslim']`. The contract exports types only.
 - Every feature gets tests in `tests/<feature>/` (`.tsx` when a test uses JSX).

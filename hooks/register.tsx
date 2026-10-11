@@ -25,7 +25,7 @@ export const register: Register = (on, options) => {
     })
     await $.command.register({
       name: 'salah',
-      description: 'Prayer times: today, help, always, reminder, off, adhan, city, method, adjust',
+      description: 'Prayer times: today, help, always, reminder, off, athan, city, method, adjust',
     })
 
     // Older versions pinned the prayer line in the status line; clear what a

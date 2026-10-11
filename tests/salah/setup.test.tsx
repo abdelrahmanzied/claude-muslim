@@ -217,7 +217,7 @@ test('reminder: the line is empty until the window, counts down, calls, then cle
   await shown.unmount()
 })
 
-test('a shorter reminder moves the window; no adhan skips the call', { options: { ...AT_MUNICH, salahReminder: 5, salahAdhan: false } }, async ($, on) => {
+test('a shorter reminder moves the window; no athan skips the call', { options: { ...AT_MUNICH, salahReminder: 5, salahAthan: false } }, async ($, on) => {
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:44:00Z') })
   engineBand(on)
   engineModes(on)
@@ -284,7 +284,7 @@ test('when the prayer comes in a minaret rises once, then the call stays in the 
   await shown.unmount()
 })
 
-test('no minaret with adhan off, nor during a survey', { options: { ...AT_MUNICH, salahAdhan: false } }, async ($, on) => {
+test('no minaret with athan off, nor during a survey', { options: { ...AT_MUNICH, salahAthan: false } }, async ($, on) => {
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:58:45Z') })
   engineBand(on)
 

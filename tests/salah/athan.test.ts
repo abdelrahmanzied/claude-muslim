@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { CalculationMethod, Coordinates, PrayerTimes } from '../../src/features/salah/adhan/Adhan.ts'
+import { CalculationMethod, Coordinates, PrayerTimes } from '../../src/features/salah/athan/Adhan.ts'
 
 // Minutes from midnight UTC.
 const minutes = (date: Date) => date.getUTCHours() * 60 + date.getUTCMinutes()
@@ -15,7 +15,7 @@ const CASES = [
   { place: 'Makkah', at: [21.4225, 39.8262], method: CalculationMethod.UmmAlQura(), aladhan: ['01:59', '03:15', '09:08', '12:30', '15:01', '16:31'] },
 ] as const
 
-describe('adhan', () => {
+describe('athan', () => {
   for (const { place, at, method, aladhan } of CASES) {
     test(`${place}, 10 October 2026, within 3 minutes of AlAdhan`, async () => {
       const times = new PrayerTimes(new Coordinates(at[0], at[1]), new Date(2026, 9, 10), method)

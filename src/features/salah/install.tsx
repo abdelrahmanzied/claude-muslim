@@ -10,7 +10,7 @@ import { guessPlace, systemTimeZone } from './location.ts'
 import { METHODS, type Prayer } from './methods.ts'
 import { ENGLISH, prayerNamed } from '../../shared/pray/names.ts'
 import { writePlace, type Place } from './place.ts'
-import { adhanText, isInWindow, reminderText, prayerLine } from '../../shared/pray/line.ts'
+import { athanText, isInWindow, reminderText, prayerLine } from '../../shared/pray/line.ts'
 import { ACCENT_ROWS, FRAME_MS, HOLD_MS, isDue, LABEL_ROW, minaretRows, ROWS_COUNT } from './minaret.ts'
 import { nudge, reviewRows } from './review.ts'
 import { clockText, lastPrayer, nextSalah, type Adjust } from './times.ts'
@@ -30,7 +30,7 @@ const inWindow = atom({ plugin: 'muslim', key: 'salahWindow' } as const, null as
 const minaret = atom({ plugin: 'muslim', key: 'salahMinaret' } as const, null as SalahMinaret | null)
 // The prayer line drawn in the footer's mode labels; null when there is none.
 const line = atom({ plugin: 'muslim', key: 'salahLine' } as const, null as string | null)
-const adhanShown = atom({ plugin: 'muslim', key: 'salahAdhanShown' } as const, null as number | null)
+const athanShown = atom({ plugin: 'muslim', key: 'salahAthanShown' } as const, null as number | null)
 
 // How often the prayer line is redrawn: every second inside the reminder
 // window (the live countdown), else every 30 seconds.
@@ -115,10 +115,10 @@ const tick = async ($: EngineInterface, options: Options, place: Place, timer: T
   const method = methodOf(options, place)
   const next = nextSalah(place, method, options.salahAdjust, now)
   const last = lastPrayer(place, method, options.salahAdjust, now)
-  const view = { mode: options.salah, reminder: options.salahReminder, isAdhan: options.salahAdhan }
+  const view = { mode: options.salah, reminder: options.salahReminder, isAthan: options.salahAthan }
   await setLine($, prayerLine(next, clockText(next.at, place.timeZone), last, now, view))
-  if (options.salah !== 'off' && options.salahAdhan && isDue(last.at, now, await read($, adhanShown))) {
-    await update($, adhanShown, () => last.at)
+  if (options.salah !== 'off' && options.salahAthan && isDue(last.at, now, await read($, athanShown))) {
+    await update($, athanShown, () => last.at)
     await playMinaret($, last.prayer === 'sunrise' ? 'fajr' : last.prayer)
   }
   const text = reminderText(next, now, await read($, notified), options.salahReminder)
@@ -214,7 +214,7 @@ export const install = (on: On, options: Options) => {
       return set('salahReminder', minutes, `reminder ${minutes} min before each prayer`)
     }
     if (word === 'always' || word === 'reminder' || word === 'off') return set('salah', word, `salah ${word}`)
-    if (word === 'adhan' && (first === 'on' || first === 'off')) return set('salahAdhan', first === 'on', `adhan ${first}`)
+    if (word === 'athan' && (first === 'on' || first === 'off')) return set('salahAthan', first === 'on', `athan ${first}`)
     if (word === 'city') {
       const typed = e.args.trim().slice('city'.length).trim()
       const city = typed === '' ? await askCity($, guess) : await cityFrom($, typed)
@@ -334,7 +334,7 @@ export const install = (on: On, options: Options) => {
         {minaretRows(playing.frame).map((row, i) => (
           <Box key={`salah-minaret-${i}`} gap={2}>
             <Text color={i < ACCENT_ROWS ? 'claude' : undefined} dimColor={i >= ACCENT_ROWS}>{row}</Text>
-            {i === LABEL_ROW && playing.frame >= ROWS_COUNT - LABEL_ROW ? <Text color="claude">{adhanText(playing.prayer)}</Text> : null}
+            {i === LABEL_ROW && playing.frame >= ROWS_COUNT - LABEL_ROW ? <Text color="claude">{athanText(playing.prayer)}</Text> : null}
           </Box>
         ))}
         {theirs}

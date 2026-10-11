@@ -49,27 +49,30 @@ test('/salah shows the place, method and today\'s times', { options: MUNICH }, a
   expect(ran.text).toContain('Fajr 05:42 · Sunrise 07:26 · Dhuhr 13:02 · Asr 15:59 · Maghrib 18:35 · Isha 20:12')
 })
 
-test('settings read the old boolean, and the reminder stays within 5 to 60', async () => {
+test('settings read the old boolean and the old salahAdhan name, and the reminder stays within 5 to 60', async () => {
   expect(readOptions({ salah: true }).salah).toBe('reminder')
   expect(readOptions({ salah: false }).salah).toBe('off')
   expect(readOptions({ salah: 'always' }).salah).toBe('always')
   expect(readOptions({}).salah).toBe('reminder')
   expect([readOptions({}).salahReminder, readOptions({ salahReminder: 45 }).salahReminder, readOptions({ salahReminder: 3 }).salahReminder]).toEqual([20, 45, 20])
-  expect(readOptions({ salahAdhan: false }).salahAdhan).toBe(false)
+  expect(readOptions({ salahAthan: false }).salahAthan).toBe(false)
+  expect(readOptions({ salahAdhan: false }).salahAthan).toBe(false)
+  expect(readOptions({ salahAdhan: false, salahAthan: true }).salahAthan).toBe(true)
+  expect(readOptions({}).salahAthan).toBe(true)
 })
 
-test('/salah always, reminder <min> and adhan save their settings', { options: MUNICH }, async ($, on) => {
+test('/salah always, reminder <min> and athan save their settings', { options: MUNICH }, async ($, on) => {
   const written: { key: string; value: unknown }[] = []
   on('config.set', async (_$, e) => (written.push({ key: e.key, value: e.value }), { value: e.value }))
 
   await $.command.run(salah('always'))
   await $.command.run(salah('reminder 30'))
-  await $.command.run(salah('adhan off'))
+  await $.command.run(salah('athan off'))
   expect((await $.command.run(salah('reminder 99'))).text).toContain('from 5 to 60')
   expect(written).toEqual([
     { key: 'muslim.salah', value: 'always' },
     { key: 'muslim.salahReminder', value: 30 },
-    { key: 'muslim.salahAdhan', value: false },
+    { key: 'muslim.salahAthan', value: false },
   ])
 })
 
@@ -148,7 +151,7 @@ test('/salah help is a table of every subcommand; unknown words answer with it',
   const help = (await $.command.run(salah('help'))).text
 
   expect(help).toContain('| Command | What it does |')
-  for (const word of ['/salah help', '/salah always', '/salah reminder <5-60>', '/salah adhan on', '/salah city', '/salah method', '/salah adjust <prayer>']) {
+  for (const word of ['/salah help', '/salah always', '/salah reminder <5-60>', '/salah athan on', '/salah city', '/salah method', '/salah adjust <prayer>']) {
     expect(help).toContain(word)
   }
   for (const gone of ['/salah setup', '/salah on', '/salah notify']) expect(help).not.toContain(gone)

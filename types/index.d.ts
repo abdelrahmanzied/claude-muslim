@@ -26,7 +26,7 @@ declare module 'claude-code' {
       salahNotified: number | null
       salahWindow: SalahWindow | null
       // The prayer time (ms since epoch) whose minaret has played, so it plays once.
-      salahAdhanShown: number | null
+      salahAthanShown: number | null
       salahMinaret: SalahMinaret | null
       // The prayer line drawn as its own row above the prompt, else null.
       salahLine: string | null

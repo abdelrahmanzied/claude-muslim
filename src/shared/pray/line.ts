@@ -22,13 +22,13 @@ export const minutesText = (minutes: number): string => {
 }
 
 // The line once a prayer is in, and the words beside the terminal minaret.
-export const adhanText = (prayer: Prayer): string => `حان وقت صلاة ${ARABIC[prayer]}`
+export const athanText = (prayer: Prayer): string => `حان وقت صلاة ${ARABIC[prayer]}`
 
 export type Moment = { prayer: Prayer; at: number }
 
 // What the prayer line shows besides the times: the mode, the minutes before
 // a prayer the countdown starts, and whether the call shows once it is in.
-export type View = { mode: SalahMode; reminder: number; isAdhan: boolean }
+export type View = { mode: SalahMode; reminder: number; isAthan: boolean }
 
 const MINUTE_MS = 60_000
 
@@ -47,7 +47,7 @@ export const countdownText = (leftMs: number): string => {
 // its HH:MM; undefined when the line is empty (off, or `reminder` outside its window).
 export const prayerLine = (next: Moment, nextClock: string, last: Moment, now: number, view: View): string | undefined => {
   if (view.mode === 'off') return undefined
-  if (view.isAdhan && now - last.at < IN_MS) return adhanText(last.prayer)
+  if (view.isAthan && now - last.at < IN_MS) return athanText(last.prayer)
   const left = next.at - now
   if (left <= view.reminder * MINUTE_MS) return `☾ ${ARABIC[next.prayer]} ${countdownText(left)}`
   if (view.mode === 'always') return `☾ ${ARABIC[next.prayer]} ${arabicDigits(nextClock)}`

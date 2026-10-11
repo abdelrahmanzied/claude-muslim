@@ -1,7 +1,7 @@
 # Salah — prayer times
 
 Prayer times for the user's city, calculated on their machine with
-[adhan-js](../../src/features/salah/adhan/VENDOR.md). No location service and no prayer-times API.
+[adhan-js](../../src/features/salah/athan/VENDOR.md). No location service and no prayer-times API.
 
 ## Flow
 
@@ -25,8 +25,8 @@ Prayer times for the user's city, calculated on their machine with
    - `reminder` (default): empty outside the reminder window; the countdown
      inside it; `حان وقت صلاة …` for 15 minutes, then empty again.
    - `off`: nothing, and the line is cleared.
-   - When a prayer comes in and `salahAdhan` is on, a small Unicode minaret rises row by row above the prompt for about 3 seconds beside «حان وقت صلاة العصر», then the minaret goes and the prayer line keeps the call for 15 minutes. It plays once per prayer, never during a survey, and not for a prayer first seen more than 2 minutes late (a late start or reload). The same text art on terminal and desktop.
-   - `salahAdhan` off drops the minaret and the `حان وقت` line: the line goes straight back to the
+   - When a prayer comes in and `salahAthan` is on, a small Unicode minaret rises row by row above the prompt for about 3 seconds beside «حان وقت صلاة العصر», then the minaret goes and the prayer line keeps the call for 15 minutes. It plays once per prayer, never during a survey, and not for a prayer first seen more than 2 minutes late (a late start or reload). The same text art on terminal and desktop.
+   - `salahAthan` off drops the minaret and the `حان وقت` line: the line goes straight back to the
      next prayer (`always`) or to empty (`reminder`).
    - The prayer line redraws every 30 seconds, and every second only while inside the reminder window (the live countdown); it goes back to 30 seconds when the window ends. A timer set for the exact moment the window opens starts the countdown on time, not on the next 30 s tick.
    - Sunrise is in today's times only: no countdown and no reminder for it.
@@ -50,13 +50,13 @@ Prayer times for the user's city, calculated on their machine with
 | --- | --- | --- |
 | `zones.ts` | time zone → country and city coordinates | tzdb 2026e `zone.tab`, public domain |
 | `methods.ts` | angles, minutes, country → method | adhan-js (MIT), AlAdhan methods list |
-| `adhan/` | the calculation | adhan-js 4.4.6, MIT |
+| `athan/` | the calculation | adhan-js 4.4.6, MIT |
 
 ## Commands
 
 `/salah` shows place · method · mode, today's times and a hint to `/salah help`.
 `/salah help` is a table of every subcommand: `always` · `reminder` · `off`,
-`reminder <5-60>`, `adhan on` · `off`, `city` (the setup question) and
+`reminder <5-60>`, `athan on` · `off`, `city` (the setup question) and
 `city <name or lat, lng>`, `method <auto or name>`, `adjust` and
 `adjust <prayer> <±min>`. An unknown word answers with the table.
 `/muslim help` shows the tables of thikr and salah; `/muslim help salah` only salah's.
@@ -67,14 +67,14 @@ Prayer times for the user's city, calculated on their machine with
 | --- | --- | --- |
 | `salah` | `/salah always` · `reminder` · `off` | reminder |
 | `salahReminder` | `/salah reminder <5-60>` | 20 (minutes) |
-| `salahAdhan` | `/salah adhan on` · `off` (the minaret and the `حان وقت` line) | on |
+| `salahAthan` | `/salah athan on` · `off` (the minaret and the `حان وقت` line) | on |
 | `salahPlace` | `/salah city` (question) · `/salah city <name or lat, lng>` | empty |
 | `salahMethod` | `/salah method <name>` | auto |
 | `salahAdjust` | `/salah adjust` · `/salah adjust <prayer> <±min>` | `0 0 0 0 0 0` |
 
 ## Design
 
-Surfaces, the adhan moment's look and what salah never does: [salah-design.md](salah-design.md).
+Surfaces, the athan moment's look and what salah never does: [salah-design.md](salah-design.md).
 
 ## Files
 

@@ -7,7 +7,7 @@ The shared base every feature follows, and the index to each feature's own desig
 | Feature | Command | Spec | Design | Status |
 | --- | --- | --- | --- | --- |
 | Thikr line | `/thikr` | [thikr.md](docs/features/thikr.md) | [thikr-design.md](docs/features/thikr-design.md): text only | 0.2.0 |
-| Salah | `/salah` | [salah.md](docs/features/salah.md) | [salah-design.md](docs/features/salah-design.md): text, richer adhan moment | Unreleased |
+| Salah | `/salah` | [salah.md](docs/features/salah.md) | [salah-design.md](docs/features/salah-design.md): text, richer athan moment | Unreleased |
 | Morning and evening athkar | `/athkar` | in progress in another branch | in progress | planned |
 
 Everything below is shared by every feature. A feature's doc may add to it, never contradict it.

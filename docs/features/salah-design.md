@@ -5,7 +5,7 @@ The salah feature's own design. It adds to the shared base in [DESIGN.md](../../
 ## Visual means
 
 - **Text by default.** The prayer line, the setup line, the review form and command replies are text in Claude's font, size and theme colors (`color="claude"` for the accent, `dimColor` for hints).
-- **The adhan moment is a short text look.** When a prayer comes in, a band above the prompt plays once (about 3 seconds), then rests as the prayer line `حان وقت صلاة …`. In the terminal, and on the desktop for now, it is a Unicode minaret rising row by row from the base (about 330 ms a row, `color="claude"` for the crescent and the point, `dimColor` for the rest) beside «حان وقت صلاة العصر»:
+- **The athan moment is a short text look.** When a prayer comes in, a band above the prompt plays once (about 3 seconds), then rests as the prayer line `حان وقت صلاة …`. In the terminal, and on the desktop for now, it is a Unicode minaret rising row by row from the base (about 330 ms a row, `color="claude"` for the crescent and the point, `dimColor` for the rest) beside «حان وقت صلاة العصر»:
 
   ```
      ☾
@@ -17,7 +17,7 @@ The salah feature's own design. It adds to the shared base in [DESIGN.md](../../
    ▐███▌
   ```
 
-  The seven rows keep their height while it rises, it shows once per prayer (state `salahAdhanShown`), never during a survey, and `salahAdhan` off drops it.
+  The seven rows keep their height while it rises, it shows once per prayer (state `salahAthanShown`), never during a survey, and `salahAthan` off drops it.
 - **Desktop popup: planned, not built.** A card with a photo background (V9), top-right, 320×80, Arabic digits, to replace the minaret on the desktop. Picked: photo kaaba-2 (full photo 2: twin minarets and the Kaaba from above, `background-position` 50% 28%), with «حان وقت صلاة العصر» in the Aref Ruqaa font. The 2px progress bar at the card's bottom is in Claude orange (the theme accent, not gold). The second line «العصر · ١٥:٥٩» uses the same font (Aref Ruqaa) and the same text colour as the main line «حان وقت صلاة العصر»: all card text is one font, one colour. Pending the photo's licence and a live test of a JPEG inside `Svg`; until then the desktop shows the same text minaret.
 
 **Why:** prayer time is a few moments a day and worth marking; the rest of the day salah stays a quiet line.
@@ -33,13 +33,13 @@ Rows stack, never compete: each feature's AbovePrompt hook keeps what `next(e)` 
 | All day (mode `always`) | SessionMode (footer, before the model), `color="claude"`, no card | `☾ العصر ١٥:٥٩`; empty in `reminder` mode |
 | Reminder window (`salahReminder`, 20 min by default) | SessionMode, same text | `☾ العصر ١٩:٤٢`, a live mm:ss countdown, once a second |
 | Reminder starts | Toast (in-app) | One short line, closes by itself |
-| Prayer comes in | AbovePrompt band, once (~3 s), and the SessionMode line | The rising minaret plays in the band beside `حان وقت صلاة العصر`, then clears; the footer line keeps the call for 15 minutes (`salahAdhan`) |
+| Prayer comes in | AbovePrompt band, once (~3 s), and the SessionMode line | The rising minaret plays in the band beside `حان وقت صلاة العصر`, then clears; the footer line keeps the call for 15 minutes (`salahAthan`) |
 | Claude works in the window | Spinner (thikr line) | حَيَّ عَلَى الصَّلَاةِ joins the thikr rotation |
 | Settings and help | Command reply | `/salah`, `/salah help` table, `/muslim help` |
 
 ## Picks
 
-What the user chose from the Adhan Lab:
+What the user chose from the Athan Lab:
 
 | Part | Pick |
 | --- | --- |
@@ -48,7 +48,7 @@ What the user chose from the Adhan Lab:
 | Toast | A: «صلاة العصر بعد ٢٠ دقيقة» |
 | Countdown | B: live `mm:ss` in the footer line inside the reminder window, `☾ العصر ١٩:٤٢` |
 | Thikr | C: the first phrase of a thikr turn inside the window is «حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د» ([thikr.md](thikr.md#before-a-prayer)) |
-| Terminal adhan moment | D: the rising text minaret above |
+| Terminal athan moment | D: the rising text minaret above |
 | Desktop popup | V9: photo-background card (kaaba-2, Aref Ruqaa), top-right, 320×80, Arabic digits. Planned, pending the photo's licence and a live test of a JPEG inside `Svg` |
 
 ## Never

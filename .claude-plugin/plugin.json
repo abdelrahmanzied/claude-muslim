@@ -67,7 +67,7 @@
       "max": 60,
       "default": 20
     },
-    "salahAdhan": {
+    "salahAthan": {
       "type": "boolean",
       "title": "Prayer call",
       "description": "Show حان وقت صلاة … for 15 minutes once a prayer comes in",

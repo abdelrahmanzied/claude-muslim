@@ -4,7 +4,7 @@ import { arabicDigits, countdownText, isInWindow, minutesText, reminderText, pra
 
 const MINUTE = 60_000
 const ASR = { prayer: 'asr' as const, at: 1_000 * MINUTE }
-const ALWAYS: View = { mode: 'always', reminder: 20, isAdhan: true }
+const ALWAYS: View = { mode: 'always', reminder: 20, isAthan: true }
 const REMINDER: View = { ...ALWAYS, mode: 'reminder' }
 const DHUHR = { prayer: 'dhuhr' as const, at: 800 * MINUTE }
 
@@ -49,8 +49,8 @@ describe('status line', () => {
 
   test('off is empty; the call can be turned off', async () => {
     expect(prayerLine(ASR, '15:59', DHUHR, 980 * MINUTE, { ...ALWAYS, mode: 'off' })).toBe(undefined)
-    expect(prayerLine(ASR, '15:59', DHUHR, 801 * MINUTE, { ...ALWAYS, isAdhan: false })).toBe('☾ العصر ١٥:٥٩')
-    expect(prayerLine(ASR, '15:59', DHUHR, 801 * MINUTE, { ...REMINDER, isAdhan: false })).toBe(undefined)
+    expect(prayerLine(ASR, '15:59', DHUHR, 801 * MINUTE, { ...ALWAYS, isAthan: false })).toBe('☾ العصر ١٥:٥٩')
+    expect(prayerLine(ASR, '15:59', DHUHR, 801 * MINUTE, { ...REMINDER, isAthan: false })).toBe(undefined)
   })
 
   test('minutes read as Arabic says them', async () => {

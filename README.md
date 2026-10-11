@@ -78,7 +78,7 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/salah method <name>` | `auto` (your country's own) or a named method |
 | `/salah always` · `reminder` · `off` | Next prayer all day, only in the reminder window, or nothing |
 | `/salah reminder <5-60>` | Minutes before a prayer the reminder starts |
-| `/salah adhan on` · `off` | `حان وقت صلاة …` when a prayer comes in |
+| `/salah athan on` · `off` | `حان وقت صلاة …` when a prayer comes in |
 | `/muslim` | Show the installed version |
 | `/muslim help` · `help <feature>` | Command tables of every feature, or one (`thikr`, `salah`) |
 

@@ -1,4 +1,4 @@
-// The terminal adhan moment: a small Unicode minaret rising row by row above
+// The terminal athan moment: a small Unicode minaret rising row by row above
 // the prompt when a prayer comes in. Pure frames; install.tsx plays them.
 
 // Top to bottom. The two top rows are the accent, the rest dim.

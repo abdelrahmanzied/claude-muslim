@@ -12,5 +12,5 @@ test('the table has a header and one row per command', async () => {
 })
 
 test('two spellings of a command are two code spans', async () => {
-  expect(commandTable([['/salah adhan on` · `off', 'x']])).toContain('| `/salah adhan on` · `off` | x |')
+  expect(commandTable([['/salah athan on` · `off', 'x']])).toContain('| `/salah athan on` · `off` | x |')
 })

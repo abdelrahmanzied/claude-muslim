@@ -11,7 +11,7 @@ export const SALAH_COMMANDS: readonly (readonly [string, string])[] = [
   ['/salah reminder', 'Prayer line only in the reminder window (default)'],
   ['/salah off', 'Nothing under the prompt, no reminder'],
   [`/salah reminder <${REMINDER_MIN}-${REMINDER_MAX}>`, 'Minutes before a prayer the reminder starts'],
-  ['/salah adhan on` · `off', 'Show حان وقت صلاة … when a prayer comes in'],
+  ['/salah athan on` · `off', 'Show حان وقت صلاة … when a prayer comes in'],
   ['/salah city', 'Pick your city (a question, any language)'],
   ['/salah city <name or lat, lng>', 'Set your city by name in any language, or by latitude, longitude'],
   ['/salah method <name>', `auto (the country's own), or: ${Object.keys(METHODS).join(', ')}`],
