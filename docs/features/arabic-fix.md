@@ -26,12 +26,11 @@ press hides the check, including a denied setting. A confirmation toast says
 mode); a denial reports why the setting was not changed and the same command.
 
 The check appears in only one session on the machine. On its first display,
-`$.store.set('arabicFixAnswered', true)` immediately consumes the machine-local
-check, even if no button is ever pressed. Session state keeps it visible until
-a press, across redraws and reloads. Because drawing cannot write session state,
-a zero-delay clock callback records `arabicFixShown`; a temporary flag bridges
-the first draw until that callback runs. No visible timer is used. Next session
-never asks again, whether answered or not. Existing stored answers stay consumed.
+`$.store.set('arabicFixShownIn', await $.session.id())` records that session and
+keeps the check visible through redraws and module reloads. A later session sees
+the stored ID mismatch and skips it. Any button press stores `done` before a
+setting change can reload the module, and marks the check answered for the
+current session. No clock callback or timer is involved.
 
 Surveys suppress the check without consuming it, and desktop never draws it or
 reads/writes its store. Users can always change the mode through the command or

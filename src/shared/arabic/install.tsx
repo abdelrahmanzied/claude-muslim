@@ -5,9 +5,8 @@ import { arabicVisual } from './visual.ts'
 import { needsArabicVisual, type ArabicFix } from './terminal.ts'
 
 const answered = atom({ plugin: 'muslim', key: 'arabicFixAnswered' } as const, false)
-const shown = atom({ plugin: 'muslim', key: 'arabicFixShown' } as const, false)
 const busy = atom({ plugin: 'muslim', key: 'arabicFixBusy' } as const, false)
-const ANSWERED_KEY = 'arabicFixAnswered'
+const SHOWN_IN_KEY = 'arabicFixShownIn'
 export const ARABIC_SAMPLE = 'سلام'
 
 // Dismiss before config.set reloads the module; even a denied choice hides it.
@@ -20,6 +19,7 @@ const choose = async ($: EngineInterface, current: ArabicFix, mode?: 'on' | 'off
   })
   if (!claimed) return
   try {
+    await $.store.set(SHOWN_IN_KEY, 'done')
     await update($, answered, () => true)
     if (mode) {
       const { deny } = await $.config.set({ key: 'muslim.arabicFix', value: mode })
@@ -32,25 +32,15 @@ const choose = async ($: EngineInterface, current: ArabicFix, mode?: 'on' | 'off
 }
 
 export const install = (on: On, options: Options): void => {
-  // Bridge the first draw until the clock callback may legally write state.
-  let pendingShown = false
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)
     if (e.surface !== 'terminal' || e.props.hasSurvey) return theirs
     if (await read($, answered)) return theirs
-    if (!pendingShown && !(await read($, shown))) {
-      if ((await $.store.get(ANSWERED_KEY)) === true) return theirs
-      // Consume the machine's first check on display, even without an answer.
-      await $.store.set(ANSWERED_KEY, true)
-      pendingShown = true
-      $.clock.after(0, async () => {
-        try {
-          await update($, shown, () => true)
-        } finally {
-          pendingShown = false
-        }
-      })
-    }
+    const shownIn = await $.store.get(SHOWN_IN_KEY)
+    if (shownIn === 'done') return theirs
+    const sessionId = await $.session.id()
+    if (shownIn !== undefined && shownIn !== sessionId) return theirs
+    if (shownIn === undefined) await $.store.set(SHOWN_IN_KEY, sessionId)
     const program = await $.env.get('TERM_PROGRAM')
     const likely = needsArabicVisual(options.arabicFix, program) ? 'on' : 'off'
     const { Box, Text, Button } = $.ui.resolve(e)

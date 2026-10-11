@@ -260,7 +260,7 @@ test('/thikr speed refuses out-of-range values', async $ => {
 })
 
 test('a usage limit shows hasbiyallah above the prompt until it resets', async ($, on) => {
-  mock.store(on, { arabicFixAnswered: true })
+  mock.store(on, { arabicFixShownIn: 'done' })
   mock.env(on, {})
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T12:00:00Z') })
   on('session.usage', async () => ({

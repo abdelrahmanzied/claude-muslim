@@ -10,7 +10,7 @@ const band = (surface: 'terminal' | 'desktop') => ({
 for (const program of ['Apple_Terminal', 'WarpTerminal', 'unknown']) {
   test(`${program}: only terminal Arabic is transformed, engine text stays`, { options: { thikrMode: 'salawat' } }, async ($, on) => {
     mock.env(on, { TERM_PROGRAM: program })
-    mock.store(on, { arabicFixAnswered: true })
+    mock.store(on, { arabicFixShownIn: 'done' })
     mock.clock(on, { now: 0 })
     on('turn.start', async (_$, e) => ({ turnId: e.turnId }))
     const seen: Array<{ word: string; message: string | null; suffix: string }> = []

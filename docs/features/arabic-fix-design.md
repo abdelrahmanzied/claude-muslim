@@ -18,12 +18,11 @@ The behavior and renderer investigation are in [arabic-fix.md](arabic-fix.md).
   press hides the check, even if a setting is denied. Confirmation toasts name
   `muslim`, the resulting mode, and `/muslim arabic-fix`; denials explain why
   nothing changed and point to the same command.
-- **One session:** immediately store `arabicFixAnswered: true` on first display,
-  before any press. Keep the check visible in that session through
-  `arabicFixShown`, until `arabicFixAnswered` session state marks a dismissal.
-  Render cannot write state: a zero-delay clock callback records the session
-  flag, with a temporary flag bridging the first draw. State survives reloads;
-  the machine store prevents a later session asking, even without a press.
+- **One session:** store the current `$.session.id()` as
+  `arabicFixShownIn` on first display. Match it on redraws and module reloads;
+  a later session ID skips the check. Any button press stores `done` and marks
+  `arabicFixAnswered` in session state before a setting change can reload the
+  module. `arabicFixBusy` guards overlapping presses.
   `arabicFixBusy` guards overlapping presses.
 - **Desktop:** never draw the check, read/write its store or detect its terminal;
   all existing desktop Arabic stays logical, with its authored marks.
