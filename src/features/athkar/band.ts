@@ -120,7 +120,7 @@ const READ_CLEAR = 28
 const POS_ROOM = 60
 // The pill's half width, which the line keeps it that far from either end.
 const PILL_HALF = 20
-// The smallest a thikr's text shrinks to, to fit the area.
+// The smallest the cover's and done row's one-line words shrink to, to fit the width.
 const FIT_MIN = 9
 // The wrap and the band's border take 2px each side.
 const FRAME_PX = 4
@@ -343,7 +343,8 @@ export const foldedHintSize = (hint: string, width: number) => {
 
 // How the open reading's text sits: one area, two lines of the person's size
 // tall for every thikr, the text centered in it. A thikr that does not fit at
-// that size shrinks, just enough that its rows fit the area, to FIT_MIN.
+// that size shrinks, just enough that its rows fit the area, however narrow
+// the window: no floor, the words always stay inside the box.
 export const fitOf = (m: Pick<BandModel, 'thikrId' | 'period' | 'textSize'>, width: number) => {
   const widths = TEXT_WIDTH[m.thikrId]
   const lines = m.period === 'evening' && widths?.e ? widths.e : widths?.m ?? [width]
@@ -353,7 +354,7 @@ export const fitOf = (m: Pick<BandModel, 'thikrId' | 'period' | 'textSize'>, wid
   const area = Math.ceil(2 * READ_LINE * want)
   let size = want
   let rows = rowsAt(lines, size, room)
-  while (rows * READ_LINE * size > area && size > FIT_MIN) {
+  while (rows * READ_LINE * size > area && size > 1) {
     size -= 0.5
     rows = rowsAt(lines, size, room)
   }

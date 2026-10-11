@@ -127,7 +127,7 @@ test('the open band stands at one height for every thikr', async () => {
   expect(bandHeight({ phase: 'done', thikrId: '75', period: 'morning' }, 900)).toBe(56)
 })
 
-test('the default text size is 14; a thikr shrinks only to fit the two-line area, to a floor of 9', async () => {
+test('the default text size is 14; a thikr shrinks only to fit the two-line area, with no floor', async () => {
   expect(SIZE_DEFAULT).toBe(14)
   const fit = (thikrId: string, width: number, textSize = 14, period: 'morning' | 'evening' = 'morning') => fitOf({ thikrId, period, textSize }, width)
   // What fits in two rows keeps the person's size.
@@ -138,15 +138,18 @@ test('the default text size is 14; a thikr shrinks only to fit the two-line area
     for (const width of [860, 500]) {
       const f = fit(id, width, 14, period)
       expect(f.size).toBeLessThanOrEqual(14)
-      expect(f.size).toBeGreaterThanOrEqual(9)
       expect(f.rows * 1.7 * f.size).toBeLessThanOrEqual(f.area)
       if (f.size < 14) expect(fit(id, width, 14, period).size + 0.5).toBeGreaterThan(f.size)
     }
   }
   expect(fit('77', 500, 14, 'evening').size).toBeLessThan(14)
-  // The area stays that of the person's size, and the floor holds.
-  expect(fit('75', 300, 28).area).toBe(Math.ceil(2 * 1.7 * 28))
-  expect(fit('75', 200, 12).size).toBe(9)
+  // However narrow, the text shrinks until it fits the fixed box: no floor.
+  for (const width of [200, 280, 340]) {
+    const f = fit('77', width)
+    expect(f.area).toBe(Math.ceil(2 * 1.7 * 14))
+    expect(f.rows * 1.7 * f.size).toBeLessThanOrEqual(f.area)
+  }
+  expect(fit('77', 200).size).toBeLessThan(9)
   // The shrunk size reaches the picture.
   const f = fit('77', 500, 14, 'evening')
   expect(bandSvg(model({ thikrId: '77', period: 'evening', textSize: 14, width: 500, height: read('77', 500) }))).toContain(`--fs:${f.size}px`)
