@@ -23,7 +23,9 @@ A thikr phrase joins Claude's working line (the spinner). Claude's step, timer a
 
 A reader above the prompt for the morning athkar (05:00–17:00) and the evening athkar (17:00–05:00), from Hisn al-Muslim. Click, Space or Enter to count; right click or Backspace to take one back; ← → to move. It moves on by itself after each thikr, and your reading is saved for the day. On desktop it sits on a sky that follows the time of day.
 
-Prayer times are planned.
+### Prayer times (`/salah`)
+
+The next prayer under the prompt (`☾ العصر ١٥:٥٩`) all day, or only the minutes before it (20 by default), with a live mm:ss countdown (`☾ العصر ١٩:٤٢`) and, when it comes in, a small minaret that rises above the prompt for about 3 seconds (a photo card with a × on the desktop app), then `حان وقت صلاة …` (no toast, no OS notification). Calculated on your machine; on first use the mod offers the city of your time zone, or any city you type in any language, then shows today's times so you can match them to your mosque. While Claude works inside that window, the thikr turn opens with `حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د`. Details: [docs/features/salah.md](docs/features/salah.md).
 
 ## Install
 
@@ -58,7 +60,7 @@ Set up the Claude Code plugin "muslim" for all my sessions (user scope):
 3. Show me what each step printed, then tell me to run /reload-plugins.
 ```
 
-Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows the installed version.
+Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows the installed version and your settings.
 
 ## Use
 
@@ -68,7 +70,6 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/thikr on` · `off` | Turn the thikr line on or off |
 | `/thikr speed auto` | Each phrase stays for its reading time: 1 s + 0.5 s per word (default) |
 | `/thikr speed <1-60>` | Every phrase stays the same number of seconds |
-| `/thikr tashkeel on` · `off` | Show or hide diacritics |
 | `/thikr end on` · `off` | تَمَّ بِحَمْدِ اللَّهِ at the end of a turn |
 | `/thikr mode all` · `salawat` | Every group in turn, or one salawat per request |
 | `/athkar` | Show today's athkar status and help, and show the athkar again if hidden |
@@ -76,7 +77,17 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/athkar morning reset` · `evening reset` | Read that period again from the start |
 | `/athkar style sky` · `frame` | The look: a sky that follows the time of day (default), or plain |
 | `/athkar color orange` · `green` · `gold` · `blue` | The main color |
-| `/muslim` | Show the installed version |
+| `/salah` | Place, method and mode, then today's prayer times |
+| `/salah help` | Table of every `/salah` command |
+| `/salah city` · `city <name or lat, lng>` | Pick your city by question, or by name in any language |
+| `/salah adjust` | Match today's times to your mosque, a minute at a time |
+| `/salah method <name>` | `auto` (your country's own) or a named method |
+| `/salah show always` · `<minutes>` · `off` | Show the next pray all day, only that many minutes before it (e.g. `show 20`), or hide it |
+| `/salah athan on` · `off` | `حان وقت صلاة …` when a prayer comes in |
+| `/muslim` | Version and a table of every setting, its value and the command that changes it |
+| `/muslim tashkeel on` · `off` | Show or hide Arabic diacritics on desktop (the terminal never shows them) |
+| `/muslim terminal-arabic` | Choose how Arabic shows in this terminal |
+| `/muslim help` · `help <feature>` | Command tables of every feature, or one (`thikr`, `salah`) |
 
 Every setting is also in `/config`.
 
@@ -96,7 +107,7 @@ Then restart Claude Code, or run `/reload-plugins` in an open session.
 
 **Inside any session, desktop app or terminal:** paste the same prompt from [Install](#install). It updates the mod when it is already installed.
 
-`/muslim` shows the version you are running; `CHANGELOG.md` lists what changed.
+`/muslim` shows the version you are running and your settings; `CHANGELOG.md` lists what changed.
 
 ## Uninstall
 
@@ -256,10 +267,11 @@ hooks/
 src/
   constants.ts       shared constants
   config.ts          typed userConfig options
-  features/<name>/   one folder per feature: install.tsx (hooks), phrases and pure logic
+  features/<name>/   one folder per feature: install.tsx (hooks), phrases, pure logic
 types/
   index.d.ts         $.state contract
 tests/               *.test.ts, run by `claude plugin test .`
+docs/features/       one spec per feature
 ```
 
 ## License

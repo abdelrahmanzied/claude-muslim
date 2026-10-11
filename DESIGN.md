@@ -1,48 +1,54 @@
 # Design system — muslim mod
 
-The rules every feature follows. Read this before designing a new feature; the per-feature specs live in `docs/design.md`.
+The shared base every feature follows, and the index to each feature's own design. Each feature owns its design: its spec is `docs/features/<feature>.md` and its design (surfaces, visual means, requirements) is `docs/features/<feature>-design.md`. Read this before designing a new feature, then the docs of the features you touch.
+
+## Feature index
+
+| Feature | Command | Spec | Design | Status |
+| --- | --- | --- | --- | --- |
+| Thikr line | `/thikr` | [thikr.md](docs/features/thikr.md) | [thikr-design.md](docs/features/thikr-design.md): text only | 0.2.0 |
+| Salah | `/salah` | [salah.md](docs/features/salah.md) | [salah-design.md](docs/features/salah-design.md): text, richer athan moment | Unreleased |
+| Morning and evening athkar | `/athkar` | in progress in another branch | in progress | planned |
+
+Everything below is shared by every feature. A feature's doc may add to it, never contradict it.
+
+## Feature index
+
+| Feature | Command | Spec | Design | Status |
+| --- | --- | --- | --- | --- |
+| Thikr line | `/thikr` | [thikr.md](docs/features/thikr.md) | [thikr-design.md](docs/features/thikr-design.md) | 0.2.0 |
+| Terminal Arabic check ([shared guide](docs/terminal.md)) | `/muslim terminal-arabic` | [arabic-fix.md](docs/features/arabic-fix.md) | [arabic-fix-design.md](docs/features/arabic-fix-design.md) | Unreleased |
 
 ## 1. Principles
 
 1. **Claude stays Claude.** We add a layer of thikr to Claude's interface; we never redesign it. Claude's own text (timer, token counts, `esc to interrupt`, tool output) is never translated, reworded or hidden.
-2. **Text only.** Everything is plain text in Claude's own font, size and colors. No SVG, images, custom fonts or drawing. It must look right on Windows, macOS and Linux, in the terminal and the desktop app, follow the user's theme and scale with zoom. **One exception: the athkar reader** (see Exceptions).
-3. **Quiet by default.** A reminder, never an interruption. Nothing blocks work, steals focus, plays sound, or appears more than once for the same moment.
-4. **Authentic content.** Every phrase is authored data with tashkeel and, where it has one, a source (Quran ayah or Hisn al-Muslim number). Nothing is generated at runtime. Display may strip tashkeel; it never changes words.
-5. **No scores.** We never count the user's worship, show streaks, rewards or guilt. Counting exists only where the user counts themselves (athkar reader), and stays private on their machine.
-6. **One feature, one switch.** Every feature can be turned off on its own, in `/config` and by its command. Off means its hooks do nothing.
-7. **Desktop app and terminal only.** Phones and other surfaces are out of scope: no mobile layouts, no phone-width checks, in the mod or in any reference page.
+2. **Quiet by default.** A reminder, never an interruption. Nothing blocks work, steals focus, plays sound, or appears more than once for the same moment.
+3. **Authentic content.** Every phrase is authored data with tashkeel and, where it has one, a source (Quran ayah or Hisn al-Muslim number). Nothing is generated at runtime. Display may strip tashkeel; it never changes words.
+4. **No scores.** We never count the user's worship, show streaks, rewards or guilt. Counting exists only where the user counts themselves (athkar reader), and stays private on their machine.
+5. **One feature, one switch.** Every feature can be turned off on its own, in `/config` and by its command. Off means its hooks do nothing.
 
-## 2. Surfaces we use
+6. **Each feature owns its visual means.** Text in Claude's font, size and colors is the default. A feature may use richer means (images, SVG, animation) only where its design doc says so and why. Anything drawn must work on every surface the feature targets, with a text fallback in the terminal when the richer surface is desktop-only, and must follow the theme and zoom.
 
-Pick the lightest surface that does the job. Each comes from the mod API (`/plugin-authoring` types are the reference).
+## 2. Surfaces
+
+Pick the lightest surface that does the job. Each comes from the mod API (`/plugin-authoring` types are the reference). Each feature's design doc states which surfaces and visual means it uses and why.
 
 | Surface | What it is | Use for | Example |
 | --- | --- | --- | --- |
 | Spinner | Claude's working line | Short phrase while Claude works; rewrite `word`/`message`/`suffix` only | Thikr line |
 | TurnDuration | Line closing a turn (terminal) | One short phrase; keep Claude's duration | تَمَّ بِحَمْدِ اللَّهِ |
-| AbovePrompt band | Rows above the input | A suggestion or notice that needs to be seen; at most one line unless it is a reader | Usage limit, after-prayer suggestion, athkar reader |
-| Status line | `$.ui.status`, under the prompt | Always-on, glanceable fact; plain text, no color | Next prayer time |
-| Toast | `$.ui.toast` | One-off confirmation after an action | "speed 3s" (prefer command reply) |
-| Notification | `$.ui.notify` | Only for time-critical moments the user opted into | Prayer time |
+| AbovePrompt band | Rows above the input | A suggestion, notice or glanceable fact that needs to be seen; at most one line unless it is a reader. Each feature's hook keeps what `next(e)` returns and adds its own row, so rows stack | Usage limit, athkar reader |
+| SessionMode | Mode labels at the right of the prompt footer, before the model name (terminal and desktop) | A glanceable fact as plain text beside the engine's labels; the hook keeps `next(e)` and adds its own | Prayer line |
+| Status line | `$.ui.status`, under the prompt | Always-on, glanceable fact; plain text, no color | Not used by a feature yet (the prayer line is in SessionMode) |
+| Toast | `$.ui.toast` | One-off confirmation after an action, or a timed reminder inside the app | "speed 3s" (prefer command reply) |
+| Notification | `$.ui.notify` | Not used: OS banners show in meetings and screen shares; use a band row or a toast | — |
 | Command reply | `command.run` → `{ text }` | Status, help, changing settings | `/thikr` |
 
-Not used: custom Panes for passive content, Images, Raster. Svg and Client modules only in the athkar reader.
-
-### Exceptions: the athkar reader
-
-The athkar reader is the one feature the person sits with, so it is drawn:
-
-- **Client module** (`src/features/athkar/reader.tsx`) for the reader: it takes clicks and keys, keeps the cover and the active look, and posts each count to the hooks module. Terminal and desktop.
-- **Svg** (desktop only) for the Sky look: a sky that follows the time of day with slow SMIL motion, drawn behind the reader. The terminal and the Frame look use a plain background color.
-- **Hex colors** for the reader's main color (orange, green, gold, blue, in a light and a dark shade) and the skies, since a theme key cannot be blended or placed on a sky.
-
-Everything else (font, size) stays Claude's: the API sets neither, so the reader follows the app's zoom.
-
-The reader's own rules (fixed size, counts, clicks and keys, when it folds) are in [docs/athkar-design.md](docs/athkar-design.md).
+Richer surfaces (Pane, Image, Svg, Raster, Client modules) are chosen per feature in its design doc, not here. Passive content does not get a Pane.
 
 ## 3. Color
 
-Use theme keys, never hex, so every theme (light, dark, color-blind, ANSI) stays correct.
+Wherever text is used, use theme keys, never hex, so every theme (light, dark, color-blind, ANSI) stays correct.
 
 | Role | Theme key | Use |
 | --- | --- | --- |
@@ -56,11 +62,11 @@ Never use `error` or `warning` for religious text.
 ## 4. Typography and Arabic
 
 - **Font and size:** Claude's. We cannot and do not change them.
-- **Tashkeel:** on by default; each feature respects a `…Tashkeel` setting through `display(text, tashkeel)`.
+- **Tashkeel:** desktop-only setting, on by default; terminal display always strips tashkeel regardless of this setting.
 - **Direction:** a line that starts with Arabic is read right to left by the surface. When Claude's own Latin text or numbers sit in the same line, keep them as a separate run (e.g. a separator `·`), and never convert Claude's numbers.
 - **Our numbers** (counts, times we compute) use Arabic-Indic digits (`١٥:٢٤`, `٢/٣`) inside Arabic lines.
 - **Length:** spinner and band phrases fit one line at 80 columns. Longer texts (athkar) live only in the reader, never truncated.
-- **Terminals that don't shape Arabic:** tracked in issue #3; don't work around it per feature.
+- **Terminal Arabic:** every feature's Arabic on a terminal goes through `src/shared/arabic`; see the [terminal guide](docs/terminal.md) for modes, persistence, survey, and limits.
 
 ## 5. Voice
 
@@ -70,7 +76,7 @@ Never use `error` or `warning` for religious text.
 
 ## 6. Commands and settings
 
-- One command per feature, named in Arabic transliteration with the `th` spelling: `/thikr`, `/athkar`, `/salah`. `/muslim` shows the version.
+- One command per feature, named in Arabic transliteration with the `th` spelling: `/thikr`, `/athkar`, `/salah`. `/muslim` shows the version and a settings table (setting, value, command to change it), the same on every surface; a feature's row shows its main state and points to its own help for the rest. `/muslim help [feature]` shows every feature's command table, or one; `/<feature> help` shows that table.
 - Shape: `/<feature>` = status + help; `/<feature> on|off`; `/<feature> <setting> <value>`.
 - Every setting is a `userConfig` field named `<feature><Setting>` (`thikrSpeed`), so it also appears in `/config`. Commands change it with `$.config.set({ key: 'muslim.<field>' })`.
 - Defaults are chosen so a new user needs no setup, except where the feature cannot work without input (prayer location).
@@ -81,7 +87,11 @@ Never use `error` or `warning` for religious text.
 - A timed moment (before prayer, after prayer, usage limit) appears once, clears itself when its moment passes, and survives `/clear` and reloads through `$.state` / `$.store`.
 - Timers run only while needed (e.g. the spinner ticker only during a turn).
 
-## 8. Code shape for a new feature
+## 8. Demo (planned, not built yet)
+
+Every feature ships a demo: scenes that play the feature's real UI on demand, through a future shared `/muslim demo` command. Scenes run on a fake clock and change no settings or state the user keeps. Scenes may live in one shared demo file or in a file inside each feature folder (e.g. `src/features/<feature>/demo.ts`). The command and the scene format are not built yet; until they are, a feature notes its scenes in its design doc.
+
+## 9. Code shape for a new feature
 
 ```
 src/features/<feature>/
@@ -89,17 +99,21 @@ src/features/<feature>/
   phrases.ts      authored text (or data.ts)
   *.ts            pure logic, no $
 tests/<feature>/  unit tests for pure logic + engine tests on terminal and desktop
+docs/features/<feature>.md          the feature's spec
+docs/features/<feature>-design.md   the feature's design
 ```
 
 Wire it in `hooks/register.tsx` (`install<Feature>(on, settings)`), register its command there, add its fields to `plugin.json` `userConfig` and `src/config.ts`, declare any `$.state` values in `types/index.d.ts`.
 
-## 9. New feature checklist
+## 10. New feature checklist
 
-- [ ] Fits the principles above; uses the lightest surface.
-- [ ] Spec added to `docs/design.md` (moments, phrases with sources, settings).
+- [ ] Fits the shared base above; uses the lightest surface that does the job.
+- [ ] `docs/features/<feature>-design.md` written: surfaces, visual means, why, and the fallback where a surface is desktop-only; linked from the index above and from the spec's Design section.
+- [ ] Spec added to `docs/features/<feature>.md` (moments, phrases with sources, settings).
 - [ ] Phrases reviewed by a person; sources noted.
 - [ ] Off switch in `/config` and the command; off leaves Claude untouched.
-- [ ] Colors via theme keys; tashkeel setting respected.
+- [ ] Colors via theme keys; desktop tashkeel setting respected and terminal tashkeel stripped.
 - [ ] Tests on `terminal` and `desktop`; `claude plugin validate`, `claude plugin test`, `tsc` pass.
+- [ ] Demo scenes for the feature's real UI (planned: `/muslim demo`, fake clock, no settings changed).
 - [ ] Tried live in a terminal and the desktop app.
-- [ ] `CHANGELOG.md` and version bumped.
+- [ ] Change notes added under `## Unreleased` in `CHANGELOG.md` (never change the version; see CLAUDE.md).

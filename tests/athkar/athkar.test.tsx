@@ -3,6 +3,7 @@ import { expect, mock, test } from 'claude-code/testing'
 
 import { ATHKAR } from '../../src/features/athkar/data.ts'
 import { listFor, TITLE } from '../../src/features/athkar/logic.ts'
+import { stripTashkeel } from '../../src/shared/arabic/visual.ts'
 
 const SURFACES = ['terminal', 'desktop'] as const
 
@@ -41,13 +42,14 @@ const isFirstCounted = async (ui: Ui, surface: (typeof SURFACES)[number]) =>
     : (await ui.find({ in: 'athkar', text: /^ ٠ $/ })) !== undefined
 
 const isCover = async (ui: Ui, surface: (typeof SURFACES)[number]) =>
-  surface === 'desktop' ? /class="(cover cv-inline|peek cv-peek)"/.test(await picture(ui)) : (await ui.find({ in: 'athkar', text: TITLE.morning })) !== undefined
+  surface === 'desktop' ? /class="(cover cv-inline|peek cv-peek)"/.test(await picture(ui)) : (await ui.find({ in: 'athkar', text: stripTashkeel(TITLE.morning) })) !== undefined
 
 const press = (ui: Ui, key: string) => ui.post({ act: 'key', key })
 
 test('the cover folds when faded, opens on a click that does not count, then starts, then clicks count', async ($, on) => {
   mock.clock(on, { now: MORNING })
   mock.store(on)
+  mock.env(on, {})
   engineBand(on)
 
   for (const surface of SURFACES) {
@@ -91,6 +93,7 @@ test('Quran passages have names and desktop reading reserves room for the label'
 
   mock.clock(on, { now: MORNING })
   mock.store(on)
+  mock.env(on, {})
   engineBand(on)
   await $.command.run({ command: 'athkar', args: 'morning reset', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
   const ui = await $.ui.mount(band('desktop'))
@@ -115,6 +118,7 @@ test('Quran passages have names and desktop reading reserves room for the label'
 test('the desktop band draws in Tajawal at the slot width', async ($, on) => {
   mock.clock(on, { now: MORNING })
   mock.store(on)
+  mock.env(on, {})
   engineBand(on)
   const ui = await $.ui.mount(band('desktop'))
   const svg = await ui.find({ in: 'athkar', type: 'Svg' })
@@ -129,6 +133,7 @@ test('the desktop band draws in Tajawal at the slot width', async ($, on) => {
 test('the reader moves on by itself after the last count', async ($, on) => {
   const clock = mock.clock(on, { now: MORNING })
   mock.store(on)
+  mock.env(on, {})
   engineBand(on)
   const ui = await $.ui.mount(band('terminal'))
   // The first press wakes the folded cover, the next starts the reading.
@@ -144,6 +149,7 @@ test('the reader moves on by itself after the last count', async ($, on) => {
 test('finishing shows the end, and × hides the band keeping the reading', async ($, on) => {
   mock.clock(on, { now: MORNING })
   mock.store(on)
+  mock.env(on, {})
   engineBand(on)
   const ui = await $.ui.mount(band('desktop'))
   await press(ui, 'return')
@@ -169,18 +175,20 @@ test('finishing shows the end, and × hides the band keeping the reading', async
 test('/athkar shows status and brings a hidden band back', async ($, on) => {
   mock.clock(on, { now: MORNING })
   mock.store(on)
+  mock.env(on, {})
   engineBand(on)
   const ui = await $.ui.mount(band('terminal'))
   await ui.post({ act: 'hide' })
   const ran = await $.command.run({ command: 'athkar', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
   expect(ran.text).toContain('athkar on · style sky · color orange')
-  expect(await ui.find({ in: 'athkar', text: TITLE.morning })).toBeDefined()
+  expect(await ui.find({ in: 'athkar', text: stripTashkeel(TITLE.morning) })).toBeDefined()
   await ui.unmount()
 })
 
 test('off draws nothing above the prompt', { options: { athkar: false } }, async ($, on) => {
   mock.clock(on, { now: MORNING })
   mock.store(on)
+  mock.env(on, {})
   engineBand(on)
   const ui = await $.ui.mount(band('terminal'))
   expect(await ui.find({ type: 'Client' })).toBeUndefined()
@@ -190,6 +198,7 @@ test('off draws nothing above the prompt', { options: { athkar: false } }, async
 test('faded, the reading folds to one row; a press opens it without counting', async ($, on) => {
   const clock = mock.clock(on, { now: MORNING })
   mock.store(on)
+  mock.env(on, {})
   engineBand(on)
 
   for (const surface of SURFACES) {
@@ -233,6 +242,7 @@ test('faded, the reading folds to one row; a press opens it without counting', a
 test('counting by keys with the pointer off the band: it folds 3 seconds after the last key', async ($, on) => {
   const clock = mock.clock(on, { now: MORNING })
   mock.store(on)
+  mock.env(on, {})
   engineBand(on)
   await $.command.run({ command: 'athkar', args: 'morning reset', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
   const ui = await $.ui.mount(band('terminal'))
@@ -253,6 +263,7 @@ test('counting by keys with the pointer off the band: it folds 3 seconds after t
 test('counting by keys with the pointer on the band: it stays open', async ($, on) => {
   const clock = mock.clock(on, { now: MORNING })
   mock.store(on)
+  mock.env(on, {})
   engineBand(on)
   await $.command.run({ command: 'athkar', args: 'morning reset', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
   const ui = await $.ui.mount(band('terminal'))

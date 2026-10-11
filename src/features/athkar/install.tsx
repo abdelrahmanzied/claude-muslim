@@ -3,7 +3,7 @@ import type { EngineInterface, On } from 'claude-code'
 
 import type { Day } from '../../../types'
 import type { Options } from '../../config.ts'
-import { display } from '../thikr/rotation.ts'
+import { withTashkeel } from '../../shared/arabic/visual.ts'
 import { bandHeight, closeArea, pixelOf } from './band.ts'
 import type { BandModel } from './band.ts'
 import type { Period } from './data.ts'
@@ -351,12 +351,14 @@ export const install = (on: On, options: Options) => {
     if (reading.isHidden) return theirs
 
     // Light themes take the deeper main colors.
-    const theme = (await $.config.list()).find(row => row.key === 'theme')
+    const theme = (await $.config.list().catch(() => [])).find(row => row.key === 'theme')
     const isDark = !String(theme?.value ?? '').includes('light')
     const isPicture = e.surface === 'desktop'
     const sky = skyAt(hourOf(now))
     const look = lookFor(options.athkarStyle, options.athkarColor, sky, isDark, isPicture)
-    const props = readerProps(period, reading, look, text => display(text, true), { isOpen: view.isOpen, isActive: view.isActive, isPicture })
+    // Desktop follows the tashkeel setting; the terminal never shows tashkeel.
+    const show = (text: string) => withTashkeel(text, e.surface === 'desktop' && options.tashkeel)
+    const props = readerProps(period, reading, look, show, { isOpen: view.isOpen, isActive: view.isActive, isPicture })
     // Finished just now, not found finished on a reload: the finale plays once.
     if (props.phase === 'done' && lastPhase !== undefined && lastPhase !== 'done') {
       finishedAt = Date.now()
@@ -399,9 +401,9 @@ export const install = (on: On, options: Options) => {
       isDark,
       isActive: view.isActive,
       hasBegun: props.hasBegun,
-      title: display(TITLE[period], true),
+      title: show(TITLE[period]),
       thikrId: thikr.id,
-      text: display(textOf(thikr, period), true),
+      text: show(textOf(thikr, period)),
       note: props.note,
       position: props.position,
       count: Math.min(countOf(thikr, reading), times),
@@ -409,7 +411,7 @@ export const install = (on: On, options: Options) => {
       progress,
       from: glowMs < GLOW_MS ? glowFrom : progress,
       glowMs: glowMs < GLOW_MS ? glowMs : 0,
-      end: display(END, true),
+      end: show(END),
       endHint: props.endHint,
       endNote: props.endNote,
       now: now.getTime(),

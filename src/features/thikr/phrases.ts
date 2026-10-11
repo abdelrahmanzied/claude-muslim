@@ -43,6 +43,10 @@ export const SALAWAT = [
   'اللَّهُمَّ صَلِّ وَسَلِّمْ وَبَارِكْ عَلَىٰ سَيِّدِنَا مُحَمَّدٍ',
 ]
 
+// Opens the thikr turn inside a pray's countdown window, before the usual
+// phrases: the call to pray, then the pray and the minutes left.
+export const CALL_TO_PRAY = 'حَيَّ عَلَى الصَّلَاةِ'
+
 export const END_OF_TURN = 'تَمَّ بِحَمْدِ اللَّهِ'
 
 export const USAGE_LIMIT = 'حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ'

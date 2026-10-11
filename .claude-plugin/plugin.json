@@ -1,6 +1,6 @@
 {
   "name": "muslim",
-  "version": "0.3.0",
+  "version": "0.2.0",
   "description": "A Claude Code mod for Muslim developers.",
   "author": {
     "name": "Abdelrahman Zied"
@@ -26,10 +26,10 @@
       "description": "auto (1s + 0.5s per word), or whole seconds per phrase from 1 to 60",
       "default": "auto"
     },
-    "thikrTashkeel": {
+    "tashkeel": {
       "type": "boolean",
-      "title": "Thikr tashkeel",
-      "description": "Show diacritics on the phrases",
+      "title": "Tashkeel",
+      "description": "Show diacritics on Arabic on desktop and other non-terminal surfaces",
       "default": true
     },
     "thikrEnd": {
@@ -75,6 +75,58 @@
         "blue"
       ],
       "default": "orange"
+    },
+    "salahShow": {
+      "type": "string",
+      "title": "Show pray line",
+      "description": "always: next pray all day; a number: only that many minutes before a pray, counting down (e.g. 20); off: hidden",
+      "default": "20"
+    },
+    "salahAthan": {
+      "type": "boolean",
+      "title": "Pray call",
+      "description": "Show حان وقت صلاة … for 15 minutes once a pray comes in",
+      "default": true
+    },
+    "salahPlace": {
+      "type": "string",
+      "title": "Pray place",
+      "description": "name; latitude, longitude; time zone; country, e.g. Munich, Germany; 48.14, 11.58; Europe/Berlin; DE. Empty until set up",
+      "default": ""
+    },
+    "salahMethod": {
+      "type": "string",
+      "title": "Pray calculation method",
+      "description": "auto uses the place's country's own method; or name an authority's Fajr and Isha angles",
+      "options": [
+        "auto",
+        "mwl",
+        "egypt",
+        "ummAlQura",
+        "karachi",
+        "isna",
+        "dubai",
+        "kuwait",
+        "qatar",
+        "singapore",
+        "jakim",
+        "kemenag",
+        "turkey",
+        "france",
+        "russia",
+        "tunisia",
+        "algeria",
+        "morocco",
+        "jordan",
+        "portugal"
+      ],
+      "default": "auto"
+    },
+    "salahAdjust": {
+      "type": "string",
+      "title": "Pray minutes",
+      "description": "Any whole number of minutes added to Fajr, Sunrise, Dhuhr, Asr, Maghrib and Isha, e.g. 0 0 0 90 0 -120",
+      "default": "0 0 0 0 0 0"
     }
   }
 }
