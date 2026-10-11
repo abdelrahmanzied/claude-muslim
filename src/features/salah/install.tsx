@@ -376,7 +376,7 @@ export const install = (on: On, options: Options) => {
     return (
       <Box gap={1}>
         <Box key="salah-line">
-          <Text color="claude">{text}</Text>
+          <Text color="claude" bold>{text}</Text>
         </Box>
         {theirs}
       </Box>

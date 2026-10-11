@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- The prayer line in the footer is bold.
 - `/salah adjust` accepts any whole number of minutes; saved settings and the review form no longer cap adjustments at ±60.
 - Fix the athan moment being hidden when tested before the prayer display first appears; keep the desktop card and terminal minaret unchanged.
 - `/salah athan test` shows the athan moment now for the next prayer without changing settings: the card on the desktop, the minaret in the terminal.
