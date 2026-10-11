@@ -1,6 +1,6 @@
 // Prayer time calculation methods: each authority's twilight angles and
 // minute adjustments. The numbers are each authority's published parameters,
-// as listed by adhan-js (MIT, Batoul Apps) and the AlAdhan API's methods list.
+// as listed by the vendored athan library (see athan/VENDOR.md) and the public prayer-times API's methods list.
 // Asr follows the majority (shadow equals the object) for every method. Sunni
 // authorities only: a country whose official method is not gets mwl.
 

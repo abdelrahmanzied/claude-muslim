@@ -1,7 +1,7 @@
 # Salah — prayer times
 
 Prayer times for the user's city, calculated on their machine with
-[adhan-js](../../src/features/salah/athan/VENDOR.md). No location service and no prayer-times API.
+[athan library](../../src/features/salah/athan/VENDOR.md) (from [adhan-js](https://github.com/batoulapps/adhan-js)). No location service and no prayer-times API.
 
 ## Flow
 
@@ -41,7 +41,7 @@ Prayer times for the user's city, calculated on their machine with
   Muslim World League. `/salah method` picks another.
 - **Asr:** the majority (shadow equals the object).
 - **Ramadan:** Umm al-Qura's Isha is 120 minutes after Maghrib.
-- **High latitudes:** adhan's recommended rule (seventh of the night above 48°).
+- **High latitudes:** the library's recommended rule (seventh of the night above 48°).
 - **Minutes:** the user's own per prayer, up to an hour either way.
 
 ## Data
@@ -49,8 +49,8 @@ Prayer times for the user's city, calculated on their machine with
 | File | What | Source |
 | --- | --- | --- |
 | `zones.ts` | time zone → country and city coordinates | tzdb 2026e `zone.tab`, public domain |
-| `methods.ts` | angles, minutes, country → method | adhan-js (MIT), AlAdhan methods list |
-| `athan/` | the calculation | adhan-js 4.4.6, MIT |
+| `methods.ts` | angles, minutes, country → method | athan library (MIT), public methods list |
+| `athan/` | the calculation | vendored library 4.4.6, MIT |
 
 ## Commands
 

@@ -1,7 +1,7 @@
 // A day's prayer times for a place, its method and the user's own minutes,
-// computed by adhan; and which prayer comes next.
+// computed by the vendored athan library; and which prayer comes next.
 
-import { CalculationParameters, Coordinates, HighLatitudeRule, PolarCircleResolution, PrayerTimes } from './athan/Adhan.ts'
+import { CalculationParameters, Coordinates, HighLatitudeRule, PolarCircleResolution, PrayerTimes } from './athan/Athan.ts'
 import { hijriMonth, localTime } from './clock.ts'
 import { METHODS, PRAYERS, type MethodId, type Prayer } from './methods.ts'
 

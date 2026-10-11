@@ -34,6 +34,7 @@ export const readOptions = (raw: Record<string, unknown>): Options => ({
   thikrMode: raw.thikrMode === 'salawat' ? 'salawat' : 'all',
   salah: readSalahMode(raw.salah),
   salahReminder: readReminder(raw.salahReminder),
+  // "salahAdhan" is the old saved key name (data, read as is).
   salahAthan: (raw.salahAthan ?? raw.salahAdhan) !== false,
   salahPlace: readPlace(raw.salahPlace),
   salahMethod: isMethod(raw.salahMethod) ? raw.salahMethod : 'auto',
