@@ -28,6 +28,7 @@ Prayer times for the user's city, calculated on their machine with
    - `salahAthan` off drops the minaret, the card and the `حان وقت` line: the line goes straight back to the
      next prayer (`always`) or to empty (minutes).
    - The prayer line redraws every 30 seconds, and every second only while inside the countdown window (the live countdown); it goes back to 30 seconds when the window ends. A timer set for the exact moment the window opens starts the countdown on time, not on the next 30 s tick. The timer starts on every module load (the first draw of the footer or the band, and a redraw asked at session start), so it re-arms after `/salah show off` then `/salah show 60`.
+   - The footer works out the line from the clock and the settings each time it is drawn, so a setting change shows at once; the timer only asks for redraws.
    - Sunrise is in today's times only: no countdown for it.
    - While inside the window, salah also publishes it for the [thikr line](thikr.md#before-a-prayer), which opens its turns with حَيَّ عَلَى الصَّلَاةِ.
    - No toast when the window starts: the footer line is the only notice. No OS notification.

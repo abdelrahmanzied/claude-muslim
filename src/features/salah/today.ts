@@ -4,11 +4,21 @@ import { ALWAYS_COUNTDOWN, type Options, type Show } from '../../config.ts'
 import { METHODS, methodFor, PRAYS, type MethodId } from './methods.ts'
 import { ENGLISH } from '../../shared/pray/names.ts'
 import type { Place } from './place.ts'
-import { clockText, nextSalah, timesOn } from './times.ts'
+import { prayLine } from '../../shared/pray/line.ts'
+import { clockText, lastPray, nextSalah, timesOn } from './times.ts'
 
 // The method in effect: the one set, or the place's country's own.
 export const methodOf = (options: Options, place: Place): MethodId =>
   options.salahMethod === 'auto' ? methodFor(place.country) : options.salahMethod
+
+// The pray line at `now` for these settings; undefined when it is empty.
+export const lineAt = (options: Options, place: Place, now: number): string | undefined => {
+  const method = methodOf(options, place)
+  const next = nextSalah(place, method, options.salahAdjust, now)
+  const last = lastPray(place, method, options.salahAdjust, now)
+
+  return prayLine(next, clockText(next.at, place.timeZone), last, now, { show: options.salahShow, isAthan: options.salahAthan })
+}
 
 // Today's times as a table, the next pray marked; a moved pray shows its minutes.
 export const timesTable = (options: Options, place: Place, at: number): string => {

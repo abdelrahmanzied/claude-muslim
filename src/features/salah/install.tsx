@@ -11,12 +11,12 @@ import { guessPlace, systemTimeZone } from './location.ts'
 import { METHODS, methodFor, type Pray } from './methods.ts'
 import { ENGLISH, prayNamed } from '../../shared/pray/names.ts'
 import { writePlace, type Place } from './place.ts'
-import { athanText, isInWindow, prayLine } from '../../shared/pray/line.ts'
+import { athanText, isInWindow } from '../../shared/pray/line.ts'
 import { ACCENT_ROWS, FRAME_MS, HOLD_MS, isDue, LABEL_ROW, minaretRows, ROWS_COUNT } from './minaret.ts'
 import { nudge, reviewRows } from './review.ts'
 import { CARD_HEIGHT, CARD_MS, cardSvg, cardWidth } from './card.ts'
 import { clockText, lastPray, nextSalah, type Adjust } from './times.ts'
-import { methodOf, settingsTable, showText, timesTable } from './today.ts'
+import { lineAt, methodOf, settingsTable, showText, timesTable } from './today.ts'
 
 // The engine follows $ only into same-file top-level functions, so the
 // terminal's Arabic mode is resolved here as in thikr.
@@ -165,8 +165,7 @@ const tick = async ($: EngineInterface, options: Options, place: Place, timer: T
   const method = methodOf(options, place)
   const next = nextSalah(place, method, options.salahAdjust, now)
   const last = lastPray(place, method, options.salahAdjust, now)
-  const view = { show: options.salahShow, isAthan: options.salahAthan }
-  await setLine($, prayLine(next, clockText(next.at, place.timeZone), last, now, view))
+  await setLine($, lineAt(options, place, now))
   if (options.salahShow !== 'off' && options.salahAthan && isDue(last.at, now, await read($, athanShown))) {
     await update($, athanShown, () => last.at)
     await showAthan($, last.pray === 'sunrise' ? 'fajr' : last.pray, clockText(last.at, place.timeZone), now)
@@ -421,8 +420,12 @@ export const install = (on: On, options: Options) => {
   // footer, before the model name, beside whatever else draws there.
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
     const theirs = await next(e)
-    // A line left by the last load is not drawn while it is cleared.
-    const text = options.salahShow === 'off' || !options.salahPlace ? null : await read($, line)
+    const place = options.salahPlace
+    if (options.salahShow === 'off' || !place) return theirs
+    // Read so the timer's writes redraw this; the text itself comes from the
+    // clock and these settings, so a line left by the last load never shows.
+    await read($, line)
+    const text = lineAt(options, place, await $.clock.now())
     if (!text) return theirs
     const { Box, Text } = $.ui.resolve(e)
 

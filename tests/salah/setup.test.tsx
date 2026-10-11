@@ -258,6 +258,36 @@ test('show off hides a line left by the last load and clears it after drawing, n
   await shown.unmount()
 })
 
+// A settings change reloads the module; $.state keeps the last load's line.
+const leftLine = (on: On, text: string | null) =>
+  on('state.get', { plugin: 'muslim', key: 'salahLine' }, async () => ({ value: { value: text, version: 1 } }))
+
+test('after a change to minutes, a line left by the last load is not drawn outside the window', { options: { ...AT_MUNICH, salahShow: '20' } }, async ($, on) => {
+  mock.env(on, {})
+  mock.store(on)
+  mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
+  engineBand(on)
+  engineModes(on)
+  leftLine(on, '☾ الظهر ١٣:٠٢')
+
+  const shown = await mountFooter($, 'terminal')
+  expect(await prayRow(shown)).toBe(undefined)
+  await shown.unmount()
+})
+
+test('after off then always, the line shows at once, before any timer', { options: { ...AT_MUNICH, salahShow: 'always' } }, async ($, on) => {
+  mock.env(on, {})
+  mock.store(on)
+  mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
+  engineBand(on)
+  engineModes(on)
+  leftLine(on, null)
+
+  const shown = await mountFooter($, 'terminal')
+  expect(await prayRow(shown)).toBe('☾ الظهر ١٣:٠٢')
+  await shown.unmount()
+})
+
 test('show minutes: the line is empty until the window, counts down, calls, then clears', { options: AT_MUNICH }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
