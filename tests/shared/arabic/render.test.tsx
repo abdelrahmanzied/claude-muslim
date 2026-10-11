@@ -1,5 +1,5 @@
 import { expect, mock, test } from 'claude-code/testing'
-import { arabicVisual } from '../../../src/shared/arabic/visual.ts'
+import { defaultArabicMode, terminalArabic } from '../../../src/shared/arabic/terminal.ts'
 import { END_OF_TURN, SALAWAT, USAGE_LIMIT } from '../../../src/features/thikr/phrases.ts'
 
 const band = (surface: 'terminal' | 'desktop') => ({
@@ -10,7 +10,7 @@ const band = (surface: 'terminal' | 'desktop') => ({
 for (const program of ['Apple_Terminal', 'WarpTerminal', 'unknown']) {
   test(`${program}: only terminal Arabic is transformed, engine text stays`, { options: { thikrMode: 'salawat' } }, async ($, on) => {
     mock.env(on, { TERM_PROGRAM: program })
-    mock.store(on, { arabicFixShownIn: 'done' })
+    mock.store(on, { arabicTerminals: {} })
     mock.clock(on, { now: 0 })
     on('turn.start', async (_$, e) => ({ turnId: e.turnId }))
     const seen: Array<{ word: string; message: string | null; suffix: string }> = []
@@ -33,7 +33,7 @@ for (const program of ['Apple_Terminal', 'WarpTerminal', 'unknown']) {
     on('state.get', { plugin: 'muslim', key: 'usageLimit' }, async () => ({ value: { value: { until: null }, version: 1 } }))
     for (const surface of ['terminal', 'desktop'] as const) {
       const phrase = SALAWAT[surface === 'terminal' ? 0 : 1]!
-      const shown = (text: string) => surface === 'terminal' && program === 'Apple_Terminal' ? arabicVisual(text) : text
+      const shown = (text: string) => terminalArabic(surface, surface === 'terminal' ? defaultArabicMode(program) : 'none', text)
       await $.turn.start({ text: 'hi', turnId: surface })
       await $.ui.render({ surface, component: 'Spinner', requestId: 'spinner', props: { word: 'Working', message: 'Compacting conversation', suffix: '…', mode: 'thinking' } })
       expect(seen.at(-1)?.word).toBe(shown(phrase))
@@ -47,25 +47,10 @@ for (const program of ['Apple_Terminal', 'WarpTerminal', 'unknown']) {
   })
 }
 
-for (const mode of ['off', 'on'] as const) {
-  test(`manual ${mode} overrides detection and never changes desktop`, { options: { arabicFix: mode } }, async ($, on) => {
-    // No env mock: explicit modes must not call env.get.
-    let word = ''
-    on('ui.render', { component: 'TurnDuration' }, async ($, e) => {
-      word = e.props.word
-      const { Text } = $.ui.resolve(e)
-      return <Text>{word}</Text>
-    })
-    for (const surface of ['terminal', 'desktop'] as const) {
-      await $.ui.render({ surface, component: 'TurnDuration', requestId: 'end', props: { word: 'Baked', durationMs: 3000 } })
-      expect(word).toBe(surface === 'terminal' && mode === 'on' ? arabicVisual(END_OF_TURN) : END_OF_TURN)
-    }
-  })
-}
-
 // Render-tree evidence only: this does not emulate a terminal's cell-diff repaint.
-test('each spinner update shapes fresh text while desktop keeps logical Arabic', { options: { thikrMode: 'salawat' } }, async ($, on) => {
+test('thikr uses the saved current-terminal mode and desktop keeps logical Arabic', { options: { thikrMode: 'salawat' } }, async ($, on) => {
   mock.env(on, { TERM_PROGRAM: 'Apple_Terminal' })
+  mock.store(on, { arabicTerminals: { Apple_Terminal: 'joined' } })
   mock.clock(on, { now: 0 })
   on('turn.start', async (_$, e) => ({ turnId: e.turnId }))
   let word = ''
@@ -78,7 +63,7 @@ test('each spinner update shapes fresh text while desktop keeps logical Arabic',
     for (let index = 0; index < SALAWAT.length; index++) {
       await $.turn.start({ text: 'hi', turnId: `${surface}-${index}` })
       await $.ui.render({ surface, component: 'Spinner', requestId: 'updates', props: { word: 'Working', message: null, suffix: '…', mode: 'thinking' } })
-      expect(word).toBe(surface === 'terminal' ? arabicVisual(SALAWAT[index]!) : SALAWAT[index])
+      expect(word).toBe(terminalArabic(surface, surface === 'terminal' ? 'joined' : 'none', SALAWAT[index]!))
     }
   }
 })

@@ -1,24 +1,21 @@
 # Terminal Arabic check
 
-`/muslim terminal-arabic` opens the keyboard picker and updates `muslim.arabicFix` immediately when a sample is chosen:
+`/muslim terminal-arabic` opens a per-terminal keyboard survey. Modes are stored in the machine-local `arabicTerminals` map, keyed by `TERM_PROGRAM` (or `unknown`):
 
-| Value | Meaning |
+| Mode | Treatment |
 | --- | --- |
-| auto (default) | Detect: enable only for `TERM_PROGRAM === 'Apple_Terminal'` |
-| on | The mod joins and reorders Arabic for terminals that cannot |
-| off | The terminal shows logical Arabic itself |
+| `none` | Keep the authored text unchanged |
+| `plain` | Strip tashkeel only |
+| `joined` | Strip tashkeel and apply contextual presentation forms, keeping logical order |
+| `reversed` | Strip tashkeel, shape, and reorder for a terminal that needs visual RTL text |
 
-In `/config`, the title is **Fix Arabic in the terminal** and the description
-is: "auto detects terminals that can't show Arabic; on/off forces it. Terminal
-only; the desktop is never changed."
+The built-in defaults for an unanswered terminal are Apple Terminal `plain`, Warp `joined`, and `none` for other terminal IDs. Desktop always uses `none`. There is no longer a global Arabic setting in `/config`.
 
-The first eligible terminal prompt draws the picker directly in AbovePrompt. Row one shows `muslim` and the question. Below it are three vertical plain survey Buttons: hotkey `1` holds fixed `arabicVisual('سلام')` (`on`) or logical `سلام` (`off`), hotkey `2` holds the other sample, and hotkey `3` is **Not now** (`keep`). Each Arabic sample is a `Text` child, matching the thikr display path. The likely choice comes first (fixed for Apple Terminal in auto; logical for Warp/unknown in auto). The dim hint reads `Press 1, 2 or 3`.
+The first AbovePrompt render for an unanswered terminal shows `muslim · Which line reads correctly in this terminal?` and five vertical plain survey Buttons. The fixed order is 1 none, 2 plain, 3 joined, 4 reversed, 5 Not now. Each sample uses `بِسْمِ اللَّهِ`, transformed through the same functions used by thikr and drawn as a `Text` child. The hint is `Press 1–5`.
 
-Pressing 1 or 2 selects its sample. Pressing 3 selects Not now. Any pick hides the picker; Not now keeps the current mode. Selecting either sample hides it and immediately updates `muslim.arabicFix`; the toast reports the resulting mode and points to `/muslim terminal-arabic`. A denied setting reports why it was not changed.
+Choosing 1–4 saves that mode for the current terminal. Not now saves the terminal's built-in default so it will not ask again. Every pick hides the survey and toasts `muslim: Arabic for <termId> set — /muslim terminal-arabic to redo`. A terminal ID already in the map is skipped automatically; a different unanswered ID gets its own survey. The session state keeps an unanswered survey visible across reloads. Surveys defer it without consuming it.
 
-The automatic picker is offered only in the first eligible terminal session on the machine. Its first eligible render stores that session ID; any selection stores `done`, and a later session skips it. The session `arabicFixPicking` state preserves an unanswered picker across module reloads. Surveys suppress the picker without consuming it, and desktop never draws it or reads/writes its store.
-
-`/muslim terminal-arabic` reopens the same picker on demand without resetting the automatic first-run marker. On desktop it replies that the check is terminal only. Extra arguments return `Usage: /muslim terminal-arabic`. Users can also change the setting in `/config`.
+`/muslim terminal-arabic` reopens the current terminal's survey. On desktop it replies that the check is terminal only. Extra arguments return `Usage: /muslim terminal-arabic`.
 
 Design: [arabic-fix-design.md](arabic-fix-design.md).
 
@@ -90,21 +87,10 @@ shipped, and the update bug remains unresolved in this build.
 
 ### Verification
 
-Automated tests cover detection, explicit modes, the survey Button hotkeys and choices,
-command validation, first-display persistence, option ordering, survey/desktop exclusion,
-preservation of the underlying band, and fresh shaping on each thikr text change. They do
-not execute the real terminal renderer's ANSI output.
+Automated tests cover each transform, fixed survey order, per-terminal persistence, independent Apple Terminal and Warp answers, new terminal IDs, command reopen, desktop exclusion, and thikr rendering from the current terminal's cached mode. They do not execute the real terminal renderer's ANSI output.
 
-- **Warp:** on a machine without the stored marker, check the muslim label,
-  question, vertical hotkey Button rows and hint, with the logical sample first. Press 1;
-  spinner/usage-limit/end text stays logical. The confirmation names the plugin
-  and command. Reload and start a new session: no repeated check.
-- **Apple Terminal:** expect the fixed sample first in auto. Verify joined
-  Arabic on the first draw and while thikr rotates. Compare on/off/auto and a
-  lam-alef phrase (لا إله إلا الله). Record any corruption until a full host
-  redraw: the documented renderer update bug remains unresolved.
-- **One session only:** leave the picker unanswered, redraw and reload in the
-  same session: it stays visible. Start a new session: it never returns. Not now hides it and keeps the mode.
-- **Both:** a survey hides the check without consuming an unseen check. Other
-  band rows still work. Desktop has no check and keeps its original Arabic
-  and tashkeel. Render-tree tests do not prove physical terminal bidi behavior.
+- **Warp:** compare the four fixed samples; the default `joined` treatment keeps letters joined in logical order.
+- **Apple Terminal:** the default `plain` treatment removes tashkeel while leaving Arabic ordering and shaping to the terminal.
+- **Other terminals:** the default is `none`; choose `reversed` only where the terminal needs shaped visual RTL text.
+- **Persistence:** Not now saves the current terminal's default. Reload and open a new session with the same terminal ID: no automatic survey. A terminal ID with no saved answer still gets its own survey. `/muslim terminal-arabic` reopens it.
+- **Desktop:** no survey or Arabic transformation; render-tree tests do not prove physical terminal shaping behavior.

@@ -1,13 +1,23 @@
-import { arabicVisual } from './visual.ts'
+import { arabicJoined, arabicReordered, stripTashkeel } from './visual.ts'
 
-export type ArabicFix = 'auto' | 'on' | 'off'
-export const isArabicFix = (value: unknown): value is ArabicFix => value === 'auto' || value === 'on' || value === 'off'
+export type ArabicMode = 'none' | 'plain' | 'joined' | 'reversed'
 
-// Conservative: TERM/xterm-256color does not identify a renderer. Unknown
-// terminals keep logical text; use on for conhost or a Linux terminal
-// without bidi/shaping. off means the terminal handles logical Arabic.
-export const needsArabicVisual = (mode: ArabicFix, program?: string): boolean =>
-  mode === 'on' || (mode === 'auto' && program === 'Apple_Terminal')
+export const ARABIC_MODES: readonly ArabicMode[] = ['none', 'plain', 'joined', 'reversed']
 
-export const terminalArabic = (surface: string, mode: ArabicFix, text: string, program?: string): string =>
-  surface === 'terminal' && needsArabicVisual(mode, program) ? arabicVisual(text) : text
+export const isArabicMode = (value: unknown): value is ArabicMode =>
+  value === 'none' || value === 'plain' || value === 'joined' || value === 'reversed'
+
+export const defaultArabicMode = (termId: string): ArabicMode => {
+  if (termId === 'Apple_Terminal') return 'plain'
+  if (termId === 'WarpTerminal') return 'joined'
+
+  return 'none'
+}
+
+export const terminalArabic = (surface: string, mode: ArabicMode, text: string): string => {
+  if (surface !== 'terminal' || mode === 'none') return text
+  if (mode === 'plain') return stripTashkeel(text)
+  if (mode === 'joined') return arabicJoined(text)
+
+  return arabicReordered(arabicJoined(text))
+}

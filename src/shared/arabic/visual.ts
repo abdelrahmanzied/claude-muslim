@@ -55,9 +55,9 @@ const shape = (text: string): string[] => {
   }).filter(char => char !== '\u200c' && char !== '\u200d')
 }
 
-const visualLine = (text: string): string => {
+const reorderLine = (text: string): string => {
   if (!HAS_ARABIC.test(text)) return text
-  const chars = shape(text)
+  const chars = Array.from(text)
   // Keep non-Arabic combining marks attached to their base when reversing.
   const clusters: string[] = []
   for (const char of chars) {
@@ -141,6 +141,14 @@ const visualLine = (text: string): string => {
   return output.reverse().join('')
 }
 
+// Shaping and visual reordering are independent so terminals that handle bidi
+// themselves can receive joined forms in their normal logical order.
+export const stripTashkeel = (text: string): string => text.replace(ARABIC_MARKS, '')
+
+export const arabicJoined = (text: string): string => text.split('\n').map(line => shape(line).join('')).join('\n')
+
 // Basic single-line RTL paragraphs; explicit bidi embeddings/isolates and
 // automatic wrapping are outside this display fallback's contract.
-export const arabicVisual = (text: string): string => text.split('\n').map(visualLine).join('\n')
+export const arabicReordered = (text: string): string => text.split('\n').map(reorderLine).join('\n')
+
+export const arabicVisual = (text: string): string => arabicReordered(arabicJoined(text))

@@ -26,7 +26,7 @@ Thikr is text only. This follows the shared text-only requirement.
 
 ## Text
 
-- Terminal Arabic follows the shared fallback in [DESIGN.md](../../DESIGN.md#4-typography-and-arabic): auto for Apple Terminal, with `/muslim terminal-arabic` to compare and set the mode. Shape and reorder our spinner phrase before joining Claude’s text, plus the end-of-turn word and usage-limit row; desktop keeps logical text and tashkeel. The shared [first-run Arabic check](arabic-fix-design.md) adds one terminal-only row, hidden during surveys; it changes no thikr content.
+- Terminal Arabic uses the current terminal's saved `none`, `plain`, `joined`, or `reversed` treatment. Thikr resolves the mode from the per-terminal store and caches it for the session; the picker refreshes that cache when a choice is made. Desktop always keeps the authored logical text. The shared [Arabic check](arabic-fix-design.md) is terminal-only and hidden during surveys.
 
 - Phrases are authored with tashkeel in `src/features/thikr/phrases.ts`; `thikrTashkeel` may strip it, never change words.
 - Every phrase fits one line at 80 columns next to Claude's own text.

@@ -2,9 +2,9 @@
 
 ## Unreleased
 
-- First-run terminal Arabic check: show three vertical plain AbovePrompt Buttons with hotkeys 1/2/3, Arabic Text children, and Not now. Any pick closes the check; 1/2 update the mode and 3 keeps it. Show once in the first eligible terminal session; `/muslim terminal-arabic` reopens it without resetting first-run state. Desktop unchanged.
+- Per-terminal Arabic treatments: none, tashkeel-stripped, joined logical order, and joined visual RTL order. Defaults are Apple Terminal plain, Warp joined, and none for other terminals. The AbovePrompt survey compares all four treatments with fixed hotkeys 1–4; 5 saves the built-in default. Each terminal ID is remembered independently; `/muslim terminal-arabic` reopens the current terminal's survey. Desktop remains unchanged.
 
-- Shared terminal Arabic fix: contextual joining and visual RTL order for thikr, `/muslim terminal-arabic`, and a machine-local first-run comparison. Auto enables only for Apple Terminal; desktop stays unchanged.
+- Shared terminal Arabic rendering for thikr with transformations tailored and saved per terminal.
 
 ## 0.2.0
 

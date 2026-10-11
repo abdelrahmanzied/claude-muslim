@@ -7,10 +7,10 @@ export type UsageLimit = { until: number | null }
 declare module 'claude-code' {
   interface PluginState {
     muslim: {
-      // Show the terminal Arabic hotkey picker in AbovePrompt.
-      arabicFixPicking: boolean
-      // Let an explicit command reopen the picker after automatic first-run.
-      arabicFixManual: boolean
+      // Terminal whose picker was opened by /muslim terminal-arabic.
+      arabicSurveyManualTerminal: string | null
+      // Per-terminal mode cached for this session's thikr renders.
+      arabicTerminalMode: { terminalId: string; mode: 'none' | 'plain' | 'joined' | 'reversed' } | null
       usageLimit: UsageLimit | null
     }
   }
