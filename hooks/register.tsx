@@ -1,3 +1,6 @@
+import { isArabicFix } from '../src/shared/arabic/terminal.ts'
+import { install as installArabicFix } from '../src/shared/arabic/install.tsx'
+import { muslimHelp } from '../src/help.ts'
 import type { Register } from 'claude-code'
 
 import { readOptions } from '../src/config.ts'
@@ -15,7 +18,7 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'muslim',
-      description: `Show ${PLUGIN} version`,
+      description: `Show ${PLUGIN} version, Arabic fix settings, and help`,
     })
     await $.command.register({
       name: 'thikr',
@@ -25,9 +28,21 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  on('command.run', { command: 'muslim' }, async () => {
-    return { text: `${PLUGIN} v${VERSION}` }
+  on('command.run', { command: 'muslim' }, async ($, e) => {
+    const [word = '', feature = ''] = e.args.trim().split(/\s+/)
+    if (word === 'arabic-fix') {
+      if (feature === '') return { text: `Arabic fix ${settings.arabicFix}. /muslim arabic-fix on | off | auto` }
+      if (!isArabicFix(feature) || e.args.trim().split(/\s+/).length !== 2) return { text: 'Arabic fix is auto (detect), on (mod joins and reorders Arabic), or off (terminal shows Arabic itself).' }
+      const { deny } = await $.config.set({ key: 'muslim.arabicFix', value: feature })
+
+      return { text: deny ? `Not changed: ${deny}` : `Arabic fix ${feature}` }
+    }
+    if (word === 'help') return { text: muslimHelp(feature) }
+    if (word !== '') return { text: muslimHelp() }
+
+    return { text: `${PLUGIN} v${VERSION}\n\nHelp: /muslim help` }
   })
 
   installThikr(on, settings)
+  installArabicFix(on, settings)
 }

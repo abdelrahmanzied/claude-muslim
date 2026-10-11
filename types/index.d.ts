@@ -7,6 +7,10 @@ export type UsageLimit = { until: number | null }
 declare module 'claude-code' {
   interface PluginState {
     muslim: {
+      // Terminal Arabic check answered (including Later); also kept in $.store.
+      arabicFixAnswered: boolean
+      // Prevent overlapping button presses while saving the answer.
+      arabicFixBusy: boolean
       usageLimit: UsageLimit | null
     }
   }

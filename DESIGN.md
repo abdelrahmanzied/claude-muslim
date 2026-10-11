@@ -2,6 +2,13 @@
 
 The rules every feature follows. Read this before designing a new feature; the per-feature specs live in `docs/design.md`.
 
+## Feature index
+
+| Feature | Command | Spec | Design | Status |
+| --- | --- | --- | --- | --- |
+| Thikr line | `/thikr` | [thikr.md](docs/features/thikr.md) | [thikr-design.md](docs/features/thikr-design.md) | 0.2.0 |
+| Terminal Arabic check | `/muslim arabic-fix` | [arabic-fix.md](docs/features/arabic-fix.md) | [arabic-fix-design.md](docs/features/arabic-fix-design.md) | Unreleased |
+
 ## 1. Principles
 
 1. **Claude stays Claude.** We add a layer of thikr to Claude's interface; we never redesign it. Claude's own text (timer, token counts, `esc to interrupt`, tool output) is never translated, reworded or hidden.
@@ -47,7 +54,9 @@ Never use `error` or `warning` for religious text.
 - **Direction:** a line that starts with Arabic is read right to left by the surface. When Claude's own Latin text or numbers sit in the same line, keep them as a separate run (e.g. a separator `·`), and never convert Claude's numbers.
 - **Our numbers** (counts, times we compute) use Arabic-Indic digits (`١٥:٢٤`, `٢/٣`) inside Arabic lines.
 - **Length:** spinner and band phrases fit one line at 80 columns. Longer texts (athkar) live only in the reader, never truncated.
-- **Terminals that don't shape Arabic:** tracked in issue #3; don't work around it per feature.
+- **Terminal Arabic:** convert only our Arabic display runs on `e.surface === 'terminal'` through `src/shared/arabic/visual.ts`, at draw time. `muslim.arabicFix` is `auto` (default: `$.env.get('TERM_PROGRAM') === 'Apple_Terminal'` only), `on` (force contextual presentation forms and RTL visual order), or `off` (keep logical text for a terminal that handles Arabic). `/muslim arabic-fix on | off | auto` changes it. Unknown terminals keep logical text; `TERM` is not a bidi capability. Desktop and other surfaces, authored words, stored values and Claude's own runs are untouched. The fallback drops Arabic combining marks after composing hamza/madda, keeps digit runs LTR and supports basic Arabic single-line RTL paragraphs; explicit bidi controls, automatic wrapping and letters outside the forms table are not supported. Visual text copied from a fallback terminal has presentation forms and visual order.
+- **First terminal run:** one quiet AbovePrompt row compares a logical Arabic sample with the fixed sample, even when auto detects the terminal. Keep sample numbers stable, put the likely answer button first, and store any answer (including Later) in `$.store` so the machine is never asked again. No desktop row and no row during a survey. See [Arabic check design](docs/features/arabic-fix-design.md).
+- **Terminal updates:** a hook rerender is not a full terminal repaint. Width/padding or a new JSX key cannot force the renderer to rewrite unchanged cells. The Apple Terminal update limitation and measured widths are recorded in [the Arabic check investigation](docs/features/arabic-fix.md#apple-terminal-update-investigation).
 
 ## 5. Voice
 

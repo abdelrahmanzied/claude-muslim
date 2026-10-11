@@ -1,7 +1,9 @@
+import { isArabicFix, type ArabicFix } from './shared/arabic/terminal.ts'
 import type { Speed } from './features/thikr/rotation.ts'
 
 // Typed view of the manifest's userConfig values, defaults filled in.
 export type Options = {
+  arabicFix: ArabicFix
   thikr: boolean
   thikrSpeed: Speed
   thikrTashkeel: boolean
@@ -16,6 +18,7 @@ export const SPEED_MIN = 1
 export const SPEED_MAX = 60
 
 export const readOptions = (raw: Record<string, unknown>): Options => ({
+  arabicFix: isArabicFix(raw.arabicFix) ? raw.arabicFix : 'auto',
   thikr: raw.thikr !== false,
   thikrSpeed: readSpeed(raw.thikrSpeed),
   thikrTashkeel: raw.thikrTashkeel !== false,
