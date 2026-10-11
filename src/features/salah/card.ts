@@ -37,12 +37,6 @@ export const cardSvg = (photoBase64: string, prayer: Prayer, time: string, width
     '.main { font-size: 26px; line-height: 1.5; }',
     '.time { font-size: 17px; line-height: 1.4; color: rgba(255,255,255,.85); }',
     `.close { position: absolute; left: ${CLOSE_LEFT}px; top: ${CLOSE_TOP}px; width: 26px; height: 26px; border-radius: 50%; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.5); }`,
-    // The entrance: the photo fades in and settles, the text follows a moment later.
-    '@keyframes rise { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: none; } }',
-    '@keyframes fade { from { opacity: 0; } to { opacity: 1; } }',
-    '.card { animation: rise 700ms ease-out both; }',
-    '.main, .time, .close { animation: fade 600ms ease-out 250ms both; }',
-    '@media (prefers-reduced-motion: reduce) { .card, .main, .time, .close { animation: none; } }',
   ].join('\n')
   const at = arabicDigits(time)
 
