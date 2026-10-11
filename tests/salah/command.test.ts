@@ -43,13 +43,19 @@ test('/salah before setup says so', async $ => {
   expect(ran.text).toContain('Prayer times are not set up yet: /salah city')
 })
 
-test('/salah shows the place, method and today\'s times', { options: MUNICH }, async ($, on) => {
+test('/salah shows today\'s times and the settings as tables, each setting with its command', { options: MUNICH }, async ($, on) => {
   mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
   const ran = await $.command.run(salah(''))
 
-  expect(ran.text).toContain('Munich, Germany · Muslim World League · reminder')
+  expect(ran.text).toContain('| Prayer | Time |')
+  expect(ran.text).toContain('| Fajr | 05:42 |')
+  expect(ran.text).toContain('| **Dhuhr** · next | 13:02 |')
+  expect(ran.text).toContain('| Isha | 20:12 |')
+  expect(ran.text).toContain('| City | Munich, Germany | `/salah city` |')
+  expect(ran.text).toContain('| Method | Muslim World League (auto) | `/salah method <name>` |')
+  expect(ran.text).toContain('| Prayer line | reminder | `/salah always` · `reminder` · `off` |')
+  expect(ran.text).toContain('| Adjust | none | `/salah adjust` |')
   expect(ran.text).toContain('/salah help')
-  expect(ran.text).toContain('Fajr 05:42 · Sunrise 07:26 · Dhuhr 13:02 · Asr 15:59 · Maghrib 18:35 · Isha 20:12')
 })
 
 test('settings read the old boolean and the old salahAdhan name, and the reminder stays within 5 to 60', async () => {

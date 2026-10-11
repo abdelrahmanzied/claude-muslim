@@ -9,6 +9,7 @@
 - Salah's footer line and minaret label use the per-terminal Arabic setting.
 - Restore the desktop athan card’s isolated view; keep its appearance, close action and terminal minaret.
 
+- `/salah` shows today's times and the settings as two tables; each setting names the command that changes it.
 - The prayer line in the footer is bold.
 - `/salah adjust` accepts any whole number of minutes; saved settings and the review form no longer cap adjustments at ±60.
 - Fix the athan moment being hidden when tested before the prayer display first appears; keep the desktop card and terminal minaret unchanged.

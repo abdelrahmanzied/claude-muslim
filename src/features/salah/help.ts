@@ -5,7 +5,7 @@ import { REMINDER_MAX, REMINDER_MIN } from '../../config.ts'
 import { METHODS } from './methods.ts'
 
 export const SALAH_COMMANDS: readonly (readonly [string, string])[] = [
-  ['/salah', 'Place, method and mode, then today\'s times'],
+  ['/salah', 'Today\'s times (next marked), then each setting with the command that changes it'],
   ['/salah help', 'This table'],
   ['/salah always', 'Next prayer all day, countdown in the reminder window'],
   ['/salah reminder', 'Prayer line only in the reminder window (default)'],

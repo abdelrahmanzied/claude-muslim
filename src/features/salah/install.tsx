@@ -16,7 +16,7 @@ import { ACCENT_ROWS, FRAME_MS, HOLD_MS, isDue, LABEL_ROW, minaretRows, ROWS_COU
 import { nudge, reviewRows } from './review.ts'
 import { CARD_HEIGHT, CARD_MS, cardSvg, cardWidth } from './card.ts'
 import { clockText, lastPrayer, nextSalah, type Adjust } from './times.ts'
-import { dayLine, methodOf } from './today.ts'
+import { methodOf, settingsTable, timesTable } from './today.ts'
 
 // The engine follows $ only into same-file top-level functions, so the
 // terminal's Arabic mode is resolved here as in thikr.
@@ -288,11 +288,8 @@ export const install = (on: On, options: Options) => {
     if (word === '') {
       const place = options.salahPlace
       if (!place) return { text: ['Prayer times are not set up yet: /salah city', '', HINT].join('\n') }
-      const method = METHODS[methodOf(options, place)].name
 
-      return {
-        text: [`${place.name} · ${method} · ${options.salah}`, dayLine(options, place, await $.clock.now()), '', HINT].join('\n'),
-      }
+      return { text: [timesTable(options, place, await $.clock.now()), '', settingsTable(options, place), '', HINT].join('\n') }
     }
     if (word === 'help') return { text: salahHelp() }
     if (word === 'reminder' && first !== '') {
