@@ -88,7 +88,7 @@ A reader above the prompt for the morning athkar (05:00 to 17:00) and the evenin
 - **Circles:** one per count up to 10, numbered in Arabic-Indic digits. A count above 10 shows ten circles of a tenth each; the one being counted fills in the main color with a white number.
 - **Moves on** by itself 650 ms after a thikr's last count.
 - **Progress:** Horizon glow, a soft line along the bottom filled from the right, its head pulsing slowly and easing forward on each count. Each thikr is an equal share, partial counts included: `Σ min(count / times, 1) / n`.
-- **End:** اللَّهُمَّ تَقَبَّلْ on the right, `/athkar morning reset to read again` on the left, and on desktop stars fall across the sky. A click hides it.
+- **End:** ﴿رَبَّنَا تَقَبَّلْ مِنَّا إِنَّكَ أَنتَ السَّمِيعُ الْعَلِيمُ﴾ — البقرة ١٢٧ on the right, `/athkar morning reset to read again` on the left, and on desktop stars fall across the sky. A click hides it.
 - **×** hides the band and keeps the reading; `/athkar` brings it back.
 - **Saved** per day and period in `$.store`. A day runs 05:00 to 05:00, so evening athkar read after midnight still count for that evening. A new day starts fresh; a finished period does not show again that day.
 

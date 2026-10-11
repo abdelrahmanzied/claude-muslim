@@ -46,7 +46,7 @@ export const TITLE: Record<Period, string> = {
   evening: 'أَذْكَارُ الْمَسَاءِ',
 }
 
-export const END = 'اللَّهُمَّ تَقَبَّلْ'
+export const END = '﴿رَبَّنَا تَقَبَّلْ مِنَّا إِنَّكَ أَنتَ السَّمِيعُ الْعَلِيمُ﴾ — البقرة ١٢٧'
 
 export const periodAt = (hour: number): Period => (hour >= MORNING_FROM && hour < EVENING_FROM ? 'morning' : 'evening')
 
