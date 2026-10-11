@@ -1,6 +1,8 @@
 import { accentText, type Accent } from '../../shared/color/index.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
 import { atom, read } from 'claude-code'
+import { helpHint, statusTable } from '../../table.ts'
+import { thikrHelp } from './help.ts'
 import type { EngineInterface, On } from 'claude-code'
 
 import type { UsageLimit } from '../../../types'
@@ -58,15 +60,6 @@ const renderArabic = async ($: EngineInterface, surface: string, text: string, c
 
 const usageLimit = atom({ plugin: 'muslim', key: 'usageLimit' } as const, null as UsageLimit | null)
 
-const HELP = [
-  '/thikr                    status',
-  '/thikr on | off           show tasabih while Claude works',
-  `/thikr speed auto          reading time: 1s + 0.5s per word`,
-  `/thikr speed <${SPEED_MIN}-${SPEED_MAX}>       fixed seconds per phrase`,
-  '/thikr end on | off       تَمَّ بِحَمْدِ اللَّهِ at the end of a turn',
-  '/thikr mode all | salawat  every group, or one salawat for each whole turn',
-].join('\n')
-
 const setLimit = ($: EngineInterface, value: UsageLimit | null) =>
   $.state.set({ plugin: 'muslim', key: 'usageLimit' }, value)
 
@@ -120,12 +113,19 @@ export const install = (on: On, options: Options) => {
     if (word === '') {
       return {
         text: [
-          `thikr ${onOff(options.thikr)} · speed ${speedText(options.thikrSpeed)} · end ${onOff(options.thikrEnd)} · mode ${options.thikrMode}`,
+          '**Muslim › Thikr**',
+          helpHint('/thikr'),
           '',
-          HELP,
+          statusTable([
+            ['Thikr', 'Tasbih in Claude\'s working line', onOff(options.thikr)],
+            ['Speed', 'How long each phrase stays', speedText(options.thikrSpeed)],
+            ['End', 'تَمَّ بِحَمْدِ اللَّهِ at the end of a turn', onOff(options.thikrEnd)],
+            ['Mode', 'Which phrases play', options.thikrMode],
+          ]),
         ].join('\n'),
       }
     }
+    if (word === 'help') return { text: thikrHelp() }
     if (word === 'on' || word === 'off') return set('thikr', word === 'on', `thikr ${word}`)
     if (word === 'mode' && isMode(value)) return set('thikrMode', value, `mode ${value}`)
     if (word === 'end' && (value === 'on' || value === 'off')) return set('thikrEnd', value === 'on', `end ${value}`)
@@ -136,7 +136,7 @@ export const install = (on: On, options: Options) => {
       return { text: `Speed is auto, or a whole number of seconds from ${SPEED_MIN} to ${SPEED_MAX}.` }
     }
 
-    return { text: HELP }
+    return { text: thikrHelp() }
   })
 
   if (!options.thikr) return

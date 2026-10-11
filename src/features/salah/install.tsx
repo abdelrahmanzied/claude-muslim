@@ -7,6 +7,7 @@ import type { SalahMinaret, SalahCard, SalahWindow } from '../../../types'
 import { countdownMinutes, isMethod, parseShow, SHOW_MAX, SHOW_MIN, writeAdjust } from '../../config.ts'
 import type { Options } from '../../config.ts'
 import { CITY_MODEL, CITY_SYSTEM, cityPrompt, parseCities, parseCoordinates, type City } from './city.ts'
+import { helpHint } from '../../table.ts'
 import { salahHelp } from './help.ts'
 import { guessPlace, systemTimeZone } from './location.ts'
 import { METHODS, methodFor, type Pray } from './methods.ts'
@@ -97,7 +98,7 @@ type Timer = {
   opens: { at: number; handle: { cancel: () => void } } | undefined
 }
 
-const HINT = 'Help: /salah help'
+const HINT = helpHint('/salah')
 
 // The cities a typed place can mean: coordinates as typed, else Claude's
 // reading of the name; a sentence when Claude could not be reached.
@@ -299,7 +300,7 @@ export const install = (on: On, options: Options) => {
 
       // The host puts `muslim: ` before the first line, so a title goes there, not a table.
       return {
-        text: ['**Muslim › Salah**', '', `### Today in ${place.name}`, '', timesTable(options, place, await $.clock.now()), '', '### Settings', '', settingsTable(options, place), '', HINT].join('\n'),
+        text: ['**Muslim › Salah**', HINT, '', `### Today in ${place.name}`, '', timesTable(options, place, await $.clock.now()), '', '### Settings', '', settingsTable(options, place)].join('\n'),
       }
     }
     if (word === 'help') return { text: salahHelp() }

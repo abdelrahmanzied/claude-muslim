@@ -1,14 +1,12 @@
-// The `/athkar help` table: every subcommand and what it does.
+// The `/athkar help` table: each command, what it is, and its options.
 
-import { commandTable } from '../../table.ts'
+import { helpReply, type HelpRow } from '../../table.ts'
 
-export const ATHKAR_COMMANDS: readonly (readonly [string, string])[] = [
-  ['/athkar', 'Today\'s status and the settings; shows the athkar again if hidden'],
-  ['/athkar help', 'This table'],
-  ['/athkar on` · `off', 'Morning and evening athkar above the prompt'],
-  ['/athkar morning reset` · `evening reset', 'Read that period again from the start'],
-  ['/athkar style sky` · `frame', 'The look. sky (DESKTOP ONLY, default): a sky that follows the time of day · frame: a plain frame in the main color'],
+export const ATHKAR_COMMANDS: readonly HelpRow[] = [
+  ['/athkar', 'Morning and evening athkar above the prompt. Alone, it shows today\'s status and brings the athkar back if hidden', '`on` (default) · `off`'],
+  ['/athkar help', 'This table', ''],
+  ['/athkar style', 'The look', '`sky` (DESKTOP ONLY, default): a sky that follows the time of day · `frame`: a plain frame in the main color'],
+  ['/athkar morning` · `evening', 'Read that period again from the start', '`reset`'],
 ]
 
-// The host puts `muslim: ` before the first line, so a title goes there, not the table.
-export const athkarHelp = (): string => `**Muslim › Athkar › Help**\n\n${commandTable(ATHKAR_COMMANDS)}`
+export const athkarHelp = (): string => helpReply('Athkar', ATHKAR_COMMANDS)

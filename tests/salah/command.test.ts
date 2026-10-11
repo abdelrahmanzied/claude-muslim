@@ -43,20 +43,20 @@ test('/salah before setup says so', { options: { athkar: false } }, async $ => {
   expect(ran.text).toContain('Not set up yet. Run `/salah city`.')
 })
 
-test('/salah shows today\'s times and the settings as tables, each setting with its command', { options: MUNICH }, async ($, on) => {
+test('/salah shows today\'s times and the settings as tables, each setting with what it is', { options: MUNICH }, async ($, on) => {
   mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
   const ran = await $.command.run(salah(''))
 
   expect(ran.text?.split('\n')[0]).toBe('**Muslim › Salah**')
   expect(ran.text).toContain('\n### Today in Munich, Germany\n\n| Pray | Time |')
-  expect(ran.text).toContain('\n### Settings\n\n| Setting | Value | Change with |')
+  expect(ran.text).toContain('\n### Settings\n\n| Setting | Description | State |')
   expect(ran.text).toContain('| Fajr | 05:42 |')
   expect(ran.text).toContain('| **Dhuhr** · next | 13:02 |')
   expect(ran.text).toContain('| Isha | 20:12 |')
-  expect(ran.text).toContain('| City | Munich, Germany | `/salah city` |')
-  expect(ran.text).toContain('| Method | Muslim World League (auto) | `/salah method <name>` |')
-  expect(ran.text).toContain('| Show | `20` — only the 20 min before a pray, counting down | `/salah show always` · `<minutes>` · `off` |')
-  expect(ran.text).toContain('| Adjust | none | `/salah adjust` |')
+  expect(ran.text).toContain('| City | Where the times are calculated for | Munich, Germany |')
+  expect(ran.text).toContain('| Method | How the times are calculated | Muslim World League (auto) |')
+  expect(ran.text).toContain('| Show | The next pray under the prompt | `20` — only the 20 min before a pray, counting down |')
+  expect(ran.text).toContain('| Adjust | Minutes moved to match your mosque | none |')
   expect(ran.text).toContain('/salah help')
 })
 
@@ -86,7 +86,7 @@ test('/salah show and athan save their settings and say what changed', { options
   expect((await $.command.run(salah('show'))).text).toContain('**Show:** `20` — only the 20 min before a pray')
   expect((await $.command.run(salah('show soon'))).text).toContain('Use `/salah show always`')
   expect((await $.command.run(salah('show 0'))).text).toContain('minutes from 1 to 720')
-  expect((await $.command.run(salah('reminder 20'))).text).toContain('| `/salah show <minutes>` |')
+  expect((await $.command.run(salah('reminder 20'))).text).toContain('| `/salah show` |')
   await $.command.run(salah('athan off'))
   expect(written).toEqual([
     { key: 'muslim.salahShow', value: 'always' },
@@ -179,8 +179,8 @@ test('/salah city with no match, or coordinates typed by hand', { options: { ath
 test('/salah help is a table of every subcommand; unknown words answer with it', { options: { athkar: false } }, async $ => {
   const help = (await $.command.run(salah('help'))).text
 
-  expect(help).toContain('| Command | What it does |')
-  for (const word of ['/salah help', '/salah show always', '/salah show <minutes>', '/salah athan on', '/salah city', '/salah method', '/salah adjust <pray>']) {
+  expect(help).toContain('| Command | Description | Options |')
+  for (const word of ['/salah help', '`always`', '`<minutes>`', '/salah athan', '/salah city', '/salah method', '`<pray> <±min>`']) {
     expect(help).toContain(word)
   }
   for (const gone of ['/salah setup', '/salah on', '/salah notify']) expect(help).not.toContain(gone)

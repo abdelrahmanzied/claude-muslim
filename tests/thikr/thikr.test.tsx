@@ -273,13 +273,15 @@ test('/thikr shows status and help', async $ => {
     presentation: { isFullscreen: false, columns: 80 },
   })
 
-  expect(ran.text).toContain('thikr on · speed auto · end on · mode all')
-  expect(ran.text).toContain('/thikr speed')
+  expect(ran.text?.split('\n').slice(0, 2)).toEqual(['**Muslim › Thikr**', 'To change a setting or see every option: `/thikr help`'])
+  expect(ran.text).toContain('| Speed | How long each phrase stays | auto |')
+  expect(ran.text).toContain('| Mode | Which phrases play | all |')
 })
 
 test('/thikr unknown subcommands show help', async $ => {
   const ran = await $.command.run({ command: 'thikr', args: 'tashkeel off', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
-  expect(ran.text).toContain('/thikr                    status')
+  expect(ran.text?.split('\n')[0]).toBe('**Muslim › Thikr › Help**')
+  expect(ran.text).toContain('| `/thikr speed` |')
 })
 
 test('/thikr speed refuses out-of-range values', async $ => {

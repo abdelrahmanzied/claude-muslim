@@ -169,7 +169,7 @@ test('finishing shows the end, and × hides the band keeping the reading', async
   await ui.post({ act: 'hide' })
   expect(await ui.find({ type: 'Client' })).toBeUndefined()
   const status = await $.command.run({ command: 'athkar', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
-  expect(status.text).toContain('morning done ✓')
+  expect(status.text).toContain('| Morning | Today\'s morning athkar | done ✓ |')
   await ui.unmount()
 })
 
@@ -181,7 +181,7 @@ test('/athkar shows status and brings a hidden band back', async ($, on) => {
   const ui = await $.ui.mount(band('terminal'))
   await ui.post({ act: 'hide' })
   const ran = await $.command.run({ command: 'athkar', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
-  expect(ran.text).toContain('athkar on · style sky')
+  expect(ran.text).toContain('| Style | The look; sky is desktop only | sky |')
   expect(await ui.find({ in: 'athkar', text: stripTashkeel(TITLE.morning) })).toBeDefined()
   await ui.unmount()
 })
@@ -294,7 +294,7 @@ test('sky is desktop only: the terminal draws the frame, and /athkar style there
   await ui.unmount()
 
   const run = (args: string) => $.command.run({ command: 'athkar', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
-  expect((await run('')).text).toContain('style frame (terminal)')
+  expect((await run('')).text).toContain('| frame (terminal) |')
   expect((await run('style sky')).text).toContain('sky is desktop only')
   expect(writes).toEqual([])
 })

@@ -66,7 +66,8 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 
 | Command | What it does |
 | --- | --- |
-| `/thikr` | Show the current settings and help |
+| `/thikr` | Show the current settings |
+| `/thikr help` | Table of every `/thikr` command |
 | `/thikr on` · `off` | Turn the thikr line on or off |
 | `/thikr speed auto` | Each phrase stays for its reading time: 1 s + 0.5 s per word (default) |
 | `/thikr speed <1-60>` | Every phrase stays the same number of seconds |

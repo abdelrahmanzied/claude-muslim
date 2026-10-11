@@ -9,12 +9,14 @@ const muslim = (args: string) => ({
 
 test('/muslim shows each setting with its state and how to change it', { options: { tashkeel: false } }, async $ => {
   const ran = await $.command.run(muslim(''))
-  expect(ran.text).toContain('| Tashkeel | off — desktop only; the terminal never shows diacritics | `/muslim tashkeel on` · `off` |')
-  expect(ran.text).toContain('| Thikr | on | `/thikr on` · `off` · all options: `/thikr help` |')
-  expect(ran.text).toContain('| Terminal Arabic | terminal only | `/muslim terminal-arabic` |')
-  expect(ran.text).toContain('Help: /muslim help')
-  expect(ran.text).toContain('| Athkar | on | `/athkar on` · `off` · all options: `/athkar help` |')
-  expect(ran.text).toContain('| Salah | not set up | `/salah show always` · `<minutes>` · `off` · all options: `/salah help` |')
+  expect(ran.text?.split('\n')[1]).toContain('To change a setting or see every option: `/muslim help`')
+  expect(ran.text).toContain('### Features\n\n| Feature | Description | State |')
+  expect(ran.text).toContain('| Thikr | Tasbih in Claude\'s working line | on |')
+  expect(ran.text).toContain('| Athkar | Morning and evening athkar above the prompt | on |')
+  expect(ran.text).toContain('| Salah | Pray times and the next pray under the prompt | not set up |')
+  expect(ran.text).toContain('### Shared\n\n| Setting | Description | State |')
+  expect(ran.text).toContain('| Tashkeel | Arabic diacritics on desktop; the terminal never shows them | off |')
+  expect(ran.text).toContain('| Terminal Arabic | How Arabic shows in this terminal | terminal only |')
 })
 
 test('/muslim help shows every feature\'s table; with a feature, only its own', async $ => {
@@ -22,19 +24,20 @@ test('/muslim help shows every feature\'s table; with a feature, only its own', 
   const salah = (await $.command.run(muslim('help salah'))).text
   const thikr = (await $.command.run(muslim('help thikr'))).text
 
-  expect(all).toContain('/thikr speed auto')
+  expect(all?.split('\n')[0]).toBe('**Muslim › Help**')
+  expect(all).toContain('| `/thikr speed` | How long each phrase stays |')
   expect(all).toContain('/salah city')
-  expect(all).toContain('/muslim terminal-arabic')
-  expect(all).toContain('/muslim tashkeel on | off')
-  expect((await $.command.run(muslim('help terminal-arabic'))).text).toBe('/muslim terminal-arabic — choose how Arabic shows in this terminal (applies to all features)')
+  expect(all).toContain('| `/muslim terminal-arabic` |')
+  expect(all).toContain('| `/muslim tashkeel` | Arabic diacritics on desktop; the terminal never shows them | `on` (default) · `off` |')
+  expect((await $.command.run(muslim('help terminal-arabic'))).text).toContain('| `/muslim terminal-arabic` | Choose how Arabic shows in this terminal, for every feature | — |')
   expect(salah?.split('\n')[0]).toBe('**Muslim › Salah › Help**')
   expect(salah).toContain('/salah city')
   expect(salah).not.toContain('/thikr')
   expect(thikr).toContain('/thikr mode')
   expect(thikr).not.toContain('/salah')
-  expect(all).toContain('/athkar morning reset')
+  expect(all).toContain('| `/athkar morning` · `evening` | Read that period again from the start | `reset` |')
   expect((await $.command.run(muslim('help athkar'))).text?.split('\n')[0]).toBe('**Muslim › Athkar › Help**')
-  expect((await $.command.run(muslim('help quran'))).text).toContain('Features: thikr, athkar, salah, terminal-arabic, tashkeel')
+  expect((await $.command.run(muslim('help quran'))).text).toContain('Features: thikr, athkar, salah, color, tashkeel, terminal-arabic')
 })
 
 test('session start clears a status line left by an earlier version', async ($, on) => {
@@ -72,8 +75,8 @@ for (const color of ['orange', 'green', 'gold', 'blue']) {
     expect((await $.command.run(muslim('color'))).text).toContain(`Color ${color}.`)
     expect((await $.command.run(muslim(`color ${color}`))).text).toBe(`Color ${color}`)
     expect(writes).toEqual([expect.objectContaining({ key: 'muslim.color', value: color })])
-    expect((await $.command.run(muslim(''))).text).toContain(`| Color | ${color} |`)
-    expect((await $.command.run(muslim('help color'))).text).toContain('/muslim color orange | green | gold | blue')
+    expect((await $.command.run(muslim(''))).text).toContain(`| Color | The main color in every feature | ${color} |`)
+    expect((await $.command.run(muslim('help color'))).text).toContain('| `/muslim color` | The main color in every feature |')
   })
 }
 test('/muslim color refuses unknown names and extra arguments', async ($, on) => {

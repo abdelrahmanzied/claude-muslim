@@ -6,6 +6,7 @@ import { readOptions } from '../src/config.ts'
 import { PLUGIN, VERSION } from '../src/constants.ts'
 import { install as installAthkar } from '../src/features/athkar/install.tsx'
 import { muslimHelp } from '../src/help.ts'
+import { helpHint, statusTable } from '../src/table.ts'
 import { showText } from '../src/features/salah/today.ts'
 import { install as installSalah } from '../src/features/salah/install.tsx'
 import { install as installThikr } from '../src/features/thikr/install.tsx'
@@ -67,26 +68,26 @@ export const register: Register = (on, options) => {
     const onOff = (value: boolean) => (value ? 'on' : 'off')
     // The Arabic setup answers an empty /muslim with this terminal's mode; empty off the terminal.
     const terminal = await next(e).then(result => result.text ?? '', () => '')
-    const rows = [
-      ['Color', settings.color, '`/muslim color orange` · `green` · `gold` · `blue`'],
-      ['Tashkeel', `${onOff(settings.tashkeel)} — desktop only; the terminal never shows diacritics`, '`/muslim tashkeel on` · `off`'],
-      ['Thikr', onOff(settings.thikr), '`/thikr on` · `off` · all options: `/thikr help`'],
-      ['Athkar', onOff(settings.athkar), '`/athkar on` · `off` · all options: `/athkar help`'],
-      ['Salah', settings.salahPlace ? showText(settings.salahShow) : 'not set up', '`/salah show always` · `<minutes>` · `off` · all options: `/salah help`'],
-      ['Terminal Arabic', terminal || 'terminal only', '`/muslim terminal-arabic`'],
-    ]
-
     return {
       text: [
         `**Muslim** · v${VERSION}`,
+        `${helpHint('/muslim')}; each feature's: \`/thikr help\` · \`/athkar help\` · \`/salah help\``,
         '',
-        '### Settings',
+        '### Features',
         '',
-        '| Setting | Value | Change with |',
-        '| --- | --- | --- |',
-        ...rows.map(row => `| ${row.join(' | ')} |`),
+        statusTable([
+          ['Thikr', 'Tasbih in Claude\'s working line', onOff(settings.thikr)],
+          ['Athkar', 'Morning and evening athkar above the prompt', onOff(settings.athkar)],
+          ['Salah', 'Pray times and the next pray under the prompt', settings.salahPlace ? showText(settings.salahShow) : 'not set up'],
+        ], 'Feature'),
         '',
-        'Help: /muslim help',
+        '### Shared',
+        '',
+        statusTable([
+          ['Color', 'The main color in every feature', settings.color],
+          ['Tashkeel', 'Arabic diacritics on desktop; the terminal never shows them', onOff(settings.tashkeel)],
+          ['Terminal Arabic', 'How Arabic shows in this terminal', terminal || 'terminal only'],
+        ]),
       ].join('\n'),
     }
   })

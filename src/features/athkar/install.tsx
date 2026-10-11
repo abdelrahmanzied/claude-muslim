@@ -6,6 +6,7 @@ import type { EngineInterface, On } from 'claude-code'
 import type { Day } from '../../../types'
 import type { Options } from '../../config.ts'
 import { withTashkeel } from '../../shared/arabic/visual.ts'
+import { helpHint, statusTable } from '../../table.ts'
 import { athkarHelp } from './help.ts'
 import { bandHeight, closeArea, pixelOf } from './band.ts'
 import type { BandModel } from './band.ts'
@@ -121,10 +122,10 @@ const save = async ($: EngineInterface, day: Day) => {
 const statusOf = (day: Day, period: Period) => {
   const reading = day[period]
   const list = listFor(period)
-  if (reading.isDone) return `${period} done ✓`
+  if (reading.isDone) return 'done ✓'
   const begun = list.filter(thikr => countOf(thikr, reading) > 0).length
 
-  return `${period} ${begun === 0 ? 'not started' : `${reading.index + 1} of ${list.length}`}${reading.isHidden ? ' (hidden)' : ''}`
+  return `${begun === 0 ? 'not started' : `${reading.index + 1} of ${list.length}`}${reading.isHidden ? ' (hidden)' : ''}`
 }
 
 // Moves on after a thikr's last count, unless the reader moved meanwhile.
@@ -243,10 +244,15 @@ export const install = (on: On, options: Options) => {
 
       return {
         text: [
-          `athkar ${options.athkar ? 'on' : 'off'} · style ${await $.session.surface() === 'terminal' ? 'frame (terminal)' : options.athkarStyle}`,
-          `${statusOf(day, 'morning')} · ${statusOf(day, 'evening')}`,
+          '**Muslim › Athkar**',
+          helpHint('/athkar'),
           '',
-          athkarHelp(),
+          statusTable([
+            ['Athkar', 'Morning and evening athkar above the prompt', options.athkar ? 'on' : 'off'],
+            ['Style', 'The look; sky is desktop only', await $.session.surface() === 'terminal' ? 'frame (terminal)' : options.athkarStyle],
+            ['Morning', 'Today\'s morning athkar', statusOf(day, 'morning')],
+            ['Evening', 'Today\'s evening athkar', statusOf(day, 'evening')],
+          ]),
         ].join('\n'),
       }
     }

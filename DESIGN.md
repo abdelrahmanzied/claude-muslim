@@ -69,8 +69,11 @@ Never use `error` or `warning` for religious text.
 
 ## 6. Commands and settings
 
-- One command per feature, named in Arabic transliteration with the `th` spelling: `/thikr`, `/athkar`, `/salah`. `/muslim` shows the version and a settings table (setting, value, command to change it), the same on every surface; a feature's row shows its main state and points to its own help for the rest. `/muslim help [feature]` shows every feature's command table, or one; `/<feature> help` shows that table.
-- Shape: `/<feature>` = status + help; `/<feature> on|off`; `/<feature> <setting> <value>`.
+- One command per feature, named in Arabic transliteration with the `th` spelling: `/thikr`, `/athkar`, `/salah`. Shape: `/<feature> on|off`; `/<feature> <setting> <value>`.
+- Every reply that shows settings or help has the same shape, built with `src/table.ts`, the same on every surface:
+  - **Status** (`/<feature>`, `/muslim`): the title (`**Muslim › Thikr**`), then one line pointing to help (`To change a setting or see every option: /thikr help`), then a table `| Setting | Description | State |`: what each setting is in a few English words, and its value now. No commands in the status table.
+  - **Help** (`/<feature> help`): the title (`**Muslim › Thikr › Help**`), then a table `| Command | Description | Options |`. The command stands alone (`/thikr speed`); Options lists each value and what it does, separated by ` · `, with `(default)` and `DESKTOP ONLY` beside the value they belong to; `—` when there are none.
+  - **`/muslim`**: one row per feature (`| Feature | Description | State |`, its main state only), then the shared settings (color, tashkeel, terminal Arabic). Each feature's other settings stay in its own `/<feature>`. `/muslim help` shows the shared commands, then every feature's help table; `/muslim help <feature>` one of them.
 - Shared settings (`color`, `tashkeel`) use their own names; feature settings are `userConfig` fields named `<feature><Setting>` (`thikrSpeed`), so it also appears in `/config`. Commands change it with `$.config.set({ key: 'muslim.<field>' })`.
 - Defaults are chosen so a new user needs no setup, except where the feature cannot work without input (prayer location).
 

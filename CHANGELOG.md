@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- One shape for every settings and help reply: `/muslim`, `/thikr`, `/athkar` and `/salah` show `| Setting | Description | State |` under a line pointing to their help; every `help` shows `| Command | Description | Options |`, each option with what it does. `/thikr help` is new; `/muslim` lists each feature's main state and the shared settings.
 - Make the main color plugin-wide with `/muslim color orange | green | gold | blue` (default Claude orange), shared by athkar, salah, thikr's usage-limit line and the terminal Arabic survey label. `/athkar color` now points to `/muslim color`. Orange text keeps Claude's theme key; other colors use shared light/dark shades.
 
 - `/muslim` shows a settings table, the same on every surface: tashkeel, thikr, and terminal Arabic (this terminal's mode, or its default if not chosen yet; `terminal only` on desktop), each with the command that changes it.
