@@ -1,5 +1,6 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
+import type { SalahWindow } from '../../../types'
 
 import { ADJUST_MAX, isMethod, REMINDER_MAX, REMINDER_MIN, writeAdjust } from '../../config.ts'
 import type { Options } from '../../config.ts'
@@ -21,6 +22,8 @@ const SETUP_LATER_KEY = 'salahSetupLater'
 // $.state so it survives the reload that saving the place causes.
 const review = atom({ plugin: 'muslim', key: 'salahReview' } as const, null as Adjust | null)
 const notified = atom({ plugin: 'muslim', key: 'salahNotified' } as const, null as number | null)
+// The prayer whose reminder window we are in, for the thikr line to read.
+const inWindow = atom({ plugin: 'muslim', key: 'salahWindow' } as const, null as SalahWindow | null)
 
 // How often the status line is redrawn: every second inside the reminder
 // window (the live countdown), else every 30 seconds.
@@ -101,7 +104,17 @@ const tick = async ($: EngineInterface, options: Options, place: Place): Promise
     $.ui.toast(text)
   }
 
-  return options.salah !== 'off' && isInWindow(next, now, options.salahReminder)
+  const isWindow = options.salah !== 'off' && isInWindow(next, now, options.salahReminder)
+  await publishWindow($, isWindow && next.prayer !== 'sunrise' ? { prayer: next.prayer, at: next.at } : null)
+
+  return isWindow
+}
+
+// Tells the thikr line which prayer's window we are in; writes only on a change.
+const publishWindow = async ($: EngineInterface, moment: SalahWindow | null) => {
+  const current = await read($, inWindow)
+  if (current?.prayer === moment?.prayer && current?.at === moment?.at) return
+  await update($, inWindow, () => moment)
 }
 
 // One tick, then the timer runs every second in the window and every 30 s outside it.
@@ -197,6 +210,7 @@ export const install = (on: On, options: Options) => {
     if (!(options.salah !== 'off' && place) && !isLineCleared) {
       isLineCleared = true
       $.ui.status(undefined)
+      await publishWindow($, null)
     }
 
     return next(e)

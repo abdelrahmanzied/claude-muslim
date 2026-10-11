@@ -1,5 +1,6 @@
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
+import type { Engine } from 'claude-code/testing'
 
 import { END_OF_TURN, LONG, SALAWAT, STARTING, THINKING, USAGE_LIMIT, WRITING } from '../../src/features/thikr/phrases.ts'
 import { stripTashkeel } from '../../src/features/thikr/rotation.ts'
@@ -280,4 +281,93 @@ test('a usage limit shows hasbiyallah above the prompt until it resets', async (
   const cleared = await $.ui.mount({ plugin: 'muslim', ...band })
   expect(await cleared.find({ type: 'Text', text: USAGE_LIMIT })).toBeUndefined()
   await cleared.unmount()
+})
+
+const AT_MUNICH = { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berlin; DE' }
+const CALL = 'حَيَّ عَلَى الصَّلَاةِ · العصر بعد ٢٠ د'
+
+const watchSpinner = (on: On, seen: string[]) =>
+  on('ui.render', { component: 'Spinner' }, async ($, e) => {
+    seen.push(e.props.word)
+    const { Text } = $.ui.resolve(e)
+
+    return <Text>{e.props.word}</Text>
+  })
+
+// Salah's own ticker writes the window: the prompt is drawn, then the clock moves
+// `minutes` on from 13:30 in Munich (Asr is at 15:59).
+const reachWindow = async ($: Engine, on: On, seen: string[], minutes: number) => {
+  watchSpinner(on, seen)
+  const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
+  answerTurns(on)
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e) => {
+    const { Box } = $.ui.resolve(e)
+
+    return <Box />
+  })
+  const band = {
+    plugin: 'muslim',
+    surface: 'terminal' as const,
+    component: 'AbovePrompt' as const,
+    requestId: 'band',
+    props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} },
+  }
+  const shown = await $.ui.mount(band)
+  await clock.advance(minutes * 60_000)
+
+  return { clock, shown }
+}
+
+test('inside a prayer window the call opens the turn, then the usual thikr plays', { options: AT_MUNICH }, async ($, on) => {
+  const seen: string[] = []
+  const { clock, shown } = await reachWindow($, on, seen, 129)
+
+  for (const surface of SURFACES) {
+    seen.length = 0
+    await $.turn.start({ text: 'hi', turnId: `t-${surface}` })
+    await $.ui.render(spinner(surface, 'requesting'))
+    await clock.advance(2000)
+    await $.ui.render(spinner(surface, 'requesting'))
+    await clock.advance(3000)
+    await $.ui.render(spinner(surface, 'requesting'))
+
+    expect(seen.slice(0, 2)).toEqual([CALL, CALL])
+    expect(STARTING).toContain(seen[2])
+  }
+  await shown.unmount()
+})
+
+test('outside the window the turn is as it was', { options: AT_MUNICH }, async ($, on) => {
+  const seen: string[] = []
+  const { shown } = await reachWindow($, on, seen, 60)
+
+  await $.turn.start({ text: 'hi', turnId: 'a' })
+  await $.ui.render(spinner('terminal', 'requesting'))
+
+  expect(seen.every(word => STARTING.includes(word))).toBe(true)
+  await shown.unmount()
+})
+
+test('salawat mode still shows the call first', { options: { ...AT_MUNICH, thikrMode: 'salawat' } }, async ($, on) => {
+  const seen: string[] = []
+  const { clock, shown } = await reachWindow($, on, seen, 129)
+
+  await $.turn.start({ text: 'hi', turnId: 't' })
+  await $.ui.render(spinner('terminal', 'requesting'))
+  await clock.advance(6000)
+  await $.ui.render(spinner('terminal', 'requesting'))
+
+  expect(seen).toEqual([CALL, SALAWAT[0]])
+  await shown.unmount()
+})
+
+test('thikr off shows no call', { options: { ...AT_MUNICH, thikr: false } }, async ($, on) => {
+  const seen: string[] = []
+  const { shown } = await reachWindow($, on, seen, 129)
+
+  await $.turn.start({ text: 'hi', turnId: 't' })
+  await $.ui.render(spinner('terminal', 'requesting'))
+
+  expect(seen).toEqual(['Sauteing'])
+  await shown.unmount()
 })

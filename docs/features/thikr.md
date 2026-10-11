@@ -21,6 +21,14 @@ A turn opens with the starting phrases, then the thinking order plays through th
 
 Each turn opens on a random starting phrase, never the one the last turn opened with, then plays the rest of the starting order. Each group loops in order and resumes where it left off when Claude moves between moments in the same turn, so short switches never replay the same first phrase.
 
+## Before a prayer
+
+While salah is inside a prayer's reminder window (salah `always` or `reminder`, a place set), the first phrase of each thikr turn is the call, with the prayer and the whole minutes left (rounded up, at least 1) in Arabic digits:
+
+حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د
+
+It stays for its reading time (auto speed: 1 s + 0.5 s per word, or the fixed speed), then the normal rotation continues from its first starting phrase. The window is read once, when the turn starts: a turn that begins outside the window never shows it, and the minutes do not change during the turn. Salah publishes the window as `$.state` `salahWindow` (`{ prayer, at }`, `null` outside the window or with salah off); thikr only reads it and shares nothing else with salah except its pure prayer names and digits. Thikr off shows nothing. Salawat mode still shows the call first (the call to prayer comes before any dhikr), then the turn's salawat. Tashkeel off strips the call's marks like any phrase. The text is authored in `phrases.ts` (`CALL_TO_PRAYER`).
+
 ## Salawat mode
 
 `/thikr mode salawat` replaces every group (starting, thinking, writing, long) with one salawat on the Prophet ﷺ. A whole turn keeps the same one; the next turn takes the next, looping:
@@ -74,4 +82,5 @@ Text only, in Claude's font, size and colors: [thikr-design.md](thikr-design.md)
 | `src/features/thikr/install.tsx` | the hooks: spinner text, end of turn, usage limit, and the `/thikr` command |
 | `src/features/thikr/phrases.ts` | the authored phrases with tashkeel: starting, thinking, writing, long, salawat, end of turn, usage limit |
 | `src/features/thikr/rotation.ts` | pure logic: moment to group, phrase timing and speed, start pick, joining thikr to Claude's words, tashkeel stripping |
+| `src/features/thikr/call.ts` | pure logic: the call to prayer's text from salah's window, and whether a window still opens a turn |
 | `src/features/thikr/limit.ts` | pure logic: when a usage limit ends, from the rate-limit windows |

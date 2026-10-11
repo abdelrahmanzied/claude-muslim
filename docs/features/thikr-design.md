@@ -20,6 +20,7 @@ Thikr is text only. This is a requirement of this feature, not of the whole mod.
 | --- | --- | --- |
 | Claude works | Spinner | The words Claude lets a mod replace (`word`, `message`, `suffix`); glyph, timer and `esc to interrupt` stay |
 | Desktop step row | Spinner | The thikr follows the step's words after ` · ` |
+| Claude works in a prayer's reminder window | Spinner | The turn's first phrase is the call, حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د; text only, like every phrase |
 | End of turn (terminal) | TurnDuration | Claude's past-tense word becomes تَمَّ بِحَمْدِ اللَّهِ; the duration stays |
 | Usage limit | AbovePrompt band | One line in `color="claude"` until the window resets |
 | Settings | Command reply | `/thikr` status and help, one line per change |

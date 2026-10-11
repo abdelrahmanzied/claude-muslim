@@ -29,6 +29,7 @@ Prayer times for the user's city, calculated on their machine with
      next prayer (`always`) or to empty (`reminder`).
    - The status line redraws every 30 seconds, and every second only while inside the reminder window (the live countdown); it goes back to 30 seconds when the window ends.
    - Sunrise is in today's times only: no countdown and no reminder for it.
+   - While inside the window, salah also publishes it for the [thikr line](thikr.md#before-a-prayer), which opens its turns with حَيَّ عَلَى الصَّلَاةِ.
    - One in-app toast when the window starts for each prayer (`always` and `reminder`, not `off`): «صلاة العصر بعد ٢٠ دقيقة». No OS notification.
 
 ## Calculation

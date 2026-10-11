@@ -1,15 +1,19 @@
 import { atom, read } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
-import type { UsageLimit } from '../../../types'
+import type { SalahWindow, UsageLimit } from '../../../types'
 import { readSpeed, SPEED_MAX, SPEED_MIN } from '../../config.ts'
 import type { Mode, Options } from '../../config.ts'
+import { callText, openWindow } from './call.ts'
 import { limitUntil } from './limit.ts'
 import { END_OF_TURN, SALAWAT, STARTING, USAGE_LIMIT } from './phrases.ts'
-import { display, groupFor, isStepRow, phraseAt, pickStart, startOf, withThikr } from './rotation.ts'
+import { display, durationOf, groupFor, isStepRow, phraseAt, pickStart, startOf, withThikr } from './rotation.ts'
 import type { Group, Speed } from './rotation.ts'
 
 const usageLimit = atom({ plugin: 'muslim', key: 'usageLimit' } as const, null as UsageLimit | null)
+
+// Set by salah while now is inside a prayer's reminder window.
+const salahWindow = atom({ plugin: 'muslim', key: 'salahWindow' } as const, null as SalahWindow | null)
 
 const HELP = [
   '/thikr                    status',
@@ -51,6 +55,10 @@ export const install = (on: On, options: Options) => {
   const toolsSince = new Map<string, number>()
   // The desktop's last tool step, whose row stays up after the tool ends.
   let lastStep: string | undefined
+  // A prayer's window open when the turn began: its call opens the turn for `callMs`.
+  let call: SalahWindow | undefined
+  let turnStart = 0
+  let callMs = 0
 
   on('command.run', { command: 'thikr' }, async ($, e) => {
     const [word = '', value = ''] = e.args.trim().split(/\s+/)
@@ -92,6 +100,9 @@ export const install = (on: On, options: Options) => {
     group = undefined
     lastStep = undefined
     played.clear()
+    turnStart = await $.clock.now()
+    call = openWindow(await read($, salahWindow), turnStart)
+    callMs = call ? durationOf(callText(call, turnStart), options.thikrSpeed) : 0
     lastStart = pickStart(STARTING.length, lastStart, Math.random())
     played.set('starting', startOf('starting', lastStart, options.thikrSpeed))
     turns += 1
@@ -100,7 +111,7 @@ export const install = (on: On, options: Options) => {
     subagents = 0
     toolsSince.clear()
     ticker?.cancel()
-    ticker = options.thikrMode === 'salawat' ? undefined : $.clock.every(TICK_MS, () => $.ui.invalidate('ui.render'))
+    ticker = options.thikrMode === 'salawat' && !call ? undefined : $.clock.every(TICK_MS, () => $.ui.invalidate('ui.render'))
     await setLimit($, null)
 
     return next(e)
@@ -149,12 +160,15 @@ export const install = (on: On, options: Options) => {
       hasSubagent: subagents > 0,
       toolRunMs: now - oldestTool,
     })
-    if (current !== group) {
+    const isCall = call !== undefined && now - turnStart < callMs
+    if (!isCall && current !== group) {
       if (group) played.set(group, now - groupSince)
       group = current
       groupSince = now - (played.get(current) ?? 0)
     }
-    const text = options.thikrMode === 'salawat'
+    const text = isCall && call
+      ? callText(call, turnStart)
+      : options.thikrMode === 'salawat'
       ? SALAWAT[Math.max(0, turns - 1) % SALAWAT.length] ?? ''
       : phraseAt(current, now - groupSince, options.thikrSpeed)
     const phrase = display(text, options.thikrTashkeel)
