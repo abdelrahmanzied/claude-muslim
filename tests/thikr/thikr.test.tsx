@@ -282,3 +282,32 @@ test('a usage limit shows hasbiyallah above the prompt until it resets', { optio
   expect(await cleared.find({ type: 'Text', text: USAGE_LIMIT })).toBeUndefined()
   await cleared.unmount()
 })
+
+test('a response reporting a full usage window shows hasbiyallah before any turn fails', { options: { athkar: false } }, async ($, on) => {
+  mock.clock(on, { now: Date.parse('2026-10-10T12:00:00Z') })
+  mock.store(on)
+  on('session.measure', async (_$, e) => ({ changed: e.changed }))
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e) => {
+    const { Box } = $.ui.resolve(e)
+
+    return <Box />
+  })
+  const band = {
+    surface: 'terminal' as const,
+    component: 'AbovePrompt' as const,
+    requestId: 'band',
+    props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} },
+  }
+  const context = { window: 200_000 }
+
+  // Not full: nothing.
+  await $.session.measure({ context, rateLimits: [{ kind: 'five_hour', percentUsed: 80 }], changed: ['rateLimits'] })
+  const before = await $.ui.mount({ plugin: 'muslim', ...band })
+  expect(await before.find({ type: 'Text', text: USAGE_LIMIT })).toBeUndefined()
+  await before.unmount()
+
+  await $.session.measure({ context, rateLimits: [{ kind: 'five_hour', percentUsed: 100, resetsAt: '2026-10-10T13:00:00Z' }], changed: ['rateLimits'] })
+  const shown = await $.ui.mount({ plugin: 'muslim', ...band })
+  expect(await shown.find({ type: 'Text', text: USAGE_LIMIT })).toBeDefined()
+  await shown.unmount()
+})

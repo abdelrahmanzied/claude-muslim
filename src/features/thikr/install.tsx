@@ -5,6 +5,7 @@ import type { UsageLimit } from '../../../types'
 import { readSpeed, SPEED_MAX, SPEED_MIN } from '../../config.ts'
 import type { Mode, Options } from '../../config.ts'
 import { limitUntil } from './limit.ts'
+import type { RateLimitWindow } from './limit.ts'
 import { END_OF_TURN, SALAWAT, STARTING, USAGE_LIMIT } from './phrases.ts'
 import { display, groupFor, isStepRow, phraseAt, pickStart, startOf, withThikr } from './rotation.ts'
 import type { Group, Speed } from './rotation.ts'
@@ -23,6 +24,17 @@ const HELP = [
 
 const setLimit = ($: EngineInterface, value: UsageLimit | null) =>
   $.state.set({ plugin: 'muslim', key: 'usageLimit' }, value)
+
+// A full usage window holds the limit's thikr until it resets.
+const holdLimit = async ($: EngineInterface, windows: readonly RateLimitWindow[]) => {
+  const until = limitUntil(windows)
+  if (until === undefined) return
+  await setLimit($, { until })
+  if (until !== null) {
+    const wait = Math.max(0, until - (await $.clock.now()))
+    $.clock.after(wait, () => void setLimit($, null))
+  }
+}
 
 const onOff = (value: boolean) => (value ? 'on' : 'off')
 
@@ -174,17 +186,14 @@ export const install = (on: On, options: Options) => {
   }
 
   on('classic.StopFailure', async ($, e, next) => {
-    if (e.error === 'rate_limit') {
-      const { rateLimits } = await $.session.usage()
-      const until = limitUntil(rateLimits)
-      if (until !== undefined) {
-        await setLimit($, { until })
-        if (until !== null) {
-          const wait = Math.max(0, until - (await $.clock.now()))
-          $.clock.after(wait, () => void setLimit($, null))
-        }
-      }
-    }
+    if (e.error === 'rate_limit') await holdLimit($, (await $.session.usage()).rateLimits)
+
+    return next(e)
+  })
+
+  // A response that reports a full window shows it too, before any turn fails.
+  on('session.measure', async ($, e, next) => {
+    if (e.changed.includes('rateLimits') && e.rateLimits.some(window => window.percentUsed >= 100)) await holdLimit($, e.rateLimits)
 
     return next(e)
   })
