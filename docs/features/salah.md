@@ -18,7 +18,7 @@ Prayer times for the user's city, calculated on their machine with
 2. **Review.** Saving the place shows today's times above the prompt, one row
    per prayer with − and +. The user matches them to their mosque and saves the
    minutes, or skips.
-3. **Every day.** What the prayer line (its own row above the prompt, right-aligned) shows depends on the mode (`salah`):
+3. **Every day.** What the prayer line (plain text in the prompt footer's mode labels, before the model name) shows depends on the mode (`salah`):
    - `always`: the next prayer all day, `☾ العصر ١٥:٥٩`; in the reminder window
      before it (20 minutes by default), a live mm:ss countdown, `☾ العصر ١٩:٤٢`,
      updated every second; for 15 minutes once it is in, `حان وقت صلاة العصر`.
@@ -96,6 +96,6 @@ Shared with thikr, in `src/shared/pray/`: `names.ts` (prayer names in English an
 ## To verify live
 
 - The minaret's box-drawing and block characters (`┌┴┐ ├─┤ ▐███▌ ▒`) in the common terminal fonts, and the band's height (7 rows) in a short terminal.
-- The prayer line's right alignment and Arabic direction in the band, in the terminal and the desktop app, stacked with the setup row and thikr's usage-limit row.
+- The prayer line's place and Arabic direction in the footer's mode labels (`SessionMode`, before the model name), in the terminal and the desktop app, stacked with the setup row and thikr's usage-limit row.
 - The setup line and review form in a narrow terminal and the desktop app.
 - `Intl` time zones inside the hooks runtime (falls back to the runtime's local time).

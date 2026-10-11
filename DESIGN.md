@@ -30,8 +30,9 @@ Pick the lightest surface that does the job. Each comes from the mod API (`/plug
 | --- | --- | --- | --- |
 | Spinner | Claude's working line | Short phrase while Claude works; rewrite `word`/`message`/`suffix` only | Thikr line |
 | TurnDuration | Line closing a turn (terminal) | One short phrase; keep Claude's duration | تَمَّ بِحَمْدِ اللَّهِ |
-| AbovePrompt band | Rows above the input | A suggestion, notice or glanceable fact that needs to be seen; at most one line unless it is a reader. Each feature's hook keeps what `next(e)` returns and adds its own row, so rows stack | Usage limit, prayer line (right-aligned), athkar reader |
-| Status line | `$.ui.status`, under the prompt | Always-on, glanceable fact; plain text, no color | Not used by a feature yet (the prayer line is a band row) |
+| AbovePrompt band | Rows above the input | A suggestion, notice or glanceable fact that needs to be seen; at most one line unless it is a reader. Each feature's hook keeps what `next(e)` returns and adds its own row, so rows stack | Usage limit, athkar reader |
+| SessionMode | Mode labels at the right of the prompt footer, before the model name (terminal and desktop) | A glanceable fact as plain text beside the engine's labels; the hook keeps `next(e)` and adds its own | Prayer line |
+| Status line | `$.ui.status`, under the prompt | Always-on, glanceable fact; plain text, no color | Not used by a feature yet (the prayer line is in SessionMode) |
 | Toast | `$.ui.toast` | One-off confirmation after an action, or a timed reminder inside the app | "speed 3s" (prefer command reply), prayer reminder |
 | Notification | `$.ui.notify` | Not used: OS banners show in meetings and screen shares; use a band row or a toast | — |
 | Command reply | `command.run` → `{ text }` | Status, help, changing settings | `/thikr` |

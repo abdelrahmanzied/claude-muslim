@@ -24,16 +24,16 @@ The salah feature's own design. It adds to the shared base in [DESIGN.md](../../
 
 ## Surfaces
 
-Rows stack, never compete: each feature's AbovePrompt hook keeps what `next(e)` returns and adds its own row above it (setup or review rows, thikr's usage-limit row, the prayer row). While the minaret plays it takes the prayer row's place.
+Rows stack, never compete: each feature's AbovePrompt hook keeps what `next(e)` returns and adds its own row above it (setup or review rows, thikr's usage-limit row, the minaret moment). The prayer line is not a band row: it is plain text in the `SessionMode` labels at the right of the prompt footer, before the model name; the hook keeps what `next(e)` returns and adds the line beside it.
 
 | Moment | Surface | Shows |
 | --- | --- | --- |
 | No city yet | AbovePrompt band | One line: the guessed city, **Yes**, **Another city**, **Not now** |
 | City saved, or `/salah adjust` | AbovePrompt band | Today's times, − and + per prayer, **Save**, **Skip** |
-| All day (mode `always`) | AbovePrompt band, own row, right-aligned | `☾ العصر ١٥:٥٩`; empty in `reminder` mode |
-| Reminder window (`salahReminder`, 20 min by default) | AbovePrompt band, same row | `☾ العصر ١٩:٤٢`, a live mm:ss countdown, once a second |
+| All day (mode `always`) | SessionMode (footer, before the model), `color="claude"`, no card | `☾ العصر ١٥:٥٩`; empty in `reminder` mode |
+| Reminder window (`salahReminder`, 20 min by default) | SessionMode, same text | `☾ العصر ١٩:٤٢`, a live mm:ss countdown, once a second |
 | Reminder starts | Toast (in-app) | One short line, closes by itself |
-| Prayer comes in | AbovePrompt band, once (~3 s), then the prayer row | The rising minaret takes the prayer row's place beside `حان وقت صلاة العصر`, then the row returns and keeps it for 15 minutes (`salahAdhan`) |
+| Prayer comes in | AbovePrompt band, once (~3 s), and the SessionMode line | The rising minaret plays in the band beside `حان وقت صلاة العصر`, then clears; the footer line keeps the call for 15 minutes (`salahAdhan`) |
 | Claude works in the window | Spinner (thikr line) | حَيَّ عَلَى الصَّلَاةِ joins the thikr rotation |
 | Settings and help | Command reply | `/salah`, `/salah help` table, `/muslim help` |
 
@@ -43,17 +43,17 @@ What the user chose from the Adhan Lab:
 
 | Part | Pick |
 | --- | --- |
-| Placement | P4a: the prayer line is its own row in the AbovePrompt band, right-aligned, `color="claude"`, terminal and desktop alike; no status line |
+| Placement | P2 (SessionMode, footer before the model) · Digits: Arabic. The line is plain text, `color="claude"`, terminal and desktop alike; no status line. P4a (its own AbovePrompt row) was dropped because the desktop draws AbovePrompt as a card |
 | Digits | Arabic-Indic |
 | Toast | A: «صلاة العصر بعد ٢٠ دقيقة» |
-| Countdown | B: live `mm:ss` in the prayer row inside the reminder window, `☾ العصر ١٩:٤٢` |
+| Countdown | B: live `mm:ss` in the footer line inside the reminder window, `☾ العصر ١٩:٤٢` |
 | Thikr | C: the first phrase of a thikr turn inside the window is «حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د» ([thikr.md](thikr.md#before-a-prayer)) |
 | Terminal adhan moment | D: the rising text minaret above |
 | Desktop popup | V9: photo-background card (kaaba-2, Aref Ruqaa), top-right, 320×80, Arabic digits. Planned, pending the photo's licence and a live test of a JPEG inside `Svg` |
 
 ## Never
 
-- **No OS notification.** Banners show in meetings and screen shares; reminders stay inside Claude Code (prayer row and toast).
+- **No OS notification.** Banners show in meetings and screen shares; reminders stay inside Claude Code (footer line and toast).
 - **No sound** unless a later setting asks for it.
 - **No location service or IP lookup.** The city comes from the time zone or what the user types.
 

@@ -28,7 +28,7 @@ const inWindow = atom({ plugin: 'muslim', key: 'salahWindow' } as const, null as
 
 // The minaret's frame while it plays, and the prayer time it last played for.
 const minaret = atom({ plugin: 'muslim', key: 'salahMinaret' } as const, null as SalahMinaret | null)
-// The prayer line drawn as its own row above the prompt; null when there is none.
+// The prayer line drawn in the footer's mode labels; null when there is none.
 const line = atom({ plugin: 'muslim', key: 'salahLine' } as const, null as string | null)
 const adhanShown = atom({ plugin: 'muslim', key: 'salahAdhanShown' } as const, null as number | null)
 
@@ -304,25 +304,30 @@ export const install = (on: On, options: Options) => {
     )
   })
 
-  // The prayer line: its own row above the prompt, right-aligned. While the
-  // minaret plays (about 3 s) it takes the row's place, then the line returns.
+  // The prayer line: plain text in the mode labels at the right of the prompt
+  // footer, before the model name, beside whatever else draws there.
+  on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
+    const theirs = await next(e)
+    const text = await read($, line)
+    if (!text) return theirs
+    const { Box, Text } = $.ui.resolve(e)
+
+    return (
+      <Box gap={1}>
+        <Box key="salah-line">
+          <Text color="claude">{text}</Text>
+        </Box>
+        {theirs}
+      </Box>
+    )
+  })
+
+  // While the minaret plays (about 3 s) it takes a few rows above the prompt.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)
     const playing = await read($, minaret)
-    const text = await read($, line)
-    if ((!playing && !text) || e.props.hasSurvey) return theirs
+    if (!playing || e.props.hasSurvey) return theirs
     const { Box, Text } = $.ui.resolve(e)
-
-    if (!playing) {
-      return (
-        <Box flexDirection="column">
-          <Box key="salah-line" justifyContent="flex-end">
-            <Text color="claude">{text}</Text>
-          </Box>
-          {theirs}
-        </Box>
-      )
-    }
 
     return (
       <Box flexDirection="column">

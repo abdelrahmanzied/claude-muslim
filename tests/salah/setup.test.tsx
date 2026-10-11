@@ -19,6 +19,39 @@ const engineBand = (on: On) =>
     return <Box />
   })
 
+const footer = (surface: (typeof SURFACES)[number]) => ({
+  plugin: 'muslim',
+  surface,
+  component: 'SessionMode' as const,
+  requestId: 'modes',
+  props: { modes: [] as readonly string[] },
+})
+
+// Stands for the engine's own mode labels beneath the plugin.
+const engineModes = (on: On) =>
+  on('ui.render', { component: 'SessionMode' }, async ($, e) => {
+    const { Text } = $.ui.resolve(e)
+
+    return <Text dimColor>focus</Text>
+  })
+
+// The footer with the band mounted beside it, as in a real session: the
+// prayer line's timer starts from the band's first draw.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mountFooter = async ($: any, surface: (typeof SURFACES)[number]) => {
+  const bandShown = await $.ui.mount(band(surface))
+  const shown = await $.ui.mount(footer(surface))
+
+  return {
+    find: shown.find as typeof shown.find,
+    drawn: shown.drawn as typeof shown.drawn,
+    unmount: async () => {
+      await shown.unmount()
+      await bandShown.unmount()
+    },
+  }
+}
+
 const settingsWriter = (on: On) => {
   const written: { key: string; value: unknown }[] = []
   on('config.set', async (_$, e) => (written.push({ key: e.key, value: e.value }), { value: e.value }))
@@ -95,7 +128,7 @@ test('a saved place shows no setup band', { options: { salahPlace: 'Munich, Germ
 })
 
 const AT_MUNICH = { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berlin; DE' }
-// The prayer line's row in a mounted band, or undefined when it has none.
+// The prayer line in the mounted footer, or undefined when it has none.
 const prayerRow = async (shown: { find: (query: { key: string }) => Promise<{ text?: string } | undefined> }) =>
   (await shown.find({ key: 'salah-line' }))?.text
 
@@ -142,10 +175,11 @@ test('always: the prayer row shows the next prayer, counts down, and toasts once
   // 13:30 in Munich on 10 October 2026; Asr is at 15:59.
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
   engineBand(on)
+  engineModes(on)
   const toasts: string[] = []
   on('ui.toast', async (_$, e) => (toasts.push(e.text), { value: undefined }))
 
-  const shown = await $.ui.mount(band('terminal'))
+  const shown = await mountFooter($, 'terminal')
   await clock.advance(1)
   expect(await prayerRow(shown)).toBe('☾ العصر ١٥:٥٩')
 
@@ -160,8 +194,9 @@ test('always: the prayer row shows the next prayer, counts down, and toasts once
 
 test('off leaves no prayer row', { options: { ...AT_MUNICH, salah: 'off' } }, async ($, on) => {
   engineBand(on)
+  engineModes(on)
 
-  const shown = await $.ui.mount(band('terminal'))
+  const shown = await mountFooter($, 'terminal')
   expect(await prayerRow(shown)).toBe(undefined)
   await shown.unmount()
 })
@@ -169,8 +204,9 @@ test('off leaves no prayer row', { options: { ...AT_MUNICH, salah: 'off' } }, as
 test('reminder: the line is empty until the window, counts down, calls, then clears', { options: AT_MUNICH }, async ($, on) => {
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
   engineBand(on)
+  engineModes(on)
 
-  const shown = await $.ui.mount(band('terminal'))
+  const shown = await mountFooter($, 'terminal')
   expect(await prayerRow(shown)).toBe(undefined)
   await clock.advance(129 * 60_000)
   expect(await prayerRow(shown)).toBe('☾ العصر ٢٠:٠٠')
@@ -184,8 +220,9 @@ test('reminder: the line is empty until the window, counts down, calls, then cle
 test('a shorter reminder moves the window; no adhan skips the call', { options: { ...AT_MUNICH, salahReminder: 5, salahAdhan: false } }, async ($, on) => {
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:44:00Z') })
   engineBand(on)
+  engineModes(on)
 
-  const shown = await $.ui.mount(band('terminal'))
+  const shown = await mountFooter($, 'terminal')
   expect(await prayerRow(shown)).toBe(undefined)
   await clock.advance(10 * 60_000)
   expect(await prayerRow(shown)).toBe('☾ العصر ٠٥:٠٠')
@@ -197,8 +234,9 @@ test('a shorter reminder moves the window; no adhan skips the call', { options: 
 test('the countdown ticks every second in the window, every 30 s outside it', { options: AT_MUNICH }, async ($, on) => {
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
   engineBand(on)
+  engineModes(on)
 
-  const shown = await $.ui.mount(band('terminal'))
+  const shown = await mountFooter($, 'terminal')
   await clock.advance(60_000)
   expect(await prayerRow(shown)).toBe(undefined)
 
@@ -218,8 +256,10 @@ test('when the prayer comes in a minaret rises once, then the call stays in the 
   // 15:58:45 in Munich; Asr is at 15:59.
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:58:45Z') })
   engineBand(on)
+  engineModes(on)
 
   const shown = await $.ui.mount(band('terminal'))
+  const modes = await $.ui.mount(footer('terminal'))
   expect(await shown.find({ type: 'Text', text: '   ☾   ' })).toBeUndefined()
 
   // Asr comes in on a one-second tick: the base appears first.
@@ -235,11 +275,12 @@ test('when the prayer comes in a minaret rises once, then the call stays in the 
   // About three seconds in all, then only the prayer row keeps the call.
   await clock.advance(1_000)
   expect(await shown.find({ type: 'Text', text: '   ☾   ' })).toBeUndefined()
-  expect(await prayerRow(shown)).toBe('حان وقت صلاة العصر')
+  expect(await prayerRow(modes)).toBe('حان وقت صلاة العصر')
 
   // Never again for the same prayer.
   await clock.advance(60_000)
   expect(await shown.find({ type: 'Text', text: ' ▐███▌ ' })).toBeUndefined()
+  await modes.unmount()
   await shown.unmount()
 })
 
@@ -268,8 +309,9 @@ test('the countdown starts the second the window opens, not on the next 30 s tic
   // 15:38:10 in Munich: the window (20 min before Asr at 15:59) opens at 15:39:00.
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:38:10Z') })
   engineBand(on)
+  engineModes(on)
 
-  const shown = await $.ui.mount(band('terminal'))
+  const shown = await mountFooter($, 'terminal')
   await clock.advance(49_000)
   expect(await prayerRow(shown)).toBe(undefined)
   await clock.advance(1_000)
@@ -279,29 +321,36 @@ test('the countdown starts the second the window opens, not on the next 30 s tic
   await shown.unmount()
 })
 
-test('the prayer row is right-aligned in claude color, on both surfaces', { options: { ...AT_MUNICH, salah: 'always' } }, async ($, on) => {
+test('the prayer line sits in the footer modes in claude color, beside the engine\'s labels, on both surfaces', { options: { ...AT_MUNICH, salah: 'always' } }, async ($, on) => {
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
   engineBand(on)
+  engineModes(on)
 
   for (const surface of SURFACES) {
-    const shown = await $.ui.mount(band(surface))
+    const band_ = await $.ui.mount(band(surface))
+    const shown = await $.ui.mount(footer(surface))
     await clock.advance(1)
-    const row = await shown.find({ key: 'salah-line' })
-    expect(row?.text).toBe('☾ العصر ١٥:٥٩')
-    expect(JSON.stringify(await shown.drawn())).toContain('"justifyContent":"flex-end"')
-    expect(await shown.find({ type: 'Text', text: '☾ العصر ١٥:٥٩' })).toBeDefined()
+    expect((await shown.find({ key: 'salah-line' }))?.text).toBe('☾ العصر ١٥:٥٩')
+    expect(JSON.stringify(await shown.drawn())).toContain('"color":"claude"')
+    expect(await shown.find({ type: 'Text', text: 'focus' })).toBeDefined()
+    // No prayer row in the band any more.
+    expect(await band_.find({ key: 'salah-line' })).toBeUndefined()
     await shown.unmount()
+    await band_.unmount()
   }
 })
 
-test('rows stack: the review form and the prayer row both show, neither hides the other', { options: AT_MUNICH }, async ($, on) => {
+test('the review form shows in the band while the prayer line shows in the footer', { options: AT_MUNICH }, async ($, on) => {
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:45:00Z') })
   engineBand(on)
+  engineModes(on)
 
   const shown = await $.ui.mount(band('terminal'))
+  const modes = await $.ui.mount(footer('terminal'))
   await clock.advance(1_000)
   await $.command.run({ command: 'salah', args: 'adjust', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
   expect(await shown.find({ type: 'Button', key: 'salah-save' })).toBeDefined()
-  expect(await prayerRow(shown)).toMatch(/^☾ العصر ١[٣٤]:/)
+  expect(await prayerRow(modes)).toMatch(/^☾ العصر ١[٣٤]:/)
+  await modes.unmount()
   await shown.unmount()
 })
