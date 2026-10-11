@@ -1,6 +1,6 @@
 import type { BandModel } from './band.ts'
 import type { Period } from './data.ts'
-import { arabicDigits, countOf, currentOf, END, hasBegun, listFor, overall, textOf, timesOf, TITLE } from './logic.ts'
+import { arabicDigits, countOf, currentOf, END, END_NOTE, hasBegun, listFor, overall, textOf, timesOf, TITLE } from './logic.ts'
 import type { Reading, Sky } from './logic.ts'
 
 export type Style = 'sky' | 'frame'
@@ -115,6 +115,7 @@ export type ReaderProps = {
   progress: number
   end: string
   endHint: string
+  endNote: string
 }
 
 // A Client's props are plain data: no undefined anywhere.
@@ -146,6 +147,7 @@ export const readerProps = (
     left: arabicDigits(Math.max(0, times - n)),
     progress: overall(period, reading),
     end: display(END),
-    endHint: `/athkar ${period} reset to read again`,
+    endHint: `/athkar ${period} reset → to read again`,
+    endNote: display(END_NOTE[period]),
   })
 }

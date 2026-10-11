@@ -145,7 +145,7 @@ test('folded, the reading and the cover are one 24px row at every size, thikr an
 test('the folded row takes its text from fixed pixel sizes, not from the setting, so 28 cannot clip it', () => {
   const m = (textSize: number): BandModel => ({
     phase: 'reading', period: 'morning', sky: 'day', style: 'sky', accent: 'orange', isDark: false, isActive: false, hasBegun: true,
-    title: 't', thikrId: '75', text: 'x', position: '١', count: 0, times: 3, progress: 0, from: 0, end: 'e', endHint: 'h', now: 0,
+    title: 't', thikrId: '75', text: 'x', position: '١', count: 0, times: 3, progress: 0, from: 0, end: 'e', endHint: 'h', endNote: 'n', now: 0,
     width: 500, height: 0, restHeight: 24, textSize, card: CARD,
   })
   const css = bandSvg(m(14))
@@ -159,7 +159,7 @@ test('the folded row takes its text from fixed pixel sizes, not from the setting
 })
 
 test('cover and done rows: fixed height per size and width; the words on one line, fitted to the width', () => {
-  const END_HINT = '/athkar evening reset to read again'
+  const END_HINT = '/athkar evening reset → to read again'
   for (const size of SIZES) {
     const open = bandHeight(reading('91', 'morning', size), 860)
     for (const period of PERIODS) {
@@ -183,7 +183,7 @@ test('cover and done rows: fixed height per size and width; the words on one lin
     lastCover = c
     const d = doneFit(END, END_HINT, width)
     expect(d.size).toBeGreaterThanOrEqual(FLOOR)
-    expect(d.size).toBeLessThanOrEqual(19)
+    expect(d.size).toBeLessThanOrEqual(14)
     expect(d.size).toBeGreaterThanOrEqual(lastDone)
     lastDone = d.size
     const f = finaleSize(END, width)
@@ -195,7 +195,7 @@ test('cover and done rows: fixed height per size and width; the words on one lin
   for (const width of WIDTHS) {
     const svg = bandSvg({
       phase: 'done', period: 'morning', sky: 'day', style: 'sky', accent: 'orange', isDark: false, isActive: true, hasBegun: true,
-      title: 't', thikrId: '75', text: 'x', position: '١', count: 0, times: 1, progress: 100, from: 100, end: END, endHint: END_HINT, now: 0,
+      title: 't', thikrId: '75', text: 'x', position: '١', count: 0, times: 1, progress: 100, from: 100, end: END, endHint: END_HINT, endNote: 'n', now: 0,
       width, height: 56, textSize: 14,
     })
     expect(svg).toContain(`--ds:${doneFit(END, END_HINT, width).size}px`)
@@ -234,7 +234,7 @@ test('the picture declares exactly the frame it was sized to: a viewBox, and no 
             const m: BandModel = {
               phase, period, sky: 'crescent', style: 'sky', accent: 'orange', isDark: true, isActive, hasBegun: true,
               title: 't', thikrId: id, text: 'x', position: '١ مِنْ ٢٢', count: 1, times: 100, progress: 30, from: 20,
-              end: END, endHint: 'h', now: 0, width, height: 0, restHeight: 24, textSize: size, card: CARD,
+              end: END, endHint: 'h', endNote: 'n', now: 0, width, height: 0, restHeight: 24, textSize: size, card: CARD,
             }
             m.height = bandHeight(m, width)
             const svg = bandSvg(m)

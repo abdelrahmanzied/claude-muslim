@@ -8,7 +8,7 @@ const cover = (over: Partial<BandModel> = {}, width = 500): BandModel => {
   const m: BandModel = {
     phase: 'cover', period: 'morning', sky: 'day', style: 'sky', accent: 'orange', isDark: false, isActive: false, hasBegun: false,
     title: 'أَذْكَارُ الصَّبَاحِ', thikrId: '75', text: 'x', position: '١ مِنْ ٢٢', count: 0, times: 1, progress: 10, from: 10,
-    end: 'e', endHint: 'h', now: 0, width, height: 0, restHeight: 24, textSize: 14, card: { ch: 8.4, lh: 20 }, ...over,
+    end: 'e', endHint: 'h', endNote: 'n', now: 0, width, height: 0, restHeight: 24, textSize: 14, card: { ch: 8.4, lh: 20 }, ...over,
   }
   m.height = bandHeight(m, width)
 
@@ -50,16 +50,19 @@ test('the folded hint fits the width, 13px down to the 9px floor', () => {
   expect(foldedHintSize('click to continue', 60)).toBe(9)
 })
 
-test('the done row folds too while faded: the verse on one slim row; the finale never folds', () => {
+test('the done row folds too while faded: the note alone on one slim row; the finale never folds', () => {
   const end = '﴿رَبَّنَا تَقَبَّلْ مِنَّا﴾ — البقرة ١٢٧'
-  const faded = cover({ phase: 'done', end })
+  const faded = cover({ phase: 'done', end, endNote: 'أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الصَّبَاحُ' })
   const lit = cover({ phase: 'done', end, isActive: true })
   expect(heightOf(faded)).toBe(24)
   expect(heightOf(lit)).toBe(77)
   const svg = bandSvg(faded)
   expect(svg).toContain('class="peek dn-peek"')
-  expect(svg).toContain('رَبَّنَا')
+  expect(svg).not.toContain('رَبَّنَا')
+  expect(svg).not.toContain('class="pill"')
   expect(svg).not.toContain('البقرة')
+  expect(svg).toContain('<span class="pk-text">أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الصَّبَاحُ</span>')
+  expect(svg).not.toContain('reset')
   expect(svg).not.toContain('class="done-row')
   expect(bandSvg(lit)).toContain('class="done-row"')
   const finale = cover({ phase: 'done', end, finaleMs: 500 })

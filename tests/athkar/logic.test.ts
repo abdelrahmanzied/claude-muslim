@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import { ATHKAR } from '../../src/features/athkar/data.ts'
-import { arabicDigits, dayOf, END, isAct, emptyReading, listFor, overall, periodAt, readDay, shouldAdvance, skyAt, step, textOf } from '../../src/features/athkar/logic.ts'
+import { arabicDigits, dayOf, END, END_NOTE, isAct, emptyReading, listFor, overall, periodAt, readDay, shouldAdvance, skyAt, step, textOf } from '../../src/features/athkar/logic.ts'
 import type { Reading } from '../../src/features/athkar/logic.ts'
 import { bandHeight, bandSvg, closeArea, coverFit, doneFit, finaleSize, fitOf, pixelOf } from '../../src/features/athkar/band.ts'
 import type { BandModel } from '../../src/features/athkar/band.ts'
@@ -90,7 +90,7 @@ test('there is no 10 | 100 choice: no such act, and an old saved reading with ch
 const model = (over: Partial<BandModel>): BandModel => ({
   phase: 'reading', period: 'morning', sky: 'crescent', style: 'sky', accent: 'orange', isDark: true, isActive: true, hasBegun: true,
   title: 't', thikrId: '91', text: 'x', position: '١ مِنْ ٢٢', count: 3, times: 100, progress: 30, from: 20,
-  end: 'e', endHint: 'h', now: 0, width: 900, height: 93, ...over,
+  end: 'e', endHint: 'h', endNote: 'n', now: 0, width: 900, height: 93, ...over,
 })
 
 test('every band picture fits the size limit and carries its fonts', async () => {
@@ -200,10 +200,10 @@ test('the head of the progress line carries the repetitions left, and there are 
   expect(bandSvg(model({ glowMs: 300, progress: 40, from: 30 }))).toContain('--p:40%;--from:30%;animation-delay:-300ms')
   // Held back from both ends of the line so it is never clipped.
   expect(bandSvg(model({}))).toContain('clamp(20px, var(--p), calc(100% - 20px))')
-  // The folded row has no pill, and neither do the cover and the done row.
+  // The folded row has no pill, and neither does the cover; the open done row's pill is a ✓.
   expect(pillOf(bandSvg(model({ isActive: false, restHeight: 24 })))).toBeUndefined()
   expect(pillOf(bandSvg(model({ phase: 'cover' })))).toBeUndefined()
-  expect(pillOf(bandSvg(model({ phase: 'done' })))).toBeUndefined()
+  expect(pillOf(bandSvg(model({ phase: 'done' })))).toBe('✓')
 })
 
 test('the cover stands at the open reading height, whatever the text, and its words fit the width', async () => {
@@ -263,13 +263,13 @@ test('the basmala stays unnumbered and Ayat al-Kursi carries its verse number', 
 })
 
 test('the done row: the verse and its citation on one line, the hint going first, then the verse shrinks', async () => {
-  const hint = '/athkar evening reset to read again'
+  const hint = '/athkar evening reset → to read again'
   const wide = doneFit(END, hint, 860)
-  expect(wide.size).toBe(19)
+  expect(wide.size).toBe(14)
   expect(wide.hint).toBe(hint)
   for (const width of [500, 380]) {
     const fit = doneFit(END, hint, width)
-    expect(fit.size).toBeLessThanOrEqual(19)
+    expect(fit.size).toBeLessThanOrEqual(14)
     expect(fit.size).toBeGreaterThanOrEqual(9)
     // The hint is dropped before the verse shrinks.
     if (fit.hint === '') expect(doneFit(END, '', width).size).toBe(fit.size)
@@ -304,4 +304,15 @@ test('the look is sky or frame; the old outline reads as frame, the dropped sand
   expect(readOptions({ athkarStyle: 'frame' }).athkarStyle).toBe('frame')
   expect(readOptions({ athkarStyle: 'outline' }).athkarStyle).toBe('frame')
   expect(readOptions({ athkarStyle: 'sand' }).athkarStyle).toBe('sky')
+})
+
+test('the folded done note: finished, with a check, and the next period it meets', () => {
+  expect(END_NOTE.morning).toBe('أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الْمَسَاءُ')
+  expect(END_NOTE.evening).toBe('أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الصَّبَاحُ')
+})
+
+test('the open done row carries a ✓ at the full line\'s head; folded and the finale do not', () => {
+  const lit = bandSvg(model({ phase: 'done', isActive: true, end: END, progress: 100 }))
+  expect(lit).toContain('<span class="pill" style="--p:100%;--from:100%">✓</span>')
+  expect(bandSvg(model({ phase: 'done', end: END, finaleMs: 500 }))).not.toContain('class="pill"')
 })

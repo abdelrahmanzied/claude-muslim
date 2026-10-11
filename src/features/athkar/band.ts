@@ -41,6 +41,8 @@ export type BandModel = {
   glowMs?: number
   end: string
   endHint: string
+  // Folded, in place of the verse: finished.
+  endNote: string
   // When it is drawn, so the sky's motion carries on across redraws.
   now: number
   width: number
@@ -203,6 +205,8 @@ const cover = (m: BandModel) =>
 const reading = (m: BandModel) => `<div class="text">${esc(m.text)}</div><span class="pos">${esc(m.position)}</span>`
 
 // The repetitions left on this thikr, riding on the progress line's head.
+const DONE_PILL = '<span class="pill" style="--p:100%;--from:100%">✓</span>'
+
 const pill = (m: BandModel) =>
   `<span class="pill" style="--p:${m.progress}%;--from:${m.from}%;animation-delay:-${m.glowMs ?? 0}ms">${ar(Math.max(0, m.times - m.count))}</span>`
 
@@ -225,8 +229,8 @@ const splitEnd = (end: string) => {
   return at < 0 ? { verse: end, cite: '' } : { verse: end.slice(0, at), cite: end.slice(at + 3) }
 }
 
-// The folded done row: the verse alone.
-const foldedDone = (m: BandModel) => `<div class="peek dn-peek"><span class="pk-text">${esc(splitEnd(m.end).verse)}</span></div>`
+// The folded done row: the note alone.
+const foldedDone = (m: BandModel) => `<div class="peek dn-peek"><span class="pk-text">${esc(m.endNote)}</span></div>`
 
 const done = (m: BandModel) => {
   const { verse, cite } = splitEnd(m.end)
@@ -281,7 +285,9 @@ export const bandHtml = (m: BandModel) => {
   const hasLine = m.phase === 'reading' || (m.phase === 'cover' && isFolded(m))
   const progress = hasLine ? m.progress : 100
   const from = hasLine ? m.from : 100
-  const head = m.phase === 'reading' && !isFolded(m) ? pill(m) : ''
+  // Reading, the pill carries the repetitions left; done, a ✓ at the full line's head.
+  const isDoneRow = m.phase === 'done' && !isFinale && !isFolded(m)
+  const head = m.phase === 'reading' && !isFolded(m) ? pill(m) : isDoneRow ? DONE_PILL : ''
   const glow = `<div class="pglow${progress >= 100 ? ' full' : ''}${progress <= 0 ? ' empty' : ''}"><b style="width:${progress}%;--from:${from}%;animation-delay:-${m.glowMs ?? 0}ms"></b>${head}</div>`
   const ms = m.finaleMs ?? 0
   const end = isFinale
@@ -405,7 +411,7 @@ export const bandHeight = (m: Pick<BandModel, 'phase' | 'thikrId' | 'period' | '
 // muted; the hint after them, in one line. When space is short the hint goes
 // first (the long one, then the short one), then the verse and its citation
 // shrink together, to FIT_MIN, never wrap. Priority: verse, citation, hint.
-const DONE_BASE = 19
+const DONE_BASE = 14
 const DONE_GAP = 12
 const CITE_GAP = 6
 const HINT_PX = 11.5
@@ -423,7 +429,7 @@ export const endWidth = (end: string, size: number) => {
 export const doneFit = (end: string, hint: string, width: number) => {
   const room = Math.max(120, width - DONE_SIDES)
   const hintWidth = (text: string) => text.length * HINT_CHAR * HINT_PX + DONE_GAP
-  const short = hint.replace(/ reset to read again$/, ' reset')
+  const short = hint.replace(/ → to read again$/, '')
   const options = [hint, short]
   for (const option of options) {
     if (endWidth(end, DONE_BASE) + hintWidth(option) <= room) return { size: DONE_BASE, hint: option }

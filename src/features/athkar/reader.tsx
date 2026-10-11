@@ -136,7 +136,7 @@ const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
       // Faded, it folds to one line.
       <Box key="done" flexDirection="row-reverse" justifyContent="space-between" alignItems="center" paddingY={isLit ? 1 : 0} gap={2}>
         <Text bold color={look.style === 'sky' ? look.ink : look.ring} wrap={isLit ? 'wrap' : 'truncate-end'}>{props.end}</Text>
-        <Text color={look.dim} wrap="truncate-end">{props.endHint}</Text>
+        <Text color={look.dim} wrap="truncate-end">{isLit ? props.endHint : props.endNote}</Text>
       </Box>,
     ])
   }

@@ -45,6 +45,12 @@ export const TITLE: Record<Period, string> = {
 
 export const END = '﴿رَبَّنَا تَقَبَّلْ مِنَّا إِنَّكَ أَنتَ السَّمِيعُ الْعَلِيمُ﴾ — البقرة ١٢٧'
 
+// The folded done row: finished, and when the next period comes.
+export const END_NOTE: Record<Period, string> = {
+  morning: 'أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الْمَسَاءُ',
+  evening: 'أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الصَّبَاحُ',
+}
+
 export const periodAt = (hour: number): Period => (hour >= MORNING_FROM && hour < EVENING_FROM ? 'morning' : 'evening')
 
 // The sky follows the clock, hour with minutes as a fraction.

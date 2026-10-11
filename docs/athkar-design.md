@@ -47,10 +47,12 @@ Counting by keys with the pointer on the band keeps it open until the pointer le
 ## End
 
 - The finale (desktop): falling stars, and the end verse ﴿رَبَّنَا تَقَبَّلْ مِنَّا إِنَّكَ أَنتَ السَّمِيعُ الْعَلِيمُ﴾ rising centered with — البقرة ١٢٧, at a fixed 18px.
-- After it, the done row: the verse and — البقرة ١٢٧ on the right, the reset hint (`/athkar morning reset to read again`) on the left.
+- After it, the done row: the verse and — البقرة ١٢٧ on the right at 14px, like the reading (smaller only if the window is too narrow), the reset hint (`/athkar morning reset → to read again`) on the left.
 - The end verse is always in the words' face (Tajawal), in the finale and the done row alike.
 - Its color: on a sky, the words' color (white or dark, as the sky's text); on Frame, the main color (the frame's and the progress line's).
-- Faded, the done row folds to one slim row like the reading: the verse alone, no reference. The finale (falling stars) never folds.
+- The open done row's progress line is full with a ✓ in the pill at its head, so it reads as finished, not as one more thikr.
+- The hint marks the command apart from what it does with an arrow: `/athkar morning reset → to read again`.
+- Faded, the done row folds to one slim row: أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الْمَسَاءُ after the morning, أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الصَّبَاحُ after the evening, no verse. The finale (falling stars) never folds.
 
 ## Looks
 

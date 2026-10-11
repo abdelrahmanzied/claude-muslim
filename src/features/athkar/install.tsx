@@ -411,6 +411,7 @@ export const install = (on: On, options: Options) => {
       glowMs: glowMs < GLOW_MS ? glowMs : 0,
       end: display(END, true),
       endHint: props.endHint,
+      endNote: props.endNote,
       now: now.getTime(),
       width,
       height: 0,
