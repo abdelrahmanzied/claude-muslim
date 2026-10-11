@@ -8,7 +8,7 @@ import type { Options } from '../../config.ts'
 import { CITY_MODEL, CITY_SYSTEM, cityPrompt, parseCities, parseCoordinates, type City } from './city.ts'
 import { salahHelp } from './help.ts'
 import { guessPlace, systemTimeZone } from './location.ts'
-import { METHODS, type Pray } from './methods.ts'
+import { METHODS, methodFor, type Pray } from './methods.ts'
 import { ENGLISH, prayNamed } from '../../shared/pray/names.ts'
 import { writePlace, type Place } from './place.ts'
 import { athanText, isInWindow, prayLine } from '../../shared/pray/line.ts'
@@ -110,7 +110,7 @@ const findCities = async ($: EngineInterface, typed: string): Promise<City[] | s
   }
   const reply = await $.model.complete({ model: CITY_MODEL, system: CITY_SYSTEM, prompt: cityPrompt(typed, system?.country), maxTokens: 400 })
 
-  return reply.isAnswered ? parseCities(reply.text) : 'Could not reach Claude to find the city. Try again, or type coordinates: /salah city 48.14, 11.58'
+  return reply.isAnswered ? parseCities(reply.text) : 'Could not reach Claude. Try again, or type coordinates: `/salah city 48.14, 11.58`'
 }
 
 // One city of several, picked by the user; undefined when dismissed.
@@ -125,7 +125,7 @@ const pickCity = async ($: EngineInterface, typed: string, cities: City[]): Prom
 const cityFrom = async ($: EngineInterface, typed: string): Promise<City | string> => {
   const found = await findCities($, typed)
   if (typeof found === 'string') return found
-  if (found.length === 0) return `No city found for "${typed}". Try its English name, or latitude, longitude.`
+  if (found.length === 0) return `No city found for "${typed}". Try its English name, or coordinates.`
 
   return (await pickCity($, typed, found)) ?? 'Not changed.'
 }
@@ -149,7 +149,7 @@ const savePlace = async ($: EngineInterface, city: City, options: Options): Prom
   const { deny } = await $.config.set({ key: 'muslim.salahPlace', value: writePlace(city) })
   if (deny) await update($, review, () => null)
 
-  return deny ? `Not changed: ${deny}` : `${city.name} · ${METHODS[methodOf(options, city)].name}`
+  return deny ? `Not changed: ${deny}` : `**City:** ${city.name} · ${METHODS[methodOf(options, city)].name}\nCheck today's times above the prompt.`
 }
 
 // Keeps the pray line's row in step; writes only on a change.
@@ -229,7 +229,7 @@ const playTest = async ($: EngineInterface, options: Options, place: Place) => {
   const pray = next.pray === 'sunrise' ? 'fajr' : next.pray
   await showAthan($, pray, clockText(next.at, place.timeZone), now)
 
-  return `Showing the athan moment for ${ENGLISH[pray]}.`
+  return `**Athan test:** ${ENGLISH[pray]}`
 }
 
 // Tells the thikr line which pray's window we are in; writes only on a change.
@@ -295,7 +295,7 @@ export const install = (on: On, options: Options) => {
 
     if (word === '') {
       const place = options.salahPlace
-      if (!place) return { text: ['Pray times are not set up yet: /salah city', '', HINT].join('\n') }
+      if (!place) return { text: ['Not set up yet. Run `/salah city`.', '', HINT].join('\n') }
 
       // The host puts `muslim: ` before the first line, so a title goes there, not a table.
       return {
@@ -305,29 +305,29 @@ export const install = (on: On, options: Options) => {
     if (word === 'help') return { text: salahHelp() }
     // `line` picks when the pray line shows; `reminder` only sets the minutes.
     if (word === 'line') {
-      if (first === '') return { text: `Pray line: ${lineText(options.salah, options.salahReminder)}. Change: /salah line always | before | off` }
+      if (first === '') return { text: `**Pray line:** ${lineText(options.salah, options.salahReminder)}\nChange: \`/salah line always\` · \`before\` · \`off\`` }
       if ((first === 'always' || first === 'before' || first === 'off') && second === '') {
-        return set('salah', first, `Pray line: ${lineText(first, options.salahReminder)}`)
+        return set('salah', first, `**Pray line:** ${lineText(first, options.salahReminder)}`)
       }
 
-      return { text: 'Line takes always (next pray all day), before (only the reminder minutes before a pray) or off.' }
+      return { text: 'Use `/salah line always` · `before` · `off`.' }
     }
     if (word === 'reminder') {
-      if (first === '') return { text: `Reminder: ${options.salahReminder} min before a pray. Change: /salah reminder <${REMINDER_MIN}-${REMINDER_MAX}>` }
+      if (first === '') return { text: `**Reminder:** ${options.salahReminder} min before a pray\nChange: \`/salah reminder <${REMINDER_MIN}-${REMINDER_MAX}>\`` }
       const minutes = Number(first)
       if (!Number.isInteger(minutes) || minutes < REMINDER_MIN || minutes > REMINDER_MAX) {
-        return { text: `Reminder takes whole minutes from ${REMINDER_MIN} to ${REMINDER_MAX}, e.g. /salah reminder 20.` }
+        return { text: `Use whole minutes from ${REMINDER_MIN} to ${REMINDER_MAX}, e.g. \`/salah reminder 20\`.` }
       }
 
-      return set('salahReminder', minutes, `Reminder: ${minutes} min before a pray (the countdown starts then)`)
+      return set('salahReminder', minutes, `**Reminder:** ${minutes} min before a pray`)
     }
     if (word === 'athan' && first === 'test') {
       const place = options.salahPlace
-      if (!place) return { text: 'Set your city first: /salah city' }
+      if (!place) return { text: 'Set your city first: `/salah city`' }
 
       return { text: await playTest($, options, place) }
     }
-    if (word === 'athan' && (first === 'on' || first === 'off')) return set('salahAthan', first === 'on', `athan ${first}`)
+    if (word === 'athan' && (first === 'on' || first === 'off')) return set('salahAthan', first === 'on', `**Athan:** ${first}`)
     if (word === 'city') {
       const typed = e.args.trim().slice('city'.length).trim()
       const city = typed === '' ? await askCity($, guess) : await cityFrom($, typed)
@@ -335,27 +335,27 @@ export const install = (on: On, options: Options) => {
       return { text: typeof city === 'string' ? city : await savePlace($, city, options) }
     }
     if (word === 'method') {
-      if (first === 'auto') return set('salahMethod', first, 'method auto')
-      if (isMethod(first)) return set('salahMethod', first, `method ${METHODS[first].name}`)
+      if (first === 'auto') return set('salahMethod', first, `**Method:** auto${options.salahPlace ? ` (${METHODS[methodFor(options.salahPlace.country)].name})` : ''}`)
+      if (isMethod(first)) return set('salahMethod', first, `**Method:** ${METHODS[first].name}`)
 
-      return { text: `Method is auto, or one of: ${Object.keys(METHODS).join(', ')}.` }
+      return { text: `Use \`/salah method auto\` or one of: ${Object.keys(METHODS).join(', ')}.` }
     }
     if (word === 'adjust' && first === '') {
-      if (!options.salahPlace) return { text: 'Set your city first: /salah city' }
+      if (!options.salahPlace) return { text: 'Set your city first: `/salah city`' }
       await update($, review, () => options.salahAdjust)
 
-      return { text: 'Check today\'s times above the prompt.' }
+      return { text: '**Adjust:** use − and + above the prompt, then Save.' }
     }
     if (word === 'adjust') {
       const pray = prayNamed(first)
       const minutes = Number(second)
       if (!pray || second === '' || !Number.isInteger(minutes)) {
-        return { text: 'Adjust takes a pray and whole minutes, e.g. adjust asr +5.' }
+        return { text: 'Use `/salah adjust <pray> <±min>`, e.g. `/salah adjust asr +5`.' }
       }
       const adjust = { ...options.salahAdjust, [pray]: minutes }
       const sign = minutes > 0 ? '+' : ''
 
-      return set('salahAdjust', writeAdjust(adjust), `${ENGLISH[pray]} ${sign}${minutes} min`)
+      return set('salahAdjust', writeAdjust(adjust), `**Adjust:** ${ENGLISH[pray]} ${sign}${minutes} min`)
     }
 
     return { text: salahHelp() }

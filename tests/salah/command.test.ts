@@ -40,7 +40,7 @@ describe('settings', () => {
 test('/salah before setup says so', async $ => {
   const ran = await $.command.run(salah(''))
 
-  expect(ran.text).toContain('Pray times are not set up yet: /salah city')
+  expect(ran.text).toContain('Not set up yet. Run `/salah city`.')
 })
 
 test('/salah shows today\'s times and the settings as tables, each setting with its command', { options: MUNICH }, async ($, on) => {
@@ -55,7 +55,7 @@ test('/salah shows today\'s times and the settings as tables, each setting with 
   expect(ran.text).toContain('| Isha | 20:12 |')
   expect(ran.text).toContain('| City | Munich, Germany | `/salah city` |')
   expect(ran.text).toContain('| Method | Muslim World League (auto) | `/salah method <name>` |')
-  expect(ran.text).toContain('| Pray line | before: only 20 min before a pray | `/salah line always` · `before` · `off` |')
+  expect(ran.text).toContain('| Pray line | `before` — only 20 min before a pray | `/salah line always` · `before` · `off` |')
   expect(ran.text).toContain('| Adjust | none | `/salah adjust` |')
   expect(ran.text).toContain('/salah help')
 })
@@ -77,11 +77,11 @@ test('/salah line, reminder <min> and athan save their settings and say what cha
   const written: { key: string; value: unknown }[] = []
   on('config.set', async (_$, e) => (written.push({ key: e.key, value: e.value }), { value: e.value }))
 
-  expect((await $.command.run(salah('line always'))).text).toBe('Pray line: always: next pray all day')
-  expect((await $.command.run(salah('reminder 30'))).text).toContain('Reminder: 30 min before a pray')
-  expect((await $.command.run(salah('line'))).text).toContain('Pray line: before: only 20 min before a pray')
-  expect((await $.command.run(salah('reminder'))).text).toContain('Reminder: 20 min before a pray')
-  expect((await $.command.run(salah('line soon'))).text).toContain('Line takes always')
+  expect((await $.command.run(salah('line always'))).text).toBe('**Pray line:** `always` — next pray all day')
+  expect((await $.command.run(salah('reminder 30'))).text).toContain('**Reminder:** 30 min before a pray')
+  expect((await $.command.run(salah('line'))).text).toContain('**Pray line:** `before` — only 20 min before a pray')
+  expect((await $.command.run(salah('reminder'))).text).toContain('**Reminder:** 20 min before a pray')
+  expect((await $.command.run(salah('line soon'))).text).toContain('Use `/salah line always`')
   await $.command.run(salah('athan off'))
   expect((await $.command.run(salah('reminder 99'))).text).toContain('from 5 to 60')
   expect(written).toEqual([
@@ -94,10 +94,10 @@ test('/salah line, reminder <min> and athan save their settings and say what cha
 test('/salah adjust and method refuse what they cannot take', { options: MUNICH }, async ($, on) => {
   const written = settingsWriter(on)
   for (const args of ['adjust noon 5', 'adjust asr 1.5', 'adjust isha', 'adjust isha -', 'adjust asr nope', 'adjust asr Infinity']) {
-    expect((await $.command.run(salah(args))).text).toBe('Adjust takes a pray and whole minutes, e.g. adjust asr +5.')
+    expect((await $.command.run(salah(args))).text).toBe('Use `/salah adjust <pray> <±min>`, e.g. `/salah adjust asr +5`.')
   }
   expect(written).toEqual([])
-  expect((await $.command.run(salah('method tehran'))).text).toContain('Method is auto, or one of: mwl, egypt')
+  expect((await $.command.run(salah('method tehran'))).text).toContain('Use `/salah method auto` or one of: mwl, egypt')
 })
 
 test('/salah adjust saves one pray\'s minutes', { options: MUNICH }, async ($, on) => {
@@ -105,9 +105,9 @@ test('/salah adjust saves one pray\'s minutes', { options: MUNICH }, async ($, o
   const written: { key: string; value: unknown }[] = []
   on('config.set', async (_$, e) => (written.push({ key: e.key, value: e.value }), { value: e.value }))
 
-  expect((await $.command.run(salah('adjust Asr +5'))).text).toBe('Asr +5 min')
-  expect((await $.command.run(salah('adjust Asr +90'))).text).toBe('Asr +90 min')
-  expect((await $.command.run(salah('adjust isha -120'))).text).toBe('Isha -120 min')
+  expect((await $.command.run(salah('adjust Asr +5'))).text).toBe('**Adjust:** Asr +5 min')
+  expect((await $.command.run(salah('adjust Asr +90'))).text).toBe('**Adjust:** Asr +90 min')
+  expect((await $.command.run(salah('adjust isha -120'))).text).toBe('**Adjust:** Isha -120 min')
   expect(written).toEqual([
     { key: 'muslim.salahAdjust', value: '0 0 0 5 0 0' },
     { key: 'muslim.salahAdjust', value: '0 0 0 90 0 0' },
@@ -143,7 +143,7 @@ test('/salah city saves the one city Claude finds, with its country\'s method', 
   const asked = answerCities(on, [{ name: 'Munich, Germany', country: 'DE', latitude: 48.14, longitude: 11.58, timeZone: 'Europe/Berlin' }])
   const written = settingsWriter(on)
 
-  expect((await $.command.run(salah('city ميونخ'))).text).toBe('Munich, Germany · Muslim World League')
+  expect((await $.command.run(salah('city ميونخ'))).text).toBe('**City:** Munich, Germany · Muslim World League\nCheck today\'s times above the prompt.')
   expect(asked[0]).toContain('Place: ميونخ')
   expect(written).toEqual([{ key: 'muslim.salahPlace', value: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' }])
 })
@@ -158,7 +158,7 @@ test('/salah city asks which one when the name is shared', async ($, on) => {
     result: { questions: [], answers: { 'Which Alexandria?': 'Alexandria, Egypt' } },
   }) as never)
 
-  expect((await $.command.run(salah('city Alexandria'))).text).toBe('Alexandria, Egypt · Egyptian General Authority of Survey')
+  expect((await $.command.run(salah('city Alexandria'))).text).toBe('**City:** Alexandria, Egypt · Egyptian General Authority of Survey\nCheck today\'s times above the prompt.')
   expect(written[0]?.value).toBe('Alexandria, Egypt; 31.2, 29.92; Africa/Cairo; EG')
 })
 
@@ -167,7 +167,7 @@ test('/salah city with no match, or coordinates typed by hand', async ($, on) =>
   const written = settingsWriter(on)
 
   expect((await $.command.run(salah('city Atlantis'))).text).toContain('No city found for "Atlantis"')
-  expect((await $.command.run(salah('city 48.14, 11.58'))).text).toMatch(/^48\.14, 11\.58 · /)
+  expect((await $.command.run(salah('city 48.14, 11.58'))).text).toMatch(/^\*\*City:\*\* 48\.14, 11\.58 · /)
   expect(String(written[0]?.value)).toMatch(/^48\.14, 11\.58; 48\.14, 11\.58; /)
 })
 

@@ -121,7 +121,7 @@ test('/salah city with no name asks the setup question', async ($, on) => {
 
   const ran = await $.command.run({ command: 'salah', args: 'city', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
 
-  expect(ran.text).toBe('Munich, Germany · Muslim World League')
+  expect(ran.text).toBe('**City:** Munich, Germany · Muslim World League\nCheck today\'s times above the prompt.')
   expect(written[0]?.value).toBe('Munich, Germany; 48.14, 11.58; Europe/Berlin; DE')
 })
 

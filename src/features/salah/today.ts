@@ -29,7 +29,7 @@ export const timesTable = (options: Options, place: Place, at: number): string =
 
 // What each pray line mode shows, for the settings table and the replies.
 export const lineText = (mode: SalahMode, minutes: number): string =>
-  mode === 'always' ? 'always: next pray all day' : mode === 'before' ? `before: only ${minutes} min before a pray` : 'off: hidden'
+  `\`${mode}\` — ` + (mode === 'always' ? 'next pray all day' : mode === 'before' ? `only ${minutes} min before a pray` : 'hidden')
 
 // The settings in effect, each with the command that changes it.
 export const settingsTable = (options: Options, place: Place): string => {

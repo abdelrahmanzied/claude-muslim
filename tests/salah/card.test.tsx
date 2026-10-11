@@ -60,7 +60,7 @@ test('/salah athan test answers and changes no setting', { options: MUNICH }, as
   on('config.set', async (_$, e) => (written.push(e), { value: e.value }))
   const ran = await $.command.run(run('athan test'))
 
-  expect(ran.text).toContain('Showing the athan moment')
+  expect(ran.text).toContain('**Athan test:**')
   expect(written).toEqual([])
 })
 
