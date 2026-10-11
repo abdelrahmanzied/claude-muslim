@@ -7,8 +7,6 @@ export type Reading = {
   index: number
   // Counts so far, by thikr id.
   counts: Record<string, number>
-  // The count picked on a thikr with choices, by thikr id.
-  choices: Record<string, number>
   // Every thikr was counted to its end.
   isDone: boolean
   // × hid the band; the reading is kept.
@@ -25,13 +23,12 @@ export type Day = {
 
 export type Sky = 'dawn' | 'sunrise' | 'day' | 'rose' | 'bluehour' | 'crescent'
 
-// What the reader posts: a count, an undo, a move, a pick, a hide.
+// What the reader posts: a count, an undo, a move, a hide.
 export type Act =
   | { act: 'count' }
   | { act: 'back' }
   | { act: 'next' }
   | { act: 'previous' }
-  | { act: 'choose'; times: number }
   | { act: 'hide' }
 
 // The morning athkar are read 05:00 to 17:00, the evening ones 17:00 to 05:00.
@@ -69,7 +66,7 @@ export const dayOf = (date: Date): string => {
   return `${shifted.getFullYear()}-${pad(shifted.getMonth() + 1)}-${pad(shifted.getDate())}`
 }
 
-export const emptyReading = (): Reading => ({ index: 0, counts: {}, choices: {}, isDone: false, isHidden: false })
+export const emptyReading = (): Reading => ({ index: 0, counts: {}, isDone: false, isHidden: false })
 
 export const emptyDay = (day: string): Day => ({ day, morning: emptyReading(), evening: emptyReading() })
 
@@ -89,7 +86,6 @@ const readReading = (raw: unknown): Reading => {
   return {
     index: Number.isInteger(r.index) && (r.index ?? 0) >= 0 ? r.index ?? 0 : 0,
     counts: isNumbers(r.counts) ? r.counts : {},
-    choices: isNumbers(r.choices) ? r.choices : {},
     isDone: r.isDone === true,
     isHidden: r.isHidden === true,
   }
@@ -103,11 +99,9 @@ export const listFor = (period: Period): readonly Thikr[] =>
 
 export const textOf = (thikr: Thikr, period: Period) => (period === 'evening' && thikr.evening ? thikr.evening : thikr.text)
 
-export const timesOf = (thikr: Thikr, reading: Reading) => {
-  const picked = reading.choices[thikr.id]
-
-  return thikr.choices && picked !== undefined && thikr.choices.includes(picked) ? picked : thikr.times
-}
+// How many times a thikr is said: only what the data says. (A reading saved by an
+// earlier build may carry a `choices` key; it is ignored.)
+export const timesOf = (thikr: Thikr) => thikr.times
 
 export const countOf = (thikr: Thikr, reading: Reading) => reading.counts[thikr.id] ?? 0
 
@@ -115,7 +109,7 @@ export const countOf = (thikr: Thikr, reading: Reading) => reading.counts[thikr.
 // counted: 33 of 100 fills a third of that thikr's share. 0 to 1.
 export const overall = (period: Period, reading: Reading) => {
   const list = listFor(period)
-  const sum = list.reduce((total, thikr) => total + Math.min(countOf(thikr, reading) / timesOf(thikr, reading), 1), 0)
+  const sum = list.reduce((total, thikr) => total + Math.min(countOf(thikr, reading) / timesOf(thikr), 1), 0)
 
   return list.length === 0 ? 0 : sum / list.length
 }
@@ -128,7 +122,7 @@ export const currentOf = (period: Period, reading: Reading): Thikr => {
   return list[Math.min(reading.index, list.length - 1)] ?? list[0]!
 }
 
-const isComplete = (thikr: Thikr, reading: Reading) => countOf(thikr, reading) >= timesOf(thikr, reading)
+const isComplete = (thikr: Thikr, reading: Reading) => countOf(thikr, reading) >= timesOf(thikr)
 
 const withCount = (reading: Reading, thikr: Thikr, n: number): Reading => ({
   ...reading,
@@ -142,7 +136,7 @@ export const step = (period: Period, reading: Reading, act: Act): Reading => {
   const last = list.length - 1
   const thikr = currentOf(period, reading)
   const n = countOf(thikr, reading)
-  const times = timesOf(thikr, reading)
+  const times = timesOf(thikr)
 
   if (act.act === 'hide') return { ...reading, isHidden: true }
   if (reading.isDone) return act.act === 'back' || act.act === 'previous' ? { ...reading, isDone: false } : reading
@@ -160,11 +154,6 @@ export const step = (period: Period, reading: Reading, act: Act): Reading => {
       if (n > 0) return withCount(reading, thikr, n - 1)
 
       return { ...reading, index: Math.max(0, reading.index - 1) }
-    case 'choose': {
-      if (!thikr.choices?.includes(act.times)) return reading
-
-      return { ...reading, choices: { ...reading.choices, [thikr.id]: act.times } }
-    }
   }
 }
 
@@ -177,9 +166,7 @@ export const shouldAdvance = (period: Period, before: Reading, after: Reading) =
 
 export const isAct = (value: unknown): value is Act => {
   if (!value || typeof value !== 'object') return false
-  const { act, times } = value as { act?: unknown; times?: unknown }
-  if (act === 'choose') return typeof times === 'number'
-
+  const { act } = value as { act?: unknown }
   return act === 'count' || act === 'back' || act === 'next' || act === 'previous' || act === 'hide'
 }
 

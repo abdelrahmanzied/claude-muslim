@@ -33,11 +33,11 @@ type Ui = {
 // The desktop band is a picture; the terminal's is text.
 const picture = async (ui: Ui) => String((await ui.find({ in: 'athkar', type: 'Svg' }))?.props.source ?? '')
 
-// The first circle is filled once counted.
+// The first thikr is said once: the pill on the progress line's head shows ١, then ٠ once counted.
 const isFirstCounted = async (ui: Ui, surface: (typeof SURFACES)[number]) =>
   surface === 'desktop'
-    ? (await picture(ui)).includes('class="nb on"')
-    : (await ui.find({ in: 'athkar', key: 'c0' }))?.props.backgroundColor !== undefined
+    ? /<span class="pill"[^>]*>٠<\/span>/.test(await picture(ui))
+    : (await ui.find({ in: 'athkar', text: /^ ٠ $/ })) !== undefined
 
 const isCover = async (ui: Ui, surface: (typeof SURFACES)[number]) =>
   surface === 'desktop' ? (await picture(ui)).includes('class="cover cv-inline"') : (await ui.find({ in: 'athkar', text: TITLE.morning })) !== undefined
@@ -150,7 +150,7 @@ test('faded, the reading folds to one row; a press opens it without counting', a
     const heightOf = async () => Number((await ui.find({ in: 'athkar', type: 'Svg' }))?.props.height ?? 0)
     const isFolded = async () => (surface === 'desktop' ? (await picture(ui)).includes('class="peek"') : (await ui.find({ in: 'athkar', key: 'rest' })) !== undefined)
 
-    // Lit: the full reading, with its circles.
+    // Lit: the full reading, with the pill on the line.
     expect(await isFolded()).toBe(false)
     const full = await heightOf()
 
@@ -160,7 +160,7 @@ test('faded, the reading folds to one row; a press opens it without counting', a
     expect(await isFolded()).toBe(true)
     if (surface === 'desktop') {
       expect(await heightOf()).toBeLessThan(full / 2)
-      expect(await picture(ui)).not.toContain('class="nb')
+      expect(await picture(ui)).not.toContain('class="pill"')
     }
 
     // A press opens it at once and does not count.

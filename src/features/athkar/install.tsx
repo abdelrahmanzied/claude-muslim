@@ -5,7 +5,7 @@ import type { Day } from '../../../types'
 import type { Options } from '../../config.ts'
 import { readSize } from '../../config.ts'
 import { display } from '../thikr/rotation.ts'
-import { bandHeight, frameOf, isFolded } from './band.ts'
+import { bandHeight, closeArea, pixelOf } from './band.ts'
 import type { BandModel } from './band.ts'
 import type { Period } from './data.ts'
 import { ADVANCE_MS, countOf, currentOf, dayOf, emptyReading, END, listFor, overall, periodAt, readDay, shouldAdvance, skyAt, step, textOf, timesOf, TITLE } from './logic.ts'
@@ -27,7 +27,7 @@ const HELP = [
   '/athkar morning | evening reset  read that period again from the start',
   '/athkar style sky | sand | outline',
   '/athkar color orange | green | gold | blue',
-  '/athkar size 12 … 28                text size in pixels, 16 by default',
+  '/athkar size 12 … 28                text size in pixels, 14 by default',
 ].join('\n')
 
 // The width of a cell on the desktop in CSS pixels: the band picture is sized
@@ -93,7 +93,7 @@ const advance = async ($: EngineInterface, period: Period, index: number) => {
   const { day } = await today($)
   const reading = day[period]
   const thikr = currentOf(period, reading)
-  if (reading.index !== index || reading.isDone || countOf(thikr, reading) < timesOf(thikr, reading)) return
+  if (reading.index !== index || reading.isDone || countOf(thikr, reading) < timesOf(thikr)) return
   await save($, { ...day, [period]: step(period, reading, { act: 'next' }) })
 }
 
@@ -116,7 +116,6 @@ type Message =
   | { act: 'key'; key: string }
   | { act: 'size'; columns: number; rows: number }
   | { act: 'hide' }
-  | { act: 'choose'; times: number }
   | { act: 'enter' }
   | { act: 'leave' }
 
@@ -126,30 +125,16 @@ const isMessage = (value: unknown): value is Message => {
   if (m.act === 'pointer') return typeof m.x === 'number' && typeof m.y === 'number'
   if (m.act === 'key') return typeof m.key === 'string'
   if (m.act === 'size') return typeof m.columns === 'number' && typeof m.rows === 'number'
-  if (m.act === 'choose') return typeof m.times === 'number'
 
   return m.act === 'hide' || m.act === 'enter' || m.act === 'leave'
 }
 
 // Where the picture's controls sit, in CSS pixels as the band lays them out:
-// the × at the top left; the 10 | 100 switch after the circles, on the last row.
+// the × at the top left (the folded row's is its whole height). A press
+// anywhere else counts or opens the band.
 type Hit = { x0: number; x1: number; y0: number; y1: number; act: Act }
 
-export const hitsFor = (m: Pick<BandModel, 'phase' | 'times' | 'choices' | 'height' | 'isActive' | 'restHeight'>): Hit[] => {
-  // The folded row has no controls: a press on it opens it.
-  if (isFolded(m)) return []
-  const hits: Hit[] = [{ x0: 0, x1: 34, y0: 0, y1: 30, act: { act: 'hide' } }]
-  if (m.phase !== 'reading' || m.choices.length < 2) return hits
-  const circles = m.times > 10 ? 10 * 28 + 9 * 4 : m.times * 22 + (m.times - 1) * 4
-  const x = 16 + circles + 10
-  const y0 = m.height - 44
-  const y1 = m.height - 8
-  // Right to left: the first choice, then the second.
-  hits.push({ x0: x + 28, x1: x + 58, y0, y1, act: { act: 'choose', times: m.choices[0] ?? 10 } })
-  hits.push({ x0: x - 2, x1: x + 28, y0, y1, act: { act: 'choose', times: m.choices[1] ?? 100 } })
-
-  return hits
-}
+export const hitsFor = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight'>): Hit[] => [{ ...closeArea(m), act: { act: 'hide' } }]
 
 // This session's view: past the cover, lit, and when it fades.
 const view = {
@@ -260,21 +245,19 @@ export const install = (on: On, options: Options) => {
 
       return {}
     }
-    if (m.act === 'hide' || m.act === 'choose') {
+    if (m.act === 'hide') {
       await apply($, m)
 
       return {}
     }
-    // A click on the picture's × or 10 | 100 does that. The region is the
+    // A click on the picture's × does that. The region is the
     // picture, in whole cells; its last row may be cut short.
     const columns = m.act === 'pointer' ? (m.columns ?? region.columns) : 0
     const rows = m.act === 'pointer' ? (m.rows ?? region.rows) : 0
     if (m.act === 'pointer') view.pressedAt = Date.now()
     if (m.act === 'pointer' && m.button === 'left' && lastBand && columns > 0 && rows > 0) {
-      const f = frameOf(lastBand)
-      // × and 10 | 100 sit at the left, so a click is placed from the left edge.
-      const px = lastBand.card ? (m.x + 0.5) * lastBand.card.ch - f.left : ((m.x + 0.5) * f.width) / columns
-      const py = lastBand.card ? (m.y + 0.5) * lastBand.card.lh - f.top : ((m.y + 0.5) * f.height) / (rows + 0.5)
+      // The × sits at the left, so a click is placed from the left edge.
+      const { px, py } = pixelOf(lastBand, m.x, m.y, columns, rows)
       const hit = hitsFor(lastBand).find(h => px >= h.x0 && px <= h.x1 && py >= h.y0 && py <= h.y1)
       if (hit) {
         if (hit.act.act === 'hide') view.isOpen = false
@@ -376,7 +359,7 @@ export const install = (on: On, options: Options) => {
       glowSince = Date.now()
     }
     const glowMs = Date.now() - glowSince
-    const times = timesOf(thikr, reading)
+    const times = timesOf(thikr)
     const width = Math.round(e.props.bodyColumns * CELL_PX)
     const model: BandModel = {
       phase: props.phase,
@@ -396,7 +379,6 @@ export const install = (on: On, options: Options) => {
       position: props.position,
       count: Math.min(countOf(thikr, reading), times),
       times,
-      choices: thikr.choices ?? [],
       progress,
       from: glowMs < GLOW_MS ? glowFrom : progress,
       glowMs: glowMs < GLOW_MS ? glowMs : 0,

@@ -16,8 +16,6 @@ export type Thikr = {
   evening?: string
   // Where it comes from, when it is the Quran.
   note?: string
-  // Counts the reader may pick instead of `times`.
-  choices?: readonly number[]
 }
 
 export const ATHKAR: readonly Thikr[] = [

@@ -1,7 +1,7 @@
 import type { ClientModule, RenderElement, SvgProps } from 'claude-code'
 
-import { bandSvg, frameOf } from './band.ts'
-import type { Circle, ReaderProps } from './look.ts'
+import { bandSvg, closeArea, frameOf, pixelOf } from './band.ts'
+import type { ReaderProps } from './look.ts'
 
 // The athkar reader's input, and its drawing in the terminal. It runs on the
 // drawing thread and posts every click and key to the hooks module, which
@@ -18,6 +18,8 @@ type Local = {
   size: string
   // When a press lit the band here, ahead of the hooks module's answer.
   litAt?: number
+  // The pointer is over the ×.
+  hoverClose?: boolean
 }
 
 const TICK_MS = 100
@@ -31,6 +33,9 @@ const LIT_MS = 3000
 
 // The props of the last draw, for the frame clock.
 let latest: ReaderProps
+// When the hooks module's picture last changed (its own clock reading, and ours then):
+// a redraw made here for the pointer carries the motion on from there.
+const seen = { now: -1, at: 0 }
 
 const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
   const { Box, Text, Button } = surface.elements
@@ -58,6 +63,18 @@ const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
   }
 
   surface.onPointer(event => {
+    // Over the ×: it lights, drawn here at once; only a change redraws.
+    if (event.type === 'move' || event.type === 'enter' || event.type === 'leave') {
+      const s = surface.state ?? local
+      const b = latest.band
+      let hover = false
+      if (b && event.type !== 'leave' && surface.columns > 0) {
+        const { px, py } = pixelOf(b, event.x, event.y, surface.columns, surface.rows)
+        const a = closeArea({ ...b, isActive: b.isActive || (s.litAt !== undefined && Date.now() - s.litAt < LIT_MS) })
+        hover = px >= a.x0 && px <= a.x1 && py >= a.y0 && py <= a.y1
+      }
+      if (hover !== !!s.hoverClose) surface.setState({ ...s, hoverClose: hover })
+    }
     if (event.type === 'enter' || event.type === 'leave') surface.post({ act: event.type })
     if (event.type !== 'down') return
     // Light the picture at once; the hooks module's own redraw follows.
@@ -77,7 +94,20 @@ const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
     // Once the hooks module has lit it too, its word holds: it may fade it again.
     if (props.band.isActive && local.litAt !== undefined) surface.setState({ ...local, litAt: undefined })
     const isLit = props.band.isActive || (local.litAt !== undefined && Date.now() - local.litAt < LIT_MS)
-    const lit = { ...props.band, isActive: isLit }
+    // Motion carries on across a redraw made here: the clocks move on by what has passed since the hooks module drew.
+    if (props.band.now !== seen.now) {
+      seen.now = props.band.now
+      seen.at = Date.now()
+    }
+    const gone = Date.now() - seen.at
+    const lit = {
+      ...props.band,
+      isActive: isLit,
+      hoverClose: !!local.hoverClose,
+      now: props.band.now + gone,
+      glowMs: props.band.glowMs === undefined ? undefined : props.band.glowMs + gone,
+      finaleMs: props.band.finaleMs === undefined ? undefined : props.band.finaleMs + gone,
+    }
     const band = lit.card && surface.columns > 0 ? { ...lit, drawWidth: (surface.columns + 1) * lit.card.ch } : lit
     const { width, height } = frameOf(band)
     const alt = band.phase === 'cover' ? band.title : band.text
@@ -103,9 +133,9 @@ const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
 
   if (props.phase === 'done') {
     return shell([
-      <Box key="done" flexDirection="row-reverse" justifyContent="space-between" alignItems="center" paddingY={1}>
-        <Text bold color={look.ring}>{props.end}</Text>
-        <Text color={look.dim}>{props.endHint}</Text>
+      <Box key="done" flexDirection="row-reverse" justifyContent="space-between" alignItems="center" paddingY={1} gap={2}>
+        <Text bold color={look.ring} wrap="wrap">{props.end}</Text>
+        <Text color={look.dim} wrap="truncate-end">{props.endHint}</Text>
       </Box>,
     ])
   }
@@ -140,52 +170,24 @@ const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
     <Box key="text" flexDirection="column" alignItems="flex-end">
       <Text color={isLit ? look.ink : look.dim} wrap="wrap">{props.text}</Text>
     </Box>,
-    <Box key="count" flexDirection="row-reverse" flexWrap="wrap" alignItems="center" columnGap={1}>
-      {props.circles.map((c, i) => circle(surface.elements, c, i, accent))}
-      {props.choices.length > 0 ? choice(surface.elements, props, accent, surface.post) : null}
-    </Box>,
-    horizon(surface.elements, surface.columns - 4, local.shown, accent, look, local.frame),
+    horizon(surface.elements, surface.columns - 4, local.shown, accent, look, local.frame, props.left),
   ])
 }
 
-const circle = (elements: ReaderElements, c: Circle, i: number, accent: string) => {
-  const { Box, Text } = elements
-
-  return (
-    <Box key={`c${i}`} borderStyle="round" borderColor={accent} backgroundColor={c.state === 'done' ? accent : c.fill} paddingX={1}>
-      <Text color={c.state !== 'open' ? '#ffffff' : accent} bold={c.state === 'filling'}>{c.label}</Text>
-    </Box>
-  )
-}
-
-// The 10 | 100 switch: the picked side in the main color, the other in white.
-const choice = (elements: ReaderElements, props: ReaderProps, accent: string, post: (data: { act: 'choose'; times: number }) => void) => {
-  const { Box, Button, Text } = elements
-
-  return (
-    <Box key="choice" flexDirection="row-reverse" borderStyle="round" borderColor={accent}>
-      {props.choices.map(c => (
-        <Button key={`n${c.times}`} plain label={c.label} onPress={() => post({ act: 'choose', times: c.times })}>
-          <Text color={c.isPicked || props.look.style === 'sky' ? '#ffffff' : props.look.ink} backgroundColor={c.isPicked ? accent : undefined}>{` ${c.label} `}</Text>
-        </Button>
-      ))}
-    </Box>
-  )
-}
-
-// Horizon glow: a soft line along the bottom, filled from the right, its
-// head pulsing slowly where the reading stands.
-const horizon = (elements: ReaderElements, columns: number, shown: number, accent: string, look: ReaderProps['look'], frame: number) => {
+// Horizon glow: a soft line along the bottom, filled from the right. Its head
+// carries the repetitions left on this thikr, " ٢ " on the main color, and
+// stays whole at either end of the line.
+const horizon = (elements: ReaderElements, columns: number, shown: number, accent: string, look: ReaderProps['look'], frame: number, left: string) => {
   const { Box, Text } = elements
   const width = Math.max(10, columns)
-  const filled = Math.round(width * Math.min(1, Math.max(0, shown)))
-  const hasHead = filled > 0 && filled < width
+  const label = ` ${left} `
+  const filled = Math.min(width - label.length, Math.max(0, Math.round(width * Math.min(1, Math.max(0, shown)))))
   const wave = (1 - Math.cos(((frame % PULSE) / PULSE) * Math.PI * 2)) / 2
 
   return (
     <Box key="horizon" flexDirection="row">
-      <Text color={look.track}>{'─'.repeat(Math.max(0, width - filled - (hasHead ? 1 : 0)))}</Text>
-      {hasHead ? <Text color={mixHex(accent, '#ffffff', 0.15 + 0.5 * wave)}>●</Text> : null}
+      <Text color={look.track}>{'─'.repeat(Math.max(0, width - filled - label.length))}</Text>
+      <Text bold color="#ffffff" backgroundColor={mixHex(accent, '#ffffff', 0.15 * wave)}>{label}</Text>
       <Text color={accent}>{'━'.repeat(filled)}</Text>
     </Box>
   )

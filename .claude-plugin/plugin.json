@@ -81,7 +81,7 @@
       "type": "string",
       "title": "Athkar text size",
       "description": "The athkar's text size in pixels, from 12 to 28",
-      "default": "16"
+      "default": "14"
     }
   }
 }

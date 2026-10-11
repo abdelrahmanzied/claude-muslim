@@ -34,7 +34,7 @@ export const readOptions = (raw: Record<string, unknown>): Options => ({
 
 export const SIZE_MIN = 12
 export const SIZE_MAX = 28
-export const SIZE_DEFAULT = 16
+export const SIZE_DEFAULT = 14
 
 // The athkar's text size in pixels, whole, from SIZE_MIN to SIZE_MAX; anything else is the default.
 export const readSize = (value: unknown): number => {

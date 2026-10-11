@@ -3,7 +3,8 @@ import type { Period } from './data.ts'
 import { AREF_RUQAA_BOLD, TAJAWAL_BOLD, TAJAWAL_REGULAR } from './fonts.ts'
 import type { Sky } from './logic.ts'
 import type { Accent, Style } from './look.ts'
-import { TEXT_WIDTH } from './metrics.ts'
+import { SIZE_DEFAULT } from '../../config.ts'
+import { END_CITE_CHAR, END_CITE_EM, END_RISE_CITE_CHAR, END_RISE_VERSE_CHAR, END_VERSE_CHAR, HINT_CHAR, TEXT_WIDTH } from './metrics.ts'
 
 // The desktop band: the athkar lab's band, drawn as HTML and CSS inside one
 // SVG document (an interactive Svg runs CSS animation; no script). Clicks and
@@ -12,7 +13,7 @@ import { TEXT_WIDTH } from './metrics.ts'
 export type Phase = 'cover' | 'reading' | 'done'
 
 export type BandModel = {
-  // The text's size in pixels; 16 when absent.
+  // The text's size in pixels; SIZE_DEFAULT when absent.
   textSize?: number
   phase: Phase
   period: Period
@@ -30,7 +31,6 @@ export type BandModel = {
   position: string
   count: number
   times: number
-  choices: readonly number[]
   // Overall progress now and before the last change, 0 to 100.
   progress: number
   from: number
@@ -45,6 +45,8 @@ export type BandModel = {
   now: number
   width: number
   height: number
+  // The pointer is over the × (set by the reader, which sees the pointer).
+  hoverClose?: boolean
   // The height of the one-line row the reading folds to when faded; absent, it never folds.
   restHeight?: number
   // On the desktop, the cell the band is laid out in (CSS px): the picture
@@ -106,6 +108,23 @@ const ROOT_LIGHT = '--desk-bg: #ffffff; --desk-side: #f7f6f2; --desk-ink: #1f1f1
 const ROOT_DARK = '--desk-bg: #1f1e1c; --desk-side: #262522; --desk-ink: #ecebe6; --desk-dim: #8f8d86; --desk-line: #34322e; --claude: #d97757; --claude-soft: #3a2a22; --claude-faint: #2b2420; --green: #1a9466; --green-soft: #133328; --green-faint: #0f231c; --gold: #e8b93c; --gold-soft: #3b3018; --gold-faint: #272114; --blue: #4a7fc0; --blue-soft: #1c2a3d; --blue-faint: #161f2b;'
 const FONTS = '--font-band: "Tajawal", sans-serif; --font-ar: "Tajawal", sans-serif; --font-cover: "Aref Ruqaa", "Tajawal", serif; --font-ui: system-ui, -apple-system, "Segoe UI", sans-serif; --font-mono: ui-monospace, Menlo, monospace;'
 
+// The open reading's vertical layout, in CSS pixels: padding above, the room
+// kept under the text for the progress line and the pill riding on its head
+// (the line sits 4px up and is 2px thick, the pill 14px tall on it), the
+// thikr's line-height (times its size), the room left at the text's left for
+// the × and the moon, and the width kept at the line's left for the position.
+const READ_TOP = 5
+const READ_FOOT = 20
+const READ_LINE = 1.7
+const READ_CLEAR = 28
+const POS_ROOM = 60
+// The pill's half width, which the line keeps it that far from either end.
+const PILL_HALF = 20
+// The smallest a thikr's text shrinks to, to fit the area.
+const FIT_MIN = 9
+// The wrap and the band's border take 2px each side.
+const FRAME_PX = 4
+
 // What the band adds to the lab's rules: it fills the picture, the text is never
 // cut (the lab scrolled past three lines), the glow eases from its last value,
 // and stars fall at the end.
@@ -113,21 +132,43 @@ const EXTRA_CSS = `
 * { box-sizing: border-box; }
 .wrap { width: 100%; height: 100%; padding: 1px; }
 .band.line { padding: calc(10px + var(--ay, 0px)) calc(14px + var(--ax, 0px)); }
+/* The reading is laid out to fixed numbers (READ_* in this file): the text area
+   two lines of the person's size tall with the text centered in it, and under
+   it the room for the progress line and the pill on its head. */
+.band.band.line.rd:not(.rest) { padding: calc(${READ_TOP}px + var(--ay, 0px)) calc(14px + var(--ax, 0px)) calc(${READ_FOOT}px + var(--ay, 0px)); align-content: start; }
+.band.band.line.rd .text { height: var(--th); line-height: ${READ_LINE}; display: grid; align-content: center; padding-left: ${READ_CLEAR}px; }
+/* The set's line runs from the position to the right edge; its head carries the pill. */
+.band.rd:not(.rest) > .pglow { left: calc(16px + var(--ax, 0px) + ${POS_ROOM}px); right: calc(16px + var(--ax, 0px)); bottom: calc(4px + var(--ay, 0px)); }
+.band.rd:not(.rest) > .pos { position: absolute; left: calc(16px + var(--ax, 0px)); bottom: calc(var(--ay, 0px) + 1px); width: ${POS_ROOM - 8}px; font: 400 11px/11px var(--font-band); color: var(--b-dim); direction: rtl; text-align: left; white-space: nowrap; pointer-events: none; z-index: 3; }
+.pill { position: absolute; bottom: 2px; right: clamp(${PILL_HALF}px, var(--p), calc(100% - ${PILL_HALF}px)); transform: translateX(50%); min-width: 22px; height: 14px; padding: 0 5px; border-radius: 7px 7px 0 0; background: var(--ring); color: #fff; font: 700 11px/14px var(--font-band); text-align: center; white-space: nowrap; box-shadow: 0 0 10px 2px color-mix(in srgb, var(--ring) 55%, transparent); animation: pillTo .7s cubic-bezier(.33, 1, .68, 1) both; }
+@keyframes pillTo { from { right: clamp(${PILL_HALF}px, var(--from), calc(100% - ${PILL_HALF}px)); } }
+.cv-inline .cover-title { font-size: max(9px, calc(26px * var(--cv, 1))); }
+.cv-inline .cover-keys { font-size: max(9px, calc(10.5px * var(--cv, 1))); column-gap: calc(16px * var(--cv, 1)); white-space: nowrap; }
+.cv-inline .cover-keys .kc { height: calc(17px * var(--cv, 1)); font-size: max(9px, calc(9.5px * var(--cv, 1))); }
+.cv-inline .cover-keys span { line-height: calc(17px * var(--cv, 1)); }
+.band.band.line:has(.cv-inline) { overflow: hidden; }
 .band.card { padding: calc(12px + var(--ay, 0px)) calc(16px + var(--ax, 0px)); }
+.band.card .done-row { margin-left: 14px; }
 .band { min-height: 100%; }
 /* Faded, the reading folds to one row: the thikr cut short, then where it stands. */
-.band.band.rest { display: flex; align-items: center; padding: var(--ay, 0px) calc(14px + var(--ax, 0px)); }
-.band.rest > .x { display: none; }
+.band.band.rest { display: flex; align-items: center; padding: var(--ay, 0px) calc(14px + var(--ax, 0px)) var(--ay, 0px) calc(34px + var(--ax, 0px)); }
+/* The ×: a round 20px target; hovered, full and with a soft disc behind it. */
+.band .xabs { display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border-radius: 50%; }
+.band .xabs.hot { opacity: 1; color: var(--b-ink); background: color-mix(in srgb, var(--b-ink) 20%, transparent); }
+.band.active .xabs.hot { color: var(--ring); }
+/* A small muted × at the left edge hides the band; the sky's moon would sit on the position, so it goes. */
+.band.band.rest .xabs { top: 50%; margin-top: -10px; font-size: 14px; }
+.band.band.rest.bg-crescent::before { display: none; }
 .band.rest .peek { display: flex; align-items: center; gap: 12px; width: 100%; direction: rtl; }
 .band.rest .pk-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: right; font-family: var(--font-band); font-size: 15px; line-height: 1.6; color: var(--b-ink); }
 .band.rest .pk-pos { flex: none; white-space: nowrap; font-size: 11.5px; color: var(--b-dim); font-family: var(--font-band); }
-.band[data-band] .text, .band.line .text { font-size: var(--fs, 16px) !important; max-height: none; overflow: visible; }
+.band[data-band] .text, .band.line .text { font-size: var(--fs, 14px) !important; max-height: none; overflow: visible; }
 .pglow b { animation: glowTo .7s cubic-bezier(.33, 1, .68, 1) both; }
 @keyframes glowTo { from { width: var(--from); } }
 .endfx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; border-radius: inherit; }
 .fall { position: absolute; top: -30px; color: var(--ring); animation: fall linear forwards; opacity: .9; }
 @keyframes fall { to { transform: translateY(var(--dy)) rotate(var(--rot)); opacity: 0; } }
-.rise-msg { position: absolute; left: 50%; bottom: 24px; font-family: var(--font-cover); font-size: 30px; white-space: nowrap; direction: rtl; color: var(--ring); text-shadow: 0 0 18px color-mix(in srgb, var(--ring) 70%, transparent); opacity: 0; animation: riseMsg 2.8s ease-out both; }
+.rise-msg { position: absolute; left: 50%; bottom: 24px; font-family: var(--font-cover); font-size: var(--rs, 30px); white-space: nowrap; direction: rtl; color: var(--ring); text-shadow: 0 0 18px color-mix(in srgb, var(--ring) 70%, transparent); opacity: 0; animation: riseMsg 2.8s ease-out both; }
 @keyframes riseMsg { 0% { opacity: 0; transform: translate(-50%, 30px); } 30% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -110px); } }
 /* Skies have no edge line, colored or white: the picture is the edge. */
 .band.band.band.sky, .band.band.band.sky.edge:not(.framed) { border-color: transparent !important; }
@@ -154,37 +195,36 @@ const cover = (m: BandModel) =>
   + `<span>${kc('⎵')}${kc('↵')} count</span><span>${kc('←')}${kc('→')} move</span>`
   + `<span>${MOUSE('right')}${kc('⌫')} undo</span><span>${kc('esc')} pause</span></div></div>`
 
-// Up to ten circles, one per count; above ten, ten circles of a tenth each,
-// the one being counted filling like water.
-const circles = (n: number, times: number) => {
-  if (times <= 10) {
-    return Array.from({ length: times }, (_, i) => `<i class="nb${i < n ? ' on' : ''}">${ar(i + 1)}</i>`).join('')
-  }
-  const per = times / 10
-  const done = Math.floor(n / per)
+const reading = (m: BandModel) => `<div class="text">${esc(m.text)}</div><span class="pos">${esc(m.position)}</span>`
 
-  return Array.from({ length: 10 }, (_, i) => {
-    if (i < done) return `<i class="nb r on">${ar((i + 1) * per)}</i>`
-    if (i === done && n < times) return `<i class="nb r fill" style="--p:${Math.round(((n % per) / per) * 100)}">${ar(n)}</i>`
-
-    return `<i class="nb r later">${ar((i + 1) * per)}</i>`
-  }).join('')
-}
-
-const choice = (m: BandModel) =>
-  m.choices.length === 0
-    ? ''
-    : `<span class="choice">${m.choices.map(c => `<button type="button" aria-pressed="${c === m.times}">${ar(c)}</button>`).join('')}</span>`
-
-const reading = (m: BandModel) =>
-  `<div class="text">${esc(m.text)}</div><div class="sub"><div class="nbs">${circles(m.count, m.times)}</div>${choice(m)}`
-  + `<span class="hint state keys"></span><span class="src">${esc([m.note, m.position].filter(Boolean).join(' · '))}</span></div>`
+// The repetitions left on this thikr, riding on the progress line's head.
+const pill = (m: BandModel) =>
+  `<span class="pill" style="--p:${m.progress}%;--from:${m.from}%;animation-delay:-${m.glowMs ?? 0}ms">${ar(Math.max(0, m.times - m.count))}</span>`
 
 const folded = (m: BandModel) =>
   `<div class="peek"><span class="pk-text">${esc(m.text)}</span><span class="pk-pos">${esc(m.position)}</span></div>`
 
-const done = (m: BandModel) =>
-  `<div class="done-row"><span class="big">${esc(m.end)}</span><span class="dim done-hint">${esc(m.endHint)}</span></div>`
+// The end message is a verse and, after ' — ', where it is from.
+const splitEnd = (end: string) => {
+  const at = end.lastIndexOf(' — ')
+
+  return at < 0 ? { verse: end, cite: '' } : { verse: end.slice(0, at), cite: end.slice(at + 3) }
+}
+
+const done = (m: BandModel) => {
+  const { verse, cite } = splitEnd(m.end)
+  const fit = doneFit(m.end, m.endHint, m.width)
+  const citation = cite ? `<span class="cite">— ${esc(cite)}</span>` : ''
+  const hint = fit.hint ? `<span class="dim done-hint">${esc(fit.hint)}</span>` : ''
+
+  return `<div class="done-row" style="--ds:${fit.size}px"><span class="big">${esc(verse)}${citation}</span>${hint}</div>`
+}
+
+const riseHtml = (end: string) => {
+  const { verse, cite } = splitEnd(end)
+
+  return esc(verse) + (cite ? `<span class="cite">— ${esc(cite)}</span>` : '')
+}
 
 const GLYPHS = ['✦', '✧', '⋆', '✦', '☾']
 
@@ -205,7 +245,7 @@ const falling = (height: number, ms: number) =>
 const bandClasses = (m: BandModel) => {
   const layout = m.phase === 'done' ? 'card' : 'line compact'
   const edge = m.phase !== 'reading' ? ' edge' : ''
-  const active = (m.isActive ? ' active' : '') + (isFolded(m) ? ' rest' : '')
+  const active = (m.isActive ? ' active' : '') + (isFolded(m) ? ' rest' : '') + (m.phase === 'reading' ? ' rd' : '')
   if (m.style === 'sky') {
     return `band ${layout} bg-${m.sky} sky ${INK[m.sky]}-ink acc-${m.accent} ts-plain al-fade tc-auto bd-auto dn-soft nm-main fx-rich ui-classic fc-white${edge}${active}`
   }
@@ -222,18 +262,22 @@ export const bandHtml = (m: BandModel) => {
   const fx = m.style === 'sky' ? `<span class="fx">${SKY_FX[m.sky]}</span>` : ''
   const progress = m.phase === 'reading' ? m.progress : 100
   const from = m.phase === 'reading' ? m.from : 100
-  const glow = `<div class="pglow${progress >= 100 ? ' full' : ''}${progress <= 0 ? ' empty' : ''}"><b style="width:${progress}%;--from:${from}%;animation-delay:-${m.glowMs ?? 0}ms"></b></div>`
+  const head = m.phase === 'reading' && !isFolded(m) ? pill(m) : ''
+  const glow = `<div class="pglow${progress >= 100 ? ' full' : ''}${progress <= 0 ? ' empty' : ''}"><b style="width:${progress}%;--from:${from}%;animation-delay:-${m.glowMs ?? 0}ms"></b>${head}</div>`
   const ms = m.finaleMs ?? 0
   const end = isFinale
-    ? `<span class="endfx">${falling(m.height, ms)}<span class="rise-msg" style="animation-delay:-${ms}ms">${esc(m.end)}</span></span>`
+    ? `<span class="endfx">${falling(m.height, ms)}<span class="rise-msg" style="--rs:${finaleSize(m.end, m.width)}px;animation-delay:-${ms}ms">${riseHtml(m.end)}</span></span>`
     : ''
   // Motion keeps its phase across redraws: every animation starts where the clock is.
   const t = `-${((m.now / 1000) % 3600).toFixed(2)}s`
 
+  const reads = m.phase === 'reading'
+  const fit = reads ? fitOf(m, m.width) : { size: 0, area: 0, rows: 0 }
+  const cv = m.phase === 'cover' ? coverFit(m.width) : 1
   const f = frameOf(m)
   const card = m.card ? `;--ax:${f.addX}px;--ay:${f.addY}px;border-radius:10px` : ''
 
-  return `<div class="${bandClasses(m)}" data-band="" style="--t:${t};--fs:${m.textSize ?? 16}px${card}"><span class="x xabs">×</span>${inner}${fx}${glow}${end}</div>`
+  return `<div class="${bandClasses(m)}" data-band="" style="--t:${t};--fs:${reads ? fit.size : (m.textSize ?? SIZE_DEFAULT)}px${reads ? `;--th:${fit.area}px` : ''}${m.phase === 'cover' ? `;--cv:${cv}` : ''}${card}"><span class="x xabs${m.hoverClose ? ' hot' : ''}">×</span>${inner}${fx}${glow}${end}</div>`
 }
 
 export const bandSvg = (m: BandModel) => {
@@ -253,18 +297,120 @@ export const bandSvg = (m: BandModel) => {
     + `<foreignObject x="0" y="0" width="${f.width}" height="${f.height}"><div xmlns="http://www.w3.org/1999/xhtml" class="wrap"${pad}>${bandHtml(m)}</div></foreignObject></svg>`
 }
 
-// The band's height in CSS pixels at a width, as the lab lays it out.
-export const bandHeight = (m: Pick<BandModel, 'phase' | 'thikrId' | 'period' | 'times' | 'textSize'>, width: number) => {
-  if (m.phase === 'done') return 56
+const SHRINK_AT = 1.05
+
+// The text's wrapped rows at a size (widths are measured at 16px; words wrap a little short of the full width).
+const rowsAt = (widths: readonly number[], size: number, room: number) =>
+  widths.reduce((sum, w) => sum + Math.max(1, Math.ceil((w * (size / 16) * SHRINK_AT) / room)), 0)
+
+// The cover is the same size as the open reading, its title and keys fitted to
+// the width: they shrink together, just enough, never below the floor (the
+// keys' 9px of 10.5px). Widths at full size (CSS px), measured in a browser.
+const COVER_TITLE_W = 100
+const COVER_KEYS_W = 295
+const COVER_GAP = 20
+export const coverFit = (width: number) => {
+  // The band's padding and the cover's take 46px.
+  const room = width - 46 - COVER_GAP
+  const k = room / (COVER_TITLE_W + COVER_KEYS_W)
+
+  return Math.round(Math.min(1, Math.max(9 / 10.5, k)) * 1000) / 1000
+}
+
+// How the open reading's text sits: one area, two lines of the person's size
+// tall for every thikr, the text centered in it. A thikr that does not fit at
+// that size shrinks, just enough that its rows fit the area, to FIT_MIN.
+export const fitOf = (m: Pick<BandModel, 'thikrId' | 'period' | 'textSize'>, width: number) => {
   const widths = TEXT_WIDTH[m.thikrId]
   const lines = m.period === 'evening' && widths?.e ? widths.e : widths?.m ?? [width]
-  const room = Math.max(120, width - 32)
-  // Words wrap a little short of the full width.
-  // Widths are measured at 16px; a line is 1.9 times the text's size.
-  const scale = (m.textSize ?? 16) / 16
-  const rows = lines.reduce((sum, w) => sum + Math.max(1, Math.ceil((w * scale * 1.05) / room)), 0)
-  const circles = m.times > 10 ? 30 : 24
-  const reading = Math.ceil(22 + rows * 30.4 * scale + 4 + circles + 6)
+  // Past the band's padding, and the room kept clear of the × and the moon.
+  const room = Math.max(120, width - 32 - READ_CLEAR)
+  const want = m.textSize ?? SIZE_DEFAULT
+  const area = Math.ceil(2 * READ_LINE * want)
+  let size = want
+  let rows = rowsAt(lines, size, room)
+  while (rows * READ_LINE * size > area && size > FIT_MIN) {
+    size -= 0.5
+    rows = rowsAt(lines, size, room)
+  }
 
-  return m.phase === 'cover' ? Math.max(76, reading) : reading
+  return { size, rows, area }
+}
+
+// The × hit area, in the band's own pixels from its top left; the folded row's is its whole height.
+export const closeArea = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight'>) => ({
+  x0: 0,
+  x1: 34,
+  y0: 0,
+  y1: isFolded(m) ? (m.restHeight ?? 30) : 30,
+})
+
+// A pointer position, in the region's cells, as pixels in the band's own box.
+export const pixelOf = (
+  m: Pick<BandModel, 'width' | 'height' | 'card' | 'drawWidth' | 'phase' | 'isActive' | 'restHeight'>,
+  x: number,
+  y: number,
+  columns: number,
+  rows: number,
+) => {
+  const f = frameOf(m)
+
+  return {
+    px: m.card ? (x + 0.5) * m.card.ch - f.left : ((x + 0.5) * f.width) / columns,
+    py: m.card ? (y + 0.5) * m.card.lh - f.top : ((y + 0.5) * f.height) / (rows + 0.5),
+  }
+}
+
+// The band's height in CSS pixels at a width: one fixed height for the open
+// reading and for the cover, whatever the thikr, the count or the width; it
+// follows only the person's text size. The folded row is shorter (restHeight),
+// the done row 56.
+export const bandHeight = (m: Pick<BandModel, 'phase' | 'thikrId' | 'period' | 'textSize'>, width: number) => {
+  if (m.phase === 'done') return 56
+
+  return FRAME_PX + READ_TOP + fitOf(m, width).area + READ_FOOT
+}
+
+// The done row: the verse on one line, then where it is from, smaller and
+// muted; the hint after them, in one line. When space is short the hint goes
+// first (the long one, then the short one), then the verse and its citation
+// shrink together, to FIT_MIN, never wrap. Priority: verse, citation, hint.
+const DONE_BASE = 19
+const DONE_GAP = 12
+const CITE_GAP = 6
+const HINT_PX = 11.5
+// The band's padding takes 2 * 24px, the × clearance 14px, the border 2px.
+const DONE_SIDES = 64
+const FIT_SAFETY = 1.04
+
+export const endWidth = (end: string, size: number) => {
+  const { verse, cite } = splitEnd(end)
+  const w = verse.length * END_VERSE_CHAR + (cite ? CITE_GAP + (cite.length + 2) * END_CITE_CHAR * END_CITE_EM : 0)
+
+  return w * (size / 16) * FIT_SAFETY
+}
+
+export const doneFit = (end: string, hint: string, width: number) => {
+  const room = Math.max(120, width - DONE_SIDES)
+  const hintWidth = (text: string) => text.length * HINT_CHAR * HINT_PX + DONE_GAP
+  const short = hint.replace(/ reset to read again$/, ' reset')
+  const options = [hint, short]
+  for (const option of options) {
+    if (endWidth(end, DONE_BASE) + hintWidth(option) <= room) return { size: DONE_BASE, hint: option }
+  }
+
+  let size = DONE_BASE
+  while (endWidth(end, size) > room && size > FIT_MIN) size -= 0.5
+
+  return { size, hint: '' }
+}
+
+// The finale's message, at 30px in the cover face, shrunk to the band's width.
+const RISE_BASE = 30
+export const finaleSize = (end: string, width: number) => {
+  const { verse, cite } = splitEnd(end)
+  const full = (verse.length * END_RISE_VERSE_CHAR + (cite ? CITE_GAP + (cite.length + 2) * END_RISE_CITE_CHAR * END_CITE_EM : 0)) * FIT_SAFETY
+  const room = Math.max(120, width - 40)
+
+  return Math.max(FIT_MIN, Math.min(RISE_BASE, Math.floor((room / (full / 16)) * 2) / 2))
 }

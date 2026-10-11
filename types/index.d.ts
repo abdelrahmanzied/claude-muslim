@@ -8,7 +8,6 @@ export type UsageLimit = { until: number | null }
 export type AthkarReading = {
   index: number
   counts: Record<string, number>
-  choices: Record<string, number>
   isDone: boolean
   isHidden: boolean
 }

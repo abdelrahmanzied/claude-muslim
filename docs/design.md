@@ -79,13 +79,14 @@ Full text with tashkeel: `src/features/thikr/phrases.ts`.
 
 ## Morning and evening athkar (0.3.0)
 
-A reader above the prompt for the morning athkar (05:00 to 17:00) and the evening athkar (17:00 to 05:00), from Hisn al-Muslim 75 to 98 (`src/features/athkar/data.ts`). 93 is the same words as 92, so they are one thikr with a ١٠ | ١٠٠ choice; 91 and 98 have the choice too.
+A reader above the prompt for the morning athkar (05:00 to 17:00) and the evening athkar (17:00 to 05:00), from Hisn al-Muslim 75 to 98 (`src/features/athkar/data.ts`). 93 is the same words as 92, so they are one thikr. Counts come only from the data file: 91 and 92 a hundred, 98 ten.
 
 ### Reading
 
 - **Cover:** the title (أَذْكَارُ الصَّبَاحِ or أَذْكَارُ الْمَسَاءِ) and the keys. The first click opens the reader and never counts.
 - **Count:** click, Space or Enter adds one. Right click or Backspace takes one back, or goes to the thikr before at 0. ← next, → previous (Arabic reads right to left). Esc gives the prompt back.
-- **Circles:** one per count up to 10, numbered in Arabic-Indic digits. A count above 10 shows ten circles of a tenth each; the one being counted fills in the main color with a white number.
+- **Count on the line:** no circles. The progress line along the bottom shows the whole set; a small pill on its glowing head shows the repetitions left on this thikr in Arabic-Indic digits (٣ then ٢, ١, ٠; ١ for a thikr said once), easing along with the head and kept clear of both ends of the line. The set position (e.g. ١٦ مِنْ ٢٢) sits small and muted at the line's left end. In the terminal the head is `` ٢ `` on the main color.
+- **Sizes (desktop):** the open reading and the cover are one fixed height for every thikr, 77px at the default 14px size (it follows only the text size). The words fit their box at your size, or shrink just enough, to a floor of 9px; the cover's title and keys fit the width the same way. Faded, the reading folds to one row; the done row is 56px.
 - **Moves on** by itself 650 ms after a thikr's last count.
 - **Progress:** Horizon glow, a soft line along the bottom filled from the right, its head pulsing slowly and easing forward on each count. Each thikr is an equal share, partial counts included: `Σ min(count / times, 1) / n`.
 - **End:** ﴿رَبَّنَا تَقَبَّلْ مِنَّا إِنَّكَ أَنتَ السَّمِيعُ الْعَلِيمُ﴾ — البقرة ١٢٧ on the right, `/athkar morning reset to read again` on the left, and on desktop stars fall across the sky. A click hides it.
@@ -100,7 +101,7 @@ A reader above the prompt for the morning athkar (05:00 to 17:00) and the evenin
 | Sky | terminal | The same sky's color as a plain background. |
 | Sand, Outline | both | A sand background or a main-color outline; the frame breathes while reading. |
 
-On every sky: open circles ringed in the main color, done circles filled with a white number, the 10 | 100 switch's picked side filled, the other white. Sunrise takes dark words; every other sky white.
+On every sky the pill is the main color with a white number. Sunrise takes dark words; every other sky white.
 
 ### Settings
 
@@ -109,7 +110,7 @@ On every sky: open circles ringed in the main color, done circles filled with a 
 | `athkar` | `/athkar on` · `off` | on |
 | `athkarStyle` | `/athkar style sky` · `sand` · `outline` | sky |
 | `athkarColor` | `/athkar color orange` · `green` · `gold` · `blue` | orange |
-| `athkarSize` | `/athkar size 12` … `28` | 16 |
+| `athkarSize` | `/athkar size 12` … `28` | 14 |
 
 `/athkar morning reset` · `/athkar evening reset` start that period again. `/athkar` shows the status and help.
 

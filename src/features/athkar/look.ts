@@ -46,7 +46,7 @@ export type Look = {
   track: string
   // Behind the reader; none where a picture or the page shows through.
   background?: string
-  // What a filling circle blends from.
+  // The color under the reader, which the frame's breathing blends from.
   under: string
 }
 
@@ -95,14 +95,6 @@ export const lookFor = (style: Style, accent: Accent, sky: Sky, isDark: boolean,
   }
 }
 
-export type Circle = {
-  label: string
-  // open: still to say; done: said; filling: the 100's circle being counted.
-  state: 'open' | 'done' | 'filling'
-  // The filling circle's color, deeper as it fills.
-  fill?: string
-}
-
 export type ReaderProps = {
   period: Period
   phase: 'cover' | 'reading' | 'done'
@@ -118,33 +110,12 @@ export type ReaderProps = {
   text: string
   note?: string
   position: string
-  circles: Circle[]
-  choices: { label: string; times: number; isPicked: boolean }[]
+  // The repetitions left on this thikr, Arabic-Indic: the progress line's head carries it.
+  left: string
   // The whole period, 0 to 1.
   progress: number
   end: string
   endHint: string
-}
-
-// Up to ten circles, one per count; a count above ten shows ten circles of a
-// tenth each, the one being counted filling like water.
-export const circlesFor = (n: number, times: number, look: Look): Circle[] => {
-  if (times <= 10) {
-    return Array.from({ length: times }, (_, i) => ({ label: arabicDigits(i + 1), state: i < n ? 'done' : 'open' }))
-  }
-  const per = times / 10
-  const done = Math.floor(n / per)
-
-  return Array.from({ length: 10 }, (_, i): Circle => {
-    if (i < done) return { label: arabicDigits((i + 1) * per), state: 'done' }
-    if (i === done && n < times) {
-      const level = (n % per) / per
-
-      return { label: arabicDigits(n), state: 'filling', fill: blend(look.under, look.ring, 0.35 + 0.65 * level) }
-    }
-
-    return { label: arabicDigits((i + 1) * per), state: 'open' }
-  })
 }
 
 // A Client's props are plain data: no undefined anywhere.
@@ -160,7 +131,7 @@ export const readerProps = (
   const list = listFor(period)
   const thikr = currentOf(period, reading)
   const n = countOf(thikr, reading)
-  const times = timesOf(thikr, reading)
+  const times = timesOf(thikr)
 
   return plain({
     period,
@@ -173,8 +144,7 @@ export const readerProps = (
     text: display(textOf(thikr, period)),
     note: thikr.note?.split(' · ')[0],
     position: `${arabicDigits(Math.min(reading.index, list.length - 1) + 1)} مِنْ ${arabicDigits(list.length)}`,
-    circles: circlesFor(Math.min(n, times), times, look),
-    choices: (thikr.choices ?? []).map(c => ({ label: arabicDigits(c), times: c, isPicked: c === times })),
+    left: arabicDigits(Math.max(0, times - n)),
     progress: overall(period, reading),
     end: display(END),
     endHint: `/athkar ${period} reset to read again`,

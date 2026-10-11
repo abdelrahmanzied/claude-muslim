@@ -2,7 +2,7 @@
 
 ## 0.3.0
 
-- Morning and evening athkar: a reader above the prompt for Hisn al-Muslim 75–98, morning 05:00–17:00 and evening 17:00–05:00. A cover with the keys, then click, Space or Enter to count, right click or Backspace to take one back, ← → to move. Numbered circles; a 100 fills ten circles. Moves on after a thikr's last count. 92 and 93 are one thikr with a 10 | 100 choice, as are 91 and 98.
+- Morning and evening athkar: a reader above the prompt for Hisn al-Muslim 75–98, morning 05:00–17:00 and evening 17:00–05:00. A cover with the keys, then click, Space or Enter to count, right click or Backspace to take one back, ← → to move. The repetitions left ride on the progress line's head as a small pill. Moves on after a thikr's last count. 92 and 93 are one thikr with a 10 | 100 choice, as are 91 and 98.
 - Sky look (default): on desktop a sky that follows the time of day with slow motion; a plain sky color in the terminal. Sand and Outline looks. Main color orange, green, gold or blue.
 - Horizon glow progress, by thikr with partial counts. ﴿رَبَّنَا تَقَبَّلْ مِنَّا﴾ at the end, with falling stars on desktop.
 - Reading saved per day and period; × hides the band and keeps it. `/athkar` command: on/off, style, color, `morning|evening reset`.
