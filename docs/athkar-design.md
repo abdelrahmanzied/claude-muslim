@@ -44,6 +44,14 @@ The band is lit while the person uses it, by mouse or keyboard, and folds by its
 
 Counting by keys with the pointer on the band keeps it open until the pointer leaves (rule 1) or rule 6.
 
+## End
+
+- The finale (desktop): falling stars, and the end verse ﴿رَبَّنَا تَقَبَّلْ مِنَّا إِنَّكَ أَنتَ السَّمِيعُ الْعَلِيمُ﴾ rising centered with — البقرة ١٢٧, at a fixed 18px.
+- After it, the done row: the verse and — البقرة ١٢٧ on the right, the reset hint (`/athkar morning reset to read again`) on the left.
+- The end verse is always in the words' face (Tajawal), in the finale and the done row alike.
+- Its color: on a sky, the words' color (white or dark, as the sky's text); on Outline, the main color (the frame's and the progress line's).
+- Faded, the done row folds to one slim row like the reading: the verse alone, no reference. The finale (falling stars) never folds.
+
 ## Looks
 
 - Two styles: Sky (default) and Outline. Sand was dropped.

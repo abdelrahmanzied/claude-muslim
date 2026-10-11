@@ -4,7 +4,7 @@ import { AREF_RUQAA_BOLD, TAJAWAL_BOLD, TAJAWAL_REGULAR } from './fonts.ts'
 import type { Sky } from './logic.ts'
 import type { Accent, Style } from './look.ts'
 import { SIZE_DEFAULT } from '../../config.ts'
-import { END_CITE_CHAR, END_CITE_EM, END_RISE_CITE_CHAR, END_RISE_VERSE_CHAR, END_VERSE_CHAR, HINT_CHAR, TEXT_WIDTH } from './metrics.ts'
+import { END_CITE_CHAR, END_CITE_EM, END_VERSE_CHAR, HINT_CHAR, TEXT_WIDTH } from './metrics.ts'
 
 // The desktop band: the athkar lab's band, drawn as HTML and CSS inside one
 // SVG document (an interactive Svg runs CSS animation; no script). Clicks and
@@ -64,15 +64,16 @@ export type BandModel = {
 const CARD_X = 8
 const cardY = (lh: number) => Math.max(0, (40 - lh) / 2)
 
-// The reading and the cover fold to one row while faded; a press lights them and they open.
-export const isFolded = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight'>) =>
-  (m.phase === 'reading' || m.phase === 'cover') && !m.isActive && m.restHeight !== undefined
+// The reading, the cover and the done row fold to one row while faded; a press
+// lights them and they open. The finale never folds.
+export const isFolded = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' | 'finaleMs'>) =>
+  !m.isActive && m.restHeight !== undefined && (m.phase !== 'done' || m.finaleMs === undefined)
 
 // The height the band stands at now: the folded row, or the full band.
-export const heightOf = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' | 'height'>) => (isFolded(m) ? (m.restHeight ?? m.height) : m.height)
+export const heightOf = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' | 'height' | 'finaleMs'>) => (isFolded(m) ? (m.restHeight ?? m.height) : m.height)
 
 // The picture's size, and where the band's own box starts in it.
-export const frameOf = (m: Pick<BandModel, 'width' | 'height' | 'card' | 'drawWidth' | 'phase' | 'isActive' | 'restHeight'>) => {
+export const frameOf = (m: Pick<BandModel, 'width' | 'height' | 'card' | 'drawWidth' | 'phase' | 'isActive' | 'restHeight' | 'finaleMs'>) => {
   const tall = heightOf(m)
   if (!m.card) return { width: m.width, height: tall, left: 0, top: 0, padX: 0, padY: 0, addX: 0, addY: 0 }
   const { ch, lh } = m.card
@@ -169,8 +170,11 @@ const EXTRA_CSS = `
 .endfx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; border-radius: inherit; }
 .fall { position: absolute; top: -30px; color: var(--ring); animation: fall linear forwards; opacity: .9; }
 @keyframes fall { to { transform: translateY(var(--dy)) rotate(var(--rot)); opacity: 0; } }
-.rise-msg { position: absolute; left: 50%; bottom: 24px; font-family: var(--font-cover); font-size: var(--rs, 30px); white-space: nowrap; direction: rtl; color: var(--ring); text-shadow: 0 0 18px color-mix(in srgb, var(--ring) 70%, transparent); opacity: 0; animation: riseMsg 2.8s ease-out both; }
+.rise-msg { position: absolute; left: 50%; bottom: 24px; font-family: var(--font-band, var(--font-ar)); font-size: var(--rs, 30px); white-space: nowrap; direction: rtl; color: var(--b-ink); text-shadow: 0 0 18px color-mix(in srgb, var(--ring) 70%, transparent); opacity: 0; animation: riseMsg 2.8s ease-out both; }
 @keyframes riseMsg { 0% { opacity: 0; transform: translate(-50%, 30px); } 30% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -110px); } }
+/* The end verse: on a sky the words' color, on Outline the main color, as
+   the frame and the progress line. The finale's is in the words' face too. */
+.band.bg-outline .done-row .big, .band.bg-outline .rise-msg, .band.bg-outline .dn-peek .pk-text { color: var(--b-acc); }
 /* Skies have no edge line, colored or white: the picture is the edge. */
 .band.band.band.sky, .band.band.band.sky.edge:not(.framed) { border-color: transparent !important; }
 /* Outline: at rest the app's own quiet line; lit, the accent line
@@ -221,6 +225,9 @@ const splitEnd = (end: string) => {
   return at < 0 ? { verse: end, cite: '' } : { verse: end.slice(0, at), cite: end.slice(at + 3) }
 }
 
+// The folded done row: the verse alone.
+const foldedDone = (m: BandModel) => `<div class="peek dn-peek"><span class="pk-text">${esc(splitEnd(m.end).verse)}</span></div>`
+
 const done = (m: BandModel) => {
   const { verse, cite } = splitEnd(m.end)
   const fit = doneFit(m.end, m.endHint, m.width)
@@ -230,6 +237,7 @@ const done = (m: BandModel) => {
   return `<div class="done-row" style="--ds:${fit.size}px"><span class="big">${esc(verse)}${citation}</span>${hint}</div>`
 }
 
+// The finale shows the verse centered, and where it is from.
 const riseHtml = (end: string) => {
   const { verse, cite } = splitEnd(end)
 
@@ -241,8 +249,8 @@ const GLYPHS = ['✦', '✧', '⋆', '✦', '☾']
 // Stars falling once over the band; placed by index, and started back by how
 // far the finale has gone, so a redraw carries them on.
 const falling = (height: number, ms: number) =>
-  Array.from({ length: 26 }, (_, i) => {
-    const left = (i * 37) % 96
+  Array.from({ length: 36 }, (_, i) => {
+    const left = (i * 37) % 97
     const size = 10 + ((i * 7) % 14)
     const dy = Math.round(height * (0.55 + ((i * 13) % 40) / 100))
     const rot = ((i * 41) % 180) - 90
@@ -268,7 +276,7 @@ const fontFace = (family: string, weight: number, data: string) =>
 
 export const bandHtml = (m: BandModel) => {
   const isFinale = m.phase === 'done' && m.finaleMs !== undefined
-  const inner = isFinale ? '' : m.phase === 'cover' ? (isFolded(m) ? foldedCover(m) : cover(m)) : m.phase === 'done' ? done(m) : isFolded(m) ? folded(m) : reading(m)
+  const inner = isFinale ? '' : m.phase === 'cover' ? (isFolded(m) ? foldedCover(m) : cover(m)) : m.phase === 'done' ? (isFolded(m) ? foldedDone(m) : done(m)) : isFolded(m) ? folded(m) : reading(m)
   const fx = m.style === 'sky' ? `<span class="fx">${SKY_FX[m.sky]}</span>` : ''
   const hasLine = m.phase === 'reading' || (m.phase === 'cover' && isFolded(m))
   const progress = hasLine ? m.progress : 100
@@ -363,7 +371,7 @@ export const fitOf = (m: Pick<BandModel, 'thikrId' | 'period' | 'textSize'>, wid
 }
 
 // The × hit area, in the band's own pixels from its top left; the folded row's is its whole height.
-export const closeArea = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight'>) => ({
+export const closeArea = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' | 'finaleMs'>) => ({
   x0: 0,
   x1: 34,
   y0: 0,
@@ -372,7 +380,7 @@ export const closeArea = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight'
 
 // A pointer position, in the region's cells, as pixels in the band's own box.
 export const pixelOf = (
-  m: Pick<BandModel, 'width' | 'height' | 'card' | 'drawWidth' | 'phase' | 'isActive' | 'restHeight'>,
+  m: Pick<BandModel, 'width' | 'height' | 'card' | 'drawWidth' | 'phase' | 'isActive' | 'restHeight' | 'finaleMs'>,
   x: number,
   y: number,
   columns: number,
@@ -430,12 +438,5 @@ export const doneFit = (end: string, hint: string, width: number) => {
   return { size, hint: '' }
 }
 
-// The finale's message, at 30px in the cover face, shrunk to the band's width.
-const RISE_BASE = 30
-export const finaleSize = (end: string, width: number) => {
-  const { verse, cite } = splitEnd(end)
-  const full = (verse.length * END_RISE_VERSE_CHAR + (cite ? CITE_GAP + (cite.length + 2) * END_RISE_CITE_CHAR * END_CITE_EM : 0)) * FIT_SAFETY
-  const room = Math.max(120, width - 40)
-
-  return Math.max(FIT_MIN, Math.min(RISE_BASE, Math.floor((room / (full / 16)) * 2) / 2))
-}
+// The finale's verse: a fixed 18px, whatever the width.
+export const finaleSize = (_end: string, _width: number) => 18

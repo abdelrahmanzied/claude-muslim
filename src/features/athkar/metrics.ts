@@ -35,14 +35,12 @@ export const TEXT_WIDTH: Record<string, { m: readonly number[]; e?: readonly num
 }
 
 // The end message (logic.ts END) at 16px, measured in a browser: its verse
-// is 251px in Tajawal (the done row) and 214px in the cover face (the finale),
-// 63 characters; the citation '— البقرة ١٢٧' (12 characters) 78px in either.
+// is 251px in Tajawal (the done row and the finale), 63 characters; the
+// citation '— البقرة ١٢٧' (12 characters) 78px.
 // Per character, so any text of the same kind is worked out the same way. The
 // citation is set at END_CITE_EM of the verse's size, and the hint's mono font
 // is HINT_CHAR em a character. Remeasure when the end message changes.
 export const END_VERSE_CHAR = 3.99
 export const END_CITE_CHAR = 6.47
-export const END_RISE_VERSE_CHAR = 3.4
-export const END_RISE_CITE_CHAR = 6.56
 export const END_CITE_EM = 0.7
 export const HINT_CHAR = 0.602

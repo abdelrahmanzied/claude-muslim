@@ -49,3 +49,25 @@ test('the folded hint fits the width, 13px down to the 9px floor', () => {
   expect(foldedHintSize('click to continue', 200)).toBeLessThan(13)
   expect(foldedHintSize('click to continue', 60)).toBe(9)
 })
+
+test('the done row folds too while faded: the verse on one slim row; the finale never folds', () => {
+  const end = '﴿رَبَّنَا تَقَبَّلْ مِنَّا﴾ — البقرة ١٢٧'
+  const faded = cover({ phase: 'done', end })
+  const lit = cover({ phase: 'done', end, isActive: true })
+  expect(heightOf(faded)).toBe(24)
+  expect(heightOf(lit)).toBe(56)
+  const svg = bandSvg(faded)
+  expect(svg).toContain('class="peek dn-peek"')
+  expect(svg).toContain('رَبَّنَا')
+  expect(svg).not.toContain('البقرة')
+  expect(svg).not.toContain('class="done-row')
+  expect(bandSvg(lit)).toContain('class="done-row"')
+  const finale = cover({ phase: 'done', end, finaleMs: 500 })
+  expect(isFolded(finale)).toBe(false)
+})
+
+test('the end verse takes the athkar text color and face, not the main color', () => {
+  const svg = bandSvg(cover({ phase: 'done', isActive: true }))
+  expect(svg).toMatch(/\.done-row \.big \{[^}]*color: var\(--b-ink\)/)
+  expect(svg).toMatch(/\.done-row \.big \{[^}]*font-family: var\(--font-band/)
+})

@@ -104,7 +104,7 @@ test('every band picture fits the size limit and carries its fonts', async () =>
   // The finale carries the stars and the rising dua; the done row after it is still.
   expect(bandSvg(model({ phase: 'done', finaleMs: 0 }))).toContain('class="rise-msg"')
   expect(bandSvg(model({ phase: 'done', finaleMs: 0 }))).toContain('class="fall"')
-  expect(bandSvg(model({ phase: 'done' }))).toContain('class="done-row"')
+  expect(bandSvg(model({ phase: 'done', isActive: true }))).toContain('class="done-row"')
   expect(bandSvg(model({ phase: 'done' }))).not.toContain('class="fall"')
   // The lab's gallery card rule would paint over the sky on the done row.
   expect(bandSvg(model({ phase: 'done' }))).not.toContain('.card {background: var(--panel)')
@@ -262,7 +262,7 @@ test('the basmala stays unnumbered and Ayat al-Kursi carries its verse number', 
   expect(kursi.endsWith('الْعَظِيمُ (٢٥٥)')).toBe(true)
 })
 
-test('the end verse stays on one line: the hint goes first, then the verse shrinks to fit', async () => {
+test('the done row: the verse and its citation on one line, the hint going first, then the verse shrinks', async () => {
   const hint = '/athkar evening reset to read again'
   const wide = doneFit(END, hint, 860)
   expect(wide.size).toBe(19)
@@ -273,18 +273,30 @@ test('the end verse stays on one line: the hint goes first, then the verse shrin
     expect(fit.size).toBeGreaterThanOrEqual(9)
     // The hint is dropped before the verse shrinks.
     if (fit.hint === '') expect(doneFit(END, '', width).size).toBe(fit.size)
-    const html = bandSvg(model({ phase: 'done', end: END, endHint: hint, width }))
+    const html = bandSvg(model({ phase: 'done', isActive: true, end: END, endHint: hint, width }))
     expect(html).toContain(`--ds:${fit.size}px`)
     expect(html).toContain('class="cite"')
     expect(html).toContain('white-space: nowrap')
   }
   expect(doneFit(END, hint, 380).hint).toBe('')
-  expect(doneFit(END, hint, 380).size).toBeLessThan(19)
   expect(doneFit(END, hint, 100).size).toBeGreaterThanOrEqual(9)
-  // The finale's message stays one line, shrunk to the width.
-  expect(finaleSize(END, 860)).toBeLessThanOrEqual(30)
-  expect(finaleSize(END, 380)).toBeLessThan(finaleSize(END, 860))
-  expect(finaleSize(END, 380)).toBeGreaterThanOrEqual(9)
+})
+
+test('the finale: the verse and its citation, centered, in the words face, a fixed 18px', async () => {
+  const html = bandSvg(model({ phase: 'done', end: END, finaleMs: 500 }))
+  const rise = html.slice(html.indexOf('<span class="rise-msg"'))
+  expect(rise).toContain('رَبَّنَا')
+  expect(rise).toContain('البقرة')
+  expect(html).toMatch(/\.rise-msg \{[^}]*left: 50%[^}]*font-family: var\(--font-band/)
+  for (const width of [300, 500, 860, 1400]) expect(finaleSize(END, width)).toBe(18)
+})
+
+test('the end verse takes the words color on a sky, the main color on Outline', async () => {
+  const sky = bandSvg(model({ phase: 'done', isActive: true, end: END, style: 'sky' }))
+  expect(sky).toMatch(/\.done-row \.big \{[^}]*color: var\(--b-ink\)/)
+  expect(sky).toMatch(/\.rise-msg \{[^}]*color: var\(--b-ink\)/)
+  expect(sky).toContain('.band.bg-outline .done-row .big, .band.bg-outline .rise-msg, .band.bg-outline .dn-peek .pk-text { color: var(--b-acc); }')
+  expect(bandSvg(model({ phase: 'done', isActive: true, end: END, style: 'outline' }))).toContain('bg-outline')
 })
 
 test('the look is sky or outline; the dropped sand falls back to sky', () => {

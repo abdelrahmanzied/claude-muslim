@@ -100,7 +100,7 @@ button:focus-visible {outline: 2px solid var(--accent); outline-offset: 2px;}
 .band.card {padding: 12px 16px; display: grid; gap: 10px;}
 .done-row {display: flex; justify-content: space-between; align-items: center; gap: 12px; direction: rtl; flex-wrap: nowrap; min-width: 0;}
 .done-row .done-hint {direction: ltr; font-family: var(--font-mono); flex: none; white-space: nowrap; font-size: 11.5px;}
-.done-row .big {font-family: var(--font-ar); font-size: var(--ds, 19px); color: var(--b-acc); white-space: nowrap; flex: none;}
+.done-row .big {font-family: var(--font-band, var(--font-ar)); font-size: var(--ds, 19px); color: var(--b-ink); white-space: nowrap; flex: none;}
 .done-row .cite, .rise-msg .cite {font-size: .7em; color: var(--b-dim); margin-inline-start: 6px; text-shadow: none;}
 .fx {position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 5;}
 .kc {display: inline-grid; place-items: center; min-width: 16px; height: 16px; padding: 0 4px; border: 1px solid var(--b-dim); border-bottom-width: 2px; border-radius: 4px; font: 500 9.5px/1 var(--font-mono); color: var(--b-dim); opacity: .85;}

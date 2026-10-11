@@ -134,7 +134,7 @@ const isMessage = (value: unknown): value is Message => {
 // anywhere else counts or opens the band.
 type Hit = { x0: number; x1: number; y0: number; y1: number; act: Act }
 
-export const hitsFor = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight'>): Hit[] => [{ ...closeArea(m), act: { act: 'hide' } }]
+export const hitsFor = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' | 'finaleMs'>): Hit[] => [{ ...closeArea(m), act: { act: 'hide' } }]
 
 // This session's view: past the cover, lit, and when it fades.
 const view = {
@@ -286,6 +286,13 @@ export const install = (on: On, options: Options) => {
     const isBack = m.act === 'pointer' ? m.button === 'right' : m.key === 'backspace'
     const isCount = m.act === 'pointer' ? m.button === 'left' : m.key === ' ' || m.key === 'space' || m.key === 'return'
     if (reading.isDone) {
+      // A press on the folded done row only opens it.
+      if (!view.isActive) {
+        if (isCount) wake($)
+
+        return {}
+      }
+      wake($)
       if (isBack) await apply($, { act: 'back' })
 
       return {}

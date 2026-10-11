@@ -133,8 +133,9 @@ const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
 
   if (props.phase === 'done') {
     return shell([
-      <Box key="done" flexDirection="row-reverse" justifyContent="space-between" alignItems="center" paddingY={1} gap={2}>
-        <Text bold color={look.ring} wrap="wrap">{props.end}</Text>
+      // Faded, it folds to one line.
+      <Box key="done" flexDirection="row-reverse" justifyContent="space-between" alignItems="center" paddingY={isLit ? 1 : 0} gap={2}>
+        <Text bold color={look.style === 'sky' ? look.ink : look.ring} wrap={isLit ? 'wrap' : 'truncate-end'}>{props.end}</Text>
         <Text color={look.dim} wrap="truncate-end">{props.endHint}</Text>
       </Box>,
     ])
