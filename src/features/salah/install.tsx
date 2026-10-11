@@ -1,6 +1,6 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
-import type { SalahMinaret, SalahWindow } from '../../../types'
+import type { SalahMinaret, SalahTestCard, SalahWindow } from '../../../types'
 
 import { ADJUST_MAX, isMethod, REMINDER_MAX, REMINDER_MIN, writeAdjust } from '../../config.ts'
 import type { Options } from '../../config.ts'
@@ -13,6 +13,7 @@ import { writePlace, type Place } from './place.ts'
 import { athanText, isInWindow, reminderText, prayerLine } from '../../shared/pray/line.ts'
 import { ACCENT_ROWS, FRAME_MS, HOLD_MS, isDue, LABEL_ROW, minaretRows, ROWS_COUNT } from './minaret.ts'
 import { nudge, reviewRows } from './review.ts'
+import { CARD_HEIGHT, CARD_MS, CARD_WIDTH, testCardSvg } from './testcard.ts'
 import { clockText, lastPrayer, nextSalah, type Adjust } from './times.ts'
 import { dayLine, methodOf } from './today.ts'
 
@@ -30,6 +31,8 @@ const inWindow = atom({ plugin: 'muslim', key: 'salahWindow' } as const, null as
 const minaret = atom({ plugin: 'muslim', key: 'salahMinaret' } as const, null as SalahMinaret | null)
 // The prayer line drawn in the footer's mode labels; null when there is none.
 const line = atom({ plugin: 'muslim', key: 'salahLine' } as const, null as string | null)
+// The desktop test card of `/salah athan test` while it shows; null otherwise.
+const testCard = atom({ plugin: 'muslim', key: 'salahTestCard' } as const, null as SalahTestCard | null)
 const athanShown = atom({ plugin: 'muslim', key: 'salahAthanShown' } as const, null as number | null)
 
 // How often the prayer line is redrawn: every second inside the reminder
@@ -158,6 +161,28 @@ const playMinaret = async ($: EngineInterface, prayer: SalahMinaret['prayer']) =
   $.clock.after(ROWS_COUNT * FRAME_MS + HOLD_MS, () => void update($, minaret, () => null))
 }
 
+// `/salah athan test`: plays the athan moment now for the next prayer, without
+// touching settings or the shown-once mark. On the desktop it also shows a test
+// card with a photo, read from the mod's own file; undefined if it cannot be read.
+const PHOTO = 'src/features/salah/assets/haram.jpg'
+
+const readPhoto = async ($: EngineInterface): Promise<string | undefined> => {
+  const read = await $.fs.read(`${$.plugin.root}/${PHOTO}`, { as: 'bytes' }).catch(() => undefined)
+
+  return typeof read === 'object' ? read.base64 : undefined
+}
+
+const playTest = async ($: EngineInterface, options: Options, place: Place, photo: { base64: string | undefined }) => {
+  const next = nextSalah(place, methodOf(options, place), options.salahAdjust, await $.clock.now())
+  const prayer = next.prayer === 'sunrise' ? 'fajr' : next.prayer
+  photo.base64 = await readPhoto($)
+  await playMinaret($, prayer)
+  await update($, testCard, () => ({ prayer, time: clockText(next.at, place.timeZone) }))
+  $.clock.after(CARD_MS, () => void update($, testCard, () => null))
+
+  return `Playing the athan moment for ${ENGLISH[prayer]}${photo.base64 ? '' : ' (the test card photo could not be read)'}.`
+}
+
 // Tells the thikr line which prayer's window we are in; writes only on a change.
 const publishWindow = async ($: EngineInterface, moment: SalahWindow | null) => {
   const current = await read($, inWindow)
@@ -186,6 +211,8 @@ export const install = (on: On, options: Options) => {
   let hasTicker = false
   const timer: Timer = { handle: undefined, ms: 0, opens: undefined }
   let isLineCleared = false
+  // The test card's photo (base64), read when the test starts.
+  const photo: { base64: string | undefined } = { base64: undefined }
 
   on('command.run', { command: 'salah' }, async ($, e) => {
     const [word = '', first = '', second = ''] = e.args.trim().split(/\s+/)
@@ -214,6 +241,12 @@ export const install = (on: On, options: Options) => {
       return set('salahReminder', minutes, `reminder ${minutes} min before each prayer`)
     }
     if (word === 'always' || word === 'reminder' || word === 'off') return set('salah', word, `salah ${word}`)
+    if (word === 'athan' && first === 'test') {
+      const place = options.salahPlace
+      if (!place) return { text: 'Set your city first: /salah city' }
+
+      return { text: await playTest($, options, place, photo) }
+    }
     if (word === 'athan' && (first === 'on' || first === 'off')) return set('salahAthan', first === 'on', `athan ${first}`)
     if (word === 'city') {
       const typed = e.args.trim().slice('city'.length).trim()
@@ -337,6 +370,29 @@ export const install = (on: On, options: Options) => {
             {i === LABEL_ROW && playing.frame >= ROWS_COUNT - LABEL_ROW ? <Text color="claude">{athanText(playing.prayer)}</Text> : null}
           </Box>
         ))}
+        {theirs}
+      </Box>
+    )
+  })
+
+  // The desktop test card of `/salah athan test`: a photo card, drawn as an Svg.
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    const theirs = await next(e)
+    const card = await read($, testCard)
+    if (!card || !photo.base64 || e.surface !== 'desktop' || e.props.hasSurvey) return theirs
+    const { Box, Svg } = $.ui.resolve(e)
+
+    return (
+      <Box flexDirection="column">
+        <Box key="salah-test-card">
+          <Svg
+            source={testCardSvg(photo.base64, card.prayer, card.time)}
+            alt={`Test card: ${athanText(card.prayer)}`}
+            width={CARD_WIDTH}
+            height={CARD_HEIGHT}
+            isInteractive
+          />
+        </Box>
         {theirs}
       </Box>
     )

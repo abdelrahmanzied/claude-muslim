@@ -14,6 +14,9 @@ export type SalahWindow = { prayer: 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha
 // The terminal minaret while it plays: the prayer and how many rows (1 to 7) have risen.
 export type SalahMinaret = { prayer: SalahWindow['prayer']; frame: number }
 
+// The desktop test card of `/salah athan test` while it shows.
+export type SalahTestCard = { prayer: SalahWindow['prayer']; time: string }
+
 declare module 'claude-code' {
   interface PluginState {
     muslim: {
@@ -28,6 +31,7 @@ declare module 'claude-code' {
       // The prayer time (ms since epoch) whose minaret has played, so it plays once.
       salahAthanShown: number | null
       salahMinaret: SalahMinaret | null
+      salahTestCard: SalahTestCard | null
       // The prayer line drawn as its own row above the prompt, else null.
       salahLine: string | null
     }

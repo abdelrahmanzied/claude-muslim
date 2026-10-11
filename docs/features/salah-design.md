@@ -18,6 +18,7 @@ The salah feature's own design. It adds to the shared base in [DESIGN.md](../../
   ```
 
   The seven rows keep their height while it rises, it shows once per prayer (state `salahAthanShown`), never during a survey, and `salahAthan` off drops it.
+- **Test path.** `/salah athan test` plays the athan moment on demand for the next prayer, without changing settings or marking it shown. On the desktop it also draws a small test card (a photo behind the call, a thin shrinking bar), the live check that a photo can sit inside a vector drawing there; it is a test, not the final desktop look.
 - **Desktop popup: planned, not built.** A card at the top right of the desktop with a photo of the Haram behind the text, to replace the minaret there. It shows «حان وقت صلاة العصر» and the time «العصر · ١٥:٥٩» in one calligraphic font and one colour, with Arabic digits. A thin bar in Claude's accent colour runs down along the bottom while the card shows, then the card closes by itself. Pending a live test that a photo shows inside `Svg` on desktop; until then the desktop shows the same text minaret, and the terminal always keeps the rising text minaret.
 
 **Why:** prayer time is a few moments a day and worth marking; the rest of the day salah stays a quiet line.

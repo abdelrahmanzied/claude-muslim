@@ -56,7 +56,7 @@ Prayer times for the user's city, calculated on their machine with
 
 `/salah` shows place · method · mode, today's times and a hint to `/salah help`.
 `/salah help` is a table of every subcommand: `always` · `reminder` · `off`,
-`reminder <5-60>`, `athan on` · `off`, `city` (the setup question) and
+`reminder <5-60>`, `athan on` · `off`, `athan test` (plays the athan moment now for the next prayer, changes nothing; on the desktop it also shows a small photo test card for a few seconds), `city` (the setup question) and
 `city <name or lat, lng>`, `method <auto or name>`, `adjust` and
 `adjust <prayer> <±min>`. An unknown word answers with the table.
 `/muslim help` shows the tables of thikr and salah; `/muslim help salah` only salah's.
@@ -89,6 +89,7 @@ Surfaces, the athan moment's look and what salah never does: [salah-design.md](s
 | `place.ts` | the saved place's one-setting format |
 | `review.ts` | the review form's rows |
 | `minaret.ts` | the minaret's rows, frame timing and when it is due |
+| `testcard.ts` | the desktop test card of `athan test` (Svg markup around a photo in `assets/`) |
 | `today.ts` | today's line for `/salah` and the method in effect |
 
 Shared with thikr, in `src/shared/pray/`: `names.ts` (prayer names in English and Arabic, the `Prayer` type) and `line.ts` (the prayer line, countdown, reminder text, Arabic digits). Neither feature imports the other's folder.
