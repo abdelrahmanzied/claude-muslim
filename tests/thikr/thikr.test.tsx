@@ -2,7 +2,7 @@ import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
 import { END_OF_TURN, LONG, SALAWAT, STARTING, THINKING, USAGE_LIMIT, WRITING } from '../../src/features/thikr/phrases.ts'
-import { stripTashkeel } from '../../src/features/thikr/rotation.ts'
+import { stripTashkeel } from '../../src/shared/arabic/visual.ts'
 
 const SURFACES = ['terminal', 'desktop'] as const
 
@@ -198,7 +198,7 @@ test('desktop keeps the step row\'s words after its tool ends', async ($, on) =>
   expect(words).toEqual([THINKING[0], `Running a command · ${THINKING[0]}`, `Running a command · ${THINKING[0]}`, THINKING[0]])
 })
 
-test('tashkeel off strips the marks', { options: { thikrTashkeel: false } }, async ($, on) => {
+test('global tashkeel off strips the marks', { options: { tashkeel: false } }, async ($, on) => {
   mock.store(on, { arabicTerminals: { unknown: 'none' } })
   mock.env(on, {})
   mock.clock(on, { now: 0 })
@@ -254,8 +254,13 @@ test('/thikr shows status and help', async $ => {
     presentation: { isFullscreen: false, columns: 80 },
   })
 
-  expect(ran.text).toContain('thikr on · speed auto · tashkeel on · end on · mode all')
+  expect(ran.text).toContain('thikr on · speed auto · end on · mode all')
   expect(ran.text).toContain('/thikr speed')
+})
+
+test('/thikr tashkeel redirects to the plugin-wide setting', async $ => {
+  const ran = await $.command.run({ command: 'thikr', args: 'tashkeel off', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+  expect(ran.text).toBe('Tashkeel is plugin-wide now: /muslim tashkeel on | off')
 })
 
 test('/thikr speed refuses out-of-range values', async $ => {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'claude-code/testing'
-import { arabicJoined, arabicReordered, arabicVisual, stripTashkeel } from '../../../src/shared/arabic/visual.ts'
+import { arabicJoined, arabicReordered, arabicVisual, stripTashkeel, withTashkeel } from '../../../src/shared/arabic/visual.ts'
 import { defaultArabicMode, terminalArabic, terminalIdFromEnv } from '../../../src/shared/arabic/terminal.ts'
 import { END_OF_TURN, LONG, SALAWAT, STARTING, THINKING, USAGE_LIMIT, WRITING } from '../../../src/features/thikr/phrases.ts'
 
@@ -75,6 +75,11 @@ test('split transformations preserve logical order until the reorder step', () =
   expect(stripTashkeel('بِسْمِ اللَّهِ')).toBe('بسم الله')
   expect(arabicJoined('ببب')).toBe('\ufe91\ufe92\ufe90')
   expect(arabicReordered(arabicJoined('ببب'))).toBe('\ufe90\ufe92\ufe91')
+})
+
+test('the shared tashkeel setting preserves authored text or strips marks only', () => {
+  expect(withTashkeel('بِسْمِ اللَّهِ', true)).toBe('بِسْمِ اللَّهِ')
+  expect(withTashkeel('بِسْمِ اللَّهِ', false)).toBe('بسم الله')
 })
 
 test('modes transform terminal text and leave every non-terminal surface unchanged', () => {

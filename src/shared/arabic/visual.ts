@@ -145,6 +145,8 @@ const reorderLine = (text: string): string => {
 // themselves can receive joined forms in their normal logical order.
 export const stripTashkeel = (text: string): string => text.replace(ARABIC_MARKS, '')
 
+export const withTashkeel = (text: string, on: boolean): string => on ? text : stripTashkeel(text)
+
 export const arabicJoined = (text: string): string => text.split('\n').map(line => shape(line).join('')).join('\n')
 
 // Basic single-line RTL paragraphs; explicit bidi embeddings/isolates and

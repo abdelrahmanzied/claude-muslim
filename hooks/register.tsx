@@ -21,18 +21,26 @@ export const register: Register = (on, options) => {
     })
     await $.command.register({
       name: 'thikr',
-      description: "Tasabih in Claude's working line: on, off, speed, tashkeel, end",
+      description: "Tasabih in Claude's working line: on, off, speed, end",
     })
 
     return next(e)
   })
 
   on('command.run', { command: 'muslim' }, async ($, e, next) => {
-    const [word = '', feature = ''] = e.args.trim().split(/\s+/)
+    const words = e.args.trim().split(/\s+/).filter(Boolean)
+    const [word = '', feature = ''] = words
+    if (word === 'tashkeel') {
+      const value = feature
+      if (words.length > 2 || (value !== '' && value !== 'on' && value !== 'off')) return { text: 'Usage: /muslim tashkeel on | off' }
+      if (value === '') return { text: `Tashkeel ${settings.tashkeel ? 'on' : 'off'}. Usage: /muslim tashkeel on | off` }
+      const { deny } = await $.config.set({ key: 'muslim.tashkeel', value: value === 'on' })
+      return { text: deny ? `Not changed: ${deny}` : `Tashkeel ${value}` }
+    }
     if (word === 'help') return { text: muslimHelp(feature) }
     if (word !== '') return next(e).catch(() => ({ text: muslimHelp() }))
 
-    return { text: `${PLUGIN} v${VERSION}\n\n/muslim terminal-arabic — choose how Arabic shows in this terminal (applies to all features)\n\nHelp: /muslim help` }
+    return { text: `${PLUGIN} v${VERSION}\n\n/muslim tashkeel on | off — show or hide Arabic diacritics everywhere\n/muslim terminal-arabic — choose how Arabic shows in this terminal (applies to all features)\n\nHelp: /muslim help` }
   })
 
   installThikr(on, settings)

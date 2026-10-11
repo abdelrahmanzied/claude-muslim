@@ -1,17 +1,16 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { limitUntil } from '../../src/features/thikr/limit.ts'
-import { readSpeed } from '../../src/config.ts'
+import { readOptions, readSpeed } from '../../src/config.ts'
+import { stripTashkeel } from '../../src/shared/arabic/visual.ts'
 import { LONG, STARTING, THINKING } from '../../src/features/thikr/phrases.ts'
 import {
-  display,
   durationOf,
   groupFor,
   LONG_TOOL_MS,
   phraseAt,
   pickStart,
   startOf,
-  stripTashkeel,
   isStepRow,
   withThikr,
   wordCount,
@@ -111,10 +110,6 @@ describe('tashkeel', () => {
     expect(stripTashkeel('لَا إِلَٰهَ إِلَّا اللَّهُ')).toBe('لا إله إلا الله')
   })
 
-  test('display keeps the original when tashkeel is on', async () => {
-    expect(display('سُبْحَانَ اللَّهِ', true)).toBe('سُبْحَانَ اللَّهِ')
-    expect(display('سُبْحَانَ اللَّهِ', false)).toBe('سبحان الله')
-  })
 })
 
 describe('limitUntil', () => {
@@ -190,6 +185,15 @@ describe('readSpeed', () => {
     expect(readSpeed('1')).toBe(1)
     expect(readSpeed('5')).toBe(5)
     expect(readSpeed(60)).toBe(60)
+  })
+})
+
+describe('readOptions tashkeel migration', () => {
+  test('new setting wins and old saved values are the fallback', () => {
+    expect(readOptions({ tashkeel: false, thikrTashkeel: true }).tashkeel).toBe(false)
+    expect(readOptions({ thikrTashkeel: false }).tashkeel).toBe(false)
+    expect(readOptions({ thikrTashkeel: true }).tashkeel).toBe(true)
+    expect(readOptions({}).tashkeel).toBe(true)
   })
 })
 
