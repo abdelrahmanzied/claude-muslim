@@ -28,7 +28,7 @@ Prayer times for the user's city, calculated on their machine with
    - When a prayer comes in and `salahAdhan` is on, a small Unicode minaret rises row by row above the prompt for about 3 seconds beside «حان وقت صلاة العصر», then the band goes and the status line keeps the call for 15 minutes. It plays once per prayer, never during a survey, and not for a prayer first seen more than 2 minutes late (a late start or reload). The same text art on terminal and desktop.
    - `salahAdhan` off drops the minaret and the `حان وقت` line: the line goes straight back to the
      next prayer (`always`) or to empty (`reminder`).
-   - The status line redraws every 30 seconds, and every second only while inside the reminder window (the live countdown); it goes back to 30 seconds when the window ends.
+   - The status line redraws every 30 seconds, and every second only while inside the reminder window (the live countdown); it goes back to 30 seconds when the window ends. A timer set for the exact moment the window opens starts the countdown on time, not on the next 30 s tick.
    - Sunrise is in today's times only: no countdown and no reminder for it.
    - While inside the window, salah also publishes it for the [thikr line](thikr.md#before-a-prayer), which opens its turns with حَيَّ عَلَى الصَّلَاةِ.
    - One in-app toast when the window starts for each prayer (`always` and `reminder`, not `off`): «صلاة العصر بعد ٢٠ دقيقة». No OS notification.

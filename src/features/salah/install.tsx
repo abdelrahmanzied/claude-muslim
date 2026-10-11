@@ -35,8 +35,14 @@ const adhanShown = atom({ plugin: 'muslim', key: 'salahAdhanShown' } as const, n
 const TICK_MS = 30_000
 const WINDOW_TICK_MS = 1000
 
-// The status line's timer and the period it runs at.
-type Timer = { handle: { cancel: () => void } | undefined; ms: number }
+// The status line's timer and the period it runs at, and the one-shot timer
+// for the moment the next reminder window opens (so the 1 s countdown starts
+// on time, not on the next 30 s tick).
+type Timer = {
+  handle: { cancel: () => void } | undefined
+  ms: number
+  opens: { at: number; handle: { cancel: () => void } } | undefined
+}
 
 const HINT = 'Help: /salah help'
 
@@ -96,7 +102,7 @@ const savePlace = async ($: EngineInterface, city: City, options: Options): Prom
 
 // Redraws the status line, and shows a toast once when a prayer's reminder window starts.
 // Resolves whether `now` is inside the reminder window.
-const tick = async ($: EngineInterface, options: Options, place: Place): Promise<boolean> => {
+const tick = async ($: EngineInterface, options: Options, place: Place, timer: Timer): Promise<boolean> => {
   const now = await $.clock.now()
   const method = methodOf(options, place)
   const next = nextSalah(place, method, options.salahAdjust, now)
@@ -115,8 +121,24 @@ const tick = async ($: EngineInterface, options: Options, place: Place): Promise
 
   const isWindow = options.salah !== 'off' && isInWindow(next, now, options.salahReminder)
   await publishWindow($, isWindow && next.prayer !== 'sunrise' ? { prayer: next.prayer, at: next.at } : null)
+  scheduleOpen($, options, place, timer, options.salah !== 'off' && !isWindow ? next.at - options.salahReminder * 60_000 : undefined, now)
 
   return isWindow
+}
+
+// Runs one tick at the exact moment the reminder window opens (`opensAt`,
+// undefined when there is nothing to wait for: inside the window, or off).
+// Replaces an earlier timer only when the moment changed.
+const scheduleOpen = ($: EngineInterface, options: Options, place: Place, timer: Timer, opensAt: number | undefined, now: number) => {
+  if (opensAt === undefined || opensAt <= now) {
+    timer.opens?.handle.cancel()
+    timer.opens = undefined
+
+    return
+  }
+  if (timer.opens?.at === opensAt) return
+  timer.opens?.handle.cancel()
+  timer.opens = { at: opensAt, handle: $.clock.after(opensAt - now, () => void run($, options, place, timer)) }
 }
 
 // Plays the minaret once: a row every FRAME_MS from the base up, a short hold, then it goes.
@@ -137,7 +159,7 @@ const publishWindow = async ($: EngineInterface, moment: SalahWindow | null) => 
 
 // One tick, then the timer runs every second in the window and every 30 s outside it.
 const run = async ($: EngineInterface, options: Options, place: Place, timer: Timer) => {
-  const isWindow = await tick($, options, place)
+  const isWindow = await tick($, options, place, timer)
   const ms = isWindow ? WINDOW_TICK_MS : TICK_MS
   if (ms === timer.ms) return
   timer.handle?.cancel()
@@ -154,7 +176,7 @@ export const install = (on: On, options: Options) => {
   const guess = guessPlace(systemTimeZone())
   // The status line's timer, started on the first draw of the prompt.
   let hasTicker = false
-  const timer: Timer = { handle: undefined, ms: 0 }
+  const timer: Timer = { handle: undefined, ms: 0, opens: undefined }
   let isLineCleared = false
 
   on('command.run', { command: 'salah' }, async ($, e) => {

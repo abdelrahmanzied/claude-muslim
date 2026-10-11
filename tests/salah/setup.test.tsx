@@ -272,3 +272,19 @@ test('a survey hides the minaret', { options: AT_MUNICH }, async ($, on) => {
   expect(await shown.find({ type: 'Text', text: ' ▐███▌ ' })).toBeUndefined()
   await shown.unmount()
 })
+
+test('the countdown starts the second the window opens, not on the next 30 s tick', { options: AT_MUNICH }, async ($, on) => {
+  // 15:38:10 in Munich: the window (20 min before Asr at 15:59) opens at 15:39:00.
+  const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:38:10Z') })
+  engineBand(on)
+  const lines = statusLines(on)
+
+  const shown = await $.ui.mount(band('terminal'))
+  await clock.advance(49_000)
+  expect(lines.at(-1)).toBe(undefined)
+  await clock.advance(1_000)
+  expect(lines.at(-1)).toBe('☾ العصر ٢٠:٠٠')
+  await clock.advance(1_000)
+  expect(lines.at(-1)).toBe('☾ العصر ١٩:٥٩')
+  await shown.unmount()
+})
