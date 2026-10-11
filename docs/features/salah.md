@@ -25,7 +25,8 @@ Prayer times for the user's city, calculated on their machine with
    - `reminder` (default): empty outside the reminder window; the countdown
      inside it; `حان وقت صلاة …` for 15 minutes, then empty again.
    - `off`: nothing, and the line is cleared.
-   - `salahAdhan` off drops the `حان وقت` line: the line goes straight back to the
+   - When a prayer comes in and `salahAdhan` is on, a small Unicode minaret rises row by row above the prompt for about 3 seconds beside «حان وقت صلاة العصر», then the band goes and the status line keeps the call for 15 minutes. It plays once per prayer, never during a survey, and not for a prayer first seen more than 2 minutes late (a late start or reload). The same text art on terminal and desktop.
+   - `salahAdhan` off drops the minaret and the `حان وقت` line: the line goes straight back to the
      next prayer (`always`) or to empty (`reminder`).
    - The status line redraws every 30 seconds, and every second only while inside the reminder window (the live countdown); it goes back to 30 seconds when the window ends.
    - Sunrise is in today's times only: no countdown and no reminder for it.
@@ -66,7 +67,7 @@ Prayer times for the user's city, calculated on their machine with
 | --- | --- | --- |
 | `salah` | `/salah always` · `reminder` · `off` | reminder |
 | `salahReminder` | `/salah reminder <5-60>` | 20 (minutes) |
-| `salahAdhan` | `/salah adhan on` · `off` | on |
+| `salahAdhan` | `/salah adhan on` · `off` (the minaret and the `حان وقت` line) | on |
 | `salahPlace` | `/salah city` (question) · `/salah city <name or lat, lng>` | empty |
 | `salahMethod` | `/salah method <name>` | auto |
 | `salahAdjust` | `/salah adjust` · `/salah adjust <prayer> <±min>` | `0 0 0 0 0 0` |
@@ -88,11 +89,13 @@ Surfaces, the adhan moment's look and what salah never does: [salah-design.md](s
 | `place.ts` | the saved place's one-setting format |
 | `review.ts` | the review form's rows |
 | `line.ts` | the status line (live countdown) and reminder toast text |
+| `minaret.ts` | the minaret's rows, frame timing and when it is due |
 | `names.ts` | prayer names in English and Arabic |
 | `today.ts` | today's line for `/salah` and the method in effect |
 
 ## To verify live
 
+- The minaret's box-drawing and block characters (`┌┴┐ ├─┤ ▐███▌ ▒`) in the common terminal fonts, and the band's height (7 rows) in a short terminal.
 - The status line's Arabic direction next to Claude's own items.
 - The setup line and review form in a narrow terminal and the desktop app.
 - `Intl` time zones inside the hooks runtime (falls back to the runtime's local time).

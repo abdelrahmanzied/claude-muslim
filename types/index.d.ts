@@ -11,6 +11,9 @@ export type SalahAdjust = Record<'fajr' | 'sunrise' | 'dhuhr' | 'asr' | 'maghrib
 // writes it, thikr reads it. `null` outside the window, or with salah off.
 export type SalahWindow = { prayer: 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'; at: number }
 
+// The terminal minaret while it plays: the prayer and how many rows (1 to 7) have risen.
+export type SalahMinaret = { prayer: SalahWindow['prayer']; frame: number }
+
 declare module 'claude-code' {
   interface PluginState {
     muslim: {
@@ -22,6 +25,9 @@ declare module 'claude-code' {
       // The prayer time (ms since epoch) last toasted, so a reload does not toast it again.
       salahNotified: number | null
       salahWindow: SalahWindow | null
+      // The prayer time (ms since epoch) whose minaret has played, so it plays once.
+      salahAdhanShown: number | null
+      salahMinaret: SalahMinaret | null
     }
   }
 }

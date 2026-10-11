@@ -151,6 +151,7 @@ test('always: the status line shows the next prayer, counts down, and toasts onc
   on('ui.toast', async (_$, e) => (toasts.push(e.text), { value: undefined }))
 
   const shown = await $.ui.mount(band('terminal'))
+  await clock.advance(1)
   expect(lines.at(-1)).toBe('☾ العصر ١٥:٥٩')
 
   // 15:39: twenty minutes before Asr, then on to Asr itself.
@@ -218,5 +219,56 @@ test('the countdown ticks every second in the window, every 30 s outside it', { 
   await clock.advance(10_000)
   expect(lines.length - before).toBe(10)
   expect(lines.at(-1)).toBe('☾ العصر ١٩:٥٠')
+  await shown.unmount()
+})
+
+test('when the prayer comes in a minaret rises once, then the call stays in the status line', { options: AT_MUNICH }, async ($, on) => {
+  // 15:58:45 in Munich; Asr is at 15:59.
+  const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:58:45Z') })
+  engineBand(on)
+  const lines = statusLines(on)
+
+  const shown = await $.ui.mount(band('terminal'))
+  expect(await shown.find({ type: 'Text', text: '   ☾   ' })).toBeUndefined()
+
+  // Asr comes in on a one-second tick: the base appears first.
+  await clock.advance(15_200)
+  expect(await shown.find({ type: 'Text', text: ' ▐███▌ ' })).toBeDefined()
+  expect(await shown.find({ type: 'Text', text: '   ☾   ' })).toBeUndefined()
+  expect(await shown.find({ type: 'Text', text: 'حان وقت صلاة العصر' })).toBeUndefined()
+
+  await clock.advance(1_900)
+  expect(await shown.find({ type: 'Text', text: '   ☾   ' })).toBeDefined()
+  expect(await shown.find({ type: 'Text', text: 'حان وقت صلاة العصر' })).toBeDefined()
+
+  // About three seconds in all, then only the status line keeps the call.
+  await clock.advance(1_000)
+  expect(await shown.find({ type: 'Text', text: '   ☾   ' })).toBeUndefined()
+  expect(lines.at(-1)).toBe('حان وقت صلاة العصر')
+
+  // Never again for the same prayer.
+  await clock.advance(60_000)
+  expect(await shown.find({ type: 'Text', text: ' ▐███▌ ' })).toBeUndefined()
+  await shown.unmount()
+})
+
+test('no minaret with adhan off, nor during a survey', { options: { ...AT_MUNICH, salahAdhan: false } }, async ($, on) => {
+  const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:58:45Z') })
+  engineBand(on)
+
+  const shown = await $.ui.mount(band('terminal'))
+  await clock.advance(18_000)
+  expect(await shown.find({ type: 'Text', text: ' ▐███▌ ' })).toBeUndefined()
+  await shown.unmount()
+})
+
+test('a survey hides the minaret', { options: AT_MUNICH }, async ($, on) => {
+  const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:58:45Z') })
+  engineBand(on)
+
+  const survey = { ...band('terminal'), props: { ...band('terminal').props, hasSurvey: true } }
+  const shown = await $.ui.mount(survey)
+  await clock.advance(18_000)
+  expect(await shown.find({ type: 'Text', text: ' ▐███▌ ' })).toBeUndefined()
   await shown.unmount()
 })

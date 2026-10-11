@@ -6,6 +6,7 @@
 - Review form: today's times with − and + per prayer to match the user's mosque.
 - Status line: `salah` is `always` (next prayer all day), `reminder` (default: only in the reminder window) or `off`. A live mm:ss countdown (`☾ العصر ١٩:٤٢`, updated every second, 30 s ticks outside the window) in the reminder window (`salahReminder`, 5 to 60 minutes, default 20), and حان وقت صلاة … for 15 minutes once a prayer is in (`salahAdhan`). Sunrise is in today's times only. One in-app toast when the window starts, never an OS notification.
 - `/salah` commands: `help` (a table), `always` · `reminder` · `off`, `reminder <5-60>`, `adhan on` · `off`, `city` (replaces `setup`), `method`, `adjust`. `/muslim help [feature]` shows the command tables.
+- Adhan moment (terminal and desktop): when a prayer comes in and `salahAdhan` is on, a text minaret rises row by row above the prompt for about 3 seconds beside «حان وقت صلاة العصر», once per prayer, never during a survey; the status line keeps the call for 15 minutes.
 - Thikr before a prayer: inside the reminder window the first phrase of each thikr turn is حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د (prayer and whole minutes left); salah shares the window through `$.state` `salahWindow`. Salawat mode shows it first too.
 - Settings in `/config`: `salah`, `salahReminder`, `salahAdhan`, `salahPlace`, `salahMethod`, `salahAdjust`.
 

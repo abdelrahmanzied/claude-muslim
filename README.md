@@ -21,7 +21,7 @@ A thikr phrase joins Claude's working line (the spinner). Claude's step, timer a
 
 ### Prayer times (`/salah`)
 
-The next prayer under the prompt (`☾ العصر ١٥:٥٩`) all day, or only in the reminder window before it (20 minutes by default, 5 to 60), with a live mm:ss countdown (`☾ العصر ١٩:٤٢`) and `حان وقت صلاة …` when it comes in; one in-app toast when the window starts (no OS notification). Calculated on your machine; on first use the mod offers the city of your time zone, or any city you type in any language, then shows today's times so you can match them to your mosque. While Claude works inside that window, the thikr turn opens with `حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د`. Details: [docs/features/salah.md](docs/features/salah.md).
+The next prayer under the prompt (`☾ العصر ١٥:٥٩`) all day, or only in the reminder window before it (20 minutes by default, 5 to 60), with a live mm:ss countdown (`☾ العصر ١٩:٤٢`) and, when it comes in, a small minaret that rises above the prompt for about 3 seconds, then `حان وقت صلاة …`; one in-app toast when the window starts (no OS notification). Calculated on your machine; on first use the mod offers the city of your time zone, or any city you type in any language, then shows today's times so you can match them to your mosque. While Claude works inside that window, the thikr turn opens with `حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د`. Details: [docs/features/salah.md](docs/features/salah.md).
 
 More features are planned: morning and evening athkar.
 

@@ -5,10 +5,20 @@ The salah feature's own design. It adds to the shared base in [DESIGN.md](../../
 ## Visual means
 
 - **Text by default.** The status line, the setup line, the review form and command replies are text in Claude's font, size and theme colors (`color="claude"` for the accent, `dimColor` for hints).
-- **The adhan moment may be richer.** When a prayer comes in, a short look plays once (about 3 seconds), then rests as one line. Its look is being chosen in the [Adhan Lab](https://claude.ai/artifact/EyjJvfhhV6asq9VXbKY3YE):
-  - text frames that work on every surface (words appearing, a shimmer, falling ✦ ☾, a Unicode minaret, a brightening crescent), or
-  - a drawing on desktop only (`Svg`: mosque at dusk, Kaaba, crescent, lantern), always with a text fallback in the terminal.
-- **Until picked,** the moment is the text line alone.
+- **The adhan moment is a short text look.** When a prayer comes in, a band above the prompt plays once (about 3 seconds), then rests as the status line `حان وقت صلاة …`. In the terminal, and on the desktop for now, it is a Unicode minaret rising row by row from the base (about 330 ms a row, `color="claude"` for the crescent and the point, `dimColor` for the rest) beside «حان وقت صلاة العصر»:
+
+  ```
+     ☾
+     ▲
+    ┌┴┐
+    │▒│
+    ├─┤
+    │▒│
+   ▐███▌
+  ```
+
+  The seven rows keep their height while it rises, it shows once per prayer (state `salahAdhanShown`), never during a survey, and `salahAdhan` off drops it.
+- **Desktop popup: planned, not built.** A card with a photo background (V9), top-right, 320×80, Arabic digits, to replace the minaret on the desktop. Pending the photo's licence and a live test of a JPEG inside `Svg`; until then the desktop shows the same text minaret.
 
 **Why:** prayer time is a few moments a day and worth marking; the rest of the day salah stays a quiet line.
 
@@ -21,9 +31,22 @@ The salah feature's own design. It adds to the shared base in [DESIGN.md](../../
 | All day (mode `always`) | Status line | `☾ العصر ١٥:٥٩`; empty in `reminder` mode |
 | Reminder window (`salahReminder`, 20 min by default) | Status line | `☾ العصر ١٩:٤٢`, a live mm:ss countdown, once a second |
 | Reminder starts | Toast (in-app) | One short line, closes by itself |
-| Prayer comes in | Status line (+ the adhan look) | `حان وقت صلاة العصر` for 15 minutes (`salahAdhan`) |
+| Prayer comes in | AbovePrompt band, once (~3 s), then status line | The rising minaret beside `حان وقت صلاة العصر`; the line keeps it for 15 minutes (`salahAdhan`) |
 | Claude works in the window | Spinner (thikr line) | حَيَّ عَلَى الصَّلَاةِ joins the thikr rotation |
 | Settings and help | Command reply | `/salah`, `/salah help` table, `/muslim help` |
+
+## Picks
+
+What the user chose from the Adhan Lab:
+
+| Part | Pick |
+| --- | --- |
+| Digits | Arabic-Indic |
+| Toast | A: «صلاة العصر بعد ٢٠ دقيقة» |
+| Countdown | B: live `mm:ss` in the status line inside the reminder window, `☾ العصر ١٩:٤٢` |
+| Thikr | C: the first phrase of a thikr turn inside the window is «حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د» ([thikr.md](thikr.md#before-a-prayer)) |
+| Terminal adhan moment | D: the rising text minaret above |
+| Desktop popup | V9: photo-background card, top-right, 320×80, Arabic digits. Planned, pending the photo's licence and a live test of a JPEG inside `Svg` |
 
 ## Never
 
@@ -35,7 +58,7 @@ The salah feature's own design. It adds to the shared base in [DESIGN.md](../../
 
 - Prayer names in Arabic in lines (الفجر، الظهر، العصر، المغرب، العشاء), in English in commands (Fajr, Dhuhr, Asr, Maghrib, Isha).
 - حان وقت صلاة … and حَيَّ عَلَى الصَّلَاةِ are authored text with tashkeel, never generated.
-- Digits: Arabic-Indic by default (`١٥:٥٩`); a Latin option is being chosen in the lab.
+- Digits: Arabic-Indic (`١٥:٥٩`, `١٩:٤٢`).
 - Countdown: `mm:ss` in Arabic digits inside the reminder window, redrawn each second only there (30 s outside). The toast keeps minutes in words.
 - Minutes in words: دقيقة، دقيقتين، ٣ دقائق، ١١ دقيقة.
 

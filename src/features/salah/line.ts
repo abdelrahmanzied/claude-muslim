@@ -21,6 +21,9 @@ export const minutesText = (minutes: number): string => {
   return `${arabicDigits(String(minutes))} ${minutes <= 10 ? 'دقائق' : 'دقيقة'}`
 }
 
+// The line once a prayer is in, and the words beside the terminal minaret.
+export const adhanText = (prayer: Prayer): string => `حان وقت صلاة ${ARABIC[prayer]}`
+
 export type Moment = { prayer: Prayer; at: number }
 
 // What the status line shows besides the times: the mode, the minutes before
@@ -44,7 +47,7 @@ export const countdownText = (leftMs: number): string => {
 // its HH:MM; undefined when the line is empty (off, or `reminder` outside its window).
 export const statusText = (next: Moment, nextClock: string, last: Moment, now: number, view: View): string | undefined => {
   if (view.mode === 'off') return undefined
-  if (view.isAdhan && now - last.at < IN_MS) return `حان وقت صلاة ${ARABIC[last.prayer]}`
+  if (view.isAdhan && now - last.at < IN_MS) return adhanText(last.prayer)
   const left = next.at - now
   if (left <= view.reminder * MINUTE_MS) return `☾ ${ARABIC[next.prayer]} ${countdownText(left)}`
   if (view.mode === 'always') return `☾ ${ARABIC[next.prayer]} ${arabicDigits(nextClock)}`

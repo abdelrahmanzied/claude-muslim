@@ -1,6 +1,6 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
-import type { SalahWindow } from '../../../types'
+import type { SalahMinaret, SalahWindow } from '../../../types'
 
 import { ADJUST_MAX, isMethod, REMINDER_MAX, REMINDER_MIN, writeAdjust } from '../../config.ts'
 import type { Options } from '../../config.ts'
@@ -10,7 +10,8 @@ import { guessPlace, systemTimeZone } from './location.ts'
 import { METHODS, type Prayer } from './methods.ts'
 import { ENGLISH, prayerNamed } from './names.ts'
 import { writePlace, type Place } from './place.ts'
-import { isInWindow, reminderText, statusText } from './line.ts'
+import { adhanText, isInWindow, reminderText, statusText } from './line.ts'
+import { ACCENT_ROWS, FRAME_MS, HOLD_MS, isDue, LABEL_ROW, minaretRows, ROWS_COUNT } from './minaret.ts'
 import { nudge, reviewRows } from './review.ts'
 import { clockText, lastPrayer, nextSalah, type Adjust } from './times.ts'
 import { dayLine, methodOf } from './today.ts'
@@ -24,6 +25,10 @@ const review = atom({ plugin: 'muslim', key: 'salahReview' } as const, null as A
 const notified = atom({ plugin: 'muslim', key: 'salahNotified' } as const, null as number | null)
 // The prayer whose reminder window we are in, for the thikr line to read.
 const inWindow = atom({ plugin: 'muslim', key: 'salahWindow' } as const, null as SalahWindow | null)
+
+// The minaret's frame while it plays, and the prayer time it last played for.
+const minaret = atom({ plugin: 'muslim', key: 'salahMinaret' } as const, null as SalahMinaret | null)
+const adhanShown = atom({ plugin: 'muslim', key: 'salahAdhanShown' } as const, null as number | null)
 
 // How often the status line is redrawn: every second inside the reminder
 // window (the live countdown), else every 30 seconds.
@@ -98,6 +103,10 @@ const tick = async ($: EngineInterface, options: Options, place: Place): Promise
   const last = lastPrayer(place, method, options.salahAdjust, now)
   const view = { mode: options.salah, reminder: options.salahReminder, isAdhan: options.salahAdhan }
   $.ui.status(statusText(next, clockText(next.at, place.timeZone), last, now, view))
+  if (options.salah !== 'off' && options.salahAdhan && isDue(last.at, now, await read($, adhanShown))) {
+    await update($, adhanShown, () => last.at)
+    await playMinaret($, last.prayer === 'sunrise' ? 'fajr' : last.prayer)
+  }
   const text = reminderText(next, now, await read($, notified), options.salahReminder)
   if (text) {
     await update($, notified, () => next.at)
@@ -108,6 +117,15 @@ const tick = async ($: EngineInterface, options: Options, place: Place): Promise
   await publishWindow($, isWindow && next.prayer !== 'sunrise' ? { prayer: next.prayer, at: next.at } : null)
 
   return isWindow
+}
+
+// Plays the minaret once: a row every FRAME_MS from the base up, a short hold, then it goes.
+const playMinaret = async ($: EngineInterface, prayer: SalahMinaret['prayer']) => {
+  await update($, minaret, () => ({ prayer, frame: 1 }))
+  for (let frame = 2; frame <= ROWS_COUNT; frame++) {
+    $.clock.after((frame - 1) * FRAME_MS, () => void update($, minaret, () => ({ prayer, frame })))
+  }
+  $.clock.after(ROWS_COUNT * FRAME_MS + HOLD_MS, () => void update($, minaret, () => null))
 }
 
 // Tells the thikr line which prayer's window we are in; writes only on a change.
@@ -205,7 +223,10 @@ export const install = (on: On, options: Options) => {
     const place = options.salahPlace
     if (options.salah !== 'off' && place && !hasTicker) {
       hasTicker = true
-      await run($, options, place, timer)
+      // A minaret left mid-play by a reload would stay; start clean.
+      if (await read($, minaret)) await update($, minaret, () => null)
+      // Drawing is pure: the first tick writes state, so it runs right after the draw.
+      $.clock.after(0, () => void run($, options, place, timer))
     }
     if (!(options.salah !== 'off' && place) && !isLineCleared) {
       isLineCleared = true
@@ -248,6 +269,26 @@ export const install = (on: On, options: Options) => {
           <Button key="salah-save" label="Save" variant="primary" onPress={save} />
           <Button key="salah-skip" label="Skip" dimColor onPress={() => update($, review, () => null)} />
         </Box>
+        {theirs}
+      </Box>
+    )
+  })
+
+  // The prayer came in: the minaret rises beside the call, once (terminal and desktop alike).
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    const theirs = await next(e)
+    const playing = await read($, minaret)
+    if (!playing || e.props.hasSurvey) return theirs
+    const { Box, Text } = $.ui.resolve(e)
+
+    return (
+      <Box flexDirection="column">
+        {minaretRows(playing.frame).map((row, i) => (
+          <Box key={`salah-minaret-${i}`} gap={2}>
+            <Text color={i < ACCENT_ROWS ? 'claude' : undefined} dimColor={i >= ACCENT_ROWS}>{row}</Text>
+            {i === LABEL_ROW && playing.frame >= ROWS_COUNT - LABEL_ROW ? <Text color="claude">{adhanText(playing.prayer)}</Text> : null}
+          </Box>
+        ))}
         {theirs}
       </Box>
     )
