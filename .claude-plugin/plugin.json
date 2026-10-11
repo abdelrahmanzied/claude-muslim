@@ -51,18 +51,18 @@
     "salah": {
       "type": "string",
       "title": "Pray times",
-      "description": "always: next pray all day; reminder: only in the reminder window before a pray; off: nothing",
+      "description": "always: next pray all day; before: only in the reminder minutes before a pray; off: nothing",
       "options": [
         "always",
-        "reminder",
+        "before",
         "off"
       ],
-      "default": "reminder"
+      "default": "before"
     },
     "salahReminder": {
       "type": "number",
       "title": "Pray reminder minutes",
-      "description": "Minutes before a pray when the countdown and reminder start, from 5 to 60",
+      "description": "Minutes before a pray when the pray line and countdown start, from 5 to 60",
       "min": 5,
       "max": 60,
       "default": 20

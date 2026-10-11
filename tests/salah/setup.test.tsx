@@ -407,7 +407,7 @@ test('the review form shows in the band while the pray line shows in the footer'
   await shown.unmount()
 })
 
-test('the countdown ticks from the load alone: no prompt draw needed (off, then reminder 60)', { options: { ...AT_MUNICH, salah: 'reminder', salahReminder: 60 } }, async ($, on) => {
+test('the countdown ticks from the load alone: no prompt draw needed (off, then reminder 60)', { options: { ...AT_MUNICH, salah: 'before', salahReminder: 60 } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   // 14:30 in Munich: Asr at 15:59 is 89 minutes off, the 60-minute window opens at 14:59.

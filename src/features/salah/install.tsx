@@ -16,7 +16,7 @@ import { ACCENT_ROWS, FRAME_MS, HOLD_MS, isDue, LABEL_ROW, minaretRows, ROWS_COU
 import { nudge, reviewRows } from './review.ts'
 import { CARD_HEIGHT, CARD_MS, cardSvg, cardWidth } from './card.ts'
 import { clockText, lastPray, nextSalah, type Adjust } from './times.ts'
-import { methodOf, settingsTable, timesTable } from './today.ts'
+import { lineText, methodOf, settingsTable, timesTable } from './today.ts'
 
 // The engine follows $ only into same-file top-level functions, so the
 // terminal's Arabic mode is resolved here as in thikr.
@@ -295,15 +295,24 @@ export const install = (on: On, options: Options) => {
       }
     }
     if (word === 'help') return { text: salahHelp() }
-    if (word === 'reminder' && first !== '') {
+    // `line` picks when the pray line shows; `reminder` only sets the minutes.
+    if (word === 'line') {
+      if (first === '') return { text: `Pray line: ${lineText(options.salah, options.salahReminder)}. Change: /salah line always | before | off` }
+      if ((first === 'always' || first === 'before' || first === 'off') && second === '') {
+        return set('salah', first, `Pray line: ${lineText(first, options.salahReminder)}`)
+      }
+
+      return { text: 'Line takes always (next pray all day), before (only the reminder minutes before a pray) or off.' }
+    }
+    if (word === 'reminder') {
+      if (first === '') return { text: `Reminder: ${options.salahReminder} min before a pray. Change: /salah reminder <${REMINDER_MIN}-${REMINDER_MAX}>` }
       const minutes = Number(first)
       if (!Number.isInteger(minutes) || minutes < REMINDER_MIN || minutes > REMINDER_MAX) {
         return { text: `Reminder takes whole minutes from ${REMINDER_MIN} to ${REMINDER_MAX}, e.g. /salah reminder 20.` }
       }
 
-      return set('salahReminder', minutes, `reminder ${minutes} min before each pray`)
+      return set('salahReminder', minutes, `Reminder: ${minutes} min before a pray (the countdown starts then)`)
     }
-    if (word === 'always' || word === 'reminder' || word === 'off') return set('salah', word, `salah ${word}`)
     if (word === 'athan' && first === 'test') {
       const place = options.salahPlace
       if (!place) return { text: 'Set your city first: /salah city' }

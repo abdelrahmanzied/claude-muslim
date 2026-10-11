@@ -17,8 +17,8 @@ export type Options = {
   salahAdjust: Record<Pray, number>
 }
 
-// `always`: next pray all day; `reminder`: only in the reminder window; `off`: nothing.
-export type SalahMode = 'always' | 'reminder' | 'off'
+// `always`: next pray all day; `before`: only in the reminder minutes before a pray; `off`: nothing.
+export type SalahMode = 'always' | 'before' | 'off'
 
 // `all`: every group in turn; `salawat`: one salawat for the whole turn.
 export type Mode = 'all' | 'salawat'
@@ -53,12 +53,13 @@ export const REMINDER_MIN = 5
 export const REMINDER_MAX = 60
 export const REMINDER_DEFAULT = 20
 
-// `always`, `reminder` or `off`; the old boolean reads true as reminder, false as off.
+// `always`, `before` or `off`; the old `reminder` and the old boolean true read
+// as before, false as off.
 export const readSalahMode = (value: unknown): SalahMode => {
   if (value === 'always' || value === 'off') return value
   if (value === false) return 'off'
 
-  return 'reminder'
+  return 'before'
 }
 
 // Whole minutes from REMINDER_MIN to REMINDER_MAX; anything else is the default.

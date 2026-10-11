@@ -1,6 +1,6 @@
 // Today's times for the saved place, as the command and the lines show them.
 
-import type { Options } from '../../config.ts'
+import type { Options, SalahMode } from '../../config.ts'
 import { REMINDER_MAX, REMINDER_MIN } from '../../config.ts'
 import { METHODS, methodFor, PRAYS, type MethodId } from './methods.ts'
 import { ENGLISH } from '../../shared/pray/names.ts'
@@ -27,12 +27,9 @@ export const timesTable = (options: Options, place: Place, at: number): string =
   return ['| Pray | Time |', '| --- | --- |', ...rows].join('\n')
 }
 
-// What each pray line mode shows, for the settings table.
-const LINE = {
-  always: () => 'always: next pray all day',
-  reminder: (minutes: number) => `reminder: only ${minutes} min before a pray`,
-  off: () => 'off: hidden',
-} as const
+// What each pray line mode shows, for the settings table and the replies.
+export const lineText = (mode: SalahMode, minutes: number): string =>
+  mode === 'always' ? 'always: next pray all day' : mode === 'before' ? `before: only ${minutes} min before a pray` : 'off: hidden'
 
 // The settings in effect, each with the command that changes it.
 export const settingsTable = (options: Options, place: Place): string => {
@@ -41,8 +38,8 @@ export const settingsTable = (options: Options, place: Place): string => {
   const rows: readonly (readonly [string, string, string])[] = [
     ['City', place.name, '/salah city'],
     ['Method', method, '/salah method <name>'],
-    ['Pray line', LINE[options.salah](options.salahReminder), '/salah always` · `reminder` · `off'],
-    ['Reminder', `${options.salahReminder} min before`, `/salah reminder <${REMINDER_MIN}-${REMINDER_MAX}>`],
+    ['Pray line', lineText(options.salah, options.salahReminder), '/salah line always` · `before` · `off'],
+    ['Reminder', `${options.salahReminder} min before a pray`, `/salah reminder <${REMINDER_MIN}-${REMINDER_MAX}>`],
     ['Athan', options.salahAthan ? 'on' : 'off', '/salah athan on` · `off'],
     ['Adjust', moved.length === 0 ? 'none' : moved.map(pray => `${ENGLISH[pray]} ${options.salahAdjust[pray] > 0 ? '+' : ''}${options.salahAdjust[pray]}`).join(', '), '/salah adjust'],
   ]
