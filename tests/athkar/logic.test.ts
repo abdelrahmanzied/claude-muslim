@@ -5,7 +5,7 @@ import { arabicDigits, dayOf, END, isAct, emptyReading, listFor, overall, period
 import type { Reading } from '../../src/features/athkar/logic.ts'
 import { bandHeight, bandSvg, closeArea, coverFit, doneFit, finaleSize, fitOf, pixelOf } from '../../src/features/athkar/band.ts'
 import type { BandModel } from '../../src/features/athkar/band.ts'
-import { SIZE_DEFAULT, readOptions, readSize } from '../../src/config.ts'
+import { SIZE_DEFAULT, readOptions } from '../../src/config.ts'
 import { hitsFor } from '../../src/features/athkar/install.tsx'
 
 test('morning runs 05:00 to 17:00, evening the rest', async () => {
@@ -129,13 +129,10 @@ test('the open band stands at one height for every thikr', async () => {
 
 test('the default text size is 14; a thikr shrinks only to fit the two-line area, to a floor of 9', async () => {
   expect(SIZE_DEFAULT).toBe(14)
-  expect(readSize(undefined)).toBe(14)
-  expect(readSize('30')).toBe(14)
   const fit = (thikrId: string, width: number, textSize = 14, period: 'morning' | 'evening' = 'morning') => fitOf({ thikrId, period, textSize }, width)
   // What fits in two rows keeps the person's size.
   expect(fit('91', 860).size).toBe(14)
   expect(fit('75', 860).size).toBe(14)
-  expect(fit('91', 500, 28).size).toBe(28)
   // The rest shrinks, and only as far as needed: one step bigger would not fit.
   for (const [id, period] of [['75', 'morning'], ['77', 'evening'], ['77', 'morning']] as const) {
     for (const width of [860, 500]) {

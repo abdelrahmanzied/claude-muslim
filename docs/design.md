@@ -86,7 +86,7 @@ A reader above the prompt for the morning athkar (05:00 to 17:00) and the evenin
 - **Cover:** the title (أَذْكَارُ الصَّبَاحِ or أَذْكَارُ الْمَسَاءِ) and the keys. Faded, it folds to one slim row (24px, the reading's folded height): the title on the right, a muted one-line hint (`click to start`, or `click to continue`) at the left, the × at the left edge and the thin progress line. The first click only opens it (full cover with the keys); the next starts the reading; neither counts.
 - **Count:** click, Space or Enter adds one. Right click or Backspace takes one back, or goes to the thikr before at 0. ← next, → previous (Arabic reads right to left). Esc gives the prompt back.
 - **Count on the line:** no circles. The progress line along the bottom shows the whole set; a small pill on its glowing head shows the repetitions left on this thikr in Arabic-Indic digits (٣ then ٢, ١, ٠; ١ for a thikr said once), easing along with the head and kept clear of both ends of the line. The set position (e.g. ١٦ مِنْ ٢٢) sits small and muted at the line's left end. In the terminal the head is `` ٢ `` on the main color.
-- **Sizes (desktop):** the open reading and the cover are one fixed height for every thikr, 77px at the default 14px size (it follows only the text size). The words fit their box at your size, or shrink just enough, to a floor of 9px; the cover's title and keys fit the width the same way. Faded, the reading and the cover fold to one row (24px); the done row is 56px.
+- **Sizes (desktop):** the open reading and the cover are one fixed height for every thikr, 77px, with the text at a fixed 14px (no size setting). The words keep 14px, or shrink just enough to fit their two-line box, to a floor of 9px; the cover's title and keys fit the width the same way. Faded, the reading and the cover fold to one row (24px); the done row is 56px.
 - **Moves on** by itself 650 ms after a thikr's last count.
 - **Progress:** Horizon glow, a soft line along the bottom filled from the right, its head pulsing slowly and easing forward on each count. Each thikr is an equal share, partial counts included: `Σ min(count / times, 1) / n`.
 - **End:** ﴿رَبَّنَا تَقَبَّلْ مِنَّا إِنَّكَ أَنتَ السَّمِيعُ الْعَلِيمُ﴾ — البقرة ١٢٧ on the right, `/athkar morning reset to read again` on the left, and on desktop stars fall across the sky. A click hides it.
@@ -110,11 +110,10 @@ On every sky the pill is the main color with a white number. Sunrise takes dark 
 | `athkar` | `/athkar on` · `off` | on |
 | `athkarStyle` | `/athkar style sky` · `outline` | sky |
 | `athkarColor` | `/athkar color orange` · `green` · `gold` · `blue` | orange |
-| `athkarSize` | `/athkar size 12` … `28` | 14 |
 
 `/athkar morning reset` · `/athkar evening reset` start that period again. `/athkar` shows the status and help.
 
-Not settable: the font (Tajawal in the design) and the text size. The mod API sets neither; the reader uses Claude's font and follows the app's zoom.
+Not settable: the font (Tajawal in the design) and the text size (fixed at 14px). The mod API sets neither; the reader uses Claude's font and follows the app's zoom.
 
 ### To verify live
 
