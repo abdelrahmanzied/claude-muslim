@@ -29,6 +29,8 @@ Every thikr's count comes from the data file only. There is no choice of counts 
 
 Tashkeel follows the shared `/muslim tashkeel` setting (desktop only); in the terminal the athkar go through the shared terminal Arabic path like every feature: no tashkeel, and this terminal's mode from `/muslim terminal-arabic`.
 
+**Terminal:** the style is always Frame, and `/athkar style` changes nothing there. Sky is desktop only; `athkarStyle` applies to the desktop app. Color applies on both. See the [terminal guide](../terminal.md#athkar-in-the-terminal).
+
 Not settable: the font and the text size. The mod API sets neither.
 
 ## Design

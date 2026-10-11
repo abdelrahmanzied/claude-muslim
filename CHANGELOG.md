@@ -35,6 +35,7 @@
 - The mod clears the old status-line entry (`muslim ☾ …`) at session start, so a hot reload no longer leaves it next to the model name.
 - Shared prayer helpers (names, digits, the prayer line text) moved to `src/shared/pray/`; thikr no longer imports salah's folder.
 
+- Athkar: Sky is desktop only; the terminal always shows the Frame look, and `/athkar style` there changes nothing.
 - Athkar follow the shared Arabic path: the plugin-wide `/muslim tashkeel` on desktop, and in the terminal no tashkeel and this terminal's mode (`/muslim terminal-arabic`), for the title, text, passage name, position and end.
 - `/athkar help` shows the command table; `/muslim help athkar` too, and `/muslim` lists athkar in its settings table.
 - Morning and evening athkar: a reader above the prompt for Hisn al-Muslim 75–98, morning 05:00–17:00 and evening 17:00–05:00. Counts come from the data file only (91 and 92 a hundred, 98 ten); 92 and 93 are one thikr.

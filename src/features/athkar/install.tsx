@@ -244,7 +244,7 @@ export const install = (on: On, options: Options) => {
 
       return {
         text: [
-          `athkar ${options.athkar ? 'on' : 'off'} · style ${options.athkarStyle} · color ${options.athkarColor}`,
+          `athkar ${options.athkar ? 'on' : 'off'} · style ${await $.session.surface() === 'terminal' ? 'frame (terminal)' : options.athkarStyle} · color ${options.athkarColor}`,
           `${statusOf(day, 'morning')} · ${statusOf(day, 'evening')}`,
           '',
           athkarHelp(),
@@ -253,6 +253,7 @@ export const install = (on: On, options: Options) => {
     }
     if (word === 'help') return { text: athkarHelp() }
     if (word === 'on' || word === 'off') return set('athkar', word === 'on', `athkar ${word}`)
+    if (word === 'style' && await $.session.surface() === 'terminal') return { text: 'The terminal always shows the frame; sky is desktop only. Change the style from the desktop app.' }
     if (word === 'style' && isStyle(value)) return set('athkarStyle', value, `style ${value}`)
     if (word === 'color' && isColor(value)) return set('athkarColor', value, `color ${value}`)
     if (isPeriod(word) && value === 'reset') {
@@ -399,7 +400,8 @@ export const install = (on: On, options: Options) => {
     const isDark = !String(theme?.value ?? '').includes('light')
     const isPicture = e.surface === 'desktop'
     const sky = skyAt(hourOf(now))
-    const look = lookFor(options.athkarStyle, options.athkarColor, sky, isDark, isPicture)
+    // Sky is desktop only; the terminal always draws the frame.
+    const look = lookFor(isPicture ? options.athkarStyle : 'frame', options.athkarColor, sky, isDark, isPicture)
     // The shared Arabic path: the tashkeel setting, then this terminal's mode.
     const arabicMode = await arabicModeOf($, e.surface, arabicCache)
     const show = (text: string) => terminalArabic(e.surface, arabicMode, withTashkeel(text, options.tashkeel))

@@ -7,12 +7,12 @@ The athkar reader's own design. It adds to the shared base in [DESIGN.md](../../
 The athkar reader is the one feature the person sits with, so it is drawn:
 
 - **Client module** (`src/features/athkar/reader.tsx`) for the reader: it takes clicks and keys, keeps the cover and the active look, and posts each count to the hooks module. Terminal and desktop.
-- **Svg** (desktop only) for the Sky look: a sky that follows the time of day with slow SMIL motion, drawn behind the reader. The terminal and the Frame look use a plain background color.
+- **Svg** (desktop only) for the Sky look: a sky that follows the time of day with slow SMIL motion, drawn behind the reader. The terminal always uses the Frame look.
 - **Hex colors** for the reader's main color (orange, green, gold, blue, in a light and a dark shade) and the skies, since a theme key cannot be blended or placed on a sky.
 
 Everything else (font, size) stays Claude's: the API sets neither, so the reader follows the app's zoom.
 
-**Why:** reading two dozen athkar with counts needs a place to sit, click and see progress; a text row cannot hold it. The terminal gets the same reader as text on a plain background.
+**Why:** reading two dozen athkar with counts needs a place to sit, click and see progress; a text row cannot hold it. The terminal gets the same reader as text in the Frame look.
 
 ## Scope
 
@@ -39,8 +39,7 @@ Everything else (font, size) stays Claude's: the API sets neither, so the reader
 | Look | Surface | Drawn as |
 | --- | --- | --- |
 | Sky (default) | desktop | A sky that follows the clock: dawn 4–6, sunrise 6–8, clear day 8–17, rose 17–18, blue hour 18–19, crescent 19–4. Rich motion: stars, sun, clouds, birds, shooting stars. Faded until clicked, then in color. |
-| Sky | terminal | The same sky's color as a plain background. |
-| Frame | both | A main-color frame that breathes while reading. |
+| Frame | both (the only look in the terminal) | A main-color frame that breathes while reading. |
 
 On every sky the pill is the main color with a white number. Sunrise takes dark words; every other sky white.
 

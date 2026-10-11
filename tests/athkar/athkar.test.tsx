@@ -8,13 +8,14 @@ import { stripTashkeel } from '../../src/shared/arabic/visual.ts'
 const SURFACES = ['terminal', 'desktop'] as const
 
 // The engine's own band, beneath the plugin.
-const engineBand = (on: On) => {
+const engineBand = (on: On, surface: 'terminal' | 'desktop' = 'desktop') => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e) => {
     const { Box } = $.ui.resolve(e)
 
     return <Box />
   })
   on('config.list', async () => ({ value: [] }))
+  on('session.surface', async () => ({ value: surface }))
 }
 
 const band = (surface: (typeof SURFACES)[number]) => ({
@@ -279,4 +280,21 @@ test('counting by keys with the pointer on the band: it stays open', async ($, o
   await clock.advance(1100)
   expect(await isFolded()).toBe(true)
   await ui.unmount()
+})
+
+test('sky is desktop only: the terminal draws the frame, and /athkar style there changes nothing', async ($, on) => {
+  mock.clock(on, { now: MORNING })
+  mock.store(on)
+  mock.env(on, {})
+  engineBand(on, 'terminal')
+  const writes: unknown[] = []
+  on('config.set', async (_$, e) => (writes.push(e), { value: e.value }))
+  const ui = await $.ui.mount(band('terminal'))
+  expect((await ui.find({ in: 'athkar', type: 'Box' }))?.props.borderStyle).toBe('round')
+  await ui.unmount()
+
+  const run = (args: string) => $.command.run({ command: 'athkar', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+  expect((await run('')).text).toContain('style frame (terminal)')
+  expect((await run('style sky')).text).toContain('sky is desktop only')
+  expect(writes).toEqual([])
 })

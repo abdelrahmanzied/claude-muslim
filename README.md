@@ -76,7 +76,7 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/athkar help` | Table of every `/athkar` command |
 | `/athkar on` · `off` | Turn the athkar on or off |
 | `/athkar morning reset` · `evening reset` | Read that period again from the start |
-| `/athkar style sky` · `frame` | The look: a sky that follows the time of day (default), or plain |
+| `/athkar style sky` · `frame` | The look on desktop: a sky that follows the time of day (default), or plain. The terminal always shows the frame |
 | `/athkar color orange` · `green` · `gold` · `blue` | The main color |
 | `/salah` | Place, method and mode, then today's prayer times |
 | `/salah help` | Table of every `/salah` command |
