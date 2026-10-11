@@ -22,8 +22,7 @@ Claude Code mod (function-hooks plugin). Plugin name is `muslim` — Claude Code
 - Every value kept in `$.state` is declared in `types/index.d.ts` under `PluginState['muslim']`. The contract exports types only.
 - Every feature gets tests in `tests/<feature>/` (`.tsx` when a test uses JSX).
 - Every feature ships a demo: scenes that play its real UI on demand through a future shared `/muslim demo` (fake clock, no settings changed); scenes live in a shared demo file or in a file inside the feature folder. Planned, not built yet (see DESIGN.md §8).
-- Never bump the version on your own. Add change notes to the current unreleased version's entry in `CHANGELOG.md`.
-- When the user asks for a release: a main feature is a minor bump (0.x.0), a bug fix or small change a patch bump (0.x.y). Always ask the user to confirm the version number before writing it. Update both `.claude-plugin/plugin.json` and `src/constants.ts`.
+- Never change the version on your own. Every change adds a note under `## Unreleased` in `CHANGELOG.md`; branches never bump. The version changes only when the user asks for a release, on main: ask the user to confirm the number first (a main feature raises the middle number 0.x.0, a fix or small change the right number 0.x.y, never the left number for now), then update `.claude-plugin/plugin.json` and `src/constants.ts`, rename `## Unreleased` to the version, tag `vX.Y.Z` and publish a GitHub release with those notes.
 - Commits, PRs and issues use `me@abdelrahman.ai`; never a personal Gmail.
 
 ## Before committing

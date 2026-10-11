@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0
+## Unreleased
 
 - Prayer times (`/salah`): calculated on the machine with adhan-js, no location service or API. The first prompt after install offers the city named by the time zone, or any city typed in any language (Claude reads it into coordinates). Each country's official Sunni method, else Muslim World League; Asr by the majority.
 - Review form: today's times with − and + per prayer to match the user's mosque.

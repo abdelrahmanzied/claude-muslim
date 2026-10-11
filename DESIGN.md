@@ -7,7 +7,7 @@ The shared base every feature follows, and the index to each feature's own desig
 | Feature | Command | Spec | Design | Status |
 | --- | --- | --- | --- | --- |
 | Thikr line | `/thikr` | [thikr.md](docs/features/thikr.md) | [thikr-design.md](docs/features/thikr-design.md): text only | 0.2.0 |
-| Salah | `/salah` | [salah.md](docs/features/salah.md) | [salah-design.md](docs/features/salah-design.md): text, richer adhan moment | 0.3.0 |
+| Salah | `/salah` | [salah.md](docs/features/salah.md) | [salah-design.md](docs/features/salah-design.md): text, richer adhan moment | Unreleased |
 | Morning and evening athkar | `/athkar` | in progress in another branch | in progress | planned |
 
 Everything below is shared by every feature. A feature's doc may add to it, never contradict it.
@@ -108,4 +108,4 @@ Wire it in `hooks/register.tsx` (`install<Feature>(on, settings)`), register its
 - [ ] Tests on `terminal` and `desktop`; `claude plugin validate`, `claude plugin test`, `tsc` pass.
 - [ ] Demo scenes for the feature's real UI (planned: `/muslim demo`, fake clock, no settings changed).
 - [ ] Tried live in a terminal and the desktop app.
-- [ ] Change notes added to the unreleased version's `CHANGELOG.md` entry (never bump the version unasked; see CLAUDE.md).
+- [ ] Change notes added under `## Unreleased` in `CHANGELOG.md` (never change the version; see CLAUDE.md).
