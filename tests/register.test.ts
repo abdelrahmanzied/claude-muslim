@@ -10,7 +10,7 @@ const muslim = (args: string) => ({
 test('/muslim answers with version and a hint', async $ => {
   const ran = await $.command.run(muslim(''))
 
-  expect(ran.text).toBe('muslim v0.2.0\n\nHelp: /muslim help')
+  expect(ran.text).toBe('muslim v0.2.0\n\n/muslim terminal-arabic — choose how Arabic shows in this terminal (applies to all features)\n\nHelp: /muslim help')
 })
 
 test('/muslim help shows every feature\'s table; with a feature, only its own', async $ => {
@@ -20,11 +20,13 @@ test('/muslim help shows every feature\'s table; with a feature, only its own', 
 
   expect(all).toContain('/thikr speed auto')
   expect(all).toContain('/salah city')
+  expect(all).toContain('/muslim terminal-arabic')
+  expect((await $.command.run(muslim('help terminal-arabic'))).text).toBe('/muslim terminal-arabic — choose how Arabic shows in this terminal (applies to all features)')
   expect(salah).toContain('/salah city')
   expect(salah).not.toContain('/thikr')
   expect(thikr).toContain('/thikr mode')
   expect(thikr).not.toContain('/salah')
-  expect((await $.command.run(muslim('help quran'))).text).toContain('Features: thikr, salah')
+  expect((await $.command.run(muslim('help quran'))).text).toContain('Features: thikr, salah, terminal-arabic')
 })
 
 test('session start clears a status line left by an earlier version', async ($, on) => {
@@ -35,4 +37,13 @@ test('session start clears a status line left by an earlier version', async ($, 
   await $.session.start({ cwd: '/tmp', surface: 'terminal', isInteractive: true })
 
   expect(seen).toEqual([undefined])
+})
+
+test('the old arabic-fix subcommand no longer handles or changes settings', async ($, on) => {
+  const writes: unknown[] = []
+  on('config.set', async (_$, e) => (writes.push(e), { value: e.value }))
+  on('command.run', { command: 'muslim' }, async () => ({ text: 'passed through' }))
+  const result = await $.command.run(muslim('arabic-fix on'))
+  expect(result.text).toBe('passed through')
+  expect(writes).toEqual([])
 })

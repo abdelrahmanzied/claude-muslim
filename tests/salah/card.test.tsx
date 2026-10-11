@@ -54,6 +54,7 @@ test('/salah athan test without a city says so', async $ => {
 
 test('/salah athan test answers and changes no setting', { options: MUNICH }, async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
   mock.clock(on, { now: NOW })
   const written: unknown[] = []
   on('config.set', async (_$, e) => (written.push(e), { value: e.value }))
@@ -65,6 +66,7 @@ test('/salah athan test answers and changes no setting', { options: MUNICH }, as
 
 test('on the desktop the test shows the card with a close, never the minaret; × clears it', { options: MUNICH }, async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
   mock.clock(on, { now: NOW })
   engineBand(on)
   const asked: string[] = []
@@ -86,6 +88,7 @@ test('on the desktop the test shows the card with a close, never the minaret; ×
 
 test('on the terminal the test plays the minaret only, no card', { options: MUNICH }, async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
   mock.clock(on, { now: NOW })
   engineBand(on)
   const terminal = await $.ui.mount(band('terminal'))
@@ -98,6 +101,7 @@ test('on the terminal the test plays the minaret only, no card', { options: MUNI
 for (const surface of ['desktop', 'terminal'] as const) {
   test(`${surface}: athan test before the first draw survives ticker startup`, { options: MUNICH }, async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
     const clock = mock.clock(on, { now: NOW })
     engineBand(on)
     on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
@@ -128,6 +132,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
 
 test('a minaret left by a reload is cleared after rendering, not during it', { options: MUNICH }, async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
   const clock = mock.clock(on, { now: NOW })
   engineBand(on)
   let isStale = true

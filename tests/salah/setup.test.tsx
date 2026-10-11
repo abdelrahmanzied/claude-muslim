@@ -82,6 +82,7 @@ test('before setup the band asks for the place; Not now puts it off for good', a
   engineBand(on)
   // Stands for the plugin's store.
   const stored: Record<string, unknown> = {}
+  on('store.get', async () => ({ value: undefined }))
   on('store.set', async (_$, e) => (stored[e.key] = e.value, { value: undefined }))
   for (const surface of SURFACES) {
     const shown = await $.ui.mount(band(surface))
@@ -98,6 +99,7 @@ test('before setup the band asks for the place; Not now puts it off for good', a
 
 test('another city: typed in any language, found by Claude, saved', async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
   engineBand(on)
   const written = settingsWriter(on)
   answerDialog(on, 'ميونخ')
@@ -112,6 +114,7 @@ test('another city: typed in any language, found by Claude, saved', async ($, on
 
 test('/salah city with no name asks the setup question', async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
   const written = settingsWriter(on)
   answerDialog(on, 'Munich')
   answerCities(on, [MUNICH])
@@ -124,6 +127,7 @@ test('/salah city with no name asks the setup question', async ($, on) => {
 
 test('a saved place shows no setup band', { options: { salahPlace: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' } }, async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
   engineBand(on)
   const shown = await $.ui.mount(band('terminal'))
 
@@ -138,6 +142,7 @@ const prayerRow = async (shown: { find: (query: { key: string }) => Promise<{ te
 
 test('review buttons cross the old minute bounds and save on both surfaces', { options: { ...AT_MUNICH, salahAdjust: '0 0 0 60 0 -60' } }, async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
   mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
   engineBand(on)
   const written = settingsWriter(on)
@@ -155,6 +160,7 @@ test('review buttons cross the old minute bounds and save on both surfaces', { o
 
 test('/salah adjust opens the review form: minutes move a prayer, Save keeps them', { options: AT_MUNICH }, async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
   mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
   engineBand(on)
   const written = settingsWriter(on)
@@ -180,6 +186,7 @@ test('/salah adjust opens the review form: minutes move a prayer, Save keeps the
 
 test('Skip closes the review form without saving', { options: AT_MUNICH }, async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
   mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
   engineBand(on)
   const written = settingsWriter(on)
@@ -196,6 +203,7 @@ test('Skip closes the review form without saving', { options: AT_MUNICH }, async
 
 test('always: the prayer row shows the next prayer, counts down, and never toasts', { options: { ...AT_MUNICH, salah: 'always' } }, async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
   // 13:30 in Munich on 10 October 2026; Asr is at 15:59.
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
   engineBand(on)
@@ -218,6 +226,7 @@ test('always: the prayer row shows the next prayer, counts down, and never toast
 
 test('off leaves no prayer row', { options: { ...AT_MUNICH, salah: 'off' } }, async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
   engineBand(on)
   engineModes(on)
 
@@ -228,6 +237,7 @@ test('off leaves no prayer row', { options: { ...AT_MUNICH, salah: 'off' } }, as
 
 test('reminder: the line is empty until the window, counts down, calls, then clears', { options: AT_MUNICH }, async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
   engineBand(on)
   engineModes(on)
@@ -245,6 +255,7 @@ test('reminder: the line is empty until the window, counts down, calls, then cle
 
 test('a shorter reminder moves the window; no athan skips the call', { options: { ...AT_MUNICH, salahReminder: 5, salahAthan: false } }, async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:44:00Z') })
   engineBand(on)
   engineModes(on)
@@ -260,6 +271,7 @@ test('a shorter reminder moves the window; no athan skips the call', { options: 
 
 test('the countdown ticks every second in the window, every 30 s outside it', { options: AT_MUNICH }, async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
   engineBand(on)
   engineModes(on)
@@ -282,6 +294,7 @@ test('the countdown ticks every second in the window, every 30 s outside it', { 
 
 test('when the prayer comes in a minaret rises once, then the call stays in the prayer row', { options: AT_MUNICH }, async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
   // 15:58:45 in Munich; Asr is at 15:59.
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:58:45Z') })
   engineBand(on)
@@ -315,6 +328,7 @@ test('when the prayer comes in a minaret rises once, then the call stays in the 
 
 test('no minaret with athan off, nor during a survey', { options: { ...AT_MUNICH, salahAthan: false } }, async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:58:45Z') })
   engineBand(on)
 
@@ -326,6 +340,7 @@ test('no minaret with athan off, nor during a survey', { options: { ...AT_MUNICH
 
 test('a survey hides the minaret', { options: AT_MUNICH }, async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:58:45Z') })
   engineBand(on)
 
@@ -338,6 +353,7 @@ test('a survey hides the minaret', { options: AT_MUNICH }, async ($, on) => {
 
 test('the countdown starts the second the window opens, not on the next 30 s tick', { options: AT_MUNICH }, async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
   // 15:38:10 in Munich: the window (20 min before Asr at 15:59) opens at 15:39:00.
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:38:10Z') })
   engineBand(on)
@@ -355,6 +371,7 @@ test('the countdown starts the second the window opens, not on the next 30 s tic
 
 test('the prayer line sits in the footer modes in claude color, beside the engine\'s labels, on both surfaces', { options: { ...AT_MUNICH, salah: 'always' } }, async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
   engineBand(on)
   engineModes(on)
@@ -375,6 +392,7 @@ test('the prayer line sits in the footer modes in claude color, beside the engin
 
 test('the review form shows in the band while the prayer line shows in the footer', { options: AT_MUNICH }, async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:45:00Z') })
   engineBand(on)
   engineModes(on)
@@ -391,6 +409,7 @@ test('the review form shows in the band while the prayer line shows in the foote
 
 test('the countdown ticks from the load alone: no prompt draw needed (off, then reminder 60)', { options: { ...AT_MUNICH, salah: 'reminder', salahReminder: 60 } }, async ($, on) => {
   mock.env(on, {})
+  mock.store(on)
   // 14:30 in Munich: Asr at 15:59 is 89 minutes off, the 60-minute window opens at 14:59.
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T12:30:00Z') })
   engineModes(on)

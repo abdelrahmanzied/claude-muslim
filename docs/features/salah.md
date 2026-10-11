@@ -63,7 +63,7 @@ Prayer times for the user's city, calculated on their machine with
 
 ## Settings
 
-Shared Arabic display: `/muslim arabic auto | shaped | plain`, also `muslim.arabicTerminal` in `/config`. Auto applies the fallback only when `TERM_PROGRAM` is `Apple_Terminal`; Warp and unidentified terminals keep logical Arabic. Use `shaped` for another terminal without bidi/shaping, or `plain` when the terminal handles Arabic itself. The fallback drops tashkeel and keeps times/counts in digit order; desktop output and saved text stay unchanged.
+Terminal Arabic: the footer line and the minaret label follow the shared per-terminal setting (`/muslim terminal-arabic`, see the [terminal guide](../terminal.md)). The desktop footer and athan card keep logical text.
 
 | Field | Command | Default |
 | --- | --- | --- |

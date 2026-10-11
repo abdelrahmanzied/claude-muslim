@@ -8,7 +8,7 @@ Each feature has a spec (`docs/features/<feature>.md`) and a design (`docs/featu
 | Salah | `/salah` | [features/salah.md](features/salah.md) | [features/salah-design.md](features/salah-design.md) | Unreleased |
 | Morning and evening athkar | `/athkar` | in progress in another branch | in progress | planned |
 
-Cross-cutting issues: languages (#1), Arabic in terminals that don't shape (#3).
+Cross-cutting issues: languages (#1), Arabic in terminals that don't shape (#3; see the [terminal Arabic guide](terminal.md)).
 
 ## Shared principles (summary)
 

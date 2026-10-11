@@ -58,7 +58,7 @@ What the user chose:
 
 ## Text
 
-- Terminal Arabic follows the shared fallback in [DESIGN.md](../../DESIGN.md#4-typography-and-arabic): auto for Apple Terminal, with `/muslim arabic shaped | plain | auto` to override. Shape and reorder the footer and minaret label only at draw time; the desktop footer and athan card keep logical text.
+- Terminal Arabic follows the shared per-terminal setting in [DESIGN.md](../../DESIGN.md#4-typography-and-arabic) (`/muslim terminal-arabic`). Convert the footer and minaret label only at draw time; the desktop footer and athan card keep logical text.
 
 - Prayer names in Arabic in lines (الفجر، الظهر، العصر، المغرب، العشاء), in English in commands (Fajr, Dhuhr, Asr, Maghrib, Isha).
 - حان وقت صلاة … and حَيَّ عَلَى الصَّلَاةِ are authored text with tashkeel, never generated.

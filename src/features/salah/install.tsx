@@ -1,4 +1,4 @@
-import { terminalArabic, type ArabicTerminal } from '../../shared/arabic/terminal.ts'
+import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 import type { SalahMinaret, SalahCard, SalahWindow } from '../../../types'
@@ -18,11 +18,49 @@ import { CARD_HEIGHT, CARD_MS, cardSvg, cardWidth } from './card.ts'
 import { clockText, lastPrayer, nextSalah, type Adjust } from './times.ts'
 import { dayLine, methodOf } from './today.ts'
 
-// The engine follows $ only into same-file top-level functions.
-const renderArabic = async ($: EngineInterface, surface: string, mode: ArabicTerminal, text: string): Promise<string> => {
-  const program = surface === 'terminal' && mode === 'auto' ? await $.env.get('TERM_PROGRAM') : undefined
+// The engine follows $ only into same-file top-level functions, so the
+// terminal's Arabic mode is resolved here as in thikr.
+const cachedArabicMode = atom({ plugin: 'muslim', key: 'arabicTerminalMode' } as const, null as { terminalId: string; mode: ArabicMode } | null)
 
-  return terminalArabic(surface, mode, text, program)
+const terminalId = async ($: EngineInterface): Promise<string> => {
+  const termProgram = await $.env.get('TERM_PROGRAM')
+  if (termProgram) return terminalIdFromEnv({ TERM_PROGRAM: termProgram })
+  const emulator = await $.env.get('TERMINAL_EMULATOR')
+  if (emulator) return terminalIdFromEnv({ TERMINAL_EMULATOR: emulator })
+  const bundle = await $.env.get('__CFBundleIdentifier')
+  if (bundle) return terminalIdFromEnv({ __CFBundleIdentifier: bundle })
+  const windowsTerminal = await $.env.get('WT_SESSION')
+  if (windowsTerminal !== undefined) return terminalIdFromEnv({ WT_SESSION: windowsTerminal })
+  const konsole = await $.env.get('KONSOLE_VERSION')
+  if (konsole) return terminalIdFromEnv({ KONSOLE_VERSION: konsole })
+  const vte = await $.env.get('VTE_VERSION')
+  if (vte) return terminalIdFromEnv({ VTE_VERSION: vte })
+  const kitty = await $.env.get('KITTY_WINDOW_ID')
+  if (kitty) return terminalIdFromEnv({ KITTY_WINDOW_ID: kitty })
+  const alacrittyWindow = await $.env.get('ALACRITTY_WINDOW_ID')
+  if (alacrittyWindow) return terminalIdFromEnv({ ALACRITTY_WINDOW_ID: alacrittyWindow })
+  const alacrittySocket = await $.env.get('ALACRITTY_SOCKET')
+  if (alacrittySocket) return terminalIdFromEnv({ ALACRITTY_SOCKET: alacrittySocket })
+  const os = await $.env.get('OS')
+
+  return terminalIdFromEnv({ OS: os })
+}
+
+// Resolve once per terminal per session; the Arabic picker refreshes this atom on a choice.
+const renderArabic = async ($: EngineInterface, surface: string, text: string, cache: { current: { terminalId: string; mode: ArabicMode } | null }): Promise<string> => {
+  if (surface !== 'terminal') return terminalArabic(surface, 'none', text)
+  const id = await terminalId($)
+  const selected = await read($, cachedArabicMode)
+  let cached = selected?.terminalId === id ? selected : cache.current
+  if (cached?.terminalId !== id) {
+    const saved = await $.store.get('arabicTerminals') as Record<string, unknown> | undefined
+    const storedMode = saved?.[id]
+    const mode = isArabicMode(storedMode) ? storedMode : defaultArabicMode(id)
+    cached = { terminalId: id, mode }
+    cache.current = cached
+  }
+
+  return terminalArabic(surface, cached.mode, text)
 }
 
 // Setup put off with Not now: for the session here, for good in $.store.
@@ -228,6 +266,7 @@ const begin = async ($: EngineInterface, options: Options, place: Place, timer: 
 }
 
 export const install = (on: On, options: Options) => {
+  const arabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
   const guess = guessPlace(systemTimeZone())
   // The prayer line's timer, started once per module load by whichever of the
   // prompt band or the footer is drawn first (a reload, e.g. after any setting
@@ -384,7 +423,7 @@ export const install = (on: On, options: Options) => {
     return (
       <Box gap={1}>
         <Box key="salah-line">
-          <Text color="claude" bold>{await renderArabic($, e.surface, options.arabicTerminal, text)}</Text>
+          <Text color="claude" bold>{await renderArabic($, e.surface, text, arabicCache)}</Text>
         </Box>
         {theirs}
       </Box>
@@ -398,7 +437,7 @@ export const install = (on: On, options: Options) => {
     if (!playing || e.props.hasSurvey || e.surface === 'desktop') return theirs
     const { Box, Text } = $.ui.resolve(e)
 
-    const label = await renderArabic($, e.surface, options.arabicTerminal, athanText(playing.prayer))
+    const label = await renderArabic($, e.surface, athanText(playing.prayer), arabicCache)
 
     return (
       <Box flexDirection="column">

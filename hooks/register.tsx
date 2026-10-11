@@ -1,9 +1,9 @@
-import { isArabicTerminal } from '../src/shared/arabic/terminal.ts'
+import { install as installArabicFix } from '../src/shared/arabic/install.tsx'
 import type { Register } from 'claude-code'
 
 import { readOptions } from '../src/config.ts'
 import { PLUGIN, VERSION } from '../src/constants.ts'
-import { muslimHelp } from '../src/help.ts'
+import { muslimHelp, TERMINAL_ARABIC_HELP } from '../src/help.ts'
 import { install as installSalah } from '../src/features/salah/install.tsx'
 import { install as installThikr } from '../src/features/thikr/install.tsx'
 
@@ -18,7 +18,7 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'muslim',
-      description: `Show ${PLUGIN} version, and help for every command`,
+      description: `Show ${PLUGIN} version, terminal Arabic setup, and help`,
     })
     await $.command.register({
       name: 'thikr',
@@ -38,21 +38,15 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  on('command.run', { command: 'muslim' }, async ($, e) => {
+  on('command.run', { command: 'muslim' }, async ($, e, next) => {
     const [word = '', feature = ''] = e.args.trim().split(/\s+/)
-    if (word === 'arabic') {
-      if (feature === '') return { text: `Arabic terminal ${settings.arabicTerminal}. /muslim arabic auto | shaped | plain` }
-      if (!isArabicTerminal(feature) || e.args.trim().split(/\s+/).length !== 2) return { text: 'Arabic terminal is auto, shaped (mod shapes Arabic), or plain (terminal handles Arabic).' }
-      const { deny } = await $.config.set({ key: 'muslim.arabicTerminal', value: feature })
-
-      return { text: deny ? `Not changed: ${deny}` : `Arabic terminal ${feature}` }
-    }
     if (word === 'help') return { text: muslimHelp(feature) }
-    if (word !== '') return { text: muslimHelp() }
+    if (word !== '') return next(e).catch(() => ({ text: muslimHelp() }))
 
-    return { text: `${PLUGIN} v${VERSION}\n\nHelp: /muslim help` }
+    return { text: `${PLUGIN} v${VERSION}\n\n${TERMINAL_ARABIC_HELP}\n\nHelp: /muslim help` }
   })
 
   installThikr(on, settings)
   installSalah(on, settings)
+  installArabicFix(on, settings)
 }

@@ -4,7 +4,7 @@ The thikr line's own design. It adds to the shared base in [DESIGN.md](../../DES
 
 ## Visual means: text only
 
-Thikr is text only. This is a requirement of this feature, not of the whole mod.
+Thikr is text only. This follows the shared text-only requirement.
 
 - **Claude's own font and size.** No custom fonts, no font size or weight changes.
 - **Theme colors only.** Phrases in bands use `color="claude"`; hints use `dimColor`. Never hex, never `error` or `warning`.
@@ -20,14 +20,13 @@ Thikr is text only. This is a requirement of this feature, not of the whole mod.
 | --- | --- | --- |
 | Claude works | Spinner | The words Claude lets a mod replace (`word`, `message`, `suffix`); glyph, timer and `esc to interrupt` stay |
 | Desktop step row | Spinner | The thikr follows the step's words after ` · ` |
-| Claude works in a prayer's reminder window | Spinner | The turn's first phrase is the call, حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د; text only, like every phrase |
 | End of turn (terminal) | TurnDuration | Claude's past-tense word becomes تَمَّ بِحَمْدِ اللَّهِ; the duration stays |
 | Usage limit | AbovePrompt band | One line in `color="claude"` until the window resets |
 | Settings | Command reply | `/thikr` status and help, one line per change |
 
 ## Text
 
-- Terminal Arabic follows the shared fallback in [DESIGN.md](../../DESIGN.md#4-typography-and-arabic): auto for Apple Terminal, with `/muslim arabic shaped | plain | auto` to override. Shape and reorder our spinner phrase before joining Claude’s text, plus the end-of-turn word and usage-limit row; desktop keeps logical text and tashkeel.
+- Terminal Arabic uses the current terminal's saved `none`, `plain`, `joined`, or `reversed` treatment. Thikr resolves the mode from the per-terminal store and caches it for the session; the picker refreshes that cache when a choice is made. Desktop always keeps the authored logical text. The shared [Arabic check](arabic-fix-design.md) is terminal-only and hidden during surveys.
 
 - Phrases are authored with tashkeel in `src/features/thikr/phrases.ts`; `thikrTashkeel` may strip it, never change words.
 - Every phrase fits one line at 80 columns next to Claude's own text.
