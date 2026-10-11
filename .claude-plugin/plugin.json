@@ -51,13 +51,13 @@
     "salah": {
       "type": "string",
       "title": "Pray times",
-      "description": "always: next pray all day; before: only in the reminder minutes before a pray; off: nothing",
+      "description": "always: next pray all day; countdown: only while counting down the reminder minutes before a pray; off: nothing",
       "options": [
         "always",
-        "before",
+        "countdown",
         "off"
       ],
-      "default": "before"
+      "default": "countdown"
     },
     "salahReminder": {
       "type": "number",

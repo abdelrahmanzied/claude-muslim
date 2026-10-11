@@ -76,7 +76,7 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/salah city` · `city <name or lat, lng>` | Pick your city by question, or by name in any language |
 | `/salah adjust` | Match today's times to your mosque, a minute at a time |
 | `/salah method <name>` | `auto` (your country's own) or a named method |
-| `/salah line always` · `before` · `off` | Pray line all day, only in the reminder minutes before a pray, or nothing |
+| `/salah line always` · `countdown` · `off` | Pray line all day, only as the countdown before a pray, or nothing |
 | `/salah reminder <5-60>` | How many minutes before a pray the reminder and countdown start |
 | `/salah athan on` · `off` | `حان وقت صلاة …` when a prayer comes in |
 | `/muslim` | Show the installed version |

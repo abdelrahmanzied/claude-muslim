@@ -29,7 +29,7 @@ export const timesTable = (options: Options, place: Place, at: number): string =
 
 // What each pray line mode shows, for the settings table and the replies.
 export const lineText = (mode: SalahMode, minutes: number): string =>
-  `\`${mode}\` — ` + (mode === 'always' ? 'next pray all day' : mode === 'before' ? `only ${minutes} min before a pray` : 'hidden')
+  `\`${mode}\` — ` + (mode === 'always' ? 'next pray all day' : mode === 'countdown' ? `only ${minutes} min before a pray` : 'hidden')
 
 // The settings in effect, each with the command that changes it.
 export const settingsTable = (options: Options, place: Place): string => {
@@ -38,7 +38,7 @@ export const settingsTable = (options: Options, place: Place): string => {
   const rows: readonly (readonly [string, string, string])[] = [
     ['City', place.name, '/salah city'],
     ['Method', method, '/salah method <name>'],
-    ['Pray line', lineText(options.salah, options.salahReminder), '/salah line always` · `before` · `off'],
+    ['Pray line', lineText(options.salah, options.salahReminder), '/salah line always` · `countdown` · `off'],
     ['Reminder', `${options.salahReminder} min before a pray`, `/salah reminder <${REMINDER_MIN}-${REMINDER_MAX}>`],
     ['Athan', options.salahAthan ? 'on' : 'off', '/salah athan on` · `off'],
     ['Adjust', moved.length === 0 ? 'none' : moved.map(pray => `${ENGLISH[pray]} ${options.salahAdjust[pray] > 0 ? '+' : ''}${options.salahAdjust[pray]}`).join(', '), '/salah adjust'],

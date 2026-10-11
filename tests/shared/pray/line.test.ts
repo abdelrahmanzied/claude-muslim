@@ -5,7 +5,7 @@ import { arabicDigits, countdownText, isInWindow, minutesText, prayLine, type Vi
 const MINUTE = 60_000
 const ASR = { pray: 'asr' as const, at: 1_000 * MINUTE }
 const ALWAYS: View = { mode: 'always', reminder: 20, isAthan: true }
-const REMINDER: View = { ...ALWAYS, mode: 'before' }
+const REMINDER: View = { ...ALWAYS, mode: 'countdown' }
 const DHUHR = { pray: 'dhuhr' as const, at: 800 * MINUTE }
 
 describe('status line', () => {

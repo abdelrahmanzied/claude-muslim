@@ -8,7 +8,7 @@ export const SALAH_COMMANDS: readonly (readonly [string, string])[] = [
   ['/salah', 'Today\'s times (next marked), then each setting with the command that changes it'],
   ['/salah help', 'This table'],
   ['/salah line always', 'Pray line all day: the next pray, then a countdown in the reminder minutes'],
-  ['/salah line before', 'Pray line only in the reminder minutes before a pray (default)'],
+  ['/salah line countdown', 'Pray line only as the countdown before a pray (default)'],
   ['/salah line off', 'No pray line, no reminder'],
   [`/salah reminder <${REMINDER_MIN}-${REMINDER_MAX}>`, 'How many minutes before a pray the reminder and countdown start'],
   ['/salah athan on` · `off', 'Show حان وقت صلاة … when a pray comes in'],

@@ -306,11 +306,11 @@ export const install = (on: On, options: Options) => {
     // `line` picks when the pray line shows; `reminder` only sets the minutes.
     if (word === 'line') {
       if (first === '') return { text: `**Pray line:** ${lineText(options.salah, options.salahReminder)}\nChange: \`/salah line always\` · \`before\` · \`off\`` }
-      if ((first === 'always' || first === 'before' || first === 'off') && second === '') {
+      if ((first === 'always' || first === 'countdown' || first === 'off') && second === '') {
         return set('salah', first, `**Pray line:** ${lineText(first, options.salahReminder)}`)
       }
 
-      return { text: 'Use `/salah line always` · `before` · `off`.' }
+      return { text: 'Use `/salah line always` · `countdown` · `off`.' }
     }
     if (word === 'reminder') {
       if (first === '') return { text: `**Reminder:** ${options.salahReminder} min before a pray\nChange: \`/salah reminder <${REMINDER_MIN}-${REMINDER_MAX}>\`` }
