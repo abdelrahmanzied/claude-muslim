@@ -16,8 +16,12 @@ export const CARD_HEIGHT = 77 + LINE_PX
 // How long the card stays when nobody closes it: the call's window.
 export const CARD_MS = IN_MS
 
-// The photo is 320 by 255; `cover` crops it, centred a little above the middle.
-const PHOTO_Y = '28%'
+// The photo is a 640 by 80 strip cut from the original, a little above its
+// middle; `cover` fits it to the card's width.
+const PHOTO_Y = '50%'
+// The × the desktop's Button draws sits at this spot (CSS px); the circle behind it is drawn here.
+const CLOSE_LEFT = 8
+const CLOSE_TOP = 17
 
 // The width the picture is drawn at: the body's columns and a cell past each side.
 export const cardWidth = (columns: number): number => Math.round((columns + 2) * CELL_PX)
@@ -27,16 +31,23 @@ export const cardSvg = (photoBase64: string, prayer: Prayer, time: string, width
   const css = [
     `@font-face { font-family: "Aref Ruqaa"; font-weight: 700; src: url(data:font/woff2;base64,${ARUQAA_BOLD}) format("woff2"); }`,
     '* { box-sizing: border-box; margin: 0; }',
-    `.card { width: 100%; height: 100%; border-radius: 10px; overflow: hidden; direction: rtl; color: #fff; font-family: "Aref Ruqaa", serif; font-weight: 700;`,
+    `.card { position: relative; width: 100%; height: 100%; border-radius: 10px; overflow: hidden; direction: rtl; color: #fff; font-family: "Aref Ruqaa", serif; font-weight: 700;`,
     `  display: flex; flex-direction: column; justify-content: center; padding: 0 36px;`,
     `  background: linear-gradient(rgba(0,0,0,.35), rgba(0,0,0,.7)), url(data:image/jpeg;base64,${photoBase64}) center ${PHOTO_Y} / cover; }`,
     '.main { font-size: 26px; line-height: 1.5; }',
-    '.time { font-size: 17px; line-height: 1.4; opacity: .85; }',
+    '.time { font-size: 17px; line-height: 1.4; color: rgba(255,255,255,.85); }',
+    `.close { position: absolute; left: ${CLOSE_LEFT}px; top: ${CLOSE_TOP}px; width: 26px; height: 26px; border-radius: 50%; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.5); }`,
+    // The entrance: the photo fades in and settles, the text follows a moment later.
+    '@keyframes rise { from { opacity: 0; transform: translateY(8px) scale(.985); } to { opacity: 1; transform: none; } }',
+    '@keyframes fade { from { opacity: 0; } to { opacity: 1; } }',
+    '.card { animation: rise 700ms ease-out both; }',
+    '.main, .time, .close { animation: fade 600ms ease-out 250ms both; }',
+    '@media (prefers-reduced-motion: reduce) { .card, .main, .time, .close { animation: none; } }',
   ].join('\n')
   const at = arabicDigits(time)
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${CARD_HEIGHT}" viewBox="0 0 ${width} ${CARD_HEIGHT}" preserveAspectRatio="none">`
     + `<style><![CDATA[${css}]]></style>`
     + `<foreignObject x="0" y="0" width="${width}" height="${CARD_HEIGHT}"><div xmlns="http://www.w3.org/1999/xhtml" class="card">`
-    + `<div class="main">${athanText(prayer)}</div><div class="time">${at}</div></div></foreignObject></svg>`
+    + `<div class="close"></div><div class="main">${athanText(prayer)}</div><div class="time">${at}</div></div></foreignObject></svg>`
 }

@@ -36,9 +36,16 @@ test('the card markup: photo, font, both lines in Arabic, no bar', async () => {
   expect(svg).toContain('حان وقت صلاة المغرب')
   expect(svg).toContain('١٨:٠٥')
   expect(svg).not.toContain('<animate')
+  expect(svg).toContain('@keyframes rise')
+  expect(svg).toContain('prefers-reduced-motion')
+  expect(svg).toContain('class="close"')
   expect(svg).toContain(`height="${CARD_HEIGHT}"`)
   expect(svg.length).toBeLessThan(131072)
   expect(cardWidth(100)).toBeGreaterThan(840)
+})
+
+test('the card with the real photo (about 40 KB of base64) stays far under the Svg limit', () => {
+  expect(cardSvg('A'.repeat(45000), 'fajr', '05:00', 1500).length).toBeLessThan(110000)
 })
 
 test('/salah athan test without a city says so', async $ => {
