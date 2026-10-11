@@ -9,7 +9,7 @@ The rules the athkar reader follows. The feature spec (what it shows, settings, 
 
 ## Size
 
-- **Fixed height.** The open reading and the cover are one height for every thikr, count and width: 77px on desktop. Faded, they fold to one 24px row. The done row is 56px.
+- **Fixed height.** The open reading, the cover, the finale and the done row are one height for every thikr, count and width: 77px on desktop. Faded, they fold to one 24px row. Only two sizes ever show: open and folded.
 - **Width follows the window.** The band is as wide as the app's card above the prompt.
 - **Fixed text size: 14px.** There is no size setting.
 - **Long text shrinks to fit.** The text box is two lines of 14px. A thikr that does not fit shrinks just enough to fit the box, with no floor. In a very narrow window the words get small, but they never leave the box or cover the progress line. The band never grows taller.

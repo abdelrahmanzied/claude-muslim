@@ -124,7 +124,7 @@ test('the open band stands at one height for every thikr', async () => {
   // 77px at 14px (the old band with its circles row was about 93).
   expect(read('91', 860)).toBe(77)
   expect(read('75', 500)).toBe(77)
-  expect(bandHeight({ phase: 'done', thikrId: '75', period: 'morning' }, 900)).toBe(56)
+  expect(bandHeight({ phase: 'done', thikrId: '75', period: 'morning' }, 900)).toBe(77)
 })
 
 test('the default text size is 14; a thikr shrinks only to fit the two-line area, with no floor', async () => {

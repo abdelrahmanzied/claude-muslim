@@ -166,8 +166,8 @@ test('cover and done rows: fixed height per size and width; the words on one lin
       for (const id of IDS) {
         for (const width of WIDTHS) {
           expect(bandHeight({ phase: 'cover', thikrId: id, period, textSize: size }, width)).toBe(open)
-          // The done row is 56 whatever the size, thikr or width.
-          expect(bandHeight({ phase: 'done', thikrId: id, period, textSize: size }, width)).toBe(56)
+          // The done row is the reading's height whatever the thikr or width.
+          expect(bandHeight({ phase: 'done', thikrId: id, period, textSize: size }, width)).toBe(77)
         }
       }
     }

@@ -55,7 +55,7 @@ test('the done row folds too while faded: the verse on one slim row; the finale 
   const faded = cover({ phase: 'done', end })
   const lit = cover({ phase: 'done', end, isActive: true })
   expect(heightOf(faded)).toBe(24)
-  expect(heightOf(lit)).toBe(56)
+  expect(heightOf(lit)).toBe(77)
   const svg = bandSvg(faded)
   expect(svg).toContain('class="peek dn-peek"')
   expect(svg).toContain('رَبَّنَا')

@@ -40,7 +40,6 @@ const GLOW_MS = 700
 // The finale when a set is finished: the band stands this tall while stars
 // fall and the dua rises, then settles to the done row.
 const FINALE_MS = 3200
-const FINALE_PX = 240
 
 // Where the glow stands some time into a slide, on the slide's ease-out curve.
 const glowAtTime = (from: number, to: number, ms: number) => {
@@ -419,7 +418,8 @@ export const install = (on: On, options: Options) => {
       card: { ch: CELL_PX, lh: LINE_PX },
     }
     // The finale stands as tall as the desktop lets the band be.
-    model.height = finaleMs === undefined ? bandHeight(model, width) : Math.min(FINALE_PX, Math.max(56, (e.props.maxRows - 2) * LINE_PX))
+    // One open height for reading, finale and done.
+    model.height = bandHeight(model, width)
     lastBand = model
 
     return (

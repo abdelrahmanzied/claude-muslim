@@ -395,12 +395,9 @@ export const pixelOf = (
 }
 
 // The band's height in CSS pixels at a width: one fixed height for the open
-// reading and for the cover, whatever the thikr, the count or the width; it
-// follows only the person's text size. The folded row is shorter (restHeight),
-// the done row 56.
+// reading, the cover, the finale and the done row, whatever the thikr, the
+// count or the width. The folded row is shorter (restHeight).
 export const bandHeight = (m: Pick<BandModel, 'phase' | 'thikrId' | 'period' | 'textSize'>, width: number) => {
-  if (m.phase === 'done') return 56
-
   return FRAME_PX + READ_TOP + fitOf(m, width).area + READ_FOOT
 }
 
