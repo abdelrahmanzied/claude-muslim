@@ -10,6 +10,7 @@ The rules every feature follows. Read this before designing a new feature; the p
 4. **Authentic content.** Every phrase is authored data with tashkeel and, where it has one, a source (Quran ayah or Hisn al-Muslim number). Nothing is generated at runtime. Display may strip tashkeel; it never changes words.
 5. **No scores.** We never count the user's worship, show streaks, rewards or guilt. Counting exists only where the user counts themselves (athkar reader), and stays private on their machine.
 6. **One feature, one switch.** Every feature can be turned off on its own, in `/config` and by its command. Off means its hooks do nothing.
+7. **Desktop app and terminal only.** Phones and other surfaces are out of scope: no mobile layouts, no phone-width checks, in the mod or in any reference page.
 
 ## 2. Surfaces we use
 
