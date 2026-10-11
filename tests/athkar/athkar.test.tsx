@@ -142,7 +142,7 @@ test('the reader moves on by itself after the last count', async ($, on) => {
 
   await press(ui, 'space')
   await clock.advance(700)
-  expect(await ui.find({ in: 'athkar', text: /٢ مِنْ/ })).toBeDefined()
+  expect(await ui.find({ in: 'athkar', text: /٢ من/ })).toBeDefined()
   await ui.unmount()
 })
 

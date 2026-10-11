@@ -1,9 +1,11 @@
+import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
 import { atom, read } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
 import type { Day } from '../../../types'
 import type { Options } from '../../config.ts'
 import { withTashkeel } from '../../shared/arabic/visual.ts'
+import { athkarHelp } from './help.ts'
 import { bandHeight, closeArea, pixelOf } from './band.ts'
 import type { BandModel } from './band.ts'
 import type { Period } from './data.ts'
@@ -11,6 +13,52 @@ import { ADVANCE_MS, countOf, currentOf, dayOf, emptyReading, END, listFor, over
 import type { Act } from './logic.ts'
 import { ACCENTS, lookFor, plain, readerProps } from './look.ts'
 import type { Accent, Style } from './look.ts'
+
+// The engine follows $ only into same-file top-level functions, so the
+// terminal's Arabic mode is resolved here as in thikr and salah.
+const cachedArabicMode = atom({ plugin: 'muslim', key: 'arabicTerminalMode' } as const, null as { terminalId: string; mode: ArabicMode } | null)
+
+const terminalId = async ($: EngineInterface): Promise<string> => {
+  const termProgram = await $.env.get('TERM_PROGRAM')
+  if (termProgram) return terminalIdFromEnv({ TERM_PROGRAM: termProgram })
+  const emulator = await $.env.get('TERMINAL_EMULATOR')
+  if (emulator) return terminalIdFromEnv({ TERMINAL_EMULATOR: emulator })
+  const bundle = await $.env.get('__CFBundleIdentifier')
+  if (bundle) return terminalIdFromEnv({ __CFBundleIdentifier: bundle })
+  const windowsTerminal = await $.env.get('WT_SESSION')
+  if (windowsTerminal !== undefined) return terminalIdFromEnv({ WT_SESSION: windowsTerminal })
+  const konsole = await $.env.get('KONSOLE_VERSION')
+  if (konsole) return terminalIdFromEnv({ KONSOLE_VERSION: konsole })
+  const vte = await $.env.get('VTE_VERSION')
+  if (vte) return terminalIdFromEnv({ VTE_VERSION: vte })
+  const kitty = await $.env.get('KITTY_WINDOW_ID')
+  if (kitty) return terminalIdFromEnv({ KITTY_WINDOW_ID: kitty })
+  const alacrittyWindow = await $.env.get('ALACRITTY_WINDOW_ID')
+  if (alacrittyWindow) return terminalIdFromEnv({ ALACRITTY_WINDOW_ID: alacrittyWindow })
+  const alacrittySocket = await $.env.get('ALACRITTY_SOCKET')
+  if (alacrittySocket) return terminalIdFromEnv({ ALACRITTY_SOCKET: alacrittySocket })
+  const os = await $.env.get('OS')
+
+  return terminalIdFromEnv({ OS: os })
+}
+
+// This terminal's Arabic mode, resolved once per terminal per session as in
+// thikr and salah; the Arabic picker refreshes the atom on a choice.
+const arabicModeOf = async ($: EngineInterface, surface: string, cache: { current: { terminalId: string; mode: ArabicMode } | null }): Promise<ArabicMode> => {
+  if (surface !== 'terminal') return 'plain'
+  const id = await terminalId($)
+  const selected = await read($, cachedArabicMode)
+  let cached = selected?.terminalId === id ? selected : cache.current
+  if (cached?.terminalId !== id) {
+    const saved = await $.store.get('arabicTerminals') as Record<string, unknown> | undefined
+    const storedMode = saved?.[id]
+    const mode = isArabicMode(storedMode) ? storedMode : defaultArabicMode(id)
+    cached = { terminalId: id, mode }
+    cache.current = cached
+  }
+
+  return cached.mode
+}
 
 const dayRef = atom({ plugin: 'muslim', key: 'athkar' } as const, null as Day | null)
 
@@ -20,13 +68,6 @@ const STORE_KEY = 'athkar'
 const STYLES: readonly Style[] = ['sky', 'frame']
 const COLORS = Object.keys(ACCENTS) as Accent[]
 
-const HELP = [
-  '/athkar                          status, and show the athkar again',
-  '/athkar on | off                 the athkar above the prompt',
-  '/athkar morning | evening reset  read that period again from the start',
-  '/athkar style sky | frame',
-  '/athkar color orange | green | gold | blue',
-].join('\n')
 
 // The width of a cell on the desktop in CSS pixels: the band picture is sized
 // from the columns it is given.
@@ -136,6 +177,8 @@ type Hit = { x0: number; x1: number; y0: number; y1: number; act: Act }
 export const hitsFor = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' | 'finaleMs'>): Hit[] => [{ ...closeArea(m), act: { act: 'hide' } }]
 
 // This session's view: past the cover, lit, and when it fades.
+const arabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
+
 const view = {
   isOpen: false,
   isActive: false,
@@ -204,10 +247,11 @@ export const install = (on: On, options: Options) => {
           `athkar ${options.athkar ? 'on' : 'off'} · style ${options.athkarStyle} · color ${options.athkarColor}`,
           `${statusOf(day, 'morning')} · ${statusOf(day, 'evening')}`,
           '',
-          HELP,
+          athkarHelp(),
         ].join('\n'),
       }
     }
+    if (word === 'help') return { text: athkarHelp() }
     if (word === 'on' || word === 'off') return set('athkar', word === 'on', `athkar ${word}`)
     if (word === 'style' && isStyle(value)) return set('athkarStyle', value, `style ${value}`)
     if (word === 'color' && isColor(value)) return set('athkarColor', value, `color ${value}`)
@@ -221,7 +265,7 @@ export const install = (on: On, options: Options) => {
       return { text: `${word} athkar start again from the first` }
     }
 
-    return { text: HELP }
+    return { text: athkarHelp() }
   })
 
   if (!options.athkar) return
@@ -356,8 +400,9 @@ export const install = (on: On, options: Options) => {
     const isPicture = e.surface === 'desktop'
     const sky = skyAt(hourOf(now))
     const look = lookFor(options.athkarStyle, options.athkarColor, sky, isDark, isPicture)
-    // Desktop follows the tashkeel setting; the terminal never shows tashkeel.
-    const show = (text: string) => withTashkeel(text, e.surface === 'desktop' && options.tashkeel)
+    // The shared Arabic path: the tashkeel setting, then this terminal's mode.
+    const arabicMode = await arabicModeOf($, e.surface, arabicCache)
+    const show = (text: string) => terminalArabic(e.surface, arabicMode, withTashkeel(text, options.tashkeel))
     const props = readerProps(period, reading, look, show, { isOpen: view.isOpen, isActive: view.isActive, isPicture })
     // Finished just now, not found finished on a reload: the finale plays once.
     if (props.phase === 'done' && lastPhase !== undefined && lastPhase !== 'done') {

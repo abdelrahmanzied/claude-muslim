@@ -28,7 +28,7 @@ export const register: Register = (on, options) => {
     })
     await $.command.register({
       name: 'athkar',
-      description: 'Morning and evening athkar above the prompt: on, off, reset, style, color',
+      description: 'Morning and evening athkar above the prompt: help, on, off, reset, style, color',
     })
     await $.command.register({
       name: 'salah',
@@ -63,6 +63,7 @@ export const register: Register = (on, options) => {
     const rows = [
       ['Tashkeel', `${onOff(settings.tashkeel)} — desktop only; the terminal never shows diacritics`, '`/muslim tashkeel on` · `off`'],
       ['Thikr', onOff(settings.thikr), '`/thikr on` · `off` · all options: `/thikr help`'],
+      ['Athkar', onOff(settings.athkar), '`/athkar on` · `off` · all options: `/athkar help`'],
       ['Salah', settings.salahPlace ? showText(settings.salahShow) : 'not set up', '`/salah show always` · `<minutes>` · `off` · all options: `/salah help`'],
       ['Terminal Arabic', terminal || 'terminal only', '`/muslim terminal-arabic`'],
     ]

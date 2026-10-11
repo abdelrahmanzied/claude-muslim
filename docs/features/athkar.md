@@ -25,7 +25,9 @@ Every thikr's count comes from the data file only. There is no choice of counts 
 | `athkarStyle` | `/athkar style sky` · `frame` | sky |
 | `athkarColor` | `/athkar color orange` · `green` · `gold` · `blue` | orange |
 
-`/athkar morning reset` · `/athkar evening reset` start that period again. `/athkar` shows the status and help.
+`/athkar morning reset` · `/athkar evening reset` start that period again. `/athkar` shows the status and the command table; `/athkar help` and `/muslim help athkar` show the table alone. `/muslim` lists athkar in its settings table.
+
+Tashkeel follows the shared `/muslim tashkeel` setting (desktop only); in the terminal the athkar go through the shared terminal Arabic path like every feature: no tashkeel, and this terminal's mode from `/muslim terminal-arabic`.
 
 Not settable: the font and the text size. The mod API sets neither.
 

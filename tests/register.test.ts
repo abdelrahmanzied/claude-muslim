@@ -13,6 +13,7 @@ test('/muslim shows each setting with its state and how to change it', { options
   expect(ran.text).toContain('| Thikr | on | `/thikr on` · `off` · all options: `/thikr help` |')
   expect(ran.text).toContain('| Terminal Arabic | terminal only | `/muslim terminal-arabic` |')
   expect(ran.text).toContain('Help: /muslim help')
+  expect(ran.text).toContain('| Athkar | on | `/athkar on` · `off` · all options: `/athkar help` |')
   expect(ran.text).toContain('| Salah | not set up | `/salah show always` · `<minutes>` · `off` · all options: `/salah help` |')
 })
 
@@ -31,7 +32,9 @@ test('/muslim help shows every feature\'s table; with a feature, only its own', 
   expect(salah).not.toContain('/thikr')
   expect(thikr).toContain('/thikr mode')
   expect(thikr).not.toContain('/salah')
-  expect((await $.command.run(muslim('help quran'))).text).toContain('Features: thikr, salah, terminal-arabic, tashkeel')
+  expect(all).toContain('/athkar morning reset')
+  expect((await $.command.run(muslim('help athkar'))).text?.split('\n')[0]).toBe('**Muslim › Athkar › Help**')
+  expect((await $.command.run(muslim('help quran'))).text).toContain('Features: thikr, athkar, salah, terminal-arabic, tashkeel')
 })
 
 test('session start clears a status line left by an earlier version', async ($, on) => {

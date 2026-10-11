@@ -73,6 +73,7 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/thikr end on` · `off` | تَمَّ بِحَمْدِ اللَّهِ at the end of a turn |
 | `/thikr mode all` · `salawat` | Every group in turn, or one salawat per request |
 | `/athkar` | Show today's athkar status and help, and show the athkar again if hidden |
+| `/athkar help` | Table of every `/athkar` command |
 | `/athkar on` · `off` | Turn the athkar on or off |
 | `/athkar morning reset` · `evening reset` | Read that period again from the start |
 | `/athkar style sky` · `frame` | The look: a sky that follows the time of day (default), or plain |
@@ -87,7 +88,7 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/muslim` | Version and a table of every setting, its value and the command that changes it |
 | `/muslim tashkeel on` · `off` | Show or hide Arabic diacritics on desktop (the terminal never shows them) |
 | `/muslim terminal-arabic` | Choose how Arabic shows in this terminal |
-| `/muslim help` · `help <feature>` | Command tables of every feature, or one (`thikr`, `salah`) |
+| `/muslim help` · `help <feature>` | Command tables of every feature, or one (`thikr`, `athkar`, `salah`) |
 
 Every setting is also in `/config`.
 
