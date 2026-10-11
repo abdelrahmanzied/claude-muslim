@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- `/salah athan test` plays the athan moment now for the next prayer without changing settings; on the desktop it also shows a small photo test card.
+- `/salah athan test` shows the athan moment now for the next prayer without changing settings: the card on the desktop, the minaret in the terminal.
+- Desktop athan card: when a prayer comes in (`salahAthan`) the desktop shows a full-width card above the prompt, built like the athkar band, with a photo of the Haram behind «حان وقت صلاة المغرب» and the time in Arabic digits and a × to close; it stays until closed or the call's 15 minutes end. The minaret is terminal only.
 - Prayer times (`/salah`): calculated on the machine with the vendored athan library (from [adhan-js](https://github.com/batoulapps/adhan-js)), no location service or API. The first prompt after install offers the city named by the time zone, or any city typed in any language (Claude reads it into coordinates). Each country's official Sunni method, else Muslim World League; Asr by the majority.
 - Review form: today's times with − and + per prayer to match the user's mosque.
 - Status line: `salah` is `always` (next prayer all day), `reminder` (default: only in the reminder window) or `off`. A live mm:ss countdown (`☾ العصر ١٩:٤٢`, updated every second, 30 s ticks outside the window) in the reminder window (`salahReminder`, 5 to 60 minutes, default 20), and حان وقت صلاة … for 15 minutes once a prayer is in (`salahAthan`). Sunrise is in today's times only. One in-app toast when the window starts, never an OS notification.

@@ -5,7 +5,7 @@ The salah feature's own design. It adds to the shared base in [DESIGN.md](../../
 ## Visual means
 
 - **Text by default.** The prayer line, the setup line, the review form and command replies are text in Claude's font, size and theme colors (`color="claude"` for the accent, `dimColor` for hints).
-- **The athan moment is a short text look.** When a prayer comes in, a band above the prompt plays once (about 3 seconds), then rests as the prayer line `حان وقت صلاة …`. In the terminal, and on the desktop for now, it is a Unicode minaret rising row by row from the base (about 330 ms a row, `color="claude"` for the crescent and the point, `dimColor` for the rest) beside «حان وقت صلاة العصر»:
+- **The athan moment is a short text look.** When a prayer comes in, a band above the prompt plays once (about 3 seconds), then rests as the prayer line `حان وقت صلاة …`. In the terminal it is a Unicode minaret rising row by row from the base (about 330 ms a row, `color="claude"` for the crescent and the point, `dimColor` for the rest) beside «حان وقت صلاة العصر»:
 
   ```
      ☾
@@ -18,8 +18,8 @@ The salah feature's own design. It adds to the shared base in [DESIGN.md](../../
   ```
 
   The seven rows keep their height while it rises, it shows once per prayer (state `salahAthanShown`), never during a survey, and `salahAthan` off drops it.
-- **Test path.** `/salah athan test` plays the athan moment on demand for the next prayer, without changing settings or marking it shown. On the desktop it also draws a small test card (a photo behind the call, a thin shrinking bar), the live check that a photo can sit inside a vector drawing there; it is a test, not the final desktop look.
-- **Desktop popup: planned, not built.** A card at the top right of the desktop with a photo of the Haram behind the text, to replace the minaret there. It shows «حان وقت صلاة العصر» and the time «العصر · ١٥:٥٩» in one calligraphic font and one colour, with Arabic digits. A thin bar in Claude's accent colour runs down along the bottom while the card shows, then the card closes by itself. Pending a live test that a photo shows inside `Svg` on desktop; until then the desktop shows the same text minaret, and the terminal always keeps the rising text minaret.
+- **Desktop athan card.** On the desktop the minaret is never drawn; instead a full-width card sits above the prompt, built like the athkar band: one vector document holding HTML and CSS, with the calligraphic font and the photo of the Haram embedded in it, rounded corners, the card the same width and height as that band. It shows «حان وقت صلاة المغرب» large on the right and the time in Arabic digits under it, in one font and white; a × at the top left closes it. No bar. It stays until the user closes it or the call's 15 minutes end.
+- **Test path.** `/salah athan test` shows the athan moment on demand for the next prayer (the card on the desktop, the minaret in the terminal), without changing settings or marking it shown.
 
 **Why:** prayer time is a few moments a day and worth marking; the rest of the day salah stays a quiet line.
 
@@ -34,7 +34,7 @@ Rows stack, never compete: each feature's AbovePrompt hook keeps what `next(e)` 
 | All day (mode `always`) | SessionMode (footer, before the model), `color="claude"`, no card | `☾ العصر ١٥:٥٩`; empty in `reminder` mode |
 | Reminder window (`salahReminder`, 20 min by default) | SessionMode, same text | `☾ العصر ١٩:٤٢`, a live mm:ss countdown, once a second |
 | Reminder starts | Toast (in-app) | One short line, closes by itself |
-| Prayer comes in | AbovePrompt band, once (~3 s), and the SessionMode line | The rising minaret plays in the band beside `حان وقت صلاة العصر`, then clears; the footer line keeps the call for 15 minutes (`salahAthan`) |
+| Prayer comes in | AbovePrompt band, once, and the SessionMode line | Terminal: the rising minaret (~3 s) beside `حان وقت صلاة العصر`. Desktop: the photo card until closed or 15 minutes. The footer line keeps the call for 15 minutes (`salahAthan`) |
 | Claude works in the window | Spinner (thikr line) | حَيَّ عَلَى الصَّلَاةِ joins the thikr rotation |
 | Settings and help | Command reply | `/salah`, `/salah help` table, `/muslim help` |
 
@@ -50,7 +50,7 @@ What the user chose:
 | Countdown | Live `mm:ss` in the footer line inside the reminder window, `☾ العصر ١٩:٤٢` |
 | Thikr | The first phrase of a thikr turn inside the window is «حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د» ([thikr.md](thikr.md#before-a-prayer)) |
 | Terminal athan moment | The rising text minaret above |
-| Desktop popup | A photo-background card at the top right, as described above. Planned, pending a live test that a photo shows inside `Svg` on desktop |
+| Desktop athan card | A photo-background card above the prompt, as described above |
 
 ## Never
 

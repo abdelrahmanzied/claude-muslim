@@ -1,6 +1,6 @@
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
-import type { SalahMinaret, SalahTestCard, SalahWindow } from '../../../types'
+import type { SalahMinaret, SalahCard, SalahWindow } from '../../../types'
 
 import { ADJUST_MAX, isMethod, REMINDER_MAX, REMINDER_MIN, writeAdjust } from '../../config.ts'
 import type { Options } from '../../config.ts'
@@ -13,7 +13,7 @@ import { writePlace, type Place } from './place.ts'
 import { athanText, isInWindow, reminderText, prayerLine } from '../../shared/pray/line.ts'
 import { ACCENT_ROWS, FRAME_MS, HOLD_MS, isDue, LABEL_ROW, minaretRows, ROWS_COUNT } from './minaret.ts'
 import { nudge, reviewRows } from './review.ts'
-import { CARD_HEIGHT, CARD_MS, CARD_WIDTH, testCardSvg } from './testcard.ts'
+import { CARD_HEIGHT, CARD_MS, cardSvg, cardWidth } from './card.ts'
 import { clockText, lastPrayer, nextSalah, type Adjust } from './times.ts'
 import { dayLine, methodOf } from './today.ts'
 
@@ -31,8 +31,8 @@ const inWindow = atom({ plugin: 'muslim', key: 'salahWindow' } as const, null as
 const minaret = atom({ plugin: 'muslim', key: 'salahMinaret' } as const, null as SalahMinaret | null)
 // The prayer line drawn in the footer's mode labels; null when there is none.
 const line = atom({ plugin: 'muslim', key: 'salahLine' } as const, null as string | null)
-// The desktop test card of `/salah athan test` while it shows; null otherwise.
-const testCard = atom({ plugin: 'muslim', key: 'salahTestCard' } as const, null as SalahTestCard | null)
+// The desktop athan card while it shows; null otherwise.
+const card = atom({ plugin: 'muslim', key: 'salahCard' } as const, null as SalahCard | null)
 const athanShown = atom({ plugin: 'muslim', key: 'salahAthanShown' } as const, null as number | null)
 
 // How often the prayer line is redrawn: every second inside the reminder
@@ -122,7 +122,7 @@ const tick = async ($: EngineInterface, options: Options, place: Place, timer: T
   await setLine($, prayerLine(next, clockText(next.at, place.timeZone), last, now, view))
   if (options.salah !== 'off' && options.salahAthan && isDue(last.at, now, await read($, athanShown))) {
     await update($, athanShown, () => last.at)
-    await playMinaret($, last.prayer === 'sunrise' ? 'fajr' : last.prayer)
+    await showAthan($, last.prayer === 'sunrise' ? 'fajr' : last.prayer, clockText(last.at, place.timeZone), now)
   }
   const text = reminderText(next, now, await read($, notified), options.salahReminder)
   if (text) {
@@ -161,26 +161,32 @@ const playMinaret = async ($: EngineInterface, prayer: SalahMinaret['prayer']) =
   $.clock.after(ROWS_COUNT * FRAME_MS + HOLD_MS, () => void update($, minaret, () => null))
 }
 
-// `/salah athan test`: plays the athan moment now for the next prayer, without
-// touching settings or the shown-once mark. On the desktop it also shows a test
-// card with a photo, read from the mod's own file; undefined if it cannot be read.
+// The athan moment: the card on the desktop and the minaret in the terminal
+// (each surface draws only its own), and the card ends by itself with the call's window.
+const showAthan = async ($: EngineInterface, prayer: SalahMinaret['prayer'], time: string, now: number) => {
+  await playMinaret($, prayer)
+  await update($, card, () => ({ prayer, time, until: now + CARD_MS }))
+  $.clock.after(CARD_MS, () => void update($, card, () => null))
+}
+
+// The card's photo, read from the mod's own file; undefined if it cannot be read.
 const PHOTO = 'src/features/salah/assets/haram.jpg'
 
 const readPhoto = async ($: EngineInterface): Promise<string | undefined> => {
-  const read = await $.fs.read(`${$.plugin.root}/${PHOTO}`, { as: 'bytes' }).catch(() => undefined)
+  const bytes = await $.fs.read(`${$.plugin.root}/${PHOTO}`, { as: 'bytes' }).catch(() => undefined)
 
-  return typeof read === 'object' ? read.base64 : undefined
+  return typeof bytes === 'object' ? bytes.base64 : undefined
 }
 
-const playTest = async ($: EngineInterface, options: Options, place: Place, photo: { base64: string | undefined }) => {
-  const next = nextSalah(place, methodOf(options, place), options.salahAdjust, await $.clock.now())
+// `/salah athan test`: shows the athan moment now for the next prayer, without
+// touching settings or the shown-once mark.
+const playTest = async ($: EngineInterface, options: Options, place: Place) => {
+  const now = await $.clock.now()
+  const next = nextSalah(place, methodOf(options, place), options.salahAdjust, now)
   const prayer = next.prayer === 'sunrise' ? 'fajr' : next.prayer
-  photo.base64 = await readPhoto($)
-  await playMinaret($, prayer)
-  await update($, testCard, () => ({ prayer, time: clockText(next.at, place.timeZone) }))
-  $.clock.after(CARD_MS, () => void update($, testCard, () => null))
+  await showAthan($, prayer, clockText(next.at, place.timeZone), now)
 
-  return `Playing the athan moment for ${ENGLISH[prayer]}${photo.base64 ? '' : ' (the test card photo could not be read)'}.`
+  return `Showing the athan moment for ${ENGLISH[prayer]}.`
 }
 
 // Tells the thikr line which prayer's window we are in; writes only on a change.
@@ -211,7 +217,7 @@ export const install = (on: On, options: Options) => {
   let hasTicker = false
   const timer: Timer = { handle: undefined, ms: 0, opens: undefined }
   let isLineCleared = false
-  // The test card's photo (base64), read when the test starts.
+  // The card's photo (base64), read the first time the card is drawn.
   const photo: { base64: string | undefined } = { base64: undefined }
 
   on('command.run', { command: 'salah' }, async ($, e) => {
@@ -245,7 +251,7 @@ export const install = (on: On, options: Options) => {
       const place = options.salahPlace
       if (!place) return { text: 'Set your city first: /salah city' }
 
-      return { text: await playTest($, options, place, photo) }
+      return { text: await playTest($, options, place) }
     }
     if (word === 'athan' && (first === 'on' || first === 'off')) return set('salahAthan', first === 'on', `athan ${first}`)
     if (word === 'city') {
@@ -359,7 +365,7 @@ export const install = (on: On, options: Options) => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)
     const playing = await read($, minaret)
-    if (!playing || e.props.hasSurvey) return theirs
+    if (!playing || e.props.hasSurvey || e.surface === 'desktop') return theirs
     const { Box, Text } = $.ui.resolve(e)
 
     return (
@@ -375,25 +381,29 @@ export const install = (on: On, options: Options) => {
     )
   })
 
-  // The desktop test card of `/salah athan test`: a photo card, drawn as an Svg.
+  // The desktop athan card: a full-width photo card above the prompt, built
+  // like the athkar band. It stays until the user closes it with × or the call's
+  // window ends. The terminal never draws it (the minaret is its look).
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)
-    const card = await read($, testCard)
-    if (!card || !photo.base64 || e.surface !== 'desktop' || e.props.hasSurvey) return theirs
-    const { Box, Svg } = $.ui.resolve(e)
+    if (e.surface !== 'desktop' || e.props.hasSurvey) return theirs
+    const shown = await read($, card)
+    if (!shown || shown.until <= (await $.clock.now())) return theirs
+    photo.base64 ??= await readPhoto($)
+    if (!photo.base64) return theirs
+    const { Box, Button, Svg } = $.ui.resolve(e)
+    const width = cardWidth(e.props.bodyColumns)
 
     return (
+      // The desktop pads the band in a card: the picture reaches a cell and half a line past it.
       <Box flexDirection="column">
-        <Box key="salah-test-card">
-          <Svg
-            source={testCardSvg(photo.base64, card.prayer, card.time)}
-            alt={`Test card: ${athanText(card.prayer)}`}
-            width={CARD_WIDTH}
-            height={CARD_HEIGHT}
-            isInteractive
-          />
+        <Box key="salah-athan-card" marginX={-1} marginY={-1} position="relative">
+          <Svg source={cardSvg(photo.base64, shown.prayer, shown.time, width)} alt={athanText(shown.prayer)} width={width} height={CARD_HEIGHT} />
+          <Box position="absolute" top={1} left={2}>
+            <Button key="salah-athan-close" plain label="×" onPress={() => update($, card, () => null)} />
+          </Box>
         </Box>
-        {theirs}
+        {theirs ?? <Box key="salah-athan-end" height={0} />}
       </Box>
     )
   })

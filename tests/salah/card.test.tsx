@@ -1,7 +1,7 @@
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
-import { CARD_MS, testCardSvg } from '../../src/features/salah/testcard.ts'
+import { CARD_HEIGHT, cardSvg, cardWidth } from '../../src/features/salah/card.ts'
 
 const MUNICH = { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berlin; DE' }
 const NOW = Date.parse('2026-10-10T10:00:00Z')
@@ -28,15 +28,17 @@ const engineBand = (on: On) =>
     return <Box />
   })
 
-test('the card markup carries the photo, both lines in Arabic, one colour and the shrinking bar', async () => {
-  const svg = testCardSvg('QUJD', 'asr', '15:59')
+test('the card markup: photo, font, both lines in Arabic, no bar', async () => {
+  const svg = cardSvg('QUJD', 'maghrib', '18:05', 800)
 
   expect(svg).toContain('data:image/jpeg;base64,QUJD')
-  expect(svg).toContain('حان وقت صلاة العصر')
-  expect(svg).toContain('العصر · ١٥:٥٩')
-  expect(svg).toContain('rgb(215,119,87)')
-  expect(svg).toContain(`dur="${CARD_MS / 1000}s"`)
+  expect(svg).toContain('data:font/woff2;base64,')
+  expect(svg).toContain('حان وقت صلاة المغرب')
+  expect(svg).toContain('١٨:٠٥')
+  expect(svg).not.toContain('<animate')
+  expect(svg).toContain(`height="${CARD_HEIGHT}"`)
   expect(svg.length).toBeLessThan(131072)
+  expect(cardWidth(100)).toBeGreaterThan(840)
 })
 
 test('/salah athan test without a city says so', async $ => {
@@ -49,22 +51,35 @@ test('/salah athan test answers and changes no setting', { options: MUNICH }, as
   on('config.set', async (_$, e) => (written.push(e), { value: e.value }))
   const ran = await $.command.run(run('athan test'))
 
-  expect(ran.text).toContain('Playing the athan moment')
+  expect(ran.text).toContain('Showing the athan moment')
   expect(written).toEqual([])
 })
 
-test('on the desktop the card shows as an interactive Svg, on the terminal it does not', { options: MUNICH }, async ($, on) => {
+test('on the desktop the test shows the card with a close, never the minaret; × clears it', { options: MUNICH }, async ($, on) => {
   mock.clock(on, { now: NOW })
   engineBand(on)
   const asked: string[] = []
   on('fs.read', async (_$, e) => (asked.push(e.path), { value: { base64: 'QUJD' } }))
   const desktop = await $.ui.mount(band('desktop'))
+  await $.command.run(run('athan test'))
+
+  const card = await desktop.find({ type: 'Svg' })
+  expect(card).toBeDefined()
+  expect(asked).toEqual([expect.stringMatching(/src\/features\/salah\/assets\/haram\.jpg$/)])
+  expect(card?.props.isInteractive).toBeUndefined()
+  expect(await desktop.find({ text: '▐███▌' })).toBeUndefined()
+  const close = await desktop.find({ type: 'Button', key: 'salah-athan-close' })
+  expect(close).toBeDefined()
+  await desktop.press({ key: 'salah-athan-close' })
+  expect(await desktop.find({ type: 'Svg' })).toBeUndefined()
+})
+
+test('on the terminal the test plays the minaret only, no card', { options: MUNICH }, async ($, on) => {
+  mock.clock(on, { now: NOW })
+  engineBand(on)
   const terminal = await $.ui.mount(band('terminal'))
   await $.command.run(run('athan test'))
 
-  expect(asked).toEqual([expect.stringMatching(/src\/features\/salah\/assets\/haram\.jpg$/)])
-  const card = await desktop.find({ type: 'Svg' })
-  expect(card).toBeDefined()
-  expect(card?.props.isInteractive).toBe(true)
   expect(await terminal.find({ type: 'Svg' })).toBeUndefined()
+  expect(await terminal.find({ text: '▐███▌' })).toBeDefined()
 })
