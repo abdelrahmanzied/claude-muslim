@@ -3,7 +3,7 @@ import type { Period } from './data.ts'
 import { arabicDigits, countOf, currentOf, END, hasBegun, listFor, overall, textOf, timesOf, TITLE } from './logic.ts'
 import type { Reading, Sky } from './logic.ts'
 
-export type Style = 'sky' | 'outline'
+export type Style = 'sky' | 'frame'
 export type Accent = 'orange' | 'green' | 'gold' | 'blue'
 
 // The main color, for a light theme and a dark one.

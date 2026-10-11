@@ -1,5 +1,5 @@
 // The band's look on desktop: the athkar lab's own rules, in the lab's order,
-// the ones its band uses in every sky, Outline, color and state.
+// the ones its band uses in every sky, Frame, color and state.
 
 export const BAND_CSS = `
 * {box-sizing: border-box;}
@@ -23,7 +23,7 @@ button:focus-visible {outline: 2px solid var(--accent); outline-offset: 2px;}
 .band.active .xabs {font-weight: 700;}
 .xabs:hover {opacity: 1;}
 .band[data-band] .text {font-size: var(--band-size, 16px) !important;}
-.bg-outline {background: transparent; border: 1.5px solid var(--b-acc);}
+.bg-frame {background: transparent; border: 1.5px solid var(--b-acc);}
 .bg-bluehour {background: var(--scrim), radial-gradient(130% 70% at 50% 130%, rgba(255, 190, 140, .55), rgba(255, 190, 140, 0) 62%), linear-gradient(180deg, #0b1636 0%, #1d336c 46%, #3c5ba2 80%, #7c90c6 100%);}
 .bg-rose {background: var(--scrim), radial-gradient(1.5px 1.5px at 76% 20%, #fff, transparent 60%), linear-gradient(180deg, #29225a 0%, #574285 38%, #a96f98 74%, #eeb19c 100%);}
 .bg-crescent {background: var(--scrim), radial-gradient(1.5px 1.5px at 62% 24%, #fff, transparent 60%), radial-gradient(1px 1px at 38% 62%, rgba(255,255,255,.7), transparent 60%), radial-gradient(1px 1px at 84% 70%, rgba(255,255,255,.6), transparent 60%), radial-gradient(60px 60px at 9% 18%, rgba(255, 236, 190, .28), transparent 70%), linear-gradient(180deg, #060c22 0%, #121d48 58%, #26346a 100%);}

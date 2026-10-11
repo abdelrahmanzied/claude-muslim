@@ -26,7 +26,8 @@ export const readOptions = (raw: Record<string, unknown>): Options => ({
   thikrEnd: raw.thikrEnd !== false,
   thikrMode: raw.thikrMode === 'salawat' ? 'salawat' : 'all',
   athkar: raw.athkar !== false,
-  athkarStyle: raw.athkarStyle === 'outline' ? raw.athkarStyle : 'sky',
+  // 'outline' is the old name of 'frame'.
+  athkarStyle: raw.athkarStyle === 'frame' || raw.athkarStyle === 'outline' ? 'frame' : 'sky',
   athkarColor: raw.athkarColor === 'green' || raw.athkarColor === 'gold' || raw.athkarColor === 'blue' ? raw.athkarColor : 'orange',
 })
 

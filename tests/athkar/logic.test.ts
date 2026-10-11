@@ -291,16 +291,17 @@ test('the finale: the verse and its citation, centered, in the words face, a fix
   for (const width of [300, 500, 860, 1400]) expect(finaleSize(END, width)).toBe(18)
 })
 
-test('the end verse takes the words color on a sky, the main color on Outline', async () => {
+test('the end verse takes the words color on a sky, the main color on Frame', async () => {
   const sky = bandSvg(model({ phase: 'done', isActive: true, end: END, style: 'sky' }))
   expect(sky).toMatch(/\.done-row \.big \{[^}]*color: var\(--b-ink\)/)
   expect(sky).toMatch(/\.rise-msg \{[^}]*color: var\(--b-ink\)/)
-  expect(sky).toContain('.band.bg-outline .done-row .big, .band.bg-outline .rise-msg, .band.bg-outline .dn-peek .pk-text { color: var(--b-acc); }')
-  expect(bandSvg(model({ phase: 'done', isActive: true, end: END, style: 'outline' }))).toContain('bg-outline')
+  expect(sky).toContain('.band.bg-frame .done-row .big, .band.bg-frame .rise-msg, .band.bg-frame .dn-peek .pk-text { color: var(--b-acc); }')
+  expect(bandSvg(model({ phase: 'done', isActive: true, end: END, style: 'frame' }))).toContain('bg-frame')
 })
 
-test('the look is sky or outline; the dropped sand falls back to sky', () => {
+test('the look is sky or frame; the old outline reads as frame, the dropped sand as sky', () => {
   expect(readOptions({}).athkarStyle).toBe('sky')
-  expect(readOptions({ athkarStyle: 'outline' }).athkarStyle).toBe('outline')
+  expect(readOptions({ athkarStyle: 'frame' }).athkarStyle).toBe('frame')
+  expect(readOptions({ athkarStyle: 'outline' }).athkarStyle).toBe('frame')
   expect(readOptions({ athkarStyle: 'sand' }).athkarStyle).toBe('sky')
 })

@@ -91,7 +91,7 @@ A reader above the prompt for the morning athkar (05:00 to 17:00) and the evenin
 - **Sizes (desktop):** the open reading and the cover are one fixed height for every thikr, 77px, with the text at a fixed 14px (no size setting). The words keep 14px, or shrink just enough to fit their two-line box, with no floor: in a very narrow window the words get small but never leave the box; the cover's title and keys fit the width the same way. Faded, the reading and the cover fold to one row (24px); the done row is 56px.
 - **Moves on** by itself 650 ms after a thikr's last count.
 - **Progress:** Horizon glow, a soft line along the bottom filled from the right, its head pulsing slowly and easing forward on each count. Each thikr is an equal share, partial counts included: `Σ min(count / times, 1) / n`.
-- **End:** on desktop, stars fall across the sky and ﴿رَبَّنَا تَقَبَّلْ مِنَّا إِنَّكَ أَنتَ السَّمِيعُ الْعَلِيمُ﴾ rises centered with — البقرة ١٢٧ (a fixed 18px). Then the done row: the verse with — البقرة ١٢٧ on the right, `/athkar morning reset to read again` on the left. On a sky the verse takes the words' color; on Outline the main color. Faded, the done row folds to one slim row: the verse alone.
+- **End:** on desktop, stars fall across the sky and ﴿رَبَّنَا تَقَبَّلْ مِنَّا إِنَّكَ أَنتَ السَّمِيعُ الْعَلِيمُ﴾ rises centered with — البقرة ١٢٧ (a fixed 18px). Then the done row: the verse with — البقرة ١٢٧ on the right, `/athkar morning reset to read again` on the left. On a sky the verse takes the words' color; on Frame the main color. Faded, the done row folds to one slim row: the verse alone.
 - **×** hides the band and keeps the reading; `/athkar` brings it back.
 - **Saved** per day and period in `$.store`. A day runs 05:00 to 05:00, so evening athkar read after midnight still count for that evening. A new day starts fresh; a finished period does not show again that day.
 
@@ -101,7 +101,7 @@ A reader above the prompt for the morning athkar (05:00 to 17:00) and the evenin
 | --- | --- | --- |
 | Sky (default) | desktop | A sky that follows the clock: dawn 4–6, sunrise 6–8, clear day 8–17, rose 17–18, blue hour 18–19, crescent 19–4. Rich motion: stars, sun, clouds, birds, shooting stars. Faded until clicked, then in color. |
 | Sky | terminal | The same sky's color as a plain background. |
-| Outline | both | A main-color outline; the frame breathes while reading. |
+| Frame | both | A main-color frame that breathes while reading. |
 
 On every sky the pill is the main color with a white number. Sunrise takes dark words; every other sky white.
 
@@ -110,7 +110,7 @@ On every sky the pill is the main color with a white number. Sunrise takes dark 
 | `/config` field | Command | Default |
 | --- | --- | --- |
 | `athkar` | `/athkar on` · `off` | on |
-| `athkarStyle` | `/athkar style sky` · `outline` | sky |
+| `athkarStyle` | `/athkar style sky` · `frame` | sky |
 | `athkarColor` | `/athkar color orange` · `green` · `gold` · `blue` | orange |
 
 `/athkar morning reset` · `/athkar evening reset` start that period again. `/athkar` shows the status and help.

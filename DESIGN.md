@@ -33,7 +33,7 @@ Not used: custom Panes for passive content, Images, Raster. Svg and Client modul
 The athkar reader is the one feature the person sits with, so it is drawn:
 
 - **Client module** (`src/features/athkar/reader.tsx`) for the reader: it takes clicks and keys, keeps the cover and the active look, and posts each count to the hooks module. Terminal and desktop.
-- **Svg** (desktop only) for the Sky look: a sky that follows the time of day with slow SMIL motion, drawn behind the reader. The terminal and the Outline look use a plain background color.
+- **Svg** (desktop only) for the Sky look: a sky that follows the time of day with slow SMIL motion, drawn behind the reader. The terminal and the Frame look use a plain background color.
 - **Hex colors** for the reader's main color (orange, green, gold, blue, in a light and a dark shade) and the skies, since a theme key cannot be blended or placed on a sky.
 
 Everything else (font, size) stays Claude's: the API sets neither, so the reader follows the app's zoom.

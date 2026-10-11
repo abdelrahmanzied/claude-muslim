@@ -172,12 +172,12 @@ const EXTRA_CSS = `
 @keyframes fall { to { transform: translateY(var(--dy)) rotate(var(--rot)); opacity: 0; } }
 .rise-msg { position: absolute; left: 50%; bottom: 24px; font-family: var(--font-band, var(--font-ar)); font-size: var(--rs, 30px); white-space: nowrap; direction: rtl; color: var(--b-ink); text-shadow: 0 0 18px color-mix(in srgb, var(--ring) 70%, transparent); opacity: 0; animation: riseMsg 2.8s ease-out both; }
 @keyframes riseMsg { 0% { opacity: 0; transform: translate(-50%, 30px); } 30% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -110px); } }
-/* The end verse: on a sky the words' color, on Outline the main color, as
+/* The end verse: on a sky the words' color, on Frame the main color, as
    the frame and the progress line. The finale's is in the words' face too. */
-.band.bg-outline .done-row .big, .band.bg-outline .rise-msg, .band.bg-outline .dn-peek .pk-text { color: var(--b-acc); }
+.band.bg-frame .done-row .big, .band.bg-frame .rise-msg, .band.bg-frame .dn-peek .pk-text { color: var(--b-acc); }
 /* Skies have no edge line, colored or white: the picture is the edge. */
 .band.band.band.sky, .band.band.band.sky.edge:not(.framed) { border-color: transparent !important; }
-/* Outline: at rest the app's own quiet line; lit, the accent line
+/* Frame: at rest the app's own quiet line; lit, the accent line
    and the glow breathing inside the edge, since the picture ends at it. */
 .band.band.al-breathe:not(.active) { border-color: var(--desk-line) !important; }
 .band.band.al-breathe.active { border-color: var(--b-acc) !important; animation: breatheIn 5.5s ease-in-out infinite; animation-delay: var(--t, 0s); }
