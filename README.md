@@ -108,31 +108,141 @@ claude plugin uninstall muslim@claude-muslim
 
 - Some terminals don't join Arabic letters or show them right to left. The desktop app and most modern terminals do.
 
-## Development
+## Develop and release
 
-Run Claude Code with the mod loaded from this folder (hot-reloads on save):
+### Run your copy
+
+A dev copy replaces the installed `muslim@claude-muslim` in that session only. It can be any of these:
+
+- `--plugin-dir`
+- `CLAUDE_CODE_PLUGIN_DIRS`
+- a session's `~/.claude/dev-mods/<session-id>/muslim` link
+
+The debug log then says `Plugin "muslim" from --plugin-dir overrides installed version`, and only `muslim@inline` loads. There is no conflict and no double hooks. Every other session keeps running the installed copy.
+
+In a terminal, from the worktree:
 
 ```bash
 claude --plugin-dir .
 ```
 
-Check, test and type-check:
+In the desktop app, link the worktree into the session's dev-mods folder:
 
 ```bash
-claude plugin validate .
-claude plugin test .
-npx tsc -p .
+ln -s <worktree> ~/.claude/dev-mods/<session-id>/muslim
 ```
 
-`.claude-plugin/types/` is written by Claude Code when it loads the mod; `tsc` needs it present (load the mod once first).
+Or ask Claude in that session to load `/plugin-authoring` and link it. Edits load after the turn ends, or on `/reload-plugins`.
 
-### Releasing
+Tested on Claude Code 2.1.296.
+
+### Check
+
+Install the dev dependency (TypeScript) once:
+
+```bash
+npm install
+```
+
+Then validate, test and type-check in one go:
+
+```bash
+npm run check
+```
+
+`.claude-plugin/types/` is written by Claude Code when it loads the mod. `tsc` needs it, so load the mod once first.
+
+The pre-push hook runs the same check. Enable it once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+### Work on several features at once
+
+Use one worktree and one session per feature. Sessions don't load each other's code.
+
+- The link belongs to that session ID. It survives restarting or resuming that session. A new session needs a new link.
+- Old `dev-mods/<id>` folders stay behind. You can delete them.
+- The installed copy is at user scope, so it is active in every session with no dev copy. Usually you don't need to disable it, because the dev copy already overrides it.
+- To disable it for one folder only, run this from that folder:
+
+```bash
+claude plugin disable muslim@claude-muslim --scope local
+```
+
+Disabling it at user scope affects all sessions.
+
+What dev sessions share:
+
+- Options. They live in `~/.claude/settings.json` under `pluginConfigs["muslim@inline"]`. All dev copies share them. The installed copy has its own entry.
+- `$.store`, such as the athkar daily progress. It is kept across sessions, so it is likely shared by all copies named `muslim`.
+
+Don't put `CLAUDE_CODE_PLUGIN_DIRS` in the `env` block of `~/.claude/settings.json` for this. It applies to every session, so all sessions would run that one worktree.
+
+### Try it as a user
+
+Open a session with no dev link, for example in the main worktree. It runs the installed copy.
+
+```bash
+claude plugin list
+```
+
+That shows the installed version. `/muslim` shows the running version. Bump the version on the feature branch so you can tell the copies apart.
+
+Updates arrive only after the version changes on GitHub `main` and the user runs `claude plugin update`.
+
+### Test the installed form before pushing (untested)
+
+A folder marketplace is read live. Our `marketplace.json` source is `./`. But the name `claude-muslim` is already taken by the GitHub marketplace. Remove it first:
+
+```bash
+claude plugin marketplace remove claude-muslim
+```
+
+```bash
+claude plugin marketplace add <folder>
+```
+
+Afterwards, remove the folder one and add the GitHub one back.
+
+### Release
 
 Users get an update only when the version changes. For each release:
 
 1. Bump `version` in `.claude-plugin/plugin.json` and `VERSION` in `src/constants.ts`.
 2. Add an entry to `CHANGELOG.md`.
-3. Merge to `main`, then tag it: `claude plugin tag .`
+3. Merge to `main`.
+4. Tag it:
+
+```bash
+claude plugin tag .
+```
+
+5. Push `main`. This is the step that makes it reach users.
+6. Check that it arrives:
+
+```bash
+claude plugin update muslim@claude-muslim
+```
+
+Then run `/reload-plugins`.
+
+### When the wrong code loads
+
+Nothing warns you about these:
+
+- No dev link in the session. The installed copy runs, with the same commands.
+- A link points at the wrong worktree. Check with `ls -l ~/.claude/dev-mods/*/muslim`.
+- A dev-mods folder holds a copied folder instead of a link. The code is stale.
+- `CLAUDE_CODE_PLUGIN_DIRS` is set in global settings.
+- An old marketplace has the same plugin name (`muslim-mod-dev`). Remove it:
+
+```bash
+claude plugin marketplace remove muslim-mod-dev
+```
+
+- You forgot the version bump. Users never get the update.
 
 ## Project layout
 
