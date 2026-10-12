@@ -7,6 +7,7 @@ import { FRAME_MS, HOLD_MS, ROWS_COUNT, TOTAL_MS } from '../../src/features/sala
 import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
 import { athanText } from '../../src/shared/pray/line.ts'
 import { salahHelp } from '../../src/features/salah/help.ts'
+import { DEMO_FOLDED_MS, DEMO_OPEN_MS } from '../../src/features/salah/demo.ts'
 
 const MUNICH = { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berlin; DE' }
 const NOW = Date.parse('2026-10-10T10:00:00Z')
@@ -191,14 +192,17 @@ for (const surface of ['desktop', 'terminal'] as const) {
   })
 }
 
-test('desktop demo folds, reopens for another minute, then closes at its original deadline', { options: MUNICH }, async ($, on) => {
+// 13:01:45 in Munich; Dhuhr is at 13:02.
+const BEFORE_DHUHR = Date.parse('2026-10-10T11:01:45Z')
+
+test('the real desktop athan folds, reopens for another minute, then closes at its original deadline', { options: MUNICH }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
-  const clock = mock.clock(on, { now: NOW })
+  const clock = mock.clock(on, { now: BEFORE_DHUHR })
   engineBand(on)
   on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
   const desktop = await $.ui.mount(band('desktop'))
-  await $.command.run(run('athan demo'))
+  await clock.advance(15_000)
   const picture = () => desktop.find({ in: 'salah-athan', type: 'Svg' })
   expect(Number((await picture())?.props.height)).toBe(cardHeight() + 20)
   await clock.advance(FOLD_MS)
@@ -220,16 +224,34 @@ test('desktop demo folds, reopens for another minute, then closes at its origina
 test('the folded desktop × closes without reopening', { options: MUNICH }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
-  const clock = mock.clock(on, { now: NOW })
+  const clock = mock.clock(on, { now: BEFORE_DHUHR })
   engineBand(on)
   on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
-  await $.command.run(run('athan demo'))
   const desktop = await $.ui.mount(band('desktop'))
+  await clock.advance(15_000)
+  expect(await desktop.find({ in: 'salah-athan', type: 'Svg' })).toBeDefined()
   await clock.advance(FOLD_MS)
   await desktop.post({ act: 'pointer', button: 'left', x: 2, y: 1, columns: 100, rows: 2 }, { in: 'salah-athan' })
   expect(await desktop.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
   await clock.advance(CARD_MS)
   expect(await desktop.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
+})
+
+test('the desktop demo opens, folds after DEMO_OPEN_MS, and is gone DEMO_FOLDED_MS later', { options: MUNICH }, async ($, on) => {
+  mock.env(on, {})
+  mock.store(on)
+  const clock = mock.clock(on, { now: NOW })
+  engineBand(on)
+  on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
+  const desktop = await $.ui.mount(band('desktop'))
+  await $.command.run(run('athan demo'))
+  const picture = () => desktop.find({ in: 'salah-athan', type: 'Svg' })
+  expect(Number((await picture())?.props.height)).toBe(cardHeight() + 20)
+  await clock.advance(DEMO_OPEN_MS)
+  expect(Number((await picture())?.props.height)).toBe(REST_PX + 20)
+  await clock.advance(DEMO_FOLDED_MS)
+  expect(await desktop.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
+  expect(await desktop.find({ type: 'Client', key: 'athkar' })).toBeDefined()
 })
 
 for (const ending of ['close', 'expire'] as const) {

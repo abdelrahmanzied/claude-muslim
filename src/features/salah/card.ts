@@ -45,7 +45,7 @@ const css = (photo: string) => [
   '  padding: var(--ay, 0px) calc(36px + var(--ax, 0px));',
   `  background: linear-gradient(rgba(0,0,0,.35), rgba(0,0,0,.7)), url(data:image/jpeg;base64,${photo}) center 50% / cover; }`,
   '.athan .main { font-size: 26px; line-height: 1.5; }',
-  '.athan.rest { flex-direction: row; align-items: center; gap: 12px; white-space: nowrap; }',
+  '.athan.rest { flex-direction: row; justify-content: flex-start; align-items: center; gap: 12px; white-space: nowrap; }',
   '.athan.rest .main, .athan.rest .time { font-size: 17px; line-height: 1; }',
   '.athan .time { font-size: 17px; line-height: 1.4; color: rgba(255,255,255,.85); }',
 ].join('\n')

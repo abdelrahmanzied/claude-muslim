@@ -9,7 +9,7 @@ import type { Options } from '../../config.ts'
 import { CITY_MODEL, CITY_SYSTEM, cityPrompt, parseCities, parseCoordinates, type City } from './city.ts'
 import { helpHint } from '../../table.ts'
 import { salahHelp } from './help.ts'
-import { athanDemo } from './demo.ts'
+import { athanDemo, demoState } from './demo.ts'
 import { momentState } from './moment.ts'
 import { guessPlace, systemTimeZone } from './location.ts'
 import { METHODS, methodFor, type Pray } from './methods.ts'
@@ -249,12 +249,15 @@ const readPhoto = async ($: EngineInterface): Promise<string | undefined> => {
   return typeof bytes === 'object' ? bytes.base64 : undefined
 }
 
-// `/salah athan demo`: shows the athan moment now for the next pray, without
-// touching settings or the shown-once mark.
+// `/salah athan demo`: plays the athan moment's stages now for the next pray
+// on the demo's short clock, without touching settings or the shown-once mark.
 const playDemo = async ($: EngineInterface, options: Options, place: Place, timer: Timer) => {
   const now = await $.clock.now()
   const demo = athanDemo(options, place, now)
-  await showAthan($, demo.pray, demo.time, now, timer)
+  const moment = demoState(demo.pray, demo.time, now)
+  await update($, minaret, () => moment.minaret)
+  await update($, card, () => moment.card)
+  await scheduleMoment($, timer)
 
   return demo.text
 }
