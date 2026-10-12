@@ -12,6 +12,8 @@ for (const style of ['sky', 'frame'] as const) {
     expect(scenes.map(s => s.id)).toEqual(['75', '83', '84', '98', '98', '98'])
     expect(scenes.map(s => s.duration)).toEqual([5000, 4000, 5000, 4000, FINALE_MS, 3000])
     expect(scenes.map(s => s.sky)).toEqual(['dawn', 'sunrise', 'day', 'rose', 'bluehour', 'crescent'])
+    // Sky shows the morning set under the morning skies and the evening set under the evening ones.
+    expect(scenes.map(s => s.period)).toEqual(style === 'sky' ? ['morning', 'morning', 'morning', 'evening', 'evening', 'evening'] : Array(6).fill('morning'))
     expect(scenes.map(s => s.accent)).toEqual(style === 'sky' ? Array(6).fill('gold') : ['orange', 'green', 'gold', 'blue', 'orange', 'green'])
     expect(demoDuration(FINALE_MS)).toBe(24_200)
     expect(demoReply(style, FINALE_MS)).toBe(`**Athkar demo:** ${style} · 6 scenes · 24.2s`)

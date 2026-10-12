@@ -59,8 +59,9 @@ for (const style of ['sky', 'frame'] as const) {
       expect(await ui.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
       expect(await model()).toMatchObject({ thikrId: scene.id, sky: scene.sky, accent: scene.accent, style, phase: i < 4 ? 'reading' : 'done', isActive: i !== 5 })
       if (i < 4) {
-        const index = listFor('morning').findIndex(t => t.id === scene.id)
-        expect(await model()).toMatchObject({ position: `${arabicDigits(index + 1)} مِنْ ${arabicDigits(listFor('morning').length)}`, count: 0 })
+        const list = listFor(scene.period)
+        const index = list.findIndex(t => t.id === scene.id)
+        expect(await model()).toMatchObject({ period: scene.period, position: `${arabicDigits(index + 1)} مِنْ ${arabicDigits(list.length)}`, count: 0 })
         if (i === 0) expect((await model()).note).toBe('آية الكرسي · البقرة ٢٥٥')
         await clock.advance(scene.countMs)
         expect((await model()).count).toBe(1)

@@ -49,7 +49,8 @@ On every sky the pill is the main color with a white number. Sunrise takes dark 
 Ayat al-Kursi (75, 5s), a short line (83, 4s), a long dua (84, 5s), the last
 thikr (98, 4s), the full real finale (3.2s), then folded done (3s). Total:
 24.2 seconds. Sky advances through dawn, sunrise, day, rose, bluehour and
-crescent; Frame cycles orange, green, gold, blue, orange and green.
+crescent, on the morning set for the first three and the evening set for the
+last three; Frame cycles orange, green, gold, blue, orange and green.
 
 The four reading scenes are open and lit. Their authored counts and real
 positions are retained, including Kursi's full note «آية الكرسي · البقرة ٢٥٥».

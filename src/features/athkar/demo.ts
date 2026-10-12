@@ -2,9 +2,14 @@
 import { ACCENTS, type Accent } from '../../shared/color/index.ts'
 import { emptyReading, listFor, overall, timesOf, type Reading, type Sky } from './logic.ts'
 import type { Style } from './look.ts'
+import type { Period } from './data.ts'
 
 export const DEMO_TICK_MS = 100
 export const DEMO_PERIOD = 'morning' as const
+// Sky walks the day: the morning set under the first three skies, the evening
+// set under the last three. Frame stays on the morning set.
+export const demoPeriod = (style: Style, scene: number): Period =>
+  style === 'sky' && scene >= 3 ? 'evening' : DEMO_PERIOD
 export const DEMO_SKIES: readonly Sky[] = ['dawn', 'sunrise', 'day', 'rose', 'bluehour', 'crescent']
 const COLORS = Object.keys(ACCENTS) as Accent[]
 export const DEMO_COLORS: readonly Accent[] = [...COLORS, COLORS[0]!, COLORS[1]!]
@@ -28,7 +33,7 @@ export const demoScenes = (style: Style, accent: Accent, finaleMs: number) => {
     const startsAt = at
     at += scene.duration
 
-    return { ...scene, startsAt, style, sky: DEMO_SKIES[i]!, accent: style === 'sky' ? accent : DEMO_COLORS[i]! }
+    return { ...scene, startsAt, style, period: demoPeriod(style, i), sky: DEMO_SKIES[i]!, accent: style === 'sky' ? accent : DEMO_COLORS[i]! }
   })
 }
 
@@ -40,7 +45,8 @@ export const demoStep = (style: Style, accent: Accent, elapsed: number, finaleMs
   if (elapsed < 0 || elapsed >= demoDuration(finaleMs)) return undefined
   const scene = demoScenes(style, accent, finaleMs).find(s => elapsed < s.startsAt + s.duration)!
   const ms = elapsed - scene.startsAt
-  const list = listFor(DEMO_PERIOD)
+  const period = scene.period
+  const list = listFor(period)
   const index = list.findIndex(thikr => thikr.id === scene.id)
   const thikr = list[index]!
   const count = scene.kind === 'reading' ? Math.min(timesOf(thikr), Math.floor(ms / scene.countMs)) : timesOf(thikr)
@@ -52,10 +58,10 @@ export const demoStep = (style: Style, accent: Accent, elapsed: number, finaleMs
   const sinceCount = ms - count * scene.countMs
 
   return {
-    ...scene, period: DEMO_PERIOD, reading,
+    ...scene, reading,
     isActive: scene.kind !== 'folded',
-    progress: overall(DEMO_PERIOD, reading),
-    from: count > 0 && scene.kind === 'reading' ? overall(DEMO_PERIOD, previous) : overall(DEMO_PERIOD, reading),
+    progress: overall(period, reading),
+    from: count > 0 && scene.kind === 'reading' ? overall(period, previous) : overall(period, reading),
     glowMs: scene.kind === 'reading' && count > 0 ? sinceCount : 0,
     finaleMs: scene.kind === 'finale' ? ms : undefined,
   }

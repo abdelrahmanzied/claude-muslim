@@ -40,7 +40,9 @@ Not settable: the font and the text size. The mod API sets neither.
 `/athkar demo` uses the current desktop style, or Frame in the terminal.
 `/athkar demo sky` is desktop only; the terminal replies that Sky is desktop
 only. `/athkar demo frame` plays on either surface. Both tell the same
-six-scene story in 24.2 seconds:
+six-scene story in 24.2 seconds. Sky reads the morning set for the first three
+scenes and the evening set for the last three, so each sky sits on its own
+period; Frame stays on the morning set:
 
 | Scene | Authored thikr | Length | Sky | Frame color |
 | --- | --- | --- | --- | --- |
