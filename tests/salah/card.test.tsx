@@ -1,7 +1,8 @@
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
-import { CARD_HEIGHT, CARD_MS, cardSvg, cardWidth } from '../../src/features/salah/card.ts'
+import { cardHeight, frameOf } from '../../src/shared/card/card.ts'
+import { athanFrame, athanSvg, CARD_MS } from '../../src/features/salah/card.ts'
 import { FRAME_MS, HOLD_MS, ROWS_COUNT } from '../../src/features/salah/minaret.ts'
 
 const MUNICH = { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berlin; DE' }
@@ -29,23 +30,25 @@ const engineBand = (on: On) =>
     return <Box />
   })
 
-test('the card markup: photo, font, both lines in Arabic, no bar', { options: { athkar: false } }, async () => {
-  const svg = cardSvg('QUJD', 'maghrib', '18:05', 800)
+const props = (photo: string, pray: 'maghrib' | 'fajr', time: string) => ({ isActive: true, now: 0, pray, time, photo, width: 800, card: { ch: 8.4, lh: 20 } })
+
+test('the card markup: the shared card holding the photo, the font and both lines in Arabic', { options: { athkar: false } }, async () => {
+  const svg = athanSvg(props('QUJD', 'maghrib', '18:05'), { hoverClose: false, columns: 0 })
 
   expect(svg).toContain('data:image/jpeg;base64,QUJD')
   expect(svg).toContain('data:font/woff2;base64,')
   expect(svg).toContain('حان وقت صلاة المغرب')
   expect(svg).toContain('١٨:٠٥')
-  expect(svg).not.toContain('<animate')
-  expect(svg).not.toContain('@keyframes')
-  expect(svg).toContain('class="close"')
-  expect(svg).toContain(`height="${CARD_HEIGHT}"`)
+  expect(svg).toContain('class="x xabs">×</span>')
+  expect(svg).toContain(`height="${frameOf(athanFrame(props('', 'fajr', ''))).height}"`)
   expect(svg.length).toBeLessThan(131072)
-  expect(cardWidth(100)).toBeGreaterThan(840)
+  // The athkar band's open height, whatever the width.
+  expect(athanFrame(props('', 'fajr', '')).height).toBe(cardHeight())
+  expect(athanSvg(props('QUJD', 'fajr', '05:00'), { hoverClose: true, columns: 0 })).toContain('class="x xabs hot"')
 })
 
 test('the card with the real photo (about 40 KB of base64) stays far under the Svg limit', () => {
-  expect(cardSvg('A'.repeat(45000), 'fajr', '05:00', 1500).length).toBeLessThan(110000)
+  expect(athanSvg(props('A'.repeat(45000), 'fajr', '05:00'), { hoverClose: false, columns: 180 }).length).toBeLessThan(110000)
 })
 
 test('/salah athan test without a city says so', { options: { athkar: false } }, async $ => {
@@ -64,7 +67,7 @@ test('/salah athan test answers and changes no setting', { options: MUNICH }, as
   expect(written).toEqual([])
 })
 
-test('on the desktop the test shows the card with a close, never the minaret; × clears it', { options: MUNICH }, async ($, on) => {
+test('on the desktop the test shows the shared card, never the minaret; a click on its × clears it', { options: MUNICH }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   mock.clock(on, { now: NOW })
@@ -74,16 +77,56 @@ test('on the desktop the test shows the card with a close, never the minaret; ×
   const desktop = await $.ui.mount(band('desktop'))
   await $.command.run(run('athan test'))
 
-  const card = await desktop.find({ type: 'Svg' })
+  const card = await desktop.find({ in: 'salah-athan', type: 'Svg' })
   expect(card).toBeDefined()
+  expect(Number(card?.props.height)).toBe(cardHeight() + 20)
   expect(asked).toEqual([expect.stringMatching(/src\/features\/salah\/assets\/haram\.jpg$/)])
-  // Preserve the sandboxed document path used by the working card.
-  expect(card?.props.isInteractive).toBe(true)
   expect(await desktop.find({ text: '▐███▌' })).toBeUndefined()
-  const close = await desktop.find({ type: 'Button', key: 'salah-athan-close' })
-  expect(close).toBeDefined()
-  await desktop.press({ key: 'salah-athan-close' })
+  // A click on the card away from the × leaves it.
+  await desktop.post({ act: 'pointer', button: 'left', x: 60, y: 2, columns: 100, rows: 5 }, { in: 'salah-athan' })
+  expect(await desktop.find({ in: 'salah-athan', type: 'Svg' })).toBeDefined()
+  await desktop.post({ act: 'pointer', button: 'left', x: 2, y: 1, columns: 100, rows: 5 }, { in: 'salah-athan' })
+  expect(await desktop.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
+  expect(await desktop.find({ in: 'athkar', type: 'Svg' })).toBeDefined()
   expect(await desktop.find({ type: 'Svg' })).toBeUndefined()
+})
+
+test('the athan replaces only the desktop band, hovers the shared ×, and returns the saved reading', { options: MUNICH }, async ($, on) => {
+  mock.env(on, {})
+  mock.store(on)
+  const clock = mock.clock(on, { now: NOW })
+  engineBand(on)
+  on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
+  const desktop = await $.ui.mount(band('desktop'))
+  await desktop.key({ key: 'return', in: 'athkar' })
+  await desktop.key({ key: 'return', in: 'athkar' })
+  await desktop.key({ key: 'space', in: 'athkar' })
+  const before = (await desktop.find({ type: 'Client', key: 'athkar' }))?.props.props
+  expect(before).toMatchObject({ phase: 'reading', count: 1 })
+  await $.command.run(run('athan test'))
+  expect(await desktop.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
+  await desktop.resize({ columns: 100, rows: 5, in: 'salah-athan' })
+  await desktop.pointer({ type: 'move', x: 2, y: 1, in: 'salah-athan' })
+  expect(String((await desktop.find({ in: 'salah-athan', type: 'Svg' }))?.props.source)).toContain('class="x xabs hot"')
+  await desktop.pointer({ type: 'leave', x: 2, y: 1, in: 'salah-athan' })
+  expect(String((await desktop.find({ in: 'salah-athan', type: 'Svg' }))?.props.source)).toContain('class="x xabs"')
+  const terminal = await $.ui.mount(band('terminal'))
+  expect(await terminal.find({ type: 'Client', key: 'athkar' })).toBeDefined()
+  expect(await terminal.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
+  expect(await terminal.find({ text: '▐███▌' })).toBeDefined()
+  await desktop.pointer({ type: 'down', x: 2, y: 1, button: 'left', in: 'salah-athan' })
+  expect(await desktop.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
+  expect((await desktop.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ phase: 'reading', count: 1 })
+  // Let the counted thikr advance before checking the expiry path as well.
+  await clock.advance(1000)
+  const resumed = (await desktop.find({ type: 'Client', key: 'athkar' }))?.props.props as { thikrId: string; count: number }
+  await $.command.run(run('athan test'))
+  expect(await desktop.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
+  await clock.advance(CARD_MS)
+  expect(await desktop.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
+  expect((await desktop.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ thikrId: resumed.thikrId, count: resumed.count })
+  await desktop.unmount()
+  await terminal.unmount()
 })
 
 test('on the terminal the test plays the minaret only, no card', { options: MUNICH }, async ($, on) => {
@@ -95,13 +138,14 @@ test('on the terminal the test plays the minaret only, no card', { options: MUNI
   await $.command.run(run('athan test'))
 
   expect(await terminal.find({ type: 'Svg' })).toBeUndefined()
+  expect(await terminal.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
   expect(await terminal.find({ text: '▐███▌' })).toBeDefined()
 })
 
 for (const surface of ['desktop', 'terminal'] as const) {
   test(`${surface}: athan test before the first draw survives ticker startup`, { options: MUNICH }, async ($, on) => {
-  mock.env(on, {})
-  mock.store(on)
+    mock.env(on, {})
+    mock.store(on)
     const clock = mock.clock(on, { now: NOW })
     engineBand(on)
     on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
@@ -109,7 +153,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
     const mounted = await $.ui.mount(band(surface))
 
     if (surface === 'desktop') {
-      expect(await mounted.find({ type: 'Svg' })).toBeDefined()
+      expect(await mounted.find({ in: 'salah-athan', type: 'Svg' })).toBeDefined()
       expect(await mounted.find({ text: '▐███▌' })).toBeUndefined()
     } else {
       expect(await mounted.find({ type: 'Svg' })).toBeUndefined()
@@ -117,8 +161,9 @@ for (const surface of ['desktop', 'terminal'] as const) {
     }
     await clock.settle()
     if (surface === 'desktop') {
-      expect(await mounted.find({ type: 'Svg' })).toBeDefined()
+      expect(await mounted.find({ in: 'salah-athan', type: 'Svg' })).toBeDefined()
       await clock.advance(CARD_MS)
+      expect(await mounted.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
       expect(await mounted.find({ type: 'Svg' })).toBeUndefined()
     } else {
       expect(await mounted.find({ text: '▐███▌' })).toBeDefined()

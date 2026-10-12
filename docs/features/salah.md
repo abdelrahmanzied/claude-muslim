@@ -98,10 +98,12 @@ Surfaces, the athan moment's look and what salah never does: [salah-design.md](s
 | `place.ts` | the saved place's one-setting format |
 | `review.ts` | the review form's rows |
 | `minaret.ts` | the minaret's rows, frame timing and when it is due |
-| `card.ts` | the desktop athan card (Svg markup around a photo in `assets/`, with the embedded font in `card-font.ts`) |
+| `card.ts`, `athan-card.tsx` | desktop athan content and Client, using the shared card in `src/shared/card/` around a photo in `assets/`, with the embedded font in `card-font.ts` |
 | `today.ts` | the times and settings tables for `/salah`, and the method in effect |
 
 Shared with thikr, in `src/shared/pray/`: `names.ts` (prayer names in English and Arabic, the `Prayer` type) and `line.ts` (the prayer line, countdown, Arabic digits). Neither feature imports the other's folder.
+
+The desktop athan uses the same shared card and open size as the athkar band. Only one card shows at a time: the athan takes the band's place until closed or expired, then the band returns with the reading kept. The terminal reader and minaret are unchanged.
 
 ## To verify live
 

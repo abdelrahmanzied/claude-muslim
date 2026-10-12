@@ -31,6 +31,8 @@ Tashkeel follows the shared `/muslim tashkeel` setting (desktop only); in the te
 
 **Terminal:** the style is always Frame, and `/athkar style` changes nothing there. Sky is desktop only; `athkarStyle` applies to the desktop app. The shared main color applies on both. See the [terminal guide](../terminal.md#athkar-in-the-terminal).
 
+On desktop the athan card uses the same shared card and open size as the athkar band, and takes its place while it shows. The band returns with the reading kept when the athan closes or expires. Terminal behavior is unchanged.
+
 Not settable: the font and the text size. The mod API sets neither.
 
 ## Design

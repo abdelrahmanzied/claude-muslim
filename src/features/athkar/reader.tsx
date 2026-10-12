@@ -1,13 +1,12 @@
-import type { ClientModule, RenderElement, SvgProps } from 'claude-code'
+import type { ClientModule, RenderElement } from 'claude-code'
 
-import { bandSvg, closeArea, coverHint, frameOf, pixelOf } from './band.ts'
+import { coverHint } from './band.ts'
 import type { ReaderProps } from './look.ts'
 
-// The athkar reader's input, and its drawing in the terminal. It runs on the
-// drawing thread and posts every click and key to the hooks module, which
-// keeps the reading and decides what each one does. On the desktop it draws
-// the band as one picture and its clicks land on it; in the terminal it draws
-// the band as text.
+// The athkar reader in the terminal: its input, and the band drawn as text.
+// It runs on the drawing thread and posts every click and key to the hooks
+// module, which keeps the reading and decides what each one does. The
+// desktop draws the band as the shared card instead (card.tsx).
 
 type Local = {
   // The progress line as drawn, easing toward the real value.
@@ -16,10 +15,6 @@ type Local = {
   frame: number
   // The region's size last reported to the hooks module.
   size: string
-  // When a press lit the band here, ahead of the hooks module's answer.
-  litAt?: number
-  // The pointer is over the ×.
-  hoverClose?: boolean
 }
 
 const TICK_MS = 100
@@ -28,14 +23,8 @@ const PULSE = Math.round(2600 / TICK_MS)
 
 const COVER_KEYS = '⎵ ↵ count · ← → move · right click ⌫ undo'
 
-// How long a press lights the band here before the hooks module must agree.
-const LIT_MS = 3000
-
 // The props of the last draw, for the frame clock.
 let latest: ReaderProps
-// When the hooks module's picture last changed (its own clock reading, and ours then):
-// a redraw made here for the pointer carries the motion on from there.
-const seen = { now: -1, at: 0 }
 
 const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
   const { Box, Text, Button } = surface.elements
@@ -49,11 +38,6 @@ const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
       // The hooks module hit-tests clicks on the picture, so it needs the region's size.
       const size = `${surface.columns}x${surface.rows}`
       if (size !== s.size && surface.columns > 0) surface.post({ act: 'size', columns: surface.columns, rows: surface.rows })
-      if (latest.isPicture) {
-        if (size !== s.size) surface.setState({ ...s, size })
-
-        return
-      }
       const target = latest.progress
       const shown = Math.abs(target - s.shown) < 0.002 ? target : s.shown + (target - s.shown) * 0.25
       // At rest (faded, line in place) nothing moves: no redraw.
@@ -63,58 +47,14 @@ const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
   }
 
   surface.onPointer(event => {
-    // Over the ×: it lights, drawn here at once; only a change redraws.
-    if (event.type === 'move' || event.type === 'enter' || event.type === 'leave') {
-      const s = surface.state ?? local
-      const b = latest.band
-      let hover = false
-      if (b && event.type !== 'leave' && surface.columns > 0) {
-        const { px, py } = pixelOf(b, event.x, event.y, surface.columns, surface.rows)
-        const a = closeArea({ ...b, isActive: b.isActive || (s.litAt !== undefined && Date.now() - s.litAt < LIT_MS) })
-        hover = px >= a.x0 && px <= a.x1 && py >= a.y0 && py <= a.y1
-      }
-      if (hover !== !!s.hoverClose) surface.setState({ ...s, hoverClose: hover })
-    }
     if (event.type === 'enter' || event.type === 'leave') surface.post({ act: event.type })
     if (event.type !== 'down') return
-    // Light the picture at once; the hooks module's own redraw follows.
-    if (latest.band && !latest.band.isActive) surface.setState({ ...(surface.state ?? local), litAt: Date.now() })
     surface.post({ act: 'pointer', button: event.button ?? 'left', x: event.x, y: event.y, columns: surface.columns, rows: surface.rows })
   })
 
   surface.onKey(event => {
     surface.post({ act: 'key', key: event.key })
   })
-
-  // Desktop: the picture is the region, so a click anywhere on it reaches here.
-  // Svg is not in the region's element table, so it is named by its tag.
-  if (props.band) {
-    // Over the card the picture is drawn a cell past the region, which the
-    // desktop narrows to the region: it fills it, whatever its pixels.
-    // Once the hooks module has lit it too, its word holds: it may fade it again.
-    if (props.band.isActive && local.litAt !== undefined) surface.setState({ ...local, litAt: undefined })
-    const isLit = props.band.isActive || (local.litAt !== undefined && Date.now() - local.litAt < LIT_MS)
-    // Motion carries on across a redraw made here: the clocks move on by what has passed since the hooks module drew.
-    if (props.band.now !== seen.now) {
-      seen.now = props.band.now
-      seen.at = Date.now()
-    }
-    const gone = Date.now() - seen.at
-    const lit = {
-      ...props.band,
-      isActive: isLit,
-      hoverClose: !!local.hoverClose,
-      now: props.band.now + gone,
-      glowMs: props.band.glowMs === undefined ? undefined : props.band.glowMs + gone,
-      finaleMs: props.band.finaleMs === undefined ? undefined : props.band.finaleMs + gone,
-    }
-    const band = lit.card && surface.columns > 0 ? { ...lit, drawWidth: (surface.columns + 1) * lit.card.ch } : lit
-    const { width, height } = frameOf(band)
-    const alt = band.phase === 'cover' ? band.title : band.text
-    const picture: SvgProps = { source: bandSvg(band), alt, width, height }
-
-    return <Box width="100%">{h('Svg', picture)}</Box>
-  }
 
   const { look } = props
   const isLit = props.isActive

@@ -6,7 +6,7 @@ The athkar reader's own design. It adds to the shared base in [DESIGN.md](../../
 
 The athkar reader is the one feature the person sits with, so it is drawn:
 
-- **Client module** (`src/features/athkar/reader.tsx`) for the reader: it takes clicks and keys, keeps the cover and the active look, and posts each count to the hooks module. Terminal and desktop.
+- **Client modules** (`src/features/athkar/reader.tsx` in the terminal, `src/features/athkar/card.tsx` on desktop) take clicks and keys and post each count to the hooks module. The desktop uses the shared card in `src/shared/card/` for its size, frame, ×, hover and lighting. The terminal reader is unchanged.
 - **Svg** (desktop only) for the Sky look: a sky that follows the time of day with slow SMIL motion, drawn behind the reader. The terminal always uses the Frame look.
 - **Hex colors** from `src/shared/color/` for the reader's plugin-wide main color (`/muslim color`, default Claude orange; orange, green, gold, blue in light/dark shades), and feature-specific colors for the skies, since a theme key cannot be blended or placed on a sky.
 
@@ -47,6 +47,7 @@ On every sky the pill is the main color with a white number. Sunrise takes dark 
 
 - **Fixed height.** The open reading, the cover, the finale and the done row are one height for every thikr, count and width: 77px on desktop. Faded, they fold to one 24px row. Only two sizes ever show: open and folded.
 - **Width follows the window.** The band is as wide as the app's card above the prompt.
+- **One desktop card at a time.** The athan card uses the same shared card and open size as this band. While it shows, it takes the band's place; closing it or reaching its time limit brings the band back with the reading kept. The terminal reader and minaret keep their existing behavior.
 - **Fixed text size: 14px.** There is no size setting.
 - **Long text shrinks to fit.** The text box is two lines of 14px. A thikr that does not fit shrinks just enough to fit the box, with no floor. In a very narrow window the words get small, but they never leave the box or cover the progress line. The band never grows taller.
 - **The person owns the window.** A narrow window means smaller words; that is their choice, not a case the band works around.

@@ -39,6 +39,8 @@ Pick the lightest surface that does the job. Each comes from the mod API (`/plug
 
 Richer surfaces (Pane, Image, Svg, Raster, Client modules) are chosen per feature in its design doc, not here. Passive content does not get a Pane.
 
+Desktop cards above the prompt use `src/shared/card/` for their size, frame, ×, hover, lighting and input. Each feature supplies its content. Only one of these cards shows at a time: the athan card takes the athkar band's place until it closes or expires. Terminal surfaces are unchanged.
+
 ## 3. Color
 
 The main color is one plugin-wide setting: `/muslim color orange | green | gold | blue`, default Claude orange. Every feature takes it from `src/shared/color/`; features never define their own palette. Orange text keeps the `claude` theme key so every Claude theme stays exact. Other main colors use the shared light/dark hex shade for the current theme; drawn surfaces use the shared hex palette. Text that is not already in the main color and Claude's own text and spinner keep their colors.

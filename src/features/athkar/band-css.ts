@@ -14,14 +14,10 @@ button:focus-visible {outline: 2px solid var(--accent); outline-offset: 2px;}
 .acc-blue {--ring: var(--blue); --b-acc: var(--blue); --b-soft: var(--blue-soft); --b-faint: var(--blue-faint);}
 .band .text {font-family: var(--font-band, var(--font-ar)); direction: rtl; text-align: right; white-space: pre-line; color: var(--b-ink);}
 .band .hint {font-size: 11.5px; color: var(--b-dim);}
-.band .x {border: 0; background: none; color: var(--b-dim); cursor: pointer; font-size: 16px; padding: 0 4px; line-height: 1;}
 .band .src {font-size: 11.5px; color: var(--b-dim); direction: rtl;}
 .band.active .state {color: var(--b-acc);}
 .band {outline: none !important; transition: box-shadow .4s ease;}
 .band.active.al-breathe {animation: breathe 5.5s ease-in-out infinite;}
-.xabs {position: absolute; top: 4px; left: 6px; z-index: 4; opacity: .55; font-size: 17px; transition: opacity .2s, color .2s, transform .2s;}
-.band.active .xabs {font-weight: 700;}
-.xabs:hover {opacity: 1;}
 .band[data-band] .text {font-size: var(--band-size, 16px) !important;}
 .bg-frame {background: transparent; border: 1.5px solid var(--b-acc);}
 .bg-bluehour {background: var(--scrim), radial-gradient(130% 70% at 50% 130%, rgba(255, 190, 140, .55), rgba(255, 190, 140, 0) 62%), linear-gradient(180deg, #0b1636 0%, #1d336c 46%, #3c5ba2 80%, #7c90c6 100%);}

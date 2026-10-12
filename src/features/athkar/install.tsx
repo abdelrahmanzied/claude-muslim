@@ -3,11 +3,12 @@ import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, typ
 import { atom, read } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
-import type { Day } from '../../../types'
+import type { Day, SalahCard } from '../../../types'
 import type { Options } from '../../config.ts'
 import { withTashkeel } from '../../shared/arabic/visual.ts'
 import { helpHint, statusTable } from '../../table.ts'
 import { athkarHelp } from './help.ts'
+import { CELL_PX, isCardMessage, LINE_PX, REST_PX } from '../../shared/card/card.ts'
 import { bandHeight, closeArea, pixelOf } from './band.ts'
 import type { BandModel } from './band.ts'
 import type { Period } from './data.ts'
@@ -62,6 +63,10 @@ const arabicModeOf = async ($: EngineInterface, surface: string, cache: { curren
   return cached.mode
 }
 
+// One card above the prompt on the desktop at a time: while salah's athan card
+// shows, it takes the band's place, and the band comes back when it closes.
+const athanCard = atom({ plugin: 'muslim', key: 'salahCard' } as const, null as SalahCard | null)
+
 const dayRef = atom({ plugin: 'muslim', key: 'athkar' } as const, null as Day | null)
 
 // Kept across sessions; today's reading for both periods.
@@ -70,13 +75,6 @@ const STORE_KEY = 'athkar'
 const STYLES: readonly Style[] = ['sky', 'frame']
 
 
-// The width of a cell on the desktop in CSS pixels: the band picture is sized
-// from the columns it is given.
-const CELL_PX = 8.4
-// The folded row's height: one line of text, in CSS pixels (the card adds a line to it).
-const REST_PX = 24
-// A line on the desktop in CSS pixels.
-const LINE_PX = 20
 // How long the progress glow slides to a new value.
 const GLOW_MS = 700
 // The finale when a set is finished: the band stands this tall while stars
@@ -148,25 +146,6 @@ const apply = async ($: EngineInterface, act: Act) => {
   if (act.act === 'count' && shouldAdvance(period, before, after)) {
     $.clock.after(ADVANCE_MS, () => void advance($, period, after.index))
   }
-}
-
-// What the reader posts: every click and key, and its size.
-type Message =
-  | { act: 'pointer'; button: 'left' | 'middle' | 'right'; x: number; y: number; columns?: number; rows?: number }
-  | { act: 'key'; key: string }
-  | { act: 'size'; columns: number; rows: number }
-  | { act: 'hide' }
-  | { act: 'enter' }
-  | { act: 'leave' }
-
-const isMessage = (value: unknown): value is Message => {
-  if (!value || typeof value !== 'object') return false
-  const m = value as Record<string, unknown>
-  if (m.act === 'pointer') return typeof m.x === 'number' && typeof m.y === 'number'
-  if (m.act === 'key') return typeof m.key === 'string'
-  if (m.act === 'size') return typeof m.columns === 'number' && typeof m.rows === 'number'
-
-  return m.act === 'hide' || m.act === 'enter' || m.act === 'leave'
 }
 
 // Where the picture's controls sit, in CSS pixels as the band lays them out:
@@ -276,10 +255,9 @@ export const install = (on: On, options: Options) => {
 
   if (!options.athkar) return
 
-  on('ui.message', async ($, e, next) => {
-    if (e.element !== 'athkar') return next(e)
+  on('ui.message', { element: 'athkar' }, async ($, e) => {
     const m = e.data
-    if (!isMessage(m)) return {}
+    if (!isCardMessage(m)) return {}
     if (m.act === 'size') {
       region = { columns: m.columns, rows: m.rows }
 
@@ -431,6 +409,10 @@ export const install = (on: On, options: Options) => {
       )
     }
 
+    // One card at a time: while the athan card shows, it takes the band's place.
+    const athan = await read($, athanCard)
+    if (athan && athan.until > now.getTime()) return theirs
+
     const thikr = currentOf(period, reading)
     const progress = Math.round(overall(period, reading) * 1000) / 10
     // A new value slides on from where the glow stands now, mid-slide or not,
@@ -484,7 +466,7 @@ export const install = (on: On, options: Options) => {
       // line of only children, so the band always has a sibling.
       <Box flexDirection="column">
         <Box key="athkar-band" marginX={-1} marginY={-1}>
-          <Client key="athkar" module="./reader.tsx" props={plain({ ...props, band: model })} width="100%" />
+          <Client key="athkar" module="./card.tsx" props={plain(model)} width="100%" />
         </Box>
         {theirs ?? <Box key="athkar-end" height={0} />}
       </Box>

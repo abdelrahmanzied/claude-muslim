@@ -5,6 +5,7 @@ import { AREF_RUQAA_BOLD, TAJAWAL_BOLD, TAJAWAL_REGULAR } from './fonts.ts'
 import type { Sky } from './logic.ts'
 import type { Style } from './look.ts'
 import { SIZE_DEFAULT } from '../../config.ts'
+import { CARD_BORDER_PX, CARD_FOOT, CARD_LINE, CARD_TOP, cardArea, cardHeight, cardHtml, cardSvg, closeArea as cardClose, fontFace, frameOf as cardFrame, pixelOf as cardPixel, type CardFrame } from '../../shared/card/card.ts'
 import { END_CITE_CHAR, END_CITE_EM, END_VERSE_CHAR, HINT_CHAR, TEXT_WIDTH } from './metrics.ts'
 
 // The desktop band: the athkar lab's band, drawn as HTML and CSS inside one
@@ -62,11 +63,6 @@ export type BandModel = {
   drawWidth?: number
 }
 
-// The desktop's card around the band: 8px at the sides, and a 40px row less a
-// line, halved, above and below; its corners round at 10px.
-const CARD_X = 8
-const cardY = (lh: number) => Math.max(0, (40 - lh) / 2)
-
 // The reading, the cover and the done row fold to one row while faded; a press
 // lights them and they open. The finale never folds.
 export const isFolded = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' | 'finaleMs'>) =>
@@ -75,25 +71,13 @@ export const isFolded = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' 
 // The height the band stands at now: the folded row, or the full band.
 export const heightOf = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' | 'height' | 'finaleMs'>) => (isFolded(m) ? (m.restHeight ?? m.height) : m.height)
 
-// The picture's size, and where the band's own box starts in it.
-export const frameOf = (m: Pick<BandModel, 'width' | 'height' | 'card' | 'drawWidth' | 'phase' | 'isActive' | 'restHeight' | 'finaleMs'>) => {
-  const tall = heightOf(m)
-  if (!m.card) return { width: m.width, height: tall, left: 0, top: 0, padX: 0, padY: 0, addX: 0, addY: 0 }
-  const { ch, lh } = m.card
+type Framed = Pick<BandModel, 'width' | 'height' | 'card' | 'drawWidth' | 'phase' | 'isActive' | 'restHeight' | 'finaleMs'>
 
-  return {
-    width: Math.round(m.drawWidth ?? m.width + 2 * ch),
-    height: Math.round(tall + lh),
-    left: ch,
-    top: lh / 2,
-    // Past the card's edge the picture is cut off: left empty.
-    padX: Math.max(0, ch - CARD_X),
-    padY: Math.max(0, lh / 2 - cardY(lh)),
-    // Over the card: the band grows to its edges, its content where it was.
-    addX: CARD_X,
-    addY: cardY(lh),
-  }
-}
+// The band as the shared card sees it.
+export const cardFrameOf = (m: Framed): CardFrame => ({ width: m.width, height: heightOf(m), isFolded: isFolded(m), card: m.card, drawWidth: m.drawWidth })
+
+// The picture's size, and where the band's own box starts in it.
+export const frameOf = (m: Framed) => cardFrame(cardFrameOf(m))
 
 // Sunrise is the one bright sky: dark words on it.
 const INK: Record<Sky, 'light' | 'dark'> = { dawn: 'light', sunrise: 'dark', day: 'light', rose: 'light', bluehour: 'light', crescent: 'light' }
@@ -117,9 +101,9 @@ const FONTS = '--font-band: "Tajawal", sans-serif; --font-ar: "Tajawal", sans-se
 // (the line sits 4px up and is 2px thick, the pill 14px tall on it), the
 // thikr's line-height (times its size), the room left at the text's left for
 // the × and the moon, and the width kept at the line's left for the position.
-const READ_TOP = 5
-const READ_FOOT = 20
-const READ_LINE = 1.7
+const READ_TOP = CARD_TOP
+const READ_FOOT = CARD_FOOT
+const READ_LINE = CARD_LINE
 const READ_CLEAR = 28
 const POS_ROOM = 60
 const POS_ROOM_WITH_NOTE = 150
@@ -128,14 +112,12 @@ const PILL_HALF = 20
 // The smallest the cover's and done row's one-line words shrink to, to fit the width.
 const FIT_MIN = 9
 // The wrap and the band's border take 2px each side.
-const FRAME_PX = 4
+const FRAME_PX = CARD_BORDER_PX
 
 // What the band adds to the lab's rules: it fills the picture, the text is never
 // cut (the lab scrolled past three lines), the glow eases from its last value,
 // and stars fall at the end.
 const EXTRA_CSS = `
-* { box-sizing: border-box; }
-.wrap { width: 100%; height: 100%; padding: 1px; }
 .band.line { padding: calc(10px + var(--ay, 0px)) calc(14px + var(--ax, 0px)); }
 /* The reading is laid out to fixed numbers (READ_* in this file): the text area
    two lines of the person's size tall with the text centered in it, and under
@@ -157,11 +139,7 @@ const EXTRA_CSS = `
 .band { min-height: 100%; }
 /* Faded, the reading folds to one row: the thikr cut short, then where it stands. */
 .band.band.rest { display: flex; align-items: center; padding: var(--ay, 0px) calc(14px + var(--ax, 0px)) var(--ay, 0px) calc(34px + var(--ax, 0px)); }
-/* The ×: a round 20px target, quiet in the faded ink; hovered, full ink with a soft disc behind it. */
-.band .xabs { color: var(--b-ink); display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border-radius: 50%; }
-.band .xabs.hot { opacity: 1; color: var(--b-ink); background: color-mix(in srgb, var(--b-ink) 20%, transparent); }
-/* A small muted × at the left edge hides the band; the sky's moon would sit on the position, so it goes. */
-.band.band.rest .xabs { top: 50%; margin-top: -10px; font-size: 14px; }
+/* Folded, the sky's moon would sit on the position, so it goes. */
 .band.band.rest.bg-crescent::before { display: none; }
 .band.rest .peek { display: flex; align-items: center; gap: 12px; width: 100%; direction: rtl; }
 .band.rest .pk-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: right; font-family: var(--font-band); font-size: 15px; line-height: 1.6; color: var(--b-ink); }
@@ -284,10 +262,7 @@ const bandClasses = (m: BandModel) => {
   return `band ${layout} bg-${m.style} acc-${m.accent} ts-plain al-breathe tc-auto bd-auto dn-soft nm-ink fx-calm ui-classic fc-white${edge}${active}`
 }
 
-const fontFace = (family: string, weight: number, data: string) =>
-  `@font-face { font-family: "${family}"; font-weight: ${weight}; src: url(data:font/woff2;base64,${data}) format("woff2"); }`
-
-export const bandHtml = (m: BandModel) => {
+const bandContent = (m: BandModel) => {
   const isFinale = m.phase === 'done' && m.finaleMs !== undefined
   const inner = isFinale ? '' : m.phase === 'cover' ? (isFolded(m) ? foldedCover(m) : cover(m)) : m.phase === 'done' ? (isFolded(m) ? foldedDone(m) : done(m)) : isFolded(m) ? folded(m) : reading(m)
   const fx = m.style === 'sky' ? `<span class="fx">${SKY_FX[m.sky]}</span>` : ''
@@ -308,28 +283,20 @@ export const bandHtml = (m: BandModel) => {
   const reads = m.phase === 'reading'
   const fit = reads ? fitOf(m, m.width) : { size: 0, area: 0, rows: 0 }
   const cv = m.phase === 'cover' ? coverFit(m.width) : 1
-  const f = frameOf(m)
-  const card = m.card ? `;--ax:${f.addX}px;--ay:${f.addY}px;border-radius:10px` : ''
+  const style = `--t:${t};--fs:${reads ? fit.size : (m.textSize ?? SIZE_DEFAULT)}px${reads ? `;--th:${fit.area}px` : ''}${m.phase === 'cover' ? `;--cv:${cv}` : ''}`
 
-  return `<div class="${bandClasses(m)}" data-band="" style="--t:${t};--fs:${reads ? fit.size : (m.textSize ?? SIZE_DEFAULT)}px${reads ? `;--th:${fit.area}px` : ''}${m.phase === 'cover' ? `;--cv:${cv}` : ''}${card}"><span class="x xabs${m.hoverClose ? ' hot' : ''}">×</span>${inner}${fx}${glow}${end}</div>`
+  return { classes: bandClasses(m).replace(/^band /, ''), style, html: `${inner}${fx}${glow}${end}`, hoverClose: m.hoverClose }
 }
+
+export const bandHtml = (m: BandModel) => cardHtml(cardFrameOf(m), { ...bandContent(m), css: '' })
 
 export const bandSvg = (m: BandModel) => {
   const fonts = [fontFace('Tajawal', 400, TAJAWAL_REGULAR), fontFace('Tajawal', 700, TAJAWAL_BOLD)]
   if (m.phase === 'cover' || m.finaleMs !== undefined) fonts.push(fontFace('Aref Ruqaa', 700, AREF_RUQAA_BOLD))
   const mainColors = Object.keys(ACCENTS).map(color => `--${color === 'orange' ? 'claude' : color}: ${accentHex(color as Accent, m.isDark)};`).join(' ')
-  const style = `${fonts.join('\n')}\n:root { ${m.isDark ? ROOT_DARK : ROOT_LIGHT} ${mainColors} ${FONTS} }\n${BAND_CSS}\n${EXTRA_CSS}`
+  const css = `${fonts.join('\n')}\n:root { ${m.isDark ? ROOT_DARK : ROOT_LIGHT} ${mainColors} ${FONTS} }\n${BAND_CSS}\n${EXTRA_CSS}`
 
-  const f = frameOf(m)
-  const pad = m.card ? ` style="padding:${f.padY}px ${f.padX}px"` : ''
-
-  // Over the card the desktop narrows the picture to the slot, a hair: it
-  // stretches to fill rather than leave a strip of the card.
-  const box = `width="${f.width}" height="${f.height}" viewBox="0 0 ${f.width} ${f.height}"${m.card ? ' preserveAspectRatio="none"' : ''}`
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" ${box} data-theme="${m.isDark ? 'dark' : 'light'}">`
-    + `<style><![CDATA[${style}]]></style>`
-    + `<foreignObject x="0" y="0" width="${f.width}" height="${f.height}"><div xmlns="http://www.w3.org/1999/xhtml" class="wrap"${pad}>${bandHtml(m)}</div></foreignObject></svg>`
+  return cardSvg(cardFrameOf(m), { ...bandContent(m), css, theme: m.isDark ? 'dark' : 'light' })
 }
 
 const SHRINK_AT = 1.05
@@ -375,7 +342,7 @@ export const fitOf = (m: Pick<BandModel, 'thikrId' | 'period' | 'textSize'>, wid
   // Past the band's padding, and the room kept clear of the × and the moon.
   const room = Math.max(120, width - 32 - READ_CLEAR)
   const want = m.textSize ?? SIZE_DEFAULT
-  const area = Math.ceil(2 * READ_LINE * want)
+  const area = cardArea(want)
   let size = want
   let rows = rowsAt(lines, size, room)
   while (rows * READ_LINE * size > area && size > 1) {
@@ -387,35 +354,15 @@ export const fitOf = (m: Pick<BandModel, 'thikrId' | 'period' | 'textSize'>, wid
 }
 
 // The × hit area, in the band's own pixels from its top left; the folded row's is its whole height.
-export const closeArea = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' | 'finaleMs'>) => ({
-  x0: 0,
-  x1: 34,
-  y0: 0,
-  y1: isFolded(m) ? (m.restHeight ?? 30) : 30,
-})
+export const closeArea = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' | 'finaleMs'>) => cardClose({ isFolded: isFolded(m), height: m.restHeight ?? 30 })
 
 // A pointer position, in the region's cells, as pixels in the band's own box.
-export const pixelOf = (
-  m: Pick<BandModel, 'width' | 'height' | 'card' | 'drawWidth' | 'phase' | 'isActive' | 'restHeight' | 'finaleMs'>,
-  x: number,
-  y: number,
-  columns: number,
-  rows: number,
-) => {
-  const f = frameOf(m)
-
-  return {
-    px: m.card ? (x + 0.5) * m.card.ch - f.left : ((x + 0.5) * f.width) / columns,
-    py: m.card ? (y + 0.5) * m.card.lh - f.top : ((y + 0.5) * f.height) / (rows + 0.5),
-  }
-}
+export const pixelOf = (m: Framed, x: number, y: number, columns: number, rows: number) => cardPixel(cardFrameOf(m), x, y, columns, rows)
 
 // The band's height in CSS pixels at a width: one fixed height for the open
 // reading, the cover, the finale and the done row, whatever the thikr, the
 // count or the width. The folded row is shorter (restHeight).
-export const bandHeight = (m: Pick<BandModel, 'phase' | 'thikrId' | 'period' | 'textSize'>, width: number) => {
-  return FRAME_PX + READ_TOP + fitOf(m, width).area + READ_FOOT
-}
+export const bandHeight = (m: Pick<BandModel, 'phase' | 'thikrId' | 'period' | 'textSize'>, _width: number) => cardHeight(m.textSize)
 
 // The done row: the verse on one line, then where it is from, smaller and
 // muted; the hint after them, in one line. When space is short the hint goes

@@ -2,7 +2,7 @@ import { accentText, type Accent } from '../../shared/color/index.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
-import type { SalahMinaret, SalahCard, SalahWindow } from '../../../types'
+import type { SalahCard, SalahMinaret, SalahWindow } from '../../../types'
 
 import { countdownMinutes, isMethod, parseShow, SHOW_MAX, SHOW_MIN, writeAdjust } from '../../config.ts'
 import type { Options } from '../../config.ts'
@@ -16,7 +16,8 @@ import { writePlace, type Place } from './place.ts'
 import { athanText, isInWindow } from '../../shared/pray/line.ts'
 import { ACCENT_ROWS, FRAME_MS, HOLD_MS, isDue, LABEL_ROW, minaretRows, ROWS_COUNT } from './minaret.ts'
 import { nudge, reviewRows } from './review.ts'
-import { CARD_HEIGHT, CARD_MS, cardSvg, cardWidth } from './card.ts'
+import { CELL_PX, isCardMessage, isOnClose, LINE_PX } from '../../shared/card/card.ts'
+import { athanFrame, CARD_MS } from './card.ts'
 import { clockText, lastPray, nextSalah, type Adjust } from './times.ts'
 import { lineAt, methodOf, settingsTable, showText, timesTable } from './today.ts'
 
@@ -76,10 +77,10 @@ const inWindow = atom({ plugin: 'muslim', key: 'salahWindow' } as const, null as
 
 // The minaret's frame while it plays, and the pray time it last played for.
 const minaret = atom({ plugin: 'muslim', key: 'salahMinaret' } as const, null as SalahMinaret | null)
+// The desktop athan card while it shows; null otherwise. The athkar band steps aside for it.
+const card = atom({ plugin: 'muslim', key: 'salahCard' } as const, null as SalahCard | null)
 // The pray line drawn in the footer's mode labels; null when there is none.
 const line = atom({ plugin: 'muslim', key: 'salahLine' } as const, null as string | null)
-// The desktop athan card while it shows; null otherwise.
-const card = atom({ plugin: 'muslim', key: 'salahCard' } as const, null as SalahCard | null)
 const athanShown = atom({ plugin: 'muslim', key: 'salahAthanShown' } as const, null as number | null)
 // A minaret started by this load still has its timers; only a reload's is stale.
 let hasPlayedMinaret = false
@@ -285,6 +286,8 @@ export const install = (on: On, options: Options) => {
   const timer: Timer = { handle: undefined, ms: 0, opens: undefined }
   // The card's photo (base64), read the first time the card is drawn.
   const photo: { base64: string | undefined } = { base64: undefined }
+  // The athan card last drawn and its region, for its clicks.
+  const athan: { props: { width: number; card: { ch: number; lh: number } } | undefined; region: { columns: number; rows: number } } = { props: undefined, region: { columns: 0, rows: 0 } }
 
   on('command.run', { command: 'salah' }, async ($, e) => {
     const [word = '', first = '', second = ''] = e.args.trim().split(/\s+/)
@@ -464,30 +467,47 @@ export const install = (on: On, options: Options) => {
     )
   })
 
-  // The desktop athan card: a full-width photo card above the prompt, built
-  // like the athkar band. It stays until the user closes it with × or the call's
-  // window ends. The terminal never draws it (the minaret is its look).
+  // The desktop athan card: the shared card above the prompt, the athkar
+  // band's size and frame, with the photo behind the call. It stays until the
+  // user closes it with × or the call's window ends. The terminal never draws
+  // it (the minaret is its look).
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)
     if (e.surface !== 'desktop' || e.props.hasSurvey) return theirs
     const shown = await read($, card)
-    if (!shown || shown.until <= (await $.clock.now())) return theirs
+    if (!shown) return theirs
+    const now = await $.clock.now()
+    if (shown.until <= now) return theirs
     photo.base64 ??= await readPhoto($)
     if (!photo.base64) return theirs
-    const { Box, Button, Svg } = $.ui.resolve(e)
-    const width = cardWidth(e.props.bodyColumns)
+    const { Box, Client } = $.ui.resolve(e)
+    const props = { isActive: true, now, pray: shown.pray, time: shown.time, photo: photo.base64, width: Math.round(e.props.bodyColumns * CELL_PX), card: { ch: CELL_PX, lh: LINE_PX } }
+    athan.props = props
 
-    // Keep the embedded HTML in a sandboxed document, as the working test card was.
     return (
-      // The desktop pads the band in a card: the picture reaches a cell and half a line past it.
+      // As the athkar band: the picture reaches a cell past the slot each side
+      // and half a line above and below, over the desktop's own card.
       <Box flexDirection="column">
-        <Box key="salah-athan-card" gap={1}>
-          <Svg source={cardSvg(photo.base64, shown.pray, shown.time, width)} alt={athanText(shown.pray)} width={width} height={CARD_HEIGHT} isInteractive />
-          <Button key="salah-athan-close" plain label="×" onPress={() => update($, card, () => null)} />
+        <Box key="salah-athan-card" marginX={-1} marginY={-1}>
+          <Client key="salah-athan" module="./athan-card.tsx" props={props} width="100%" />
         </Box>
         {theirs ?? <Box key="salah-athan-end" height={0} />}
       </Box>
     )
+  })
+
+  // The card's clicks: × closes it; the rest of it does nothing.
+  on('ui.message', { element: 'salah-athan' }, async ($, e) => {
+    const m = e.data
+    if (!isCardMessage(m)) return {}
+    if (m.act === 'size') athan.region = { columns: m.columns, rows: m.rows }
+    const columns = m.act === 'pointer' ? (m.columns ?? athan.region.columns) : 0
+    const rows = m.act === 'pointer' ? (m.rows ?? athan.region.rows) : 0
+    const isClose = m.act === 'hide'
+      || (m.act === 'pointer' && m.button === 'left' && athan.props !== undefined && columns > 0 && rows > 0 && isOnClose(athanFrame(athan.props, columns), m.x, m.y, columns, rows))
+    if (isClose) await update($, card, () => null)
+
+    return {}
   })
 
   // Until a place is saved: one line above the prompt asking for it.

@@ -1,5 +1,4 @@
 import { accentHex, type Accent } from '../../shared/color/index.ts'
-import type { BandModel } from './band.ts'
 import type { Period } from './data.ts'
 import { arabicDigits, countOf, currentOf, END, END_NOTE, hasBegun, listFor, overall, textOf, timesOf, TITLE } from './logic.ts'
 import type { Reading, Sky } from './logic.ts'
@@ -90,9 +89,8 @@ export type ReaderProps = {
   phase: 'cover' | 'reading' | 'done'
   // Lit by a click; faded again when idle.
   isActive: boolean
-  // Desktop: the band is a picture the reader draws and listens over.
+  // Desktop: the band is the shared card's picture (card.tsx), not this reader.
   isPicture: boolean
-  band?: BandModel
   look: Look
   title: string
   // The cover says continue once anything was counted today.

@@ -5,7 +5,7 @@ The salah feature's own design. It adds to the shared base in [DESIGN.md](../../
 ## Visual means
 
 - **Text by default.** The prayer line, the setup line, the review form and command replies are text in Claude's font, size and colors (the shared main color (`claude` for orange, light/dark hex otherwise) for the accent, `dimColor` for hints).
-- **The athan moment is a short text look.** When a prayer comes in, a band above the prompt plays once (about 3 seconds), then rests as the prayer line `حان وقت صلاة …`. In the terminal it is a Unicode minaret rising row by row from the base (about 330 ms a row, the shared main color (`claude` for orange, light/dark hex otherwise) for the crescent and the point, `dimColor` for the rest) beside «حان وقت صلاة العصر»:
+- **The terminal athan moment is a short text look.** When a prayer comes in, a band above the prompt plays once (about 3 seconds), then rests as the prayer line `حان وقت صلاة …`. In the terminal it is a Unicode minaret rising row by row from the base (about 330 ms a row, the shared main color (`claude` for orange, light/dark hex otherwise) for the crescent and the point, `dimColor` for the rest) beside «حان وقت صلاة العصر»:
 
   ```
      ☾
@@ -18,14 +18,14 @@ The salah feature's own design. It adds to the shared base in [DESIGN.md](../../
   ```
 
   The seven rows keep their height while it rises, it shows once per prayer (state `salahAthanShown`), never during a survey, and `salahAthan` off drops it.
-- **Desktop athan card.** On the desktop the minaret is never drawn; instead a full-width card sits above the prompt, built like the athkar band: one vector document holding HTML and CSS, with the calligraphic font and the photo of the Haram embedded in it, rounded corners, the card the same width and height as that band. It shows «حان وقت صلاة المغرب» large on the right and the time in Arabic digits under it, in one font and white; a × at the top left, on a round dark translucent disc with a thin light border so it reads over the photo, closes it. The photo is a wide strip cut from a larger original so it stays sharp across the card. It appears at once, without animation, in an isolated view. No bar. It stays until the user closes it or the call's 15 minutes end.
+- **Desktop athan card.** On the desktop the minaret is never drawn; instead the shared card in `src/shared/card/` sits above the prompt, with the same width and open height (77px), frame, ×, hover, lighting and input as the athkar band. Salah supplies the calligraphic font, photo of the Haram and text inside its vector document holding HTML and CSS. It shows «حان وقت صلاة المغرب» large on the right and the time in Arabic digits under it, in one font and white; the shared × at the top left closes it and shows a light disc on hover. The photo is a wide strip cut from a larger original so it stays sharp across the card. It appears at once, lit and open, in an isolated view. No bar. It stays until the user closes it or the call's 15 minutes end. Only one desktop card shows at a time: it takes the athkar band's place while it shows, and the band returns with the reading kept. The terminal reader and rising minaret are unchanged.
 - **Test path.** `/salah athan test` shows the athan moment on demand for the next prayer (the card on the desktop, the minaret in the terminal), even before the prayer display first appears, without changing settings or marking it shown.
 
 **Why:** prayer time is a few moments a day and worth marking; the rest of the day salah stays a quiet line.
 
 ## Surfaces
 
-Rows stack, never compete: each feature's AbovePrompt hook keeps what `next(e)` returns and adds its own row above it (setup or review rows, thikr's usage-limit row, the minaret moment). The prayer line is not a band row: it is bold text in the `SessionMode` labels at the right of the prompt footer, before the model name; the hook keeps what `next(e)` returns and adds the line beside it.
+Setup, review and terminal rows stack: each feature's AbovePrompt hook keeps what `next(e)` returns and adds its own row above it (setup or review rows, thikr's usage-limit row, the minaret moment). The desktop cards share one place: the athan replaces the athkar band while it shows. The prayer line is not a band row: it is bold text in the `SessionMode` labels at the right of the prompt footer, before the model name; the hook keeps what `next(e)` returns and adds the line beside it.
 
 | Moment | Surface | Shows |
 | --- | --- | --- |

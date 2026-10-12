@@ -131,6 +131,26 @@ test('the desktop band draws in Tajawal at the slot width', async ($, on) => {
   await ui.unmount()
 })
 
+test('the shared desktop Client hovers the × and lights a press before the hooks answer', async ($, on) => {
+  mock.clock(on, { now: MORNING })
+  mock.store(on)
+  mock.env(on, {})
+  engineBand(on)
+  // Hold the hooks' answer so the drawing thread must light the press itself.
+  on('ui.message', { element: 'athkar' }, async () => ({}))
+  const ui = await $.ui.mount(band('desktop'))
+  await ui.resize({ columns: 100, rows: 3, in: 'athkar' })
+  expect(await picture(ui)).toContain('class="peek cv-peek"')
+  await ui.pointer({ type: 'move', x: 2, y: 0, in: 'athkar' })
+  expect(await picture(ui)).toContain('class="x xabs hot"')
+  await ui.pointer({ type: 'leave', x: 2, y: 0, in: 'athkar' })
+  expect(await picture(ui)).toContain('class="x xabs"')
+  await ui.pointer({ type: 'down', x: 40, y: 0, button: 'left', in: 'athkar' })
+  expect(await picture(ui)).toContain('class="cover cv-inline"')
+  expect(Number((await ui.find({ in: 'athkar', type: 'Svg' }))?.props.height)).toBe(97)
+  await ui.unmount()
+})
+
 test('the reader moves on by itself after the last count', async ($, on) => {
   const clock = mock.clock(on, { now: MORNING })
   mock.store(on)
