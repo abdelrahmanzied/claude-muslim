@@ -4,7 +4,11 @@ The Quran feature's visual means and surface scope, following [DESIGN.md](../../
 
 ## Visual means
 
-Text and native Select/Button controls in a user-opened docked Pane, plus a desktop footer chip. Reciter and surah selectors come first (with page selectors because the engine caps each Select at 64 options; 63 choices and one placeholder), then the active names (accent `color="claude"`) or dim «لا يوجد تشغيل», elapsed / total time and a fixed 24-cell `━` / `─` progress bar. Previous, play/stop and next share a row. Errors are one dim line. Use Claude's font and theme colors only, with no images, SVG, custom colors or animation.
+Native Select controls followed by a green now-playing card in a user-opened docked Pane, plus the existing desktop footer chip. Main reciter and surah selectors are labelled «القارئ» and «السورة»; narrower secondary page selectors preserve the engine's 64-option cap (63 choices and one placeholder).
+
+The card uses Box column layout, padding, gap, `borderStyle="round"`, `borderColor="#2f4a3c"` and `backgroundColor="#1f2b25"`. Status is «يتلى الآن» or «متوقف» in `#7fc3a0`; an SVG title renders large bold «سورة <name>». Reciter and «حفص عن عاصم» use `#b9d8c7`. The thin rounded SVG progress track uses `#2f4a3c`, filling from right to left in `#7fc3a0`. Elapsed and total occupy opposite ends of a row with explicit LTR isolation. The automatic-next hint sits dim below the card.
+
+**Visual means and why:** SVG supplies the title size, rounded progress and circular previous/play-stop/next icons that native Text and Button props cannot express. These authored hex greens follow the agreed mockup and distinguish recitation from salah's orange; this is the feature's stated exception to theme-only colors. Native Buttons retain Arabic labels and host interaction. Their children permit only Text or strings, so each decorative SVG icon sits above its corresponding plain Button rather than inside it. The middle icon is larger and filled green. Box has no explicit radius prop, so the supported rounded border style is used; exact card radius and native button shape/fill remain host-controlled. Errors are one dim line. Pane actions never show toasts; redraw is their feedback.
 
 The desktop footer chip is a plain native Button with `color="success"` text, visually distinct from salah’s `color="claude"` line. Idle: «القرآن». Playing: `<surah Arabic name> mm:ss` (`h:mm:ss` from an hour). Pressing reads `$.ui.panes()` and opens or closes `quran` with `$.ui.open` / `$.ui.close`; it does not change playback. The engine accepts Button inside SessionMode, verified by its render harness. Quran’s SessionMode hook is installed before salah’s: first registered is outermost, so prepending the chip to `next(e)` gives `[Quran] [salah] [model]`. Salah itself is unchanged.
 
@@ -15,10 +19,11 @@ The desktop footer chip is a plain native Button with `color="success"` text, vi
 | Moment | Surface | Shows |
 | --- | --- | --- |
 | Footer idle/playing | Desktop SessionMode | Green native Button: القرآن or surah + approximate elapsed; toggles the docked pane |
-| User opens player | Desktop docked Pane `quran` | Native reciter/surah Select controls, text status/time/progress, Buttons |
+| User opens player | Desktop docked Pane `quran` | Native selectors, green card with status, SVG title/progress/icons, LTR times and Arabic Buttons; dim next hint |
 | Non-desktop pane | Terminal, mobile, vscode Pane | Only dim «مشغّل القرآن متاح على تطبيق Claude للديسكتوب» |
 | Commands/help/settings | Command reply on all surfaces | Short status or requested catalog/help; Quran row in `/muslim` |
-| Playback failure after command | Quran CommandOutput and pane | Dim error line; short toast |
+| Playback failure after command | Quran CommandOutput and pane | Dim error line; command output only for playback started by a command |
+| Playback failure after pane action | Desktop pane | Dim error line only; no toast or command-row rewrite |
 | Playing | Desktop footer chip and docked Pane | Clock-based approximate elapsed/progress, redraw once per second |
 | AbovePrompt | All surfaces | No Quran band |
 | Terminal footer | SessionMode | No Quran label; preserve other features |
@@ -42,6 +47,7 @@ When shared `/muslim demo` lands: stopped with Minshawi/Al-Fatiha selected; play
 
 ## Checklist for a change
 
+- [ ] Green SVG card and silent native controls render on Desktop; no Quran toasts.
 - [ ] Native controls and green footer Button render on Desktop; terminal has only the pane fallback through shared Arabic.
 - [ ] Whole-surah audio, abort on stop/replacement, advance only on the active generation’s natural end; stop after 114.
 - [ ] Timer runs only while playing; elapsed remains explicitly approximate.

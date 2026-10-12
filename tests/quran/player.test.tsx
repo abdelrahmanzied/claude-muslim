@@ -1,6 +1,7 @@
 import type { QuranPlaying } from '../../types/index.d.ts'
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
+import { ltrTime } from '../../src/features/quran/card.ts'
 import { CATALOG_MS } from '../../src/features/quran/catalog.ts'
 import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
 import { fixtureCatalog, reciters, surahs } from './fixtures/catalog.ts'
@@ -24,8 +25,9 @@ function setup(on: On, entries: Record<string, unknown> = {}, env: Record<string
   on('session.surface', async () => ({ value: surface }))
   const opened: { id: string; title?: string }[] = []
   on('ui.open', async (_$, e) => { opened.push({ id: e.id, title: e.title }); return { value: { isPlaced: true } } })
-  on('ui.toast', async () => ({ value: undefined }))
-  return { ...clock, state, store, opened }
+  const toasts: string[] = []
+  on('ui.toast', async (_$, e) => { toasts.push(e.text); return { value: undefined } })
+  return { ...clock, state, store, opened, toasts }
 }
 function audio(on: On, clock: { sleep(ms: number): Promise<void> }) {
   const played: { clip: unknown; gain: number | undefined; aborted: boolean }[] = []
@@ -52,7 +54,7 @@ test('desktop pane uses native selectors and buttons with authored Arabic; termi
   const later = await desktop.find({ type: 'Select', key: 'quran-surah' })
   expect(later?.props.options).toHaveLength(52)
   expect(JSON.stringify(later?.props.options)).toContain('114. الناس')
-  expect(await desktop.find({ text: 'لا يوجد تشغيل' })).toBeDefined()
+  expect(await desktop.find({ type: 'Text', text: 'متوقف' })).toBeDefined()
   expect(await desktop.find({ type: 'Button', key: 'quran-toggle' })).toBeDefined()
   const terminal = await $.ui.mount(pane('terminal'))
   expect(await terminal.find({ type: 'Select' })).toBeUndefined()
@@ -70,7 +72,7 @@ test('play sets whole-track state and approximate clock time; stop clears tracki
   expect(clock.state.quranPlaying).toEqual({ moshafKey: '10:20', surah: 18, startedAt: fixtureCatalog.fetchedAt, durationMs: null })
   const mounted = await $.ui.mount(pane('desktop'))
   await clock.advance(1000)
-  expect(await mounted.find({ text: '00:01 / --:--' })).toBeDefined()
+  expect(await mounted.find({ type: 'Text', text: ltrTime('00:01') })).toBeDefined()
   await $.command.run(run('stop'))
   expect(clock.state.quranPlaying).toBe(null)
 })
@@ -375,4 +377,49 @@ test('footer uses hour formatting for a long-running surah', async ($, on) => {
   on('state.get', { plugin: 'muslim', key: 'quranPlaying' }, async () => ({ value: { value: { moshafKey: '10:20', surah: 18, startedAt: fixtureCatalog.fetchedAt - 3661000, durationMs: null }, version: 1 } }))
   const mounted = await $.ui.mount(footer('desktop'))
   expect(await mounted.find({ type: 'Text', text: 'الكهف 1:01:01' })).toBeDefined()
+})
+
+test('desktop card has status, title, SVG progress, three controls and automatic-next hint; presses are silent', async ($, on) => {
+  const clock = setup(on)
+  audio(on, clock)
+  const mounted = await $.ui.mount(pane('desktop'))
+  const card = await mounted.find({ type: 'Box', key: 'quran-card' })
+  expect(card?.props.backgroundColor).toBe('#1f2b25')
+  expect(card?.props.borderColor).toBe('#2f4a3c')
+  expect(card?.props.borderStyle).toBe('round')
+  expect(await mounted.find({ type: 'Text', text: 'متوقف' })).toBeDefined()
+  expect((await mounted.find({ type: 'Svg' }))?.props.alt).toBe('سورة الفاتحة')
+  await mounted.select({ key: 'quran-surah', value: '18' }); await clock.settle()
+  expect(await mounted.find({ type: 'Text', text: 'يتلى الآن' })).toBeDefined()
+  const title = await mounted.find({ type: 'Svg' })
+  expect(title?.props.source).toContain('سورة الكهف')
+  const tree = JSON.stringify(await mounted.drawn())
+  expect(tree).toContain('"height":6')
+  expect(tree).toContain('تقدم التلاوة:')
+  expect(tree).toContain('<rect width=')
+  expect(await mounted.find({ type: 'Text', text: 'محمد صديق المنشاوي · حفص عن عاصم' })).toBeDefined()
+  expect(await mounted.find({ type: 'Text', text: 'التالي تلقائي: Fixture 19' })).toBeDefined()
+  const controls = ['quran-prev', 'quran-toggle', 'quran-next']
+  for (const key of controls) expect(await mounted.find({ type: 'Button', key })).toBeDefined()
+  expect(JSON.stringify(card?.children).match(/"type":"Button"/g)?.length).toBe(3)
+  await mounted.press({ key: 'quran-next' }); await clock.settle()
+  await mounted.press({ key: 'quran-prev' }); await clock.settle()
+  await mounted.press({ key: 'quran-toggle' })
+  expect(await mounted.find({ type: 'Text', text: 'متوقف' })).toBeDefined()
+  expect(clock.toasts).toEqual([])
+})
+test('pane playback rejection stays inside the pane and does not rewrite a command row or show a toast', async ($, on) => {
+  const clock = setup(on)
+  on('audio.play', async () => ({ deny: 'Playback unavailable' }))
+  on('ui.render', { component: 'CommandOutput', props: { command: 'quran' } }, async ($, e) => {
+    const { Text } = $.ui.resolve(e)
+    return <Text>{e.props.text}</Text>
+  })
+  const mounted = await $.ui.mount(pane('desktop'))
+  await mounted.press({ key: 'quran-toggle' }); await clock.settle()
+  expect(await mounted.find({ type: 'Text', text: 'Quran: Playback unavailable' })).toBeDefined()
+  const output = await $.ui.mount({ plugin: 'muslim', surface: 'desktop', component: 'CommandOutput', requestId: 'earlier-command', props: { command: 'quran', args: 'help', text: 'Earlier reply', isErrored: false } })
+  expect(await output.find({ text: 'Earlier reply' })).toBeDefined()
+  expect(await output.find({ text: 'Quran: Playback unavailable' })).toBeUndefined()
+  expect(clock.toasts).toEqual([])
 })

@@ -24,6 +24,7 @@ declare module 'claude-code' {
     muslim: {
       quranPlaying: QuranPlaying | null
       quranError: string | null
+      quranCommandError: string | null
       quranSurah: number
       quranSurahPage: number
       quranReciterPage: number
