@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Quran adds a per-clip 200ms stop watchdog in the playback invocation and temporary bounded debug logging. The desktop player card is now Client-drawn HTML/CSS in Svg, matching the rounded green mockup with hit-tested round controls and hover feedback; native searchable pickers remain. The footer uses the green ۞ text symbol because its separate SVG was not visible live.
+
 - Quran playback starts directly in the hook flow; Stop immediately aborts the active signal even during catalog refresh, and the pane toggle reads current state. Replace paged selectors with search across all recordings and surahs, six result rows and Enter selection. Add the open-book SVG beside the desktop footer chip; document clips orphaned by reload.
 
 - Quran pane now follows the green card design with a large surah title, SVG progress and control icons, compact selector pagination, LTR times and an automatic-next hint. Pane actions redraw silently; Quran no longer shows toasts, and pane playback errors do not rewrite slash command replies.

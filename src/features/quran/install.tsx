@@ -6,8 +6,10 @@ import { audioUrl, CATALOG_MS, defaultReciter, filterReciters, isCatalog, matchR
 import { contentRangeTotal, decodeBase64, durationMs } from './mp3.ts'
 import { formatTime, nextSurahAfterEnd, parseCommand, type Command } from './player.ts'
 import { quranHelp } from './help.ts'
-import { CARD, controlSvg, ltrTime, progressSvg, titleSvg, bookSvg } from './card.ts'
+import { cardModel, hitTest, isCardMessage, pointerPixels } from './card.ts'
 
+const QURAN_DEBUG = true
+type PlayPath = 'command' | 'pane' | 'auto-advance'
 const playingRef = { plugin: 'muslim', key: 'quranPlaying' } as const
 const commandErrorRef = { plugin: 'muslim', key: 'quranCommandError' } as const
 const errorRef = { plugin: 'muslim', key: 'quranError' } as const
@@ -15,7 +17,27 @@ const surahQueryRef = { plugin: 'muslim', key: 'quranSurahQuery' } as const
 const reciterQueryRef = { plugin: 'muslim', key: 'quranReciterQuery' } as const
 const surahRef = { plugin: 'muslim', key: 'quranSurah' } as const
 // Handles cannot survive reload; only these ephemeral resources stay here.
-const runtime: { controller?: AbortController; timer?: { cancel(): void }; catalog?: Promise<Catalog>; queue: Promise<unknown>; probe: number; generation: number; stopEpoch: number } = { queue: Promise.resolve(), probe: 0, generation: 0, stopEpoch: 0 }
+const runtime: { controller?: AbortController; timer?: { cancel(): void }; catalog?: Promise<Catalog>; queue: Promise<unknown>; probe: number; generation: number; stopEpoch: number; debugQueue: Promise<unknown>; clip?: { generation: number; surah: number } } = { queue: Promise.resolve(), probe: 0, generation: 0, stopEpoch: 0, debugQueue: Promise.resolve() }
+
+async function writeDebug($: EngineInterface, message: string): Promise<void> {
+  try {
+    const windows = (await $.env.get('OS')) === 'Windows_NT'
+    const temp = windows ? await $.env.get('TEMP') : await $.env.get('TMPDIR') ?? '/tmp'
+    if (!temp) return
+    const path = `${temp.replace(/[\\/]+$/, '')}/claude-muslim-quran/debug.log`
+    let old = ''
+    try { old = await $.fs.read(path) } catch { /* First diagnostic line creates the file. */ }
+    const line = `${await $.clock.now()} ${message.replace(/[\r\n]/g, ' ').slice(0, 400)}`
+    await $.fs.write(path, [...old.split('\n').filter(Boolean), line].slice(-200).join('\n') + '\n')
+  } catch { /* Diagnostics must never affect playback. */ }
+}
+function debug($: EngineInterface, message: string): void {
+  if (!QURAN_DEBUG) return
+  runtime.debugQueue = runtime.debugQueue.then(() => writeDebug($, message)).catch(() => undefined)
+}
+async function settled($: EngineInterface, controller: AbortController, token: number, surah: number, startedAt: number, result: string): Promise<void> {
+  debug($, `settle generation=${token} surah=${surah} result=${result} aborted=${controller.signal.aborted} elapsedMs=${Math.max(0, await $.clock.now() - startedAt)}`)
+}
 
 async function arabic($: EngineInterface, surface: string, text: string): Promise<string> {
   if (surface !== 'terminal') return text
@@ -72,9 +94,12 @@ async function fail($: EngineInterface, error: unknown, fromCommand = false): Pr
   try { await $.state.set(commandErrorRef, fromCommand ? message : null); await $.state.set(errorRef, message); $.ui.invalidate('ui.render') } catch { /* A refused state write must not escape a hook. */ }
   return message
 }
-async function stop($: EngineInterface): Promise<void> {
+async function stop($: EngineInterface, from = 'stop'): Promise<void> {
   ++runtime.generation
-  runtime.controller?.abort()
+  if (runtime.controller) {
+    debug($, `abort from=${from} generation=${runtime.clip?.generation} surah=${runtime.clip?.surah}`)
+    runtime.controller.abort()
+  }
   runtime.controller = undefined
   runtime.timer?.cancel()
   runtime.timer = undefined
@@ -91,8 +116,8 @@ async function complete($: EngineInterface, controller: AbortController, token: 
   // A reload clears tracking; an orphaned clip can never continue the sequence.
   if (!(await $.state.get(playingRef)).value) { await stop($); return }
   const nextSurah = nextSurahAfterEnd(surah, error === undefined, token, runtime.generation)
-  if (nextSurah !== null) { await play($, reciter, nextSurah, fromCommand); return }
-  await stop($)
+  if (nextSurah !== null) { await play($, reciter, nextSurah, fromCommand, 'auto-advance'); return }
+  await stop($, 'completion')
   if (error !== undefined) await fail($, error, fromCommand)
 }
 async function lookupDuration($: EngineInterface, reciter: Reciter, surah: number, controller: AbortController): Promise<void> {
@@ -138,13 +163,14 @@ async function lookupDuration($: EngineInterface, reciter: Reciter, surah: numbe
     }
   }
 }
-async function play($: EngineInterface, reciter: Reciter, surah: number, fromCommand: boolean): Promise<void> {
+async function play($: EngineInterface, reciter: Reciter, surah: number, fromCommand: boolean, path: PlayPath = fromCommand ? 'command' : 'pane'): Promise<void> {
   const generation = runtime.generation
-  await stop($)
+  await stop($, `replace:${path}`)
   if (runtime.generation !== generation + 1) return
   const controller = new AbortController()
   runtime.controller = controller
   const token = runtime.generation
+  runtime.clip = { generation: token, surah }
   const playing: QuranPlaying = { moshafKey: reciter.key, surah, startedAt: await $.clock.now(), durationMs: null }
   await $.state.set(surahRef, surah)
   await $.state.set(errorRef, null)
@@ -155,9 +181,19 @@ async function play($: EngineInterface, reciter: Reciter, surah: number, fromCom
     await $.state.set(playingRef, null)
     return
   }
+  debug($, `play generation=${token} surah=${surah} path=${path}`)
+  // Created beside play in its invocation: abort from this timer's context too.
+  let watchdogAborted = false
+  const watchdog = $.clock.every(200, () => {
+    if (token === runtime.generation || watchdogAborted) return
+    watchdogAborted = true
+    debug($, `watchdog abort generation=${token} surah=${surah} currentGeneration=${runtime.generation}`)
+    controller.abort()
+  })
   void $.audio.play({ url: audioUrl(reciter, surah) }, { signal: controller.signal }).then(
-    () => finish($, controller, token, reciter, surah, fromCommand), error => finish($, controller, token, reciter, surah, fromCommand, error),
-  ).catch(error => void fail($, error, fromCommand))
+    () => { watchdog.cancel(); void settled($, controller, token, surah, playing.startedAt, 'resolved'); return finish($, controller, token, reciter, surah, fromCommand) },
+    error => { watchdog.cancel(); void settled($, controller, token, surah, playing.startedAt, 'rejected'); return finish($, controller, token, reciter, surah, fromCommand, error) },
+  ).catch(error => { watchdog.cancel(); void fail($, error, fromCommand) })
   void lookupDuration($, reciter, surah, controller)
   runtime.timer = $.clock.every(1000, () => $.ui.invalidate('ui.render'))
   $.ui.invalidate('ui.render')
@@ -175,7 +211,7 @@ async function togglePane($: EngineInterface): Promise<void> {
 async function action($: EngineInterface, command: Command, fromCommand: boolean): Promise<string> {
   const generation = runtime.generation
   if (command.kind === 'help' || command.kind === 'usage') return quranHelp()
-  if (command.kind === 'stop') { await stop($); await $.state.set(errorRef, null); return 'Quran stopped.' }
+  if (command.kind === 'stop') { await stop($, fromCommand ? 'command:stop' : 'pane:stop'); await $.state.set(errorRef, null); return 'Quran stopped.' }
   if (command.kind === 'open' || command.kind === 'play') await open($)
   const c = await catalog($)
   await $.state.set(errorRef, null)
@@ -254,13 +290,13 @@ export const install = (on: On, _options: Options) => {
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
     const theirs = await next(e)
     if (e.surface !== 'desktop') return theirs
-    const { Box, Text, Button, Svg } = $.ui.resolve(e)
+    const { Box, Text, Button } = $.ui.resolve(e)
     const playing = (await $.state.get(playingRef)).value
     const raw = await $.store.get('quran.catalog')
     const name = playing && isCatalog(raw) ? raw.surahs[playing.surah - 1]!.name : 'القرآن'
     const label = playing ? `${name} ${formatTime(Math.max(0, await $.clock.now() - playing.startedAt))}` : name
     return <Box gap={1}>
-      <Box gap={1} alignItems="center"><Svg source={bookSvg()} width={14} height={14} alt="القرآن الكريم" /><Button key="quran-footer" plain onPress={() => { void togglePane($) }}><Text color="success">{label}</Text></Button></Box>
+      <Button key="quran-footer" plain onPress={() => { void togglePane($) }}><Text color="success">۞ {label}</Text></Button>
       {theirs}
     </Box>
   })
@@ -271,10 +307,24 @@ export const install = (on: On, _options: Options) => {
     const { Text } = $.ui.resolve(e)
     return <Text dimColor>{error}</Text>
   })
+  on('ui.message', { element: 'quran-card' }, async ($, e) => {
+    if (e.surface !== 'desktop' || !isCardMessage(e.data)) return {}
+    const message = e.data
+    if (message.act === 'size') return {}
+    let buttonAction: 'prev' | 'toggle' | 'next' | null = null
+    if (message.act === 'pointer') {
+      if (message.button !== 'left' || message.generation !== runtime.generation) return {}
+      const pixels = pointerPixels(message.width, message.x, message.y, message.columns, message.rows)
+      buttonAction = hitTest(message.width, pixels.x, pixels.y)
+    } else buttonAction = message.key === 'left' ? 'prev' : message.key === 'right' ? 'next' : message.key === 'return' || message.key === ' ' ? 'toggle' : null
+    if (buttonAction === 'toggle') await togglePlayback($)
+    else if (buttonAction) await paneAction($, { kind: buttonAction })
+    return {}
+  }).catch(async ($) => { await fail($, new Error('Quran control unavailable')); return {} })
   on('ui.render', { component: 'Pane', requestId: 'quran' }, async ($, e) => {
     const { Box, Text } = $.ui.resolve(e)
     if (e.surface !== 'desktop') return <Text dimColor>{await arabic($, e.surface, 'مشغّل القرآن متاح على تطبيق Claude للديسكتوب')}</Text>
-    const { Input, Button, Svg } = $.ui.resolve(e)
+    const { Input, Button, Client } = $.ui.resolve(e)
     const playing = (await $.state.get(playingRef)).value
     const error = (await $.state.get(errorRef)).value
     const raw = await $.store.get('quran.catalog')
@@ -285,49 +335,21 @@ export const install = (on: On, _options: Options) => {
     const surahQuery = (await $.state.get(surahQueryRef)).value ?? ''
     const reciters = searchReciters(reciterQuery, raw.reciters)
     const surahs = searchSurahs(surahQuery, raw.surahs)
-    const elapsed = playing ? Math.max(0, await $.clock.now() - playing.startedAt) : 0
-    const activeReciter = playing ? raw.reciters.find(r => r.key === playing.moshafKey) ?? reciter : reciter
-    const title = `سورة ${raw.surahs[(playing?.surah ?? surah) - 1]!.name}`
-    const nextSurah = playing && playing.surah < 114 ? raw.surahs[playing.surah] : undefined
-    const svgWidth = Math.max(80, Math.min(320, (e.props.bodyColumns - 8) * 7))
+    const model = cardModel(raw, reciter, surah, playing, await $.clock.now(), e.props.bodyColumns * 8.4, runtime.generation)
     return <Box flexDirection="column" gap={1} padding={1}>
       <Box flexDirection="column" gap={1}>
-        <Text>القارئ: {reciter.label}</Text>
+        <Text dimColor>القارئ: {reciter.label}</Text>
         <Input key="quran-reciter" placeholder="ابحث عن قارئ" value={reciterQuery} submitLabel="اختيار" onInput={value => { void setQuery($, 'reciter', value) }} onSubmit={value => { void submitPick($, 'reciter', value) }} />
         {reciters.map(r => <Button plain key={`quran-reciter-${r.key}`} label={r.label} onPress={() => { void pick($, 'reciter', String(raw.reciters.findIndex(choice => choice.key === r.key) + 1)) }} />)}
         {reciterQuery.trim() && !reciters.length && <Text dimColor>لا توجد نتائج</Text>}
       </Box>
       <Box flexDirection="column" gap={1}>
-        <Text>السورة: {surah}. {raw.surahs[surah - 1]!.name}</Text>
+        <Text dimColor>السورة: {surah}. {raw.surahs[surah - 1]!.name}</Text>
         <Input key="quran-surah" placeholder="ابحث عن سورة أو رقمها" value={surahQuery} submitLabel="تشغيل" onInput={value => { void setQuery($, 'surah', value) }} onSubmit={value => { void submitPick($, 'surah', value) }} />
         {surahs.map(s => <Button plain key={`quran-surah-${s.id}`} label={`${s.id}. ${s.name}`} onPress={() => { void pick($, 'surah', String(s.id)) }} />)}
         {surahQuery.trim() && !surahs.length && <Text dimColor>لا توجد نتائج</Text>}
       </Box>
-      <Box key="quran-card" flexDirection="column" gap={1} padding={2} borderStyle="round" borderColor={CARD.border} backgroundColor={CARD.background}>
-        <Box justifyContent="flex-end"><Text color={CARD.accent}>{playing ? 'يتلى الآن' : 'متوقف'}</Text></Box>
-        <Box justifyContent="flex-end"><Svg source={titleSvg(title)} width={svgWidth} height={48} alt={title} /></Box>
-        <Box justifyContent="flex-end"><Text color={CARD.secondary}>{activeReciter.name} · حفص عن عاصم</Text></Box>
-        <Svg source={progressSvg(elapsed, playing?.durationMs ?? null)} width={svgWidth} height={6} alt={`تقدم التلاوة: ${formatTime(elapsed)} / ${formatTime(playing?.durationMs ?? null)}`} />
-        <Box key="quran-time" justifyContent="space-between">
-          <Text color={CARD.secondary}>{ltrTime(formatTime(elapsed))}</Text>
-          <Text color={CARD.secondary}>{ltrTime(formatTime(playing?.durationMs ?? null))}</Text>
-        </Box>
-        <Box flexDirection="row-reverse" justifyContent="center" alignItems="center" gap={2}>
-          <Box flexDirection="column" alignItems="center" gap={1}>
-            <Svg source={controlSvg('prev')} width={46} height={46} alt="السورة السابقة" />
-            <Button key="quran-prev" plain label="السابقة" onPress={() => { void paneAction($, { kind: 'prev' }) }} />
-          </Box>
-          <Box flexDirection="column" alignItems="center" gap={1}>
-            <Svg source={controlSvg(playing ? 'stop' : 'play')} width={56} height={56} alt={playing ? 'إيقاف' : 'تشغيل'} />
-            <Button key="quran-toggle" plain label={playing ? 'إيقاف' : 'تشغيل'} onPress={() => { void togglePlayback($) }} />
-          </Box>
-          <Box flexDirection="column" alignItems="center" gap={1}>
-            <Svg source={controlSvg('next')} width={46} height={46} alt="السورة التالية" />
-            <Button key="quran-next" plain label="التالية" onPress={() => { void paneAction($, { kind: 'next' }) }} />
-          </Box>
-        </Box>
-      </Box>
-      {playing && <Box justifyContent="flex-end"><Text dimColor>{nextSurah ? `التالي تلقائي: ${nextSurah.name}` : 'بعد سورة الناس يتوقف التشغيل'}</Text></Box>}
+      <Client key="quran-card" module="./client.tsx" width="100%" props={model} />
       {error && <Text dimColor>{error}</Text>}
     </Box>
   }).catch(async ($, e) => {

@@ -8,7 +8,7 @@ The shared base every feature follows, and the index to each feature's own desig
 | --- | --- | --- | --- | --- |
 | Thikr line | `/thikr` | [thikr.md](docs/features/thikr.md) | [thikr-design.md](docs/features/thikr-design.md): text only | 0.2.0 |
 | Salah | `/salah` | [salah.md](docs/features/salah.md) | [salah-design.md](docs/features/salah-design.md): text, richer athan moment | Unreleased |
-| Quran | `/quran` | [quran.md](docs/features/quran.md) | [quran-design.md](docs/features/quran-design.md): desktop footer chip and docked Pane with native controls | Unreleased |
+| Quran | `/quran` | [quran.md](docs/features/quran.md) | [quran-design.md](docs/features/quran-design.md): desktop footer chip, native search and a Client-drawn docked player card | Unreleased |
 | Morning and evening athkar | `/athkar` | in progress in another branch | in progress | planned |
 
 Everything below is shared by every feature. A feature's doc may add to it, never contradict it.
