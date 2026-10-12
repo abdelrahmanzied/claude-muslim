@@ -1,0 +1,77 @@
+# Quran — whole-surah recitation
+
+A Quran recitation player in Claude Desktop. v1 plays one whole surah as one continuous remote MP3 track, started only by the user.
+
+## Flow
+
+1. `/quran` opens the pane titled «القرآن الكريم». On first need, fetch the reciters and surah names from MP3Quran v3. Show only complete (114 surahs) Hafs recordings (`rewaya_id === 1`). Each moshaf is a separate choice, including murattal and mujawwad by the same reciter.
+2. Choose a reciter and a surah with native Select controls. This build enforces a 64-option limit even though the type declaration does not mention it: page selectors expose groups of at most 63 choices plus a neutral placeholder. Browsing a page does not change the selection or play audio. Playing or choosing a recording returns to its page. Picking a surah starts it; picking a reciter saves the choice and restarts the current surah if it is playing. The default is Muhammad Siddiq Al-Minshawi's Hafs murattal recording, identified by its server `https://cdn.mp3quran.net/audio/muhammad-minshawi/r1/`; if unavailable, use the first filtered recording. Initial selected surah is 1.
+3. The docked pane shows surah and reciter, approximate elapsed / total time, a 24-cell text progress bar, previous, play/stop and next. Playback uses the audio API’s default gain. Loudness is controlled by the OS.
+4. Starting another track aborts the current one. Stop ends playback. A natural end advances to the next surah with the same recording; after 114 it stops and clears playback. A per-play generation and controller identity guard prevent a stopped, replaced or reloaded clip from advancing. Previous/next stay at 1/114 with a short reply. Controls remain available while stopped; play starts the selected surah from the beginning.
+5. Desktop has a green footer chip before salah’s orange prayer line, both before the model. Idle it reads «القرآن»; while playing it reads the authored surah name and approximate elapsed time. Pressing toggles the `quran` pane using the engine’s pane list and close API. Closing the pane does not stop audio. Quran adds no AbovePrompt band and no terminal footer label.
+6. While playing, a clock timer invalidates the drawing once per second; stopped playback has no Quran redraw timer. Elapsed is `clock.now() - startedAt`, approximate wall-clock time including startup/buffering, not the decoder's position. Total is `--:--` until found. Times use `mm:ss`, or `h:mm:ss` from one hour.
+
+## Commands
+
+| Command | Does |
+| --- | --- |
+| `/quran` | Open the desktop player pane |
+| `/quran play <surah>` | Play with the current reciter; number 1–114 or Arabic name (الكهف / كهف) |
+| `/quran stop` | Stop |
+| `/quran next` · `/quran prev` | Play adjacent surah with the same reciter; do not wrap |
+| `/quran reciter` | Numbered list of all filtered recordings |
+| `/quran reciter <number or name>` | Remember choice; restart current surah if playing |
+| `/quran help` | Usage table; unknown arguments show this too |
+
+Names ignore tashkeel, hamza forms, leading `ال` and spaces. A reciter name shared by multiple recordings is ambiguous: use the full recording label or list number. Labels preserve the source's authored Arabic: `<reciter name> — <moshaf name after ' - ' if present>`. `/muslim help` includes Quran, `/muslim help quran` shows its table, and `/muslim` has a Quran row for current reciter.
+
+Replies are short except the requested catalog/help. Catalog and network failures appear as one dim error line in the pane and as a command reply. Since audio completes asynchronously, a play rejection also updates Quran's visible command output and shows a short toast. No exception escapes the feature's hooks. Duration failures remain silent.
+
+## Data and permission
+
+[MP3Quran v3](https://www.mp3quran.net/api/v3) is keyless:
+
+- Reciters: `https://www.mp3quran.net/api/v3/reciters?language=ar`.
+- Authored surah names: `https://www.mp3quran.net/api/v3/suwar?language=ar` (114).
+- Track: the chosen moshaf's server plus the three-digit surah number and `.mp3`.
+
+The [MP3Quran permission statement](https://www.mp3quran.net/eng/privacy) says: “we allow any visitor or developer to copy any material or use any link”. This is explicit developer permission to use their links, rather than a named software licence.
+
+## Persistence and duration
+
+| Value | Storage | Default |
+| --- | --- | --- |
+| Recording key `<reciterId>:<moshafId>` | `$.store` `quran.reciter` | Minshawi murattal, else first |
+| Filtered catalog with `fetchedAt` | `$.store` `quran.catalog` | Fetch on first need; refresh after 7 days; retain old catalog on refresh failure |
+| Duration numbers keyed `<moshafKey>:<surah>` | `$.store` `quran.durations` | Unknown |
+| Current track (key, surah, start time, duration), selected surah, selector pages, last error | Declared session `$.state` | Stopped, 1, no error |
+
+Duration lookup runs beside playback. Curl fetches bytes 0–131071 into temporary files under the OS temp folder (`$TMPDIR` or `/tmp`; `%TEMP%` on Windows, cleaned with `del`), `claude-muslim-quran/`; `$.fs.read(..., { as: 'bytes' })` returns base64 decoded without Node. Content-Range supplies total size. Skip ID3v2, find a valid Layer III frame (MPEG-1/2/2.5), use Xing/Info's frame count if present, otherwise estimate CBR duration from audio bytes and bitrate. Duration is approximate for VBR without Xing. The prefix is only metadata, never played, and removed after probing; cached values are small duration numbers, not audio. Without curl, valid headers or parseable bytes, total remains unknown. `$.http.fetch` is used only for JSON because its body is text.
+
+Verified finding supplied for this feature: a probe of 12 MP3Quran files from 6 reciters (including Minshawi 002, 8216 seconds) found no Xing, Info or VBRI header. The CBR estimate `(Content-Length − ID3v2 size) × 8 / first-frame bitrate` matched ffprobe within 0.03 seconds. The implementation retains Xing/Info support for other files but uses CBR when absent. Total size comes from the Content-Range total in the **same curl Range response**, not the prefix length or an assumed file length. A HEAD Content-Length could also supply a total if available, but v1 makes no separate HEAD request. Audio start includes the ID3v2 size (and any leading bytes before the first valid frame).
+
+## Limits
+
+- Desktop is the only supported v1 playback surface. Commands are accepted everywhere; the non-desktop pane shows only «مشغّل القرآن متاح على تطبيق Claude للديسكتوب». All terminal Arabic uses the shared path; desktop text stays as authored.
+- No seeking, pause/resume, offline audio cache, ayah splitting, chunking, looping.
+- Prayer time and salah’s athan moment leave recitation playing; no interaction with salah.
+- Module reload loses the AbortController. `session.start` clears stale playback tracking and never resumes. An old clip may remain audible with no handle, so reload does **not** guarantee acoustic stop; it stops tracking. Avoid changing other userConfig while playing.
+- Duration probing currently uses the specified macOS cache path and the verified Desktop curl behavior. The API types describe processes as CLI-only; failures are silent and do not prevent URL playback.
+
+## Design
+
+[Quran design](quran-design.md): text and native Select/Button controls in a Pane; storage exception and surface fallback.
+
+## Files
+
+| File | Holds |
+| --- | --- |
+| `install.tsx` | Hooks, catalog persistence, playback, duration probing, pane |
+| `catalog.ts` | Filtering, labels, name matching, URL building |
+| `mp3.ts` | Pure frame, ID3, Xing/CBR, Content-Range and base64 parsing |
+| `player.ts` | Command parser, generation-safe next-surah rule, time formatting, text progress bar |
+| `help.ts` | Help table, shared with `/muslim help` |
+
+## To verify live
+
+Open the pane in Desktop, select Minshawi and Al-Kahf, listen for continuous whole-track playback, stop, switch reciter while playing, verify the footer chip opens/closes the pane, test natural-end advancement and stopping after surah 114. Check no acoustic overlap on fast switching and readable native selects in narrow panes and each theme. Confirm the terminal fallback and Arabic modes. Engine tests exercise hooks and trees; they do not prove sound or native paint.

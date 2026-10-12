@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add `/quran`: a desktop whole-surah recitation player with complete Hafs recording and surah selectors, play/stop, previous/next, approximate time/progress, a green desktop footer chip that toggles the docked pane, and a remembered reciter. Natural ends advance with the same recording, stopping after surah 114; stopped/replaced plays cannot advance. Loudness is controlled by the OS. MP3Quran provides the catalog and remote tracks; best-effort MP3 duration metadata is cached without audio. Includes terminal fallback, help/settings integration, docs and tests.
+
 - DESIGN.md: "Quiet by default" now means silent animations and reminders; audio the user starts (such as a recitation) is allowed.
 - `/muslim` shows a settings table, the same on every surface: tashkeel, thikr, and terminal Arabic (this terminal's mode, or its default if not chosen yet; `terminal only` on desktop), each with the command that changes it.
 - Terminal Arabic has three per-terminal modes: `plain` strips tashkeel, `joined` also applies presentation forms in logical order, and `reversed` also reorders Arabic runs for visual RTL display. Tashkeel is always stripped on terminal because terminals draw marks poorly and partial redraws can garble them.

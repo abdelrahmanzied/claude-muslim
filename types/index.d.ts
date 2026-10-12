@@ -17,9 +17,17 @@ export type SalahMinaret = { pray: SalahWindow['pray']; frame: number }
 // The desktop athan card while it shows: the pray, its clock text and when it ends by itself (ms since epoch).
 export type SalahCard = { pray: SalahWindow['pray']; time: string; until: number }
 
+export type QuranPlaying = { moshafKey: string; surah: number; startedAt: number; durationMs: number | null }
+
 declare module 'claude-code' {
   interface PluginState {
     muslim: {
+      quranPlaying: QuranPlaying | null
+      quranError: string | null
+      quranSurah: number
+      quranSurahPage: number
+      quranReciterPage: number
+
       // Terminal whose picker was opened by /muslim terminal-arabic.
       arabicSurveyManualTerminal: string | null
       // Per-terminal mode cached for this session's thikr renders.

@@ -1,4 +1,4 @@
-import { expect, test } from 'claude-code/testing'
+import { expect, mock, test } from 'claude-code/testing'
 
 const muslim = (args: string) => ({
   command: 'muslim',
@@ -7,11 +7,14 @@ const muslim = (args: string) => ({
   presentation: { isFullscreen: false, columns: 80 },
 })
 
-test('/muslim shows each setting with its state and how to change it', { options: { tashkeel: false } }, async $ => {
+test('/muslim shows each setting with its state and how to change it', { options: { tashkeel: false } }, async ($, on) => {
+  mock.store(on)
+  on('session.surface', async () => ({ value: 'desktop' }))
   const ran = await $.command.run(muslim(''))
   expect(ran.text).toContain('| Tashkeel | off — desktop only; the terminal never shows diacritics | `/muslim tashkeel on` · `off` |')
   expect(ran.text).toContain('| Thikr | on | `/thikr on` · `off` · all options: `/thikr help` |')
   expect(ran.text).toContain('| Terminal Arabic | terminal only | `/muslim terminal-arabic` |')
+  expect(ran.text).toContain('| Quran | Muhammad Siddiq Al-Minshawi — murattal | `/quran reciter` |')
   expect(ran.text).toContain('Help: /muslim help')
   expect(ran.text).toContain('| Salah | not set up | `/salah show always` · `<minutes>` · `off` · all options: `/salah help` |')
 })
@@ -31,7 +34,9 @@ test('/muslim help shows every feature\'s table; with a feature, only its own', 
   expect(salah).not.toContain('/thikr')
   expect(thikr).toContain('/thikr mode')
   expect(thikr).not.toContain('/salah')
-  expect((await $.command.run(muslim('help quran'))).text).toContain('Features: thikr, salah, terminal-arabic, tashkeel')
+  expect((await $.command.run(muslim('help quran'))).text).toContain('/quran play <surah>')
+  expect(all).toContain('/quran reciter')
+  expect((await $.command.run(muslim('help unknown'))).text).toContain('Features: thikr, salah, quran, terminal-arabic, tashkeel')
 })
 
 test('session start clears a status line left by an earlier version', async ($, on) => {
