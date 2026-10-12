@@ -19,7 +19,7 @@ The salah feature's own design. It adds to the shared base in [DESIGN.md](../../
 
   The seven rows keep their height while it rises, it shows once per prayer (state `salahAthanShown`), never during a survey, and `salahAthan` off drops it.
 - **Desktop athan card.** On the desktop the minaret is never drawn; instead the shared card in `src/shared/card/` sits above the prompt, with the same width and open height (77px), frame, ×, hover, lighting and input as the athkar band. Salah supplies the calligraphic font, photo of the Haram and text inside its vector document holding HTML and CSS. It shows «حان وقت صلاة المغرب» large on the right and the time in Arabic digits under it, in one font and white; the shared × at the top left closes it and shows a light disc on hover. The photo is a wide strip cut from a larger original so it stays sharp across the card. It appears at once, lit and open, in an isolated view. No bar. It stays until the user closes it or the call's 15 minutes end. Only one desktop card shows at a time: it takes the athkar band's place while it shows, and the band returns with the reading kept. The terminal reader and rising minaret are unchanged.
-- **Test path.** `/salah athan test` shows the athan moment on demand for the next prayer (the card on the desktop, the minaret in the terminal), even before the prayer display first appears, without changing settings or marking it shown.
+- **Demo path.** `/salah athan demo` shows the athan moment on demand for the next prayer (the card on the desktop, the minaret in the terminal), even before the prayer display first appears, without changing settings or marking it shown.
 
 **Why:** prayer time is a few moments a day and worth marking; the rest of the day salah stays a quiet line.
 

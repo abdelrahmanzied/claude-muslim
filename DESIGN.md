@@ -85,9 +85,9 @@ Never use `error` or `warning` for religious text.
 - A timed moment (before prayer, after prayer, usage limit) appears once, clears itself when its moment passes, and survives `/clear` and reloads through `$.state` / `$.store`.
 - Timers run only while needed (e.g. the spinner ticker only during a turn).
 
-## 8. Demo (planned, not built yet)
+## 8. Demo
 
-Every feature ships a demo: scenes that play the feature's real UI on demand, through a future shared `/muslim demo` command. Scenes run on a fake clock and change no settings or state the user keeps. Scenes may live in one shared demo file or in a file inside each feature folder (e.g. `src/features/<feature>/demo.ts`). The command and the scene format are not built yet; until they are, a feature notes its scenes in its design doc.
+Each feature has its own demo subcommand and `src/features/<feature>/demo.ts` for pure scenes and timing (no `$`, plain unit tests). Its small engine runner stays in `install.ts(x)` with its atoms. A demo plays the real UI on demand and only drives drawing: no settings, store or saved-state changes. Salah uses `/salah athan demo`; a shared `/muslim demo` may later play them all.
 
 ## 9. Code shape for a new feature
 
@@ -112,6 +112,6 @@ Wire it in `hooks/register.tsx` (`install<Feature>(on, settings)`), register its
 - [ ] Off switch in `/config` and the command; off leaves Claude untouched.
 - [ ] Main color via the shared module, other colors via theme keys; desktop tashkeel setting respected and terminal tashkeel stripped.
 - [ ] Tests on `terminal` and `desktop`; `claude plugin validate`, `claude plugin test`, `tsc` pass.
-- [ ] Demo scenes for the feature's real UI (planned: `/muslim demo`, fake clock, no settings changed).
+- [ ] Demo subcommand and pure `demo.ts` for the feature's real UI; no settings, store or saved-state changes.
 - [ ] Tried live in a terminal and the desktop app.
 - [ ] Change notes added to `CHANGELOG.md` (see CLAUDE.md).

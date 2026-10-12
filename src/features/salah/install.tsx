@@ -9,6 +9,7 @@ import type { Options } from '../../config.ts'
 import { CITY_MODEL, CITY_SYSTEM, cityPrompt, parseCities, parseCoordinates, type City } from './city.ts'
 import { helpHint } from '../../table.ts'
 import { salahHelp } from './help.ts'
+import { athanDemo } from './demo.ts'
 import { guessPlace, systemTimeZone } from './location.ts'
 import { METHODS, methodFor, type Pray } from './methods.ts'
 import { ENGLISH, prayNamed } from '../../shared/pray/names.ts'
@@ -223,15 +224,14 @@ const readPhoto = async ($: EngineInterface): Promise<string | undefined> => {
   return typeof bytes === 'object' ? bytes.base64 : undefined
 }
 
-// `/salah athan test`: shows the athan moment now for the next pray, without
+// `/salah athan demo`: shows the athan moment now for the next pray, without
 // touching settings or the shown-once mark.
-const playTest = async ($: EngineInterface, options: Options, place: Place) => {
+const playDemo = async ($: EngineInterface, options: Options, place: Place) => {
   const now = await $.clock.now()
-  const next = nextSalah(place, methodOf(options, place), options.salahAdjust, now)
-  const pray = next.pray === 'sunrise' ? 'fajr' : next.pray
-  await showAthan($, pray, clockText(next.at, place.timeZone), now)
+  const demo = athanDemo(options, place, now)
+  await showAthan($, demo.pray, demo.time, now)
 
-  return `**Athan test:** ${ENGLISH[pray]}`
+  return demo.text
 }
 
 // Tells the thikr line which pray's window we are in; writes only on a change.
@@ -315,11 +315,11 @@ export const install = (on: On, options: Options) => {
 
       return set('salahShow', String(show), `**Show:** ${showText(show)}`)
     }
-    if (word === 'athan' && first === 'test') {
+    if (word === 'athan' && first === 'demo') {
       const place = options.salahPlace
       if (!place) return { text: 'Set your city first: `/salah city`' }
 
-      return { text: await playTest($, options, place) }
+      return { text: await playDemo($, options, place) }
     }
     if (word === 'athan' && (first === 'on' || first === 'off')) return set('salahAthan', first === 'on', `**Athan:** ${first}`)
     if (word === 'city') {

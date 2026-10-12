@@ -4,6 +4,7 @@ import { expect, mock, test } from 'claude-code/testing'
 import { cardHeight, frameOf } from '../../src/shared/card/card.ts'
 import { athanFrame, athanSvg, CARD_MS } from '../../src/features/salah/card.ts'
 import { FRAME_MS, HOLD_MS, ROWS_COUNT } from '../../src/features/salah/minaret.ts'
+import { salahHelp } from '../../src/features/salah/help.ts'
 
 const MUNICH = { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berlin; DE' }
 const NOW = Date.parse('2026-10-10T10:00:00Z')
@@ -51,23 +52,36 @@ test('the card with the real photo (about 40 KB of base64) stays far under the S
   expect(athanSvg(props('A'.repeat(45000), 'fajr', '05:00'), { hoverClose: false, columns: 180 }).length).toBeLessThan(110000)
 })
 
-test('/salah athan test without a city says so', { options: { athkar: false } }, async $ => {
-  expect((await $.command.run(run('athan test'))).text).toContain('/salah city')
+test('/salah athan demo without a city says so', { options: { athkar: false } }, async $ => {
+  expect((await $.command.run(run('athan demo'))).text).toContain('/salah city')
 })
 
-test('/salah athan test answers and changes no setting', { options: MUNICH }, async ($, on) => {
+test('/salah athan test is an unknown word and answers with help', { options: MUNICH }, async $ => {
+  expect((await $.command.run(run('athan test'))).text).toBe(salahHelp())
+})
+
+test('/salah athan demo answers without changing settings, the store or the shown-once mark', { options: MUNICH }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
   mock.clock(on, { now: NOW })
   const written: unknown[] = []
   on('config.set', async (_$, e) => (written.push(e), { value: e.value }))
-  const ran = await $.command.run(run('athan test'))
+  on('store.set', async (_$, e, next) => {
+    written.push(e)
 
-  expect(ran.text).toContain('**Athan test:**')
+    return next(e)
+  })
+  on('state.set', { plugin: 'muslim', key: 'salahAthanShown' }, async (_$, e, next) => {
+    written.push(e)
+
+    return next(e)
+  })
+  const ran = await $.command.run(run('athan demo'))
+
+  expect(ran.text).toBe('**Athan demo:** Dhuhr')
   expect(written).toEqual([])
 })
 
-test('on the desktop the test shows the shared card, never the minaret; a click on its × clears it', { options: MUNICH }, async ($, on) => {
+test('on the desktop the demo shows the shared card, never the minaret; a click on its × clears it', { options: MUNICH }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   mock.clock(on, { now: NOW })
@@ -75,7 +89,7 @@ test('on the desktop the test shows the shared card, never the minaret; a click 
   const asked: string[] = []
   on('fs.read', async (_$, e) => (asked.push(e.path), { value: { base64: 'QUJD' } }))
   const desktop = await $.ui.mount(band('desktop'))
-  await $.command.run(run('athan test'))
+  await $.command.run(run('athan demo'))
 
   const card = await desktop.find({ in: 'salah-athan', type: 'Svg' })
   expect(card).toBeDefined()
@@ -103,7 +117,7 @@ test('the athan replaces only the desktop band, hovers the shared ×, and return
   await desktop.key({ key: 'space', in: 'athkar' })
   const before = (await desktop.find({ type: 'Client', key: 'athkar' }))?.props.props
   expect(before).toMatchObject({ phase: 'reading', count: 1 })
-  await $.command.run(run('athan test'))
+  await $.command.run(run('athan demo'))
   expect(await desktop.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
   await desktop.resize({ columns: 100, rows: 5, in: 'salah-athan' })
   await desktop.pointer({ type: 'move', x: 2, y: 1, in: 'salah-athan' })
@@ -120,7 +134,7 @@ test('the athan replaces only the desktop band, hovers the shared ×, and return
   // Let the counted thikr advance before checking the expiry path as well.
   await clock.advance(1000)
   const resumed = (await desktop.find({ type: 'Client', key: 'athkar' }))?.props.props as { thikrId: string; count: number }
-  await $.command.run(run('athan test'))
+  await $.command.run(run('athan demo'))
   expect(await desktop.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
   await clock.advance(CARD_MS)
   expect(await desktop.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
@@ -129,13 +143,13 @@ test('the athan replaces only the desktop band, hovers the shared ×, and return
   await terminal.unmount()
 })
 
-test('on the terminal the test plays the minaret only, no card', { options: MUNICH }, async ($, on) => {
+test('on the terminal the demo plays the minaret only, no card', { options: MUNICH }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   mock.clock(on, { now: NOW })
   engineBand(on)
   const terminal = await $.ui.mount(band('terminal'))
-  await $.command.run(run('athan test'))
+  await $.command.run(run('athan demo'))
 
   expect(await terminal.find({ type: 'Svg' })).toBeUndefined()
   expect(await terminal.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
@@ -143,13 +157,13 @@ test('on the terminal the test plays the minaret only, no card', { options: MUNI
 })
 
 for (const surface of ['desktop', 'terminal'] as const) {
-  test(`${surface}: athan test before the first draw survives ticker startup`, { options: MUNICH }, async ($, on) => {
+  test(`${surface}: athan demo before the first draw survives ticker startup`, { options: MUNICH }, async ($, on) => {
     mock.env(on, {})
     mock.store(on)
     const clock = mock.clock(on, { now: NOW })
     engineBand(on)
     on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
-    await $.command.run(run('athan test'))
+    await $.command.run(run('athan demo'))
     const mounted = await $.ui.mount(band(surface))
 
     if (surface === 'desktop') {
