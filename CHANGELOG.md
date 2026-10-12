@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Quran now draws the entire desktop pane in its Client: styled dropdowns with complete catalogs, inline search, keyboard scrolling, current/hover marks and overlays above the player. Embed both full Tajawal weights using lossless WOFF2 to fit engine limits; RTL Arabic and isolated Arabic-Indic option numbers follow the design system. Playback watchdog, debug logging and footer are unchanged.
+
 - Quran adds a per-clip 200ms stop watchdog in the playback invocation and temporary bounded debug logging. The desktop player card is now Client-drawn HTML/CSS in Svg, matching the rounded green mockup with hit-tested round controls and hover feedback; native searchable pickers remain. The footer uses the green ۞ text symbol because its separate SVG was not visible live.
 
 - Quran playback starts directly in the hook flow; Stop immediately aborts the active signal even during catalog refresh, and the pane toggle reads current state. Replace paged selectors with search across all recordings and surahs, six result rows and Enter selection. Add the open-book SVG beside the desktop footer chip; document clips orphaned by reload.

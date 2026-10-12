@@ -62,14 +62,15 @@ export function matchReciter(text: string, reciters: readonly Reciter[]): Recite
 
 // Keep ال in substring searches: removing it would turn صالح into صح.
 const searchName = (text: string): string => normalizeName(text, false)
-export const resultRows = <T>(matches: readonly T[]): T[] => matches.slice(0, 6)
 export function searchReciters(query: string, reciters: readonly Reciter[]): Reciter[] {
+  const digits = query.trim().replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 1632))
+  if (/^\d+$/.test(digits)) return reciters[Number(digits) - 1] ? [reciters[Number(digits) - 1]!] : []
   const name = searchName(query)
-  return name ? resultRows(reciters.filter(r => searchName(r.name).includes(name) || searchName(r.label).includes(name))) : []
+  return reciters.filter(r => !name || searchName(r.name).includes(name) || searchName(r.label).includes(name))
 }
 export function searchSurahs(query: string, surahs: readonly Surah[]): Surah[] {
   const digits = query.trim().replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 1632))
-  if (/^\d+$/.test(digits)) return resultRows(surahs.filter(s => s.id === Number(digits)))
+  if (/^\d+$/.test(digits)) return surahs.filter(s => s.id === Number(digits))
   const name = searchName(query)
-  return name ? resultRows(surahs.filter(s => searchName(s.name).includes(name))) : []
+  return surahs.filter(s => !name || searchName(s.name).includes(name))
 }

@@ -4,13 +4,17 @@ The Quran feature's visual means and surface scope, following [DESIGN.md](../../
 
 ## Visual means
 
-Two native Input search-and-pick blocks followed by the green now-playing card in a user-opened docked Pane. Each shows the selected reciter/surah above a search input, then at most six plain result Buttons. Empty queries collapse the list; Enter picks the first match. Results cover the full catalog without pagination or Select limits. Queries stay in declared session state and clear on picking. A dim no-results line explains an unmatched query.
+The entire desktop pane body is one Client (`client.tsx`), rendering Svg/foreignObject HTML/CSS. `pane.ts` builds its pure model, dropdown state transitions, option filtering and hit testing; `card.ts` retains the playback card picture and control geometry. Nothing is copied or imported from another branch.
 
-The now-playing card is a desktop Client (`client.tsx`) rendering one Svg with a `foreignObject` of HTML/CSS. Its pure model, picture and hit testing live in `card.ts`, entirely inside Quran. Native search Inputs and plain result Buttons stay outside the picture for native keyboard focus; their selected lines use dim labels. This is a deliberate split between native choosing and the drawn player.
+**Visual means and why:** native controls cannot draw the agreed mockup's typography, radius, fill and spacing consistently. Both picker fields and the player therefore live in the same picture. Labels are 12px `#8a857c`; rounded 8px fields use `#232120`, a `#3a3734` border, 14px `#e9e6df` values and a left-side «▾». Reciter values show `<reciter> · <moshaf>`; surah values show the Arabic-Indic number in an isolated LTR run and its authored name. Every Arabic line is RTL and right-aligned; times stay isolated LTR, with tabular digits. The green now-playing card keeps its 14px radius, 26px bold title, 6px RTL progress, round controls and hover states; a dim automatic-next line follows it. This dark green palette remains the stated exception to shared theme colors, distinct from salah's orange.
 
-**Visual means and why:** native Box/Text/Button cannot express the agreed mockup's precise radius, typography, sizing, fill or icon buttons. The Client card uses a 14px rounded `#1f2b25` box with a `#2f4a3c` border, 12px green status, 26px/600 surah title, 13px reciter/Hafs attribution, 6px progress filling from right to left and a mono LTR time row. Previous/next are 46px circles; the middle is a 56px green circle with the dark play/stop icon. Arabic labels sit below the circles. Local pointer state draws lighter hover rings/fills. A dim next-surah line sits under the card. These authored hex greens and dark appearance follow the mockup and distinguish Quran from salah's orange, a stated exception to theme-only colors. System font stack: `'IBM Plex Sans Arabic', system-ui, sans-serif`; no downloaded fonts.
+**Embedded font:** Tajawal is used throughout, with real 400 and 700 weights. The OFL licence is in `fonts/OFL.txt`. The full TTFs as base64 are about 160 KB, above the 100 KB Client tree bound (and the 131072-character Svg bound). `fonts-embedded.ts` contains lossless WOFF2 encodings of those same full fonts, retaining all glyphs: approximately 56 KB combined. Both faces are embedded as data URIs in `@font-face` inside the foreignObject style, without network font loading. WOFF2 is required to fit this build's limits.
 
-`<Client key="quran-card" module="./client.tsx" width="100%" props={model} />` mounts the picture. The Client reports its region size and posts pointer positions through `surface.post`; `ui.message { element: 'quran-card' }` validates them and hit-tests the circular targets, then runs the same dispatch used by commands. Stale-generation clicks and non-left clicks are ignored. Left/right keys choose adjacent surahs; Enter/space toggles using current playback state. Once-per-second hook redraws update model time/progress. Errors stay a dim native line; actions never show toasts.
+**Dropdowns:** clicking a field opens an overlay directly below it. It contains a drawn search box with caret, up to eight visible 34px rows, a current-choice check/accent, row hover and highlight, and a “more” indicator. Empty search exposes the complete list: no pages and no Select limit. Arabic-normalized substring search keeps article letters; Arabic or Latin digits select exact surah numbers or reciter list numbers. Client-local state holds the open list, query, highlight and scroll. Printable keys append, Backspace deletes, Up/Down moves and scrolls the highlight, Enter picks, and a row click picks. Picking clears and closes the panel. Field toggle and outside clicks close it. The overlay intercepts clicks over the player below it.
+
+**Focus and sizing:** the API says a click gives the Client focus and `surface.onKey` then receives keys. Escape returns focus to the app and never reaches the Client; there is no Client blur callback. Pane `isFocused` changes and the `ui.focus` hook supply reported focus loss, closing local panels through a model revision. The pointer API has no wheel event, so lists use Up/Down plus the visible “more” indicator. The Client reports columns/rows, maps cells to pixels (8.4px per desktop column, as the reference card does), and draws a stable 650px pane picture. Dropdowns overlay the card within that height rather than growing the Client region. App pane chrome, zoom and focus-event delivery remain host-controlled.
+
+`<Client key="quran-card" module="./client.tsx" width="100%" props={model} />` mounts the full pane. Picks post `{ act: 'pick', list, value }` through `surface.post` to `ui.message`; the hooks validate the value against the authoritative cached catalog, then save/restart the reciter or play the surah using existing dispatch. Playback controls still use validated pointer hit testing or keyboard posts. Once-per-second props update elapsed/progress without resetting dropdown state. Errors are drawn dim inside the picture; actions never show toasts.
 
 The desktop footer is a plain native Button whose `Text color="success"` contains «۞» before its label. Idle: «۞ القرآن». Playing: `۞ <surah Arabic name> mm:ss` (`h:mm:ss` from an hour). A separate Svg passed engine tests but did not appear in live Desktop, so the visible text symbol replaces it. Pressing toggles `quran` using `$.ui.panes`, `$.ui.open` and `$.ui.close`, without changing audio. Quran's outer SessionMode hook stays before salah's, preserving `[Quran] [salah] [model]`. Salah is unchanged.
 
@@ -21,7 +25,7 @@ The desktop footer is a plain native Button whose `Text color="success"` contain
 | Moment | Surface | Shows |
 | --- | --- | --- |
 | Footer idle/playing | Desktop SessionMode | Green native Button with ۞: القرآن or surah + approximate elapsed; toggles the docked pane |
-| User opens player | Desktop docked Pane `quran` | Selected lines, native search Inputs and up to six result Buttons per list, Client-drawn rounded card with status, title/progress/icons, LTR times and hit-tested round controls; dim next hint |
+| User opens player | Desktop docked Pane `quran` | One full Client picture: dropdown fields/search overlays and rounded player card with hit-tested controls, RTL Arabic and embedded Tajawal; dim next hint |
 | Non-desktop pane | Terminal, mobile, vscode Pane | Only dim «مشغّل القرآن متاح على تطبيق Claude للديسكتوب» |
 | Commands/help/settings | Command reply on all surfaces | Short status or requested catalog/help; Quran row in `/muslim` |
 | Playback failure after command | Quran CommandOutput and pane | Dim error line; command output only for playback started by a command |
@@ -39,7 +43,7 @@ Desktop is the supported v1 surface, a stated scope exception to the shared cros
 
 Playback state stays in the declared session contract; handles stay in the runtime only. On reload, existing `session.start` clears tracking and does not resume. A reload orphans the clip: the mod cannot stop it, and it ends with the surah, a documented v1 limitation.
 
-The API has no pointer-cursor prop. The Client draws hover feedback; pointer shape remains host-controlled. Exact native picker styling, pane chrome and installed font availability remain host-controlled.
+The API has no pointer-cursor prop. The Client draws hover feedback; pointer shape remains host-controlled. Pane chrome and pointer shape remain host-controlled.
 
 ## Playback watchdog and temporary diagnostics
 
@@ -57,10 +61,10 @@ When shared `/muslim demo` lands: stopped with Minshawi/Al-Fatiha selected; play
 
 ## Checklist for a change
 
-- [ ] Client-drawn green card and silent controls render on Desktop; no Quran toasts.
-- [ ] Native controls and green footer Button render on Desktop; terminal has only the pane fallback through shared Arabic.
+- [ ] Full Client pane, embedded Tajawal and silent dropdown/control picks render on Desktop; no Quran toasts.
+- [ ] Full Client pane and green footer Button render on Desktop; terminal has only the pane fallback through shared Arabic.
 - [ ] Whole-surah audio, abort on stop/replacement, advance only on the active generation’s natural end; stop after 114.
 - [ ] Redraw timer runs only while playing; per-clip watchdog cancels on settlement; elapsed remains explicitly approximate.
 - [ ] No config reload from recording changes; all durable Quran data in store.
-- [ ] Both full lists are searchable without pages; choosing clears the query. Catalog is reused for seven days and refreshes on demand, retaining stale data on failure; duration failure is silent.
+- [ ] Both full lists open without pages; Up/Down scrolls, search filters, and choosing clears/closes the panel. Catalog is reused for seven days and refreshes on demand, retaining stale data on failure; duration failure is silent.
 - [ ] Engine gates pass; live sound and native paint verified separately.

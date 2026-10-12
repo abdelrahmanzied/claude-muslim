@@ -2,22 +2,23 @@ import type { EngineInterface, On } from 'claude-code'
 import type { Options } from '../../config.ts'
 import type { QuranPlaying } from '../../../types/index.d.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type TerminalEnvironment } from '../../shared/arabic/terminal.ts'
-import { audioUrl, CATALOG_MS, defaultReciter, filterReciters, isCatalog, matchReciter, matchSurah, readSurahs, searchReciters, searchSurahs, type Catalog, type Reciter } from './catalog.ts'
+import { audioUrl, CATALOG_MS, defaultReciter, filterReciters, isCatalog, matchReciter, matchSurah, readSurahs, type Catalog, type Reciter } from './catalog.ts'
 import { contentRangeTotal, decodeBase64, durationMs } from './mp3.ts'
 import { formatTime, nextSurahAfterEnd, parseCommand, type Command } from './player.ts'
 import { quranHelp } from './help.ts'
-import { cardModel, hitTest, isCardMessage, pointerPixels } from './card.ts'
+import { isCardMessage, pointerPixels } from './card.ts'
+import { PANE_HEIGHT, isPickMessage, paneHit, paneModel, pickerInitial } from './pane.ts'
 
 const QURAN_DEBUG = true
 type PlayPath = 'command' | 'pane' | 'auto-advance'
 const playingRef = { plugin: 'muslim', key: 'quranPlaying' } as const
 const commandErrorRef = { plugin: 'muslim', key: 'quranCommandError' } as const
 const errorRef = { plugin: 'muslim', key: 'quranError' } as const
-const surahQueryRef = { plugin: 'muslim', key: 'quranSurahQuery' } as const
-const reciterQueryRef = { plugin: 'muslim', key: 'quranReciterQuery' } as const
 const surahRef = { plugin: 'muslim', key: 'quranSurah' } as const
 // Handles cannot survive reload; only these ephemeral resources stay here.
 const runtime: { controller?: AbortController; timer?: { cancel(): void }; catalog?: Promise<Catalog>; queue: Promise<unknown>; probe: number; generation: number; stopEpoch: number; debugQueue: Promise<unknown>; clip?: { generation: number; surah: number } } = { queue: Promise.resolve(), probe: 0, generation: 0, stopEpoch: 0, debugQueue: Promise.resolve() }
+
+const view = { focusRevision: 0 }
 
 async function writeDebug($: EngineInterface, message: string): Promise<void> {
   try {
@@ -254,29 +255,6 @@ async function paneAction($: EngineInterface, command: Command): Promise<void> {
   await dispatch($, command, false)
 }
 
-async function setQuery($: EngineInterface, kind: 'reciter' | 'surah', value: string): Promise<void> {
-  try {
-    if (kind === 'reciter') await $.state.set(reciterQueryRef, value)
-    else await $.state.set(surahQueryRef, value)
-    $.ui.invalidate('ui.render')
-  } catch (error) { await fail($, error) }
-}
-async function pick($: EngineInterface, kind: 'reciter' | 'surah', value: string): Promise<void> {
-  await setQuery($, kind, '')
-  await paneAction($, kind === 'reciter' ? { kind: 'reciter', value } : { kind: 'play', value })
-}
-async function submitPick($: EngineInterface, kind: 'reciter' | 'surah', query: string): Promise<void> {
-  try {
-    const c = await catalog($)
-    if (kind === 'reciter') {
-      const first = searchReciters(query, c.reciters)[0]
-      if (first) await pick($, kind, String(c.reciters.findIndex(r => r.key === first.key) + 1))
-    } else {
-      const first = searchSurahs(query, c.surahs)[0]
-      if (first) await pick($, kind, String(first.id))
-    }
-  } catch (error) { await fail($, error) }
-}
 async function togglePlayback($: EngineInterface): Promise<void> {
   try {
     const playing = (await $.state.get(playingRef)).value
@@ -308,50 +286,52 @@ export const install = (on: On, _options: Options) => {
     return <Text dimColor>{error}</Text>
   })
   on('ui.message', { element: 'quran-card' }, async ($, e) => {
-    if (e.surface !== 'desktop' || !isCardMessage(e.data)) return {}
+    if (e.surface !== 'desktop') return {}
+    if (isPickMessage(e.data)) {
+      const pickMessage = e.data
+      const c = await catalog($)
+      if (pickMessage.list === 'reciter') {
+        const index = c.reciters.findIndex(r => r.key === pickMessage.value)
+        if (index >= 0) await paneAction($, { kind: 'reciter', value: String(index + 1) })
+      } else if (c.surahs.some(s => String(s.id) === pickMessage.value)) await paneAction($, { kind: 'play', value: pickMessage.value })
+      return {}
+    }
+    if (!isCardMessage(e.data)) return {}
     const message = e.data
     if (message.act === 'size') return {}
     let buttonAction: 'prev' | 'toggle' | 'next' | null = null
     if (message.act === 'pointer') {
       if (message.button !== 'left' || message.generation !== runtime.generation) return {}
-      const pixels = pointerPixels(message.width, message.x, message.y, message.columns, message.rows)
-      buttonAction = hitTest(message.width, pixels.x, pixels.y)
+      const raw = await $.store.get('quran.catalog')
+      if (!isCatalog(raw)) return {}
+      const c = await chosen($, raw)
+      const playing = (await $.state.get(playingRef)).value
+      const selected = (await $.state.get(surahRef)).value ?? 1
+      const model = paneModel(raw, c, selected, playing, await $.clock.now(), message.width, runtime.generation, view.focusRevision, true, null)
+      const pixels = pointerPixels(message.width, message.x, message.y, message.columns, message.rows, PANE_HEIGHT)
+      const hit = paneHit(model, pickerInitial(model), pixels.x, pixels.y)
+      buttonAction = hit?.act === 'control' ? hit.action : null
     } else buttonAction = message.key === 'left' ? 'prev' : message.key === 'right' ? 'next' : message.key === 'return' || message.key === ' ' ? 'toggle' : null
     if (buttonAction === 'toggle') await togglePlayback($)
     else if (buttonAction) await paneAction($, { kind: buttonAction })
     return {}
   }).catch(async ($) => { await fail($, new Error('Quran control unavailable')); return {} })
+  on('ui.focus', { requestId: 'quran' }, async ($, e, next) => {
+    if (e.element !== 'quran-card') { ++view.focusRevision; $.ui.invalidate('ui.render') }
+    return next(e)
+  })
   on('ui.render', { component: 'Pane', requestId: 'quran' }, async ($, e) => {
     const { Box, Text } = $.ui.resolve(e)
     if (e.surface !== 'desktop') return <Text dimColor>{await arabic($, e.surface, 'مشغّل القرآن متاح على تطبيق Claude للديسكتوب')}</Text>
-    const { Input, Button, Client } = $.ui.resolve(e)
+    const { Client } = $.ui.resolve(e)
     const playing = (await $.state.get(playingRef)).value
     const error = (await $.state.get(errorRef)).value
     const raw = await $.store.get('quran.catalog')
     if (!isCatalog(raw)) return <Text dimColor>{error ?? 'Loading Quran catalog…'}</Text>
     const reciter = await chosen($, raw)
     const surah = (await $.state.get(surahRef)).value ?? 1
-    const reciterQuery = (await $.state.get(reciterQueryRef)).value ?? ''
-    const surahQuery = (await $.state.get(surahQueryRef)).value ?? ''
-    const reciters = searchReciters(reciterQuery, raw.reciters)
-    const surahs = searchSurahs(surahQuery, raw.surahs)
-    const model = cardModel(raw, reciter, surah, playing, await $.clock.now(), e.props.bodyColumns * 8.4, runtime.generation)
-    return <Box flexDirection="column" gap={1} padding={1}>
-      <Box flexDirection="column" gap={1}>
-        <Text dimColor>القارئ: {reciter.label}</Text>
-        <Input key="quran-reciter" placeholder="ابحث عن قارئ" value={reciterQuery} submitLabel="اختيار" onInput={value => { void setQuery($, 'reciter', value) }} onSubmit={value => { void submitPick($, 'reciter', value) }} />
-        {reciters.map(r => <Button plain key={`quran-reciter-${r.key}`} label={r.label} onPress={() => { void pick($, 'reciter', String(raw.reciters.findIndex(choice => choice.key === r.key) + 1)) }} />)}
-        {reciterQuery.trim() && !reciters.length && <Text dimColor>لا توجد نتائج</Text>}
-      </Box>
-      <Box flexDirection="column" gap={1}>
-        <Text dimColor>السورة: {surah}. {raw.surahs[surah - 1]!.name}</Text>
-        <Input key="quran-surah" placeholder="ابحث عن سورة أو رقمها" value={surahQuery} submitLabel="تشغيل" onInput={value => { void setQuery($, 'surah', value) }} onSubmit={value => { void submitPick($, 'surah', value) }} />
-        {surahs.map(s => <Button plain key={`quran-surah-${s.id}`} label={`${s.id}. ${s.name}`} onPress={() => { void pick($, 'surah', String(s.id)) }} />)}
-        {surahQuery.trim() && !surahs.length && <Text dimColor>لا توجد نتائج</Text>}
-      </Box>
-      <Client key="quran-card" module="./client.tsx" width="100%" props={model} />
-      {error && <Text dimColor>{error}</Text>}
-    </Box>
+    const model = paneModel(raw, reciter, surah, playing, await $.clock.now(), e.props.bodyColumns * 8.4, runtime.generation, view.focusRevision, e.props.isFocused, error)
+    return <Client key="quran-card" module="./client.tsx" width="100%" props={model} />
   }).catch(async ($, e) => {
     const { Text } = $.ui.resolve(e)
     return <Text dimColor>Quran player unavailable. Use /quran again.</Text>

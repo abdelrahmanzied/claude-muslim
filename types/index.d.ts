@@ -26,8 +26,6 @@ declare module 'claude-code' {
       quranError: string | null
       quranCommandError: string | null
       quranSurah: number
-      quranSurahQuery: string
-      quranReciterQuery: string
 
       // Terminal whose picker was opened by /muslim terminal-arabic.
       arabicSurveyManualTerminal: string | null

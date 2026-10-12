@@ -28,8 +28,8 @@ export function hitTest(width: number, x: number, y: number): CardAction | null 
   if (![width, x, y].every(Number.isFinite) || width < 180 || width > 1200) return null
   return controls(width).find(b => (x - b.x) ** 2 + (y - b.y) ** 2 <= b.radius ** 2)?.action ?? null
 }
-export function pointerPixels(width: number, x: number, y: number, columns: number, rows: number) {
-  return { x: x * width / columns, y: y * CARD_HEIGHT / rows }
+export function pointerPixels(width: number, x: number, y: number, columns: number, rows: number, height = CARD_HEIGHT) {
+  return { x: x * width / columns, y: y * height / rows }
 }
 export type CardMessage = { act: 'pointer'; x: number; y: number; columns: number; rows: number; width: number; generation: number; button: string } | { act: 'size'; columns: number; rows: number } | { act: 'key'; key: string }
 export function isCardMessage(value: unknown): value is CardMessage {

@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { audioUrl, defaultReciter, filterReciters, isCatalog, matchReciter, matchSurah, normalizeName, readSurahs, resultRows, searchReciters, searchSurahs } from '../../src/features/quran/catalog.ts'
+import { audioUrl, defaultReciter, filterReciters, isCatalog, matchReciter, matchSurah, normalizeName, readSurahs, searchReciters, searchSurahs } from '../../src/features/quran/catalog.ts'
 import { formatTime, nextSurahAfterEnd, parseCommand, progressBar } from '../../src/features/quran/player.ts'
 import { quranHelp } from '../../src/features/quran/help.ts'
 import { fixtureCatalog, reciters, surahs } from './fixtures/catalog.ts'
@@ -76,7 +76,7 @@ test('search preserves article letters, normalizes Arabic and searches names and
   expect(searchSurahs('١١٤', surahs).map(s => s.id)).toEqual([114])
   expect(searchSurahs('1', surahs).map(s => s.id)).toEqual([1])
   expect(searchSurahs('115', surahs)).toEqual([])
-  expect(searchSurahs('', surahs)).toEqual([])
-  expect(searchReciters('  ', fixtureCatalog.reciters)).toEqual([])
-  expect(resultRows(Array.from({ length: 155 }, (_, i) => i))).toEqual([0, 1, 2, 3, 4, 5])
+  expect(searchSurahs('', surahs)).toHaveLength(114)
+  expect(searchReciters('  ', fixtureCatalog.reciters)).toEqual(fixtureCatalog.reciters)
+  expect(searchReciters('٢', fixtureCatalog.reciters)[0]?.key).toBe('10:21')
 })
