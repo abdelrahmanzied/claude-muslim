@@ -43,6 +43,33 @@ Everything else (font, size) stays Claude's: the API sets neither, so the reader
 
 On every sky the pill is the main color with a white number. Sunrise takes dark words; every other sky white.
 
+## Demo path
+
+`/athkar demo [sky|frame]` tells a six-scene story through the real builders:
+Ayat al-Kursi (75, 5s), a short line (83, 4s), a long dua (84, 5s), the last
+thikr (98, 4s), the full real finale (3.2s), then folded done (3s). Total:
+24.2 seconds. Sky advances through dawn, sunrise, day, rose, bluehour and
+crescent; Frame cycles orange, green, gold, blue, orange and green.
+
+The four reading scenes are open and lit. Their authored counts and real
+positions are retained, including Kursi's full note «آية الكرسي · البقرة ٢٥٥».
+A disposable reading completes preceding items to skip ahead through the
+set; its pill counts down and its overall progress glow slides. Kursi and
+thikr 84 count once halfway through their 5 seconds; thikr 83 counts every
+400 ms to its seven repetitions. Thikr 98 counts every 300 ms to ten, holding
+its last count for the final second. Then the desktop plays falling stars
+and the rising dua for `FINALE_MS`, followed by the one-line finished band.
+The terminal has no star finale: its own done row is open, then folded.
+
+Sky is desktop only; no-word playback uses the current style on desktop and
+Frame in the terminal. Another demo command restarts playback; there is no
+input handler, including for ×. It uses its own `athkar-demo` Client and a
+separate render hook even with athkar off; the real render only yields its
+place during playback. The desktop athan card keeps precedence. The demo
+never changes the real reading, view or timers and never writes settings,
+store or state. At the end the real band redraws normally. Scenes and timings
+are pure in `demo.ts`; marked blocks in `install.tsx` hold only the demo path.
+
 ## Size
 
 - **Fixed height.** The open reading, the cover, the finale and the done row are one height for every thikr, count and width: 77px on desktop. Faded, they fold to one 24px row. Only two sizes ever show: open and folded.

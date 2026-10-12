@@ -35,6 +35,38 @@ On desktop the athan card uses the same shared card and open size as the athkar 
 
 Not settable: the font and the text size. The mod API sets neither.
 
+## Demo
+
+`/athkar demo` uses the current desktop style, or Frame in the terminal.
+`/athkar demo sky` is desktop only; the terminal replies that Sky is desktop
+only. `/athkar demo frame` plays on either surface. Both tell the same
+six-scene story in 24.2 seconds:
+
+| Scene | Authored thikr | Length | Sky | Frame color |
+| --- | --- | --- | --- | --- |
+| Ayat al-Kursi, with «آية الكرسي · البقرة ٢٥٥» | 75 | 5s | dawn | orange |
+| A short line: «حَسْبِيَ اللَّهُ…» | 83 | 4s | sunrise | green |
+| A long dua: «اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَفْوَ وَالْعَافِيَةَ…» | 84 | 5s | day | gold |
+| The last thikr: «اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَى نَبِيِّنَا مُحَمَّدٍ» | 98 | 4s | rose | blue |
+| Celebration: the real finale | finished | 3.2s | bluehour | orange |
+| Finished, folded to one line | finished | 3s | crescent | green |
+
+Reading scenes use the authored repetition counts and real list positions.
+The demo skips ahead in a disposable reading, completing preceding items
+there only; the pill counts down and the overall progress glow moves. Id 98
+counts from 0 to 10 in 3 seconds, then holds the completed reading for 1 second.
+Desktop celebrates with falling stars and the rising dua for the real
+`FINALE_MS`; the terminal shows its own open done row, then folded done row.
+
+Another demo command restarts playback. Input, including ×, has no handler
+and cannot change the real reading. The demo has its own Client key and
+render hook; it shows even when athkar is hidden, done or switched off. The
+desktop athan card still takes precedence. The demo never writes settings,
+the store or state, and never changes the real band's view or timers. When
+it ends, the real band redraws from its own unchanged logic. Pure scenes live
+in `src/features/athkar/demo.ts`; marked demo blocks in `install.tsx` hold the
+runner and separate drawing path.
+
 ## Design
 
 Looks, size, folding, the finale and the reader's visual means: [athkar-design.md](athkar-design.md).

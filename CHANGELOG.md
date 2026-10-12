@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `/athkar demo [sky|frame]` tells a six-scene story: Ayat al-Kursi, short and long athkar, the last thikr counting to ten, the real finale and folded done. Sky plays the six desktop skies; Frame cycles the main colors on either surface. Playback uses its own drawing path, restarts on demand and never changes the real reading, view, timers or saved state.
 - Share the desktop card's size, frame, ×, hover, lighting and input between the athkar band and athan card. The athan takes the band's place while it shows; closing it or expiry brings the reading back. Keep the terminal reader and minaret unchanged.
 - One shape for every settings and help reply: `/muslim`, `/thikr`, `/athkar` and `/salah` show `| Setting | Description | State |` under a line pointing to their help; every `help` shows `| Command | Description | Options |`, each option with what it does. `/thikr help` is new; `/muslim` lists each feature's main state and the shared settings.
 - Make the main color plugin-wide with `/muslim color orange | green | gold | blue` (default Claude orange), shared by athkar, salah, thikr's usage-limit line and the terminal Arabic survey label. `/athkar color` now points to `/muslim color`. Orange text keeps Claude's theme key; other colors use shared light/dark shades.
