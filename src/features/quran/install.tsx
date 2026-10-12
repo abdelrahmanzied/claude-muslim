@@ -2,20 +2,20 @@ import type { EngineInterface, On } from 'claude-code'
 import type { Options } from '../../config.ts'
 import type { QuranPlaying } from '../../../types/index.d.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type TerminalEnvironment } from '../../shared/arabic/terminal.ts'
-import { audioUrl, CATALOG_MS, defaultReciter, filterReciters, isCatalog, matchReciter, matchSurah, readSurahs, type Catalog, type Reciter } from './catalog.ts'
+import { audioUrl, CATALOG_MS, defaultReciter, filterReciters, isCatalog, matchReciter, matchSurah, readSurahs, searchReciters, searchSurahs, type Catalog, type Reciter } from './catalog.ts'
 import { contentRangeTotal, decodeBase64, durationMs } from './mp3.ts'
 import { formatTime, nextSurahAfterEnd, parseCommand, type Command } from './player.ts'
 import { quranHelp } from './help.ts'
-import { CARD, controlSvg, ltrTime, progressSvg, titleSvg } from './card.ts'
+import { CARD, controlSvg, ltrTime, progressSvg, titleSvg, bookSvg } from './card.ts'
 
 const playingRef = { plugin: 'muslim', key: 'quranPlaying' } as const
 const commandErrorRef = { plugin: 'muslim', key: 'quranCommandError' } as const
 const errorRef = { plugin: 'muslim', key: 'quranError' } as const
-const surahPageRef = { plugin: 'muslim', key: 'quranSurahPage' } as const
-const reciterPageRef = { plugin: 'muslim', key: 'quranReciterPage' } as const
+const surahQueryRef = { plugin: 'muslim', key: 'quranSurahQuery' } as const
+const reciterQueryRef = { plugin: 'muslim', key: 'quranReciterQuery' } as const
 const surahRef = { plugin: 'muslim', key: 'quranSurah' } as const
 // Handles cannot survive reload; only these ephemeral resources stay here.
-const runtime: { controller?: AbortController; timer?: { cancel(): void }; catalog?: Promise<Catalog>; queue: Promise<unknown>; probe: number; generation: number } = { queue: Promise.resolve(), probe: 0, generation: 0 }
+const runtime: { controller?: AbortController; timer?: { cancel(): void }; catalog?: Promise<Catalog>; queue: Promise<unknown>; probe: number; generation: number; stopEpoch: number } = { queue: Promise.resolve(), probe: 0, generation: 0, stopEpoch: 0 }
 
 async function arabic($: EngineInterface, surface: string, text: string): Promise<string> {
   if (surface !== 'terminal') return text
@@ -139,24 +139,26 @@ async function lookupDuration($: EngineInterface, reciter: Reciter, surah: numbe
   }
 }
 async function play($: EngineInterface, reciter: Reciter, surah: number, fromCommand: boolean): Promise<void> {
+  const generation = runtime.generation
   await stop($)
+  if (runtime.generation !== generation + 1) return
   const controller = new AbortController()
   runtime.controller = controller
   const token = runtime.generation
   const playing: QuranPlaying = { moshafKey: reciter.key, surah, startedAt: await $.clock.now(), durationMs: null }
   await $.state.set(surahRef, surah)
-  await $.state.set(surahPageRef, Math.floor((surah - 1) / 63))
   await $.state.set(errorRef, null)
   await $.state.set(commandErrorRef, null)
   await $.state.set(playingRef, playing)
-  // Timer-owned playback outlives the command dispatch, without holding it open.
-  $.clock.after(0, () => {
-    if (runtime.controller !== controller || controller.signal.aborted) return
-    void $.audio.play({ url: audioUrl(reciter, surah) }, { signal: controller.signal }).then(
-      () => finish($, controller, token, reciter, surah, fromCommand), error => finish($, controller, token, reciter, surah, fromCommand, error),
-    ).catch(error => void fail($, error, fromCommand))
-    void lookupDuration($, reciter, surah, controller)
-  })
+  // Start in the hook flow, as verified on Desktop; do not await the clip.
+  if (runtime.controller !== controller || controller.signal.aborted) {
+    await $.state.set(playingRef, null)
+    return
+  }
+  void $.audio.play({ url: audioUrl(reciter, surah) }, { signal: controller.signal }).then(
+    () => finish($, controller, token, reciter, surah, fromCommand), error => finish($, controller, token, reciter, surah, fromCommand, error),
+  ).catch(error => void fail($, error, fromCommand))
+  void lookupDuration($, reciter, surah, controller)
   runtime.timer = $.clock.every(1000, () => $.ui.invalidate('ui.render'))
   $.ui.invalidate('ui.render')
 }
@@ -171,6 +173,7 @@ async function togglePane($: EngineInterface): Promise<void> {
   } catch (error) { await fail($, error) }
 }
 async function action($: EngineInterface, command: Command, fromCommand: boolean): Promise<string> {
+  const generation = runtime.generation
   if (command.kind === 'help' || command.kind === 'usage') return quranHelp()
   if (command.kind === 'stop') { await stop($); await $.state.set(errorRef, null); return 'Quran stopped.' }
   if (command.kind === 'open' || command.kind === 'play') await open($)
@@ -180,6 +183,7 @@ async function action($: EngineInterface, command: Command, fromCommand: boolean
   let reciter = await chosen($, c)
   const playing = (await $.state.get(playingRef)).value
   const current = (await $.state.get(surahRef)).value ?? 1
+  if (generation !== runtime.generation) return 'Quran stopped.'
   if (command.kind === 'open') return 'Quran player opened (desktop only).'
   if (command.kind === 'reciter') {
     if (!command.value) return '**Quran › Reciters**\n\n' + (await Promise.all(c.reciters.map(async (r, i) => `${i + 1}. ${await arabic($, await $.session.surface() ?? 'desktop', r.label)}`))).join('\n')
@@ -187,7 +191,7 @@ async function action($: EngineInterface, command: Command, fromCommand: boolean
     if (!choice) return 'Reciter not found or ambiguous. Use /quran reciter and choose a number.'
     reciter = choice
     await $.store.set('quran.reciter', reciter.key)
-    await $.state.set(reciterPageRef, Math.floor(c.reciters.findIndex(r => r.key === reciter.key) / 63))
+    if (generation !== runtime.generation) return 'Quran stopped.'
     if (playing) await play($, reciter, playing.surah, fromCommand)
     $.ui.invalidate('ui.render')
     return `Quran reciter: ${await arabic($, await $.session.surface() ?? 'desktop', reciter.label)}.`
@@ -200,7 +204,13 @@ async function action($: EngineInterface, command: Command, fromCommand: boolean
 }
 // Serialize user actions; play completions check generation and controller identity.
 async function dispatch($: EngineInterface, command: Command, fromCommand = true): Promise<string> {
-  const task = runtime.queue.then(() => action($, command, fromCommand)).catch(error => fail($, error, fromCommand))
+  // Stop must abort now, even if a catalog refresh is holding the action queue.
+  if (command.kind === 'stop') {
+    ++runtime.stopEpoch
+    return action($, command, fromCommand).catch(error => fail($, error, fromCommand))
+  }
+  const epoch = runtime.stopEpoch
+  const task = runtime.queue.then(() => epoch === runtime.stopEpoch ? action($, command, fromCommand) : 'Quran stopped.').catch(error => fail($, error, fromCommand))
   runtime.queue = task
   return task
 }
@@ -208,15 +218,34 @@ async function paneAction($: EngineInterface, command: Command): Promise<void> {
   await dispatch($, command, false)
 }
 
-async function setPage($: EngineInterface, kind: 'reciter' | 'surah', value: string): Promise<void> {
+async function setQuery($: EngineInterface, kind: 'reciter' | 'surah', value: string): Promise<void> {
   try {
-    const page = Number(value)
-    if (!Number.isInteger(page) || page < 0) return
-    const raw = await $.store.get('quran.catalog')
-    const max = kind === 'reciter' && isCatalog(raw) ? Math.ceil(raw.reciters.length / 63) - 1 : 1
-    if (page > max) return
-    if (kind === 'reciter') await $.state.set(reciterPageRef, page)
-    else await $.state.set(surahPageRef, page)
+    if (kind === 'reciter') await $.state.set(reciterQueryRef, value)
+    else await $.state.set(surahQueryRef, value)
+    $.ui.invalidate('ui.render')
+  } catch (error) { await fail($, error) }
+}
+async function pick($: EngineInterface, kind: 'reciter' | 'surah', value: string): Promise<void> {
+  await setQuery($, kind, '')
+  await paneAction($, kind === 'reciter' ? { kind: 'reciter', value } : { kind: 'play', value })
+}
+async function submitPick($: EngineInterface, kind: 'reciter' | 'surah', query: string): Promise<void> {
+  try {
+    const c = await catalog($)
+    if (kind === 'reciter') {
+      const first = searchReciters(query, c.reciters)[0]
+      if (first) await pick($, kind, String(c.reciters.findIndex(r => r.key === first.key) + 1))
+    } else {
+      const first = searchSurahs(query, c.surahs)[0]
+      if (first) await pick($, kind, String(first.id))
+    }
+  } catch (error) { await fail($, error) }
+}
+async function togglePlayback($: EngineInterface): Promise<void> {
+  try {
+    const playing = (await $.state.get(playingRef)).value
+    const surah = (await $.state.get(surahRef)).value ?? 1
+    await paneAction($, playing ? { kind: 'stop' } : { kind: 'play', value: String(surah) })
   } catch (error) { await fail($, error) }
 }
 
@@ -225,13 +254,13 @@ export const install = (on: On, _options: Options) => {
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
     const theirs = await next(e)
     if (e.surface !== 'desktop') return theirs
-    const { Box, Text, Button } = $.ui.resolve(e)
+    const { Box, Text, Button, Svg } = $.ui.resolve(e)
     const playing = (await $.state.get(playingRef)).value
     const raw = await $.store.get('quran.catalog')
     const name = playing && isCatalog(raw) ? raw.surahs[playing.surah - 1]!.name : 'القرآن'
     const label = playing ? `${name} ${formatTime(Math.max(0, await $.clock.now() - playing.startedAt))}` : name
     return <Box gap={1}>
-      <Button key="quran-footer" plain onPress={() => { void togglePane($) }}><Text color="success">{label}</Text></Button>
+      <Box gap={1} alignItems="center"><Svg source={bookSvg()} width={14} height={14} alt="القرآن الكريم" /><Button key="quran-footer" plain onPress={() => { void togglePane($) }}><Text color="success">{label}</Text></Button></Box>
       {theirs}
     </Box>
   })
@@ -245,28 +274,35 @@ export const install = (on: On, _options: Options) => {
   on('ui.render', { component: 'Pane', requestId: 'quran' }, async ($, e) => {
     const { Box, Text } = $.ui.resolve(e)
     if (e.surface !== 'desktop') return <Text dimColor>{await arabic($, e.surface, 'مشغّل القرآن متاح على تطبيق Claude للديسكتوب')}</Text>
-    const { Select, Button, Svg } = $.ui.resolve(e)
+    const { Input, Button, Svg } = $.ui.resolve(e)
     const playing = (await $.state.get(playingRef)).value
     const error = (await $.state.get(errorRef)).value
     const raw = await $.store.get('quran.catalog')
     if (!isCatalog(raw)) return <Text dimColor>{error ?? 'Loading Quran catalog…'}</Text>
     const reciter = await chosen($, raw)
     const surah = (await $.state.get(surahRef)).value ?? 1
-    const savedReciterPage = (await $.state.get(reciterPageRef)).value ?? Math.floor(raw.reciters.findIndex(r => r.key === reciter.key) / 63)
-    const reciterPage = Math.max(0, Math.min(Math.ceil(raw.reciters.length / 63) - 1, savedReciterPage))
-    const surahPage = Math.max(0, Math.min(1, (await $.state.get(surahPageRef)).value ?? Math.floor((surah - 1) / 63)))
-    const reciters = raw.reciters.slice(reciterPage * 63, (reciterPage + 1) * 63)
-    const surahs = raw.surahs.slice(surahPage * 63, (surahPage + 1) * 63)
+    const reciterQuery = (await $.state.get(reciterQueryRef)).value ?? ''
+    const surahQuery = (await $.state.get(surahQueryRef)).value ?? ''
+    const reciters = searchReciters(reciterQuery, raw.reciters)
+    const surahs = searchSurahs(surahQuery, raw.surahs)
     const elapsed = playing ? Math.max(0, await $.clock.now() - playing.startedAt) : 0
     const activeReciter = playing ? raw.reciters.find(r => r.key === playing.moshafKey) ?? reciter : reciter
     const title = `سورة ${raw.surahs[(playing?.surah ?? surah) - 1]!.name}`
     const nextSurah = playing && playing.surah < 114 ? raw.surahs[playing.surah] : undefined
     const svgWidth = Math.max(80, Math.min(320, (e.props.bodyColumns - 8) * 7))
     return <Box flexDirection="column" gap={1} padding={1}>
-      <Select key="quran-reciter" label="القارئ" options={[{ value: '', label: 'اختر القارئ' }, ...reciters.map(r => ({ value: r.key, label: r.label }))]} value={reciters.some(r => r.key === reciter.key) ? reciter.key : ''} onSelect={key => { const index = raw.reciters.findIndex(r => r.key === key); if (index >= 0) void paneAction($, { kind: 'reciter', value: String(index + 1) }) }} />
-      {raw.reciters.length > 63 && <Box alignItems="flex-end"><Box width={18}><Select key="quran-reciter-page" label="صفحة القراء" options={Array.from({ length: Math.ceil(raw.reciters.length / 63) }, (_, i) => ({ value: String(i), label: `${i * 63 + 1}–${Math.min((i + 1) * 63, raw.reciters.length)}` }))} value={String(reciterPage)} onSelect={value => { void setPage($, 'reciter', value) }} /></Box></Box>}
-      <Select key="quran-surah" label="السورة" options={[{ value: '', label: 'اختر السورة' }, ...surahs.map(s => ({ value: String(s.id), label: `${s.id}. ${s.name}` }))]} value={surahs.some(s => s.id === surah) ? String(surah) : ''} onSelect={value => { if (value) void paneAction($, { kind: 'play', value }) }} />
-      <Box alignItems="flex-end"><Box width={18}><Select key="quran-surah-page" label="صفحة السور" options={[{ value: '0', label: '1–63' }, { value: '1', label: '64–114' }]} value={String(surahPage)} onSelect={value => { void setPage($, 'surah', value) }} /></Box></Box>
+      <Box flexDirection="column" gap={1}>
+        <Text>القارئ: {reciter.label}</Text>
+        <Input key="quran-reciter" placeholder="ابحث عن قارئ" value={reciterQuery} submitLabel="اختيار" onInput={value => { void setQuery($, 'reciter', value) }} onSubmit={value => { void submitPick($, 'reciter', value) }} />
+        {reciters.map(r => <Button plain key={`quran-reciter-${r.key}`} label={r.label} onPress={() => { void pick($, 'reciter', String(raw.reciters.findIndex(choice => choice.key === r.key) + 1)) }} />)}
+        {reciterQuery.trim() && !reciters.length && <Text dimColor>لا توجد نتائج</Text>}
+      </Box>
+      <Box flexDirection="column" gap={1}>
+        <Text>السورة: {surah}. {raw.surahs[surah - 1]!.name}</Text>
+        <Input key="quran-surah" placeholder="ابحث عن سورة أو رقمها" value={surahQuery} submitLabel="تشغيل" onInput={value => { void setQuery($, 'surah', value) }} onSubmit={value => { void submitPick($, 'surah', value) }} />
+        {surahs.map(s => <Button plain key={`quran-surah-${s.id}`} label={`${s.id}. ${s.name}`} onPress={() => { void pick($, 'surah', String(s.id)) }} />)}
+        {surahQuery.trim() && !surahs.length && <Text dimColor>لا توجد نتائج</Text>}
+      </Box>
       <Box key="quran-card" flexDirection="column" gap={1} padding={2} borderStyle="round" borderColor={CARD.border} backgroundColor={CARD.background}>
         <Box justifyContent="flex-end"><Text color={CARD.accent}>{playing ? 'يتلى الآن' : 'متوقف'}</Text></Box>
         <Box justifyContent="flex-end"><Svg source={titleSvg(title)} width={svgWidth} height={48} alt={title} /></Box>
@@ -283,7 +319,7 @@ export const install = (on: On, _options: Options) => {
           </Box>
           <Box flexDirection="column" alignItems="center" gap={1}>
             <Svg source={controlSvg(playing ? 'stop' : 'play')} width={56} height={56} alt={playing ? 'إيقاف' : 'تشغيل'} />
-            <Button key="quran-toggle" plain label={playing ? 'إيقاف' : 'تشغيل'} onPress={() => { void paneAction($, playing ? { kind: 'stop' } : { kind: 'play', value: String(surah) }) }} />
+            <Button key="quran-toggle" plain label={playing ? 'إيقاف' : 'تشغيل'} onPress={() => { void togglePlayback($) }} />
           </Box>
           <Box flexDirection="column" alignItems="center" gap={1}>
             <Svg source={controlSvg('next')} width={46} height={46} alt="السورة التالية" />

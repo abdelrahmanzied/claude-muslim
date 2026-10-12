@@ -30,9 +30,9 @@ function setup(on: On, entries: Record<string, unknown> = {}, env: Record<string
   return { ...clock, state, store, opened, toasts }
 }
 function audio(on: On, clock: { sleep(ms: number): Promise<void> }) {
-  const played: { clip: unknown; gain: number | undefined; aborted: boolean }[] = []
+  const played: { clip: unknown; gain: number | undefined; signal: AbortSignal; aborted: boolean }[] = []
   on('audio.play', async ($, e, next) => {
-    const record = { clip: e.clip, gain: e.gain, aborted: false }
+    const record = { clip: e.clip, gain: e.gain, signal: next.signal, aborted: false }
     played.push(record)
     await Promise.race([clock.sleep(10000), new Promise<void>(resolve => {
       if (next.signal.aborted) { record.aborted = true; resolve() }
@@ -43,21 +43,17 @@ function audio(on: On, clock: { sleep(ms: number): Promise<void> }) {
   return played
 }
 
-test('desktop pane uses native selectors and buttons with authored Arabic; terminal only has fallback', async ($, on) => {
+test('desktop has two search inputs without pages or selects; terminal only has fallback', async ($, on) => {
   setup(on)
   const desktop = await $.ui.mount(pane('desktop'))
-  expect(await desktop.find({ type: 'Select', key: 'quran-reciter' })).toBeDefined()
-  const select = await desktop.find({ type: 'Select', key: 'quran-surah' })
-  expect(select?.props.options).toHaveLength(64)
-  expect(await desktop.find({ type: 'Select', key: 'quran-surah-page' })).toBeDefined()
-  await desktop.select({ key: 'quran-surah-page', value: '1' })
-  const later = await desktop.find({ type: 'Select', key: 'quran-surah' })
-  expect(later?.props.options).toHaveLength(52)
-  expect(JSON.stringify(later?.props.options)).toContain('114. الناس')
+  expect((await desktop.find({ type: 'Input', key: 'quran-reciter' }))?.props.placeholder).toBe('ابحث عن قارئ')
+  expect((await desktop.find({ type: 'Input', key: 'quran-surah' }))?.props.placeholder).toBe('ابحث عن سورة أو رقمها')
+  expect(await desktop.find({ type: 'Select' })).toBeUndefined()
+  expect(await desktop.find({ key: 'quran-surah-18' })).toBeUndefined()
   expect(await desktop.find({ type: 'Text', text: 'متوقف' })).toBeDefined()
   expect(await desktop.find({ type: 'Button', key: 'quran-toggle' })).toBeDefined()
   const terminal = await $.ui.mount(pane('terminal'))
-  expect(await terminal.find({ type: 'Select' })).toBeUndefined()
+  expect(await terminal.find({ type: 'Input' })).toBeUndefined()
   expect(await terminal.find({ type: 'Button' })).toBeUndefined()
   expect(await terminal.find({ text: terminalArabic('terminal', 'joined', 'مشغّل القرآن متاح على تطبيق Claude للديسكتوب') })).toBeDefined()
 })
@@ -117,17 +113,21 @@ test('next/prev stop at the ends; malformed arguments give usage without playing
   expect(clock.state.quranPlaying?.surah).toBe(113)
   await $.command.run(run('stop'))
 })
-test('pane selects start playback and toggle stops', async ($, on) => {
+test('pane search picks start playback and toggle aborts the exact audio signal', async ($, on) => {
   const clock = setup(on)
-  audio(on, clock)
+  const played = audio(on, clock)
   const mounted = await $.ui.mount(pane('desktop'))
-  await mounted.select({ key: 'quran-surah', value: '18' })
+  await mounted.input({ key: 'quran-surah', text: '18' })
   await clock.settle()
   expect(clock.state.quranPlaying?.surah).toBe(18)
-  await mounted.select({ key: 'quran-reciter', value: '10:21' })
+  await mounted.input({ key: 'quran-reciter', text: 'مجود' })
   expect(clock.store['quran.reciter']).toBe('10:21')
   await mounted.press({ key: 'quran-toggle' })
   expect(clock.state.quranPlaying).toBe(null)
+  expect(played).toHaveLength(2)
+  expect(played[0]?.signal.aborted).toBe(true)
+  expect(played[1]?.signal.aborted).toBe(true)
+  expect(played[1]?.aborted).toBe(true)
 })
 test('catalog refresh fetches JSON, saves only used fields, and keeps old catalog on failure', async ($, on) => {
   const old = { ...fixtureCatalog, fetchedAt: fixtureCatalog.fetchedAt - CATALOG_MS - 1 }
@@ -256,21 +256,29 @@ test('session start discards stale playing state and does not resume or start a 
   expect(timers).toEqual([])
 })
 
-test('reciter pagination exposes all recordings without starting or changing a selection', async ($, on) => {
+test('search covers all recordings and surahs; caps rows and clears on pick or Enter', async ($, on) => {
   const many = Array.from({ length: 155 }, (_, i) => ({ ...fixtureCatalog.reciters[0]!, key: `${i + 1}:20`, name: `Fixture reciter ${i + 1}`, label: `Fixture reciter ${i + 1}` }))
   const clock = setup(on, { 'quran.catalog': { ...fixtureCatalog, reciters: many }, 'quran.reciter': '1:20' })
   const played = audio(on, clock)
   const mounted = await $.ui.mount(pane('desktop'))
-  expect((await mounted.find({ type: 'Select', key: 'quran-reciter' }))?.props.options).toHaveLength(64)
-  await mounted.select({ key: 'quran-reciter-page', value: '2' })
-  const last = await mounted.find({ type: 'Select', key: 'quran-reciter' })
-  expect(last?.props.options).toHaveLength(30)
-  expect(JSON.stringify(last?.props.options)).toContain('Fixture reciter 155')
+  await mounted.input({ key: 'quran-reciter', text: 'Fixture', kind: 'change' })
+  expect(JSON.stringify(await mounted.drawn()).match(/"key":"quran-reciter-\d+:20"/g)?.length).toBe(6)
   expect(clock.store['quran.reciter']).toBe('1:20')
   expect(played).toEqual([])
-  await mounted.select({ key: 'quran-reciter', value: '155:20' })
+  await mounted.input({ key: 'quran-reciter', text: '155', kind: 'change' })
+  expect(await mounted.find({ key: 'quran-reciter-155:20' })).toBeDefined()
+  await mounted.press({ key: 'quran-reciter-155:20' })
   expect(clock.store['quran.reciter']).toBe('155:20')
-  expect(played).toEqual([])
+  expect((await mounted.find({ key: 'quran-reciter' }))?.props.value).toBe('')
+  expect(await mounted.find({ key: 'quran-reciter-155:20' })).toBeUndefined()
+  await mounted.input({ key: 'quran-surah', text: '114', kind: 'change' })
+  expect(await mounted.find({ key: 'quran-surah-114', text: '114. الناس' })).toBeDefined()
+  await mounted.input({ key: 'quran-surah', text: '114' })
+  expect(clock.state.quranPlaying?.surah).toBe(114)
+  expect((await mounted.find({ key: 'quran-surah' }))?.props.value).toBe('')
+  await mounted.input({ key: 'quran-surah', text: 'missing', kind: 'change' })
+  expect(await mounted.find({ text: 'لا توجد نتائج' })).toBeDefined()
+  await mounted.press({ key: 'quran-toggle' })
 })
 test('/muslim Quran row uses this terminal mode and remembered recording', async ($, on) => {
   setup(on, { 'quran.reciter': '10:21', arabicTerminals: { WarpTerminal: 'joined' } }, {}, 'terminal')
@@ -325,6 +333,9 @@ test('desktop footer chip is a green Button and toggles the pane without stoppin
   on('ui.close', async (_$, e) => { closed.push(e.id); panes.length = 0; return { value: undefined } })
   const mounted = await $.ui.mount(footer('desktop'))
   expect(await mounted.find({ type: 'Button', key: 'quran-footer' })).toBeDefined()
+  const icon = await mounted.find({ type: 'Svg' })
+  expect(icon?.props.width).toBe(14)
+  expect(icon?.props.source).toContain('M2 4h7a3 3')
   expect((await mounted.find({ type: 'Text', text: 'القرآن' }))?.props.color).toBe('success')
   await mounted.press({ key: 'quran-footer' })
   expect(clock.opened).toEqual([{ id: 'quran', title: 'القرآن الكريم' }])
@@ -389,7 +400,7 @@ test('desktop card has status, title, SVG progress, three controls and automatic
   expect(card?.props.borderStyle).toBe('round')
   expect(await mounted.find({ type: 'Text', text: 'متوقف' })).toBeDefined()
   expect((await mounted.find({ type: 'Svg' }))?.props.alt).toBe('سورة الفاتحة')
-  await mounted.select({ key: 'quran-surah', value: '18' }); await clock.settle()
+  await mounted.input({ key: 'quran-surah', text: '18' }); await clock.settle()
   expect(await mounted.find({ type: 'Text', text: 'يتلى الآن' })).toBeDefined()
   const title = await mounted.find({ type: 'Svg' })
   expect(title?.props.source).toContain('سورة الكهف')
@@ -422,4 +433,34 @@ test('pane playback rejection stays inside the pane and does not rewrite a comma
   expect(await output.find({ text: 'Earlier reply' })).toBeDefined()
   expect(await output.find({ text: 'Quran: Playback unavailable' })).toBeUndefined()
   expect(clock.toasts).toEqual([])
+})
+
+test('pane Stop aborts immediately during a blocked catalog refresh and cancels the waiting play', async ($, on) => {
+  const clock = setup(on)
+  const played = audio(on, clock)
+  let began!: () => void
+  const fetching = new Promise<void>(resolve => { began = resolve })
+  let release!: () => void
+  const gate = new Promise<void>(resolve => { release = resolve })
+  on('http.fetch', async (_$, e) => {
+    began()
+    await gate
+    return { value: { ok: true, status: 200, headers: {}, text: JSON.stringify(e.url.includes('reciters') ? reciters : { suwar: surahs }) } }
+  })
+  const mounted = await $.ui.mount(pane('desktop'))
+  await $.command.run(run('play 18'))
+  // Audio is called before command dispatch returns, with no clock advance.
+  expect(played).toHaveLength(1)
+  clock.store['quran.catalog'] = { ...fixtureCatalog, fetchedAt: fixtureCatalog.fetchedAt - CATALOG_MS - 1 }
+  const pending = $.command.run(run('play 19'))
+  await fetching
+  const queued = $.command.run(run('next'))
+  await mounted.press({ key: 'quran-toggle' })
+  expect(played[0]?.signal.aborted).toBe(true)
+  expect(clock.state.quranPlaying).toBe(null)
+  release()
+  await pending
+  await queued
+  expect(played).toHaveLength(1)
+  expect(clock.state.quranPlaying).toBe(null)
 })

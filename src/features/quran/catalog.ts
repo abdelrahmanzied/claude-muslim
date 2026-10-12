@@ -46,7 +46,7 @@ export function audioUrl(reciter: Reciter, surah: number): string {
   return `${reciter.server}${String(surah).padStart(3, '0')}.mp3`
 }
 
-export const normalizeName = (text: string): string => text.normalize('NFKC').replace(/[\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06ed\u0640]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي').replace(/ء/g, '').replace(/\s/g, '').replace(/ال/g, '').toLowerCase()
+export const normalizeName = (text: string, stripArticle = true): string => text.normalize('NFKC').replace(/[\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06ed\u0640]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي').replace(/ء/g, '').replace(/\s/g, '').replace(/ال/g, article => stripArticle ? '' : article).toLowerCase()
 export function matchSurah(text: string, surahs: readonly Surah[]): Surah | undefined {
   if (/^\d+$/.test(text)) return surahs.find(s => s.id === Number(text))
   const name = normalizeName(text)
@@ -58,4 +58,18 @@ export function matchReciter(text: string, reciters: readonly Reciter[]): Recite
   const exact = reciters.filter(r => normalizeName(r.label) === name || normalizeName(r.name) === name)
   // A reciter with multiple recordings needs the full label or its number.
   return exact.length === 1 ? exact[0] : undefined
+}
+
+// Keep ال in substring searches: removing it would turn صالح into صح.
+const searchName = (text: string): string => normalizeName(text, false)
+export const resultRows = <T>(matches: readonly T[]): T[] => matches.slice(0, 6)
+export function searchReciters(query: string, reciters: readonly Reciter[]): Reciter[] {
+  const name = searchName(query)
+  return name ? resultRows(reciters.filter(r => searchName(r.name).includes(name) || searchName(r.label).includes(name))) : []
+}
+export function searchSurahs(query: string, surahs: readonly Surah[]): Surah[] {
+  const digits = query.trim().replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 1632))
+  if (/^\d+$/.test(digits)) return resultRows(surahs.filter(s => s.id === Number(digits)))
+  const name = searchName(query)
+  return name ? resultRows(surahs.filter(s => searchName(s.name).includes(name))) : []
 }

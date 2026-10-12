@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { audioUrl, defaultReciter, filterReciters, isCatalog, matchReciter, matchSurah, normalizeName, readSurahs } from '../../src/features/quran/catalog.ts'
+import { audioUrl, defaultReciter, filterReciters, isCatalog, matchReciter, matchSurah, normalizeName, readSurahs, resultRows, searchReciters, searchSurahs } from '../../src/features/quran/catalog.ts'
 import { formatTime, nextSurahAfterEnd, parseCommand, progressBar } from '../../src/features/quran/player.ts'
 import { quranHelp } from '../../src/features/quran/help.ts'
 import { fixtureCatalog, reciters, surahs } from './fixtures/catalog.ts'
@@ -61,4 +61,22 @@ test('auto-advance only follows a natural end of the active generation and stops
   expect(nextSurahAfterEnd(18, false, 7, 7)).toBe(null)
   expect(nextSurahAfterEnd(18, true, 7, 8)).toBe(null)
   for (const surah of [0, 115, 1.5]) expect(nextSurahAfterEnd(surah, true, 7, 7)).toBe(null)
+})
+
+test('search preserves article letters, normalizes Arabic and searches names and recording labels', () => {
+  expect(searchReciters('مُنْشَاوِي', fixtureCatalog.reciters)).toHaveLength(2)
+  expect(searchReciters('مجود', fixtureCatalog.reciters)[0]?.key).toBe('10:21')
+  const salih = { ...fixtureCatalog.reciters[0]!, name: 'صالح', label: 'صالح — مرتل' }
+  expect(searchReciters('صالح', [salih])).toEqual([salih])
+  expect(searchReciters('صح', [salih])).toEqual([])
+  expect(searchSurahs('كهف', surahs)[0]?.id).toBe(18)
+  expect(searchSurahs('الْكَهْف', surahs)[0]?.id).toBe(18)
+  expect(searchSurahs('ال بقرة', surahs)[0]?.id).toBe(2)
+  expect(searchSurahs('18', surahs).map(s => s.id)).toEqual([18])
+  expect(searchSurahs('١١٤', surahs).map(s => s.id)).toEqual([114])
+  expect(searchSurahs('1', surahs).map(s => s.id)).toEqual([1])
+  expect(searchSurahs('115', surahs)).toEqual([])
+  expect(searchSurahs('', surahs)).toEqual([])
+  expect(searchReciters('  ', fixtureCatalog.reciters)).toEqual([])
+  expect(resultRows(Array.from({ length: 155 }, (_, i) => i))).toEqual([0, 1, 2, 3, 4, 5])
 })
