@@ -2,7 +2,7 @@ import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
 import { demoDuration, demoScenes } from '../../src/features/athkar/demo.ts'
-import { arabicDigits, dayOf, emptyDay, listFor, type Day } from '../../src/features/athkar/logic.ts'
+import { arabicDigits, dayOf, emptyDay, listFor, timesOf, type Day } from '../../src/features/athkar/logic.ts'
 import { accentHex } from '../../src/shared/color/index.ts'
 import { athkarHelp } from '../../src/features/athkar/help.ts'
 
@@ -51,27 +51,35 @@ for (const style of ['sky', 'frame'] as const) {
     const written = savedReading(on, day)
     const ui = await $.ui.mount(band('desktop'))
     const real = (await ui.find({ type: 'Client', key: 'athkar' }))?.props.props as Record<string, unknown>
-    expect((await $.command.run(run(`demo ${style}`))).text).toBe(`**Athkar demo:** ${style} · 6 scenes · 24.2s`)
+    expect((await $.command.run(run(`demo ${style}`))).text).toBe(`**Athkar demo:** ${style} · ${style === 'sky' ? '8 scenes · 33.2s' : '6 scenes · 24.2s'}`)
     const scenes = demoScenes(style, 'orange', FINALE_MS)
     const model = async () => (await ui.find({ type: 'Client', key: 'athkar-demo' }))?.props.props as Record<string, unknown>
     const picture = async () => String((await ui.find({ in: 'athkar-demo', type: 'Svg' }))?.props.source)
     for (const [i, scene] of scenes.entries()) {
       expect(await ui.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
-      expect(await model()).toMatchObject({ thikrId: scene.id, sky: scene.sky, accent: scene.accent, style, phase: i < 4 ? 'reading' : 'done', isActive: i !== 5 })
-      if (i < 4) {
+      expect(await model()).toMatchObject({ thikrId: scene.id, sky: scene.sky, accent: scene.accent, style, phase: scene.kind === 'reading' ? 'reading' : 'done', isActive: scene.kind !== 'folded' })
+      if (scene.kind === 'reading') {
         const list = listFor(scene.period)
         const index = list.findIndex(t => t.id === scene.id)
         expect(await model()).toMatchObject({ period: scene.period, position: `${arabicDigits(index + 1)} مِنْ ${arabicDigits(list.length)}`, count: 0 })
-        if (i === 0) expect((await model()).note).toBe('آية الكرسي · البقرة ٢٥٥')
+        const authored = list[index]!
+        expect((await model()).text).toBe(scene.period === 'evening' ? authored.evening ?? authored.text : authored.text)
+        expect((await model()).times).toBe(timesOf(authored))
+        if (i === 0) expect((await model()).note).toBe(authored.note)
+        const firstProgress = Number((await model()).progress)
         await clock.advance(scene.countMs)
         expect((await model()).count).toBe(1)
-        if (i === 3) {
+        expect(Number((await model()).progress)).toBeGreaterThan(firstProgress)
+        expect((await model()).from).toBe(firstProgress)
+        expect((await model()).glowMs).toBe(0)
+        expect(await picture()).toContain(`>${arabicDigits(timesOf(authored) - 1)}</span>`)
+        if (scene.id === '98') {
           await clock.advance(9 * scene.countMs)
           expect(await model()).toMatchObject({ count: 10, times: 10, progress: 100, phase: 'reading' })
           expect(await picture()).toContain('>٠</span>')
           await clock.advance(scene.duration - 10 * scene.countMs)
         } else await clock.advance(scene.duration - scene.countMs)
-      } else if (i === 4) {
+      } else if (scene.kind === 'finale') {
         expect(await model()).toMatchObject({ finaleMs: 0, progress: 100 })
         expect(await picture()).toContain('class="rise-msg"')
         expect(await picture()).toContain('class="fall"')
@@ -141,7 +149,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
     for (const button of ['left', 'right']) await ui.post({ act: 'pointer', button, x: 2, y: 1, columns: 100, rows: 5 }, { in: 'athkar-demo' })
     await ui.post({ act: 'hide' }, { in: 'athkar-demo' })
     expect(await ui.find({ type: 'Client', key: 'athkar-demo' })).toBeDefined()
-    await clock.advance(demoDuration(FINALE_MS))
+    await clock.advance(demoDuration('frame', FINALE_MS))
     expect((await ui.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ phase: 'cover', isActive: false })
     expect(JSON.stringify(day)).toBe(before)
     expect(written).toEqual([])
@@ -175,7 +183,7 @@ for (const style of ['sky', 'frame'] as const) {
     expect((await ui.find({ type: 'Client', key: 'athkar-demo' }))?.props.props).toMatchObject({ thikrId: '75', count: 0, sky: 'dawn', accent: 'orange' })
     await clock.advance(3000)
     expect((await ui.find({ type: 'Client', key: 'athkar-demo' }))?.props.props).toMatchObject({ thikrId: '75', count: 1, phase: 'reading' })
-    await clock.advance(demoDuration(FINALE_MS) - 3000)
+    await clock.advance(demoDuration(style, FINALE_MS) - 3000)
     expect(await ui.find({ type: 'Client', key: 'athkar-demo' })).toBeUndefined()
     expect(await ui.find({ type: 'Client', key: 'athkar' })).toBeDefined()
     expect(written).toEqual([])
@@ -194,7 +202,7 @@ for (const visibility of ['hidden', 'done', 'off'] as const) {
     const ui = await $.ui.mount(band('desktop'))
     await $.command.run(run('demo frame'))
     expect(await ui.find({ type: 'Client', key: 'athkar-demo' })).toBeDefined()
-    await clock.advance(demoDuration(FINALE_MS))
+    await clock.advance(demoDuration('frame', FINALE_MS))
     if (visibility === 'done') expect((await ui.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ phase: 'done', isActive: false })
     else expect(await ui.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
     expect(written).toEqual([])
@@ -218,7 +226,7 @@ test('the demo leaves an open real reading and its view untouched', async ($, on
   expect(real).toMatchObject({ phase: 'reading', isActive: true, thikrId: '75', count: 0 })
   await $.command.run(run('demo frame'))
   expect(await ui.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
-  await clock.advance(demoDuration(FINALE_MS))
+  await clock.advance(demoDuration('frame', FINALE_MS))
   const { now: _now, glowMs: _glowMs, from: _from, ...kept } = real
   expect((await ui.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject(kept)
   expect(written).toEqual([])

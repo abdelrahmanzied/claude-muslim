@@ -7,7 +7,8 @@ import type { Period } from './data.ts'
 export const DEMO_TICK_MS = 100
 export const DEMO_PERIOD = 'morning' as const
 // Sky walks the day: the morning set under the first three skies, the evening
-// set under the last three. Frame stays on the morning set.
+// set from rose through the crescent finale and folded row. Frame stays
+// on the morning set.
 export const demoPeriod = (style: Style, scene: number): Period =>
   style === 'sky' && scene >= 3 ? 'evening' : DEMO_PERIOD
 export const DEMO_SKIES: readonly Sky[] = ['dawn', 'sunrise', 'day', 'rose', 'bluehour', 'crescent']
@@ -23,6 +24,10 @@ export const demoScenes = (style: Style, accent: Accent, finaleMs: number) => {
     { kind: 'reading', id: '75', duration: 5000, countMs: 2500 },
     { kind: 'reading', id: '83', duration: 4000, countMs: 400 },
     { kind: 'reading', id: '84', duration: 5000, countMs: 2500 },
+    ...(style === 'sky' ? [
+      { kind: 'reading' as const, id: '97', duration: 4000, countMs: 800 },
+      { kind: 'reading' as const, id: '77', duration: 5000, countMs: 2500 },
+    ] : []),
     { kind: 'reading', id: '98', duration: 4000, countMs: 300 },
     { kind: 'finale', id: '98', duration: finaleMs, countMs: 0 },
     { kind: 'folded', id: '98', duration: 3000, countMs: 0 },
@@ -33,16 +38,16 @@ export const demoScenes = (style: Style, accent: Accent, finaleMs: number) => {
     const startsAt = at
     at += scene.duration
 
-    return { ...scene, startsAt, style, period: demoPeriod(style, i), sky: DEMO_SKIES[i]!, accent: style === 'sky' ? accent : DEMO_COLORS[i]! }
+    return { ...scene, startsAt, style, period: demoPeriod(style, i), sky: DEMO_SKIES[Math.min(i, DEMO_SKIES.length - 1)]!, accent: style === 'sky' ? accent : DEMO_COLORS[i]! }
   })
 }
 
-export const demoDuration = (finaleMs: number) => 21_000 + finaleMs
+export const demoDuration = (style: Style, finaleMs: number) => (style === 'sky' ? 30_000 : 21_000) + finaleMs
 export const demoReply = (style: Style, finaleMs: number) =>
-  `**Athkar demo:** ${style} · 6 scenes · ${demoDuration(finaleMs) / 1000}s`
+  `**Athkar demo:** ${style} · ${demoScenes(style, 'orange', finaleMs).length} scenes · ${demoDuration(style, finaleMs) / 1000}s`
 
 export const demoStep = (style: Style, accent: Accent, elapsed: number, finaleMs: number) => {
-  if (elapsed < 0 || elapsed >= demoDuration(finaleMs)) return undefined
+  if (elapsed < 0 || elapsed >= demoDuration(style, finaleMs)) return undefined
   const scene = demoScenes(style, accent, finaleMs).find(s => elapsed < s.startsAt + s.duration)!
   const ms = elapsed - scene.startsAt
   const period = scene.period

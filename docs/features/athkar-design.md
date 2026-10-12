@@ -45,22 +45,44 @@ On every sky the pill is the main color with a white number. Sunrise takes dark 
 
 ## Demo path
 
-`/athkar demo [sky|frame]` tells a six-scene story through the real builders:
-Ayat al-Kursi (75, 5s), a short line (83, 4s), a long dua (84, 5s), the last
-thikr (98, 4s), the full real finale (3.2s), then folded done (3s). Total:
-24.2 seconds. Sky advances through dawn, sunrise, day, rose, bluehour and
-crescent, on the morning set for the first three and the evening set for the
-last three; Frame cycles orange, green, gold, blue, orange and green.
+`/athkar demo [sky|frame]` plays the real builders. Sky has eight scenes
+(33.2 seconds), with each of the six skies on a distinct reading scene:
 
-The four reading scenes are open and lit. Their authored counts and real
-positions are retained, including Kursi's full note «آية الكرسي · البقرة ٢٥٥».
+| Sky scene | Id | Period | Length | Sky |
+| --- | --- | --- | --- | --- |
+| Ayat al-Kursi, with its authored note | 75 | morning | 5s | dawn |
+| Short thikr | 83 | morning | 4s | sunrise |
+| Long thikr | 84 | morning | 5s | day |
+| Evening-only short thikr (3 repetitions) | 97 | evening | 4s | rose |
+| Long thikr, with its authored evening wording | 77 | evening | 5s | bluehour |
+| Last thikr, counting to ten | 98 | evening | 4s | crescent |
+| Celebration: the real finale | finished | evening | `FINALE_MS` (3.2s) | crescent |
+| Finished, folded to one line | finished | evening | 3s | crescent |
+
+Frame keeps its six-scene morning story (24.2 seconds) on both surfaces:
+
+| Frame scene | Id | Period | Length | Color |
+| --- | --- | --- | --- | --- |
+| Ayat al-Kursi, with its authored note | 75 | morning | 5s | orange |
+| Short thikr | 83 | morning | 4s | green |
+| Long thikr | 84 | morning | 5s | gold |
+| Last thikr, counting to ten | 98 | morning | 4s | blue |
+| Celebration: the real finale | finished | morning | `FINALE_MS` (3.2s) | orange |
+| Finished, folded to one line | finished | morning | 3s | green |
+
+All reading scenes are open and lit. Their authored counts and real
+positions are retained, including Kursi's full note from `data.ts`.
 A disposable reading completes preceding items to skip ahead through the
 set; its pill counts down and its overall progress glow slides. Kursi and
 thikr 84 count once halfway through their 5 seconds; thikr 83 counts every
-400 ms to its seven repetitions. Thikr 98 counts every 300 ms to ten, holding
-its last count for the final second. Then the desktop plays falling stars
-and the rising dua for `FINALE_MS`, followed by the one-line finished band.
-The terminal has no star finale: its own done row is open, then folded.
+400 ms to its seven repetitions. Sky's evening-only thikr 97 counts every
+800 ms to its three repetitions, and thikr 77 counts once halfway through
+its 5 seconds using its evening wording from `data.ts`. Thikr 98 counts
+every 300 ms to ten, holding its last count for the final second. Then the
+desktop plays falling stars and the rising dua for `FINALE_MS`, followed by
+the one-line finished band. Both stay on crescent and evening in Sky.
+The terminal keeps Frame's own open done row, then folded done.
+The command reply reports each style's real scene count and total duration.
 
 Sky is desktop only; no-word playback uses the current style on desktop and
 Frame in the terminal. Another demo command restarts playback; there is no

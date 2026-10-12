@@ -29,7 +29,7 @@ const tickDemo = async ($: EngineInterface) => {
   if (!playing) return
   const now = await $.clock.now()
   if (demo !== playing) return
-  if (now - playing.startedAt >= demoDuration(FINALE_MS)) {
+  if (now - playing.startedAt >= demoDuration(playing.style, FINALE_MS)) {
     playing.timer?.cancel()
     demo = undefined
   }

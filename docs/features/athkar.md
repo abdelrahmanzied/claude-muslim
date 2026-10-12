@@ -39,19 +39,31 @@ Not settable: the font and the text size. The mod API sets neither.
 
 `/athkar demo` uses the current desktop style, or Frame in the terminal.
 `/athkar demo sky` is desktop only; the terminal replies that Sky is desktop
-only. `/athkar demo frame` plays on either surface. Both tell the same
-six-scene story in 24.2 seconds. Sky reads the morning set for the first three
-scenes and the evening set for the last three, so each sky sits on its own
-period; Frame stays on the morning set:
+only. `/athkar demo frame` plays on either surface. Sky has eight scenes in
+33.2 seconds: all six skies appear on reading scenes in day order, then the
+finale and folded done stay on crescent in the evening period. Frame keeps
+its six-scene morning story, timings and colors, totaling 24.2 seconds.
+The command reply reports the scene count and total seconds for its style.
 
-| Scene | Authored thikr | Length | Sky | Frame color |
+| Sky scene | Id | Period | Length | Sky |
 | --- | --- | --- | --- | --- |
-| Ayat al-Kursi, with «آية الكرسي · البقرة ٢٥٥» | 75 | 5s | dawn | orange |
-| A short line: «حَسْبِيَ اللَّهُ…» | 83 | 4s | sunrise | green |
-| A long dua: «اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَفْوَ وَالْعَافِيَةَ…» | 84 | 5s | day | gold |
-| The last thikr: «اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَى نَبِيِّنَا مُحَمَّدٍ» | 98 | 4s | rose | blue |
-| Celebration: the real finale | finished | 3.2s | bluehour | orange |
-| Finished, folded to one line | finished | 3s | crescent | green |
+| Ayat al-Kursi, with its authored note | 75 | morning | 5s | dawn |
+| Short thikr | 83 | morning | 4s | sunrise |
+| Long thikr | 84 | morning | 5s | day |
+| Evening-only short thikr (3 repetitions) | 97 | evening | 4s | rose |
+| Long thikr, with its authored evening wording | 77 | evening | 5s | bluehour |
+| Last thikr, counting to ten | 98 | evening | 4s | crescent |
+| Celebration: the real finale | finished | evening | `FINALE_MS` (3.2s) | crescent |
+| Finished, folded to one line | finished | evening | 3s | crescent |
+
+| Frame scene | Id | Period | Length | Color |
+| --- | --- | --- | --- | --- |
+| Ayat al-Kursi, with its authored note | 75 | morning | 5s | orange |
+| Short thikr | 83 | morning | 4s | green |
+| Long thikr | 84 | morning | 5s | gold |
+| Last thikr, counting to ten | 98 | morning | 4s | blue |
+| Celebration: the real finale | finished | morning | `FINALE_MS` (3.2s) | orange |
+| Finished, folded to one line | finished | morning | 3s | green |
 
 Reading scenes use the authored repetition counts and real list positions.
 The demo skips ahead in a disposable reading, completing preceding items
