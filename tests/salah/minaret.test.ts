@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'claude-code/testing'
 
-import { FRESH_MS, isDue, MINARET, minaretRows, TOTAL_MS } from '../../src/features/salah/minaret.ts'
+import { FRESH_MS, isDue, MINARET, minaretRows, minaretStage, TOTAL_MS } from '../../src/features/salah/minaret.ts'
 
 describe('minaret', () => {
   test('rises from the base: frame n shows the n bottom rows, the height stays', { options: { athkar: false } }, async () => {
@@ -23,4 +23,11 @@ describe('minaret', () => {
     expect(isDue(1000, 1500, 1000)).toBe(false)
     expect(isDue(1000, 1500, 400)).toBe(true)
   })
+})
+
+test('reload restores rise, fold and expiry from absolute deadlines', () => {
+  const moment = { startedAt: 1000, foldsAt: 1000 + TOTAL_MS, until: 901000, isFolded: false }
+  expect(minaretStage(moment, 1000 + 330)).toEqual({ frame: 2, isFolded: false, isGone: false })
+  expect(minaretStage(moment, moment.foldsAt)).toEqual({ frame: 7, isFolded: true, isGone: false })
+  expect(minaretStage(moment, moment.until).isGone).toBe(true)
 })

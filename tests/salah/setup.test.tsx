@@ -372,7 +372,7 @@ test('the countdown ticks every second in the window, every 30 s outside it', { 
   await shown.unmount()
 })
 
-test('when the pray comes in a minaret rises once, then the call stays in the pray row', { options: AT_MUNICH }, async ($, on) => {
+test('when the pray comes in a minaret rises once, folds, and leaves the footer independent', { options: AT_MUNICH }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   // 15:58:45 in Munich; Asr is at 15:59.
@@ -394,12 +394,17 @@ test('when the pray comes in a minaret rises once, then the call stays in the pr
   expect(await shown.find({ type: 'Text', text: '   ☾   ' })).toBeDefined()
   expect(await shown.find({ type: 'Text', text: 'حان وقت صلاة العصر' })).toBeDefined()
 
-  // About three seconds in all, then only the pray row keeps the call.
+  // About three seconds in all, then the band folds and the footer keeps its call.
   await clock.advance(1_000)
   expect(await shown.find({ type: 'Text', text: '   ☾   ' })).toBeUndefined()
   expect(await prayRow(modes)).toBe('حان وقت صلاة العصر')
 
-  // Never again for the same pray.
+  expect(await shown.find({ key: 'salah-athan-row' })).toBeDefined()
+  await shown.press({ key: 'salah-athan-close' })
+  expect(await shown.find({ key: 'salah-athan-row' })).toBeUndefined()
+  expect(await prayRow(modes)).toBe('حان وقت صلاة العصر')
+
+  // Never again for the same pray, including after closing during its freshness window.
   await clock.advance(60_000)
   expect(await shown.find({ type: 'Text', text: ' ▐███▌ ' })).toBeUndefined()
   await modes.unmount()

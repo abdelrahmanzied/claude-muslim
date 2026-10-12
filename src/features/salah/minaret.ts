@@ -16,11 +16,18 @@ export const ACCENT_ROWS = 2
 // The row the call sits beside.
 export const LABEL_ROW = 3
 export const FRAME_MS = 330
-// How long the full minaret stays before the band goes: the whole moment is about 3 s.
+// How long the full minaret stays before it folds: the rise is about 3 s.
 export const HOLD_MS = 700
 // Frames 1 to ROWS_COUNT; frame n shows the n bottom rows.
 export const ROWS_COUNT = MINARET.length
 export const TOTAL_MS = ROWS_COUNT * FRAME_MS + HOLD_MS
+
+// Restore the rise from its original clock, then keep one folded line.
+export const minaretStage = (moment: { startedAt: number; foldsAt: number; until: number; isFolded: boolean }, now: number) => ({
+  frame: Math.min(ROWS_COUNT, Math.max(1, Math.floor((now - moment.startedAt) / FRAME_MS) + 1)),
+  isFolded: moment.isFolded || now >= moment.foldsAt,
+  isGone: now >= moment.until,
+})
 
 // A pray first seen this long after its time is not announced (a late start, a reload).
 export const FRESH_MS = 2 * 60_000

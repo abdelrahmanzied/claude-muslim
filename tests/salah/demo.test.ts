@@ -2,6 +2,7 @@ import { expect, test } from 'claude-code/testing'
 
 import { readOptions } from '../../src/config.ts'
 import { athanDemo, demoMoment } from '../../src/features/salah/demo.ts'
+import { momentState } from '../../src/features/salah/moment.ts'
 import { NO_ADJUST } from '../../src/features/salah/times.ts'
 
 const PLACE = { name: 'Munich, Germany', latitude: 48.1372, longitude: 11.5755, timeZone: 'Europe/Berlin', country: 'DE' }
@@ -29,4 +30,10 @@ test('the demo respects the method and adjusted times even with the display off'
   const options = { ...readOptions({ salahMethod: 'mwl', salahShow: 'off', salahAthan: false }), salahAdjust: { ...NO_ADJUST, dhuhr: 5 } }
 
   expect(athanDemo(options, PLACE, NOW)).toEqual({ pray: 'dhuhr', time: '13:07', text: '**Athan demo:** Dhuhr' })
+})
+
+test('the real moment and demo use the same fold and expiry deadlines', () => {
+  const moment = momentState('asr', '15:59', NOW)
+  expect(moment.card).toMatchObject({ pray: 'asr', time: '15:59', isFolded: false, foldsAt: NOW + 60_000, until: NOW + 900_000 })
+  expect(moment.minaret).toMatchObject({ pray: 'asr', frame: 1, startedAt: NOW, isFolded: false, foldsAt: NOW + 3010, until: moment.card.until })
 })

@@ -1,9 +1,11 @@
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
-import { cardHeight, frameOf } from '../../src/shared/card/card.ts'
-import { athanFrame, athanSvg, CARD_MS } from '../../src/features/salah/card.ts'
-import { FRAME_MS, HOLD_MS, ROWS_COUNT } from '../../src/features/salah/minaret.ts'
+import { cardHeight, frameOf, REST_PX } from '../../src/shared/card/card.ts'
+import { athanFrame, athanSvg, CARD_MS, FOLD_MS } from '../../src/features/salah/card.ts'
+import { FRAME_MS, HOLD_MS, ROWS_COUNT, TOTAL_MS } from '../../src/features/salah/minaret.ts'
+import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
+import { athanText } from '../../src/shared/pray/line.ts'
 import { salahHelp } from '../../src/features/salah/help.ts'
 
 const MUNICH = { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berlin; DE' }
@@ -31,7 +33,7 @@ const engineBand = (on: On) =>
     return <Box />
   })
 
-const props = (photo: string, pray: 'maghrib' | 'fajr', time: string) => ({ isActive: true, now: 0, pray, time, photo, width: 800, card: { ch: 8.4, lh: 20 } })
+const props = (photo: string, pray: 'maghrib' | 'fajr', time: string) => ({ isActive: true, isFolded: false, now: 0, pray, time, photo, width: 800, card: { ch: 8.4, lh: 20 } })
 
 test('the card markup: the shared card holding the photo, the font and both lines in Arabic', { options: { athkar: false } }, async () => {
   const svg = athanSvg(props('QUJD', 'maghrib', '18:05'), { hoverClose: false, columns: 0 })
@@ -189,27 +191,155 @@ for (const surface of ['desktop', 'terminal'] as const) {
   })
 }
 
-test('a minaret left by a reload is cleared after rendering, not during it', { options: MUNICH }, async ($, on) => {
+test('desktop demo folds, reopens for another minute, then closes at its original deadline', { options: MUNICH }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   const clock = mock.clock(on, { now: NOW })
   engineBand(on)
-  let isStale = true
-  on('state.get', { plugin: 'muslim', key: 'salahMinaret' }, async (_$, e, next) =>
-    isStale ? { value: { value: { pray: 'isha', frame: ROWS_COUNT }, version: 1 } } : next(e),
-  )
-  on('state.set', { plugin: 'muslim', key: 'salahMinaret' }, async (_$, e, next) => {
-    const result = await next(e)
-    if (e.value === null) isStale = false
+  on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
+  const desktop = await $.ui.mount(band('desktop'))
+  await $.command.run(run('athan demo'))
+  const picture = () => desktop.find({ in: 'salah-athan', type: 'Svg' })
+  expect(Number((await picture())?.props.height)).toBe(cardHeight() + 20)
+  await clock.advance(FOLD_MS)
+  expect(Number((await picture())?.props.height)).toBe(REST_PX + 20)
+  expect(String((await picture())?.props.source)).toContain('حان وقت صلاة الظهر')
+  expect(String((await picture())?.props.source)).toContain('١٣:٠٢')
+  expect(await desktop.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
+  await desktop.post({ act: 'pointer', button: 'left', x: 60, y: 1, columns: 100, rows: 2 }, { in: 'salah-athan' })
+  expect(Number((await picture())?.props.height)).toBe(cardHeight() + 20)
+  await clock.advance(FOLD_MS - 1)
+  expect(Number((await picture())?.props.height)).toBe(cardHeight() + 20)
+  await clock.advance(1)
+  expect(Number((await picture())?.props.height)).toBe(REST_PX + 20)
+  await clock.advance(CARD_MS - 2 * FOLD_MS)
+  expect(await desktop.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
+  expect(await desktop.find({ type: 'Client', key: 'athkar' })).toBeDefined()
+})
 
-    return result
+test('the folded desktop × closes without reopening', { options: MUNICH }, async ($, on) => {
+  mock.env(on, {})
+  mock.store(on)
+  const clock = mock.clock(on, { now: NOW })
+  engineBand(on)
+  on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
+  await $.command.run(run('athan demo'))
+  const desktop = await $.ui.mount(band('desktop'))
+  await clock.advance(FOLD_MS)
+  await desktop.post({ act: 'pointer', button: 'left', x: 2, y: 1, columns: 100, rows: 2 }, { in: 'salah-athan' })
+  expect(await desktop.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
+  await clock.advance(CARD_MS)
+  expect(await desktop.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
+})
+
+for (const ending of ['close', 'expire'] as const) {
+  test(`terminal demo rises, folds through Arabic, then ${ending}`, { options: MUNICH }, async ($, on) => {
+    mock.env(on, { TERM_PROGRAM: 'Apple_Terminal' })
+    mock.store(on, { arabicTerminals: { 'Apple_Terminal': 'reversed' } })
+    const clock = mock.clock(on, { now: NOW })
+    engineBand(on)
+    const cleared: string[] = []
+    on('state.set', async (_$, e, next) => {
+      if (e.value === null) cleared.push(e.key)
+      return next(e)
+    })
+    await $.command.run(run('athan demo'))
+    const terminal = await $.ui.mount(band('terminal'))
+    expect(await terminal.find({ text: '▐███▌' })).toBeDefined()
+    expect(await terminal.find({ type: 'Button', key: 'salah-athan-close' })).toBeDefined()
+    await clock.advance(TOTAL_MS)
+    expect(await terminal.find({ text: '▐███▌' })).toBeUndefined()
+    expect(await terminal.find({ type: 'Text', text: '☾' })).toBeDefined()
+    expect(await terminal.find({ type: 'Text', text: terminalArabic('terminal', 'reversed', athanText('dhuhr')) })).toBeDefined()
+    expect(await terminal.find({ type: 'Button', key: 'salah-athan-close' })).toMatchObject({ props: { label: '×' } })
+    if (ending === 'close') await terminal.press({ key: 'salah-athan-close' })
+    else await clock.advance(CARD_MS - TOTAL_MS)
+    expect(await terminal.find({ key: 'salah-athan-row' })).toBeUndefined()
+    expect(cleared).toContain('salahMinaret')
+    expect(cleared).toContain('salahCard')
+    await clock.advance(CARD_MS)
+    expect(await terminal.find({ text: '▐███▌' })).toBeUndefined()
   })
-  const terminal = await $.ui.mount(band('terminal'))
+}
 
-  expect(await terminal.find({ text: '▐███▌' })).toBeDefined()
-  expect(isStale).toBe(true)
+for (const elapsed of [FRAME_MS, 10_000, FOLD_MS, CARD_MS]) {
+  test(`reload restores both surfaces at ${elapsed}ms and re-arms remaining timers`, { options: { ...MUNICH, salahShow: 'off' } }, async ($, on) => {
+    mock.env(on, {})
+    mock.store(on)
+    const clock = mock.clock(on, { now: NOW + elapsed })
+    engineBand(on)
+    on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
+    const seed: Record<string, unknown> = {
+      salahCard: { pray: 'asr', time: '15:59', isFolded: false, foldsAt: NOW + FOLD_MS, until: NOW + CARD_MS },
+      salahMinaret: { pray: 'asr', frame: 1, isFolded: false, startedAt: NOW, foldsAt: NOW + TOTAL_MS, until: NOW + CARD_MS },
+    }
+    const cleared: string[] = []
+    on('state.get', async (_$, e, next) => {
+      const actual = await next(e)
+      return e.key in seed ? { value: { value: seed[e.key], version: actual.value?.version ?? 0 } } : actual
+    })
+    on('state.set', async (_$, e, next) => {
+      delete seed[e.key]
+      if (e.value === null) cleared.push(e.key)
+      return next(e)
+    })
+    const desktop = await $.ui.mount(band('desktop'))
+    const terminal = await $.ui.mount(band('terminal'))
+    const picture = elapsed < CARD_MS ? await desktop.find({ in: 'salah-athan', type: 'Svg' }) : undefined
+    if (elapsed >= CARD_MS) {
+      expect(picture).toBeUndefined()
+      expect(await terminal.find({ key: 'salah-athan-row' })).toBeUndefined()
+    } else {
+      expect(Number(picture?.props.height)).toBe((elapsed >= FOLD_MS ? REST_PX : cardHeight()) + 20)
+      if (elapsed < TOTAL_MS) {
+        expect(await terminal.find({ text: '▐███▌' })).toBeDefined()
+        expect(await terminal.find({ text: '│▒│' })).toBeDefined()
+      } else expect(await terminal.find({ key: 'salah-athan-row' })).toBeDefined()
+    }
+    await clock.settle()
+    await clock.advance(Math.max(0, FOLD_MS - elapsed))
+    if (elapsed < CARD_MS) expect(Number((await desktop.find({ in: 'salah-athan', type: 'Svg' }))?.props.height)).toBe(REST_PX + 20)
+    await clock.advance(CARD_MS)
+    expect(await desktop.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
+    expect(await terminal.find({ key: 'salah-athan-close' })).toBeUndefined()
+    expect(cleared).toContain('salahCard')
+    expect(cleared).toContain('salahMinaret')
+  })
+}
+
+test('terminal × during the rise cancels later frames and folds', { options: MUNICH }, async ($, on) => {
+  mock.env(on, {})
+  mock.store(on)
+  const clock = mock.clock(on, { now: NOW })
+  engineBand(on)
+  await $.command.run(run('athan demo'))
+  const terminal = await $.ui.mount(band('terminal'))
+  await terminal.press({ key: 'salah-athan-close' })
+  await clock.advance(TOTAL_MS + FOLD_MS)
+  expect(await terminal.find({ text: '▐███▌' })).toBeUndefined()
+  expect(await terminal.find({ key: 'salah-athan-row' })).toBeUndefined()
+})
+
+test("reload preserves a reopened card's later fold but its original expiry", { options: { ...MUNICH, salahShow: 'off' } }, async ($, on) => {
+  mock.env(on, {})
+  mock.store(on)
+  const clock = mock.clock(on, { now: NOW + 2 * FOLD_MS })
+  engineBand(on)
+  on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
+  let seeded = true
+  on('state.get', { plugin: 'muslim', key: 'salahCard' }, async (_$, e, next) => {
+    const actual = await next(e)
+    return seeded ? { value: { value: { pray: 'asr', time: '15:59', isFolded: false, foldsAt: NOW + 3 * FOLD_MS, until: NOW + CARD_MS }, version: actual.value?.version ?? 0 } } : actual
+  })
+  on('state.set', { plugin: 'muslim', key: 'salahCard' }, async (_$, e, next) => {
+    seeded = false
+    return next(e)
+  })
+  const desktop = await $.ui.mount(band('desktop'))
+  expect(Number((await desktop.find({ in: 'salah-athan', type: 'Svg' }))?.props.height)).toBe(cardHeight() + 20)
   await clock.settle()
-  expect(isStale).toBe(false)
-  const redrawn = await $.ui.mount({ ...band('terminal'), requestId: 'after-cleanup' })
-  expect(await redrawn.find({ text: '▐███▌' })).toBeUndefined()
+  await clock.advance(FOLD_MS)
+  expect(Number((await desktop.find({ in: 'salah-athan', type: 'Svg' }))?.props.height)).toBe(REST_PX + 20)
+  await clock.advance(CARD_MS - 3 * FOLD_MS)
+  expect(await desktop.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
 })

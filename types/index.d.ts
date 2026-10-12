@@ -24,11 +24,11 @@ export type SalahAdjust = Record<'fajr' | 'sunrise' | 'dhuhr' | 'asr' | 'maghrib
 // writes it, thikr reads it. `null` outside the window, or with salah off.
 export type SalahWindow = { pray: 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'; at: number }
 
-// The terminal minaret while it plays: the pray and how many rows (1 to 7) have risen.
-export type SalahMinaret = { pray: SalahWindow['pray']; frame: number }
+// The terminal moment: rise frame (1 to 7), fold and expiry deadlines in ms since epoch.
+export type SalahMinaret = { pray: SalahWindow['pray']; frame: number; startedAt: number; foldsAt: number; isFolded: boolean; until: number }
 
-// The desktop athan card while it shows: the pray, its clock text and when it ends by itself (ms since epoch).
-export type SalahCard = { pray: SalahWindow['pray']; time: string; until: number }
+// The desktop moment: call, clock text, persisted fold and expiry deadlines in ms since epoch.
+export type SalahCard = { pray: SalahWindow['pray']; time: string; foldsAt: number; isFolded: boolean; until: number }
 
 declare module 'claude-code' {
   interface PluginState {
