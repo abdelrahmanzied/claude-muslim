@@ -25,7 +25,7 @@ A reader above the prompt for the morning athkar (05:00–17:00) and the evening
 
 ### Prayer times (`/salah`)
 
-The next prayer under the prompt (`☾ العصر ١٥:٥٩`) all day, or only the minutes before it (20 by default), with a live mm:ss countdown (`☾ العصر ١٩:٤٢`) and, when it comes in, a small minaret that rises above the prompt for about 3 seconds (a photo card with a × on the desktop app), then `حان وقت صلاة …` (no toast, no OS notification). Calculated on your machine; on first use the mod offers the city of your time zone, or any city you type in any language, then shows today's times so you can match them to your mosque. While Claude works inside that window, the thikr turn opens with `حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د`. Details: [docs/features/salah.md](docs/features/salah.md).
+The next prayer under the prompt (`☾ العصر ١٥:٥٩`) all day, or only the minutes before it (20 by default), with a live mm:ss countdown (`☾ العصر ١٩:٤٢`) and, when it comes in, a small minaret that rises above the prompt for about 3 seconds, then folds to one line with a × (on the desktop app, a photo card that folds to a slim row after a minute); it closes by itself after 15 minutes, and the footer shows `حان وقت صلاة …` (no toast, no OS notification). Calculated on your machine; on first use the mod offers the city of your time zone, or any city you type in any language, then shows today's times so you can match them to your mosque. While Claude works inside that window, the thikr turn opens with `حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د`. Details: [docs/features/salah.md](docs/features/salah.md).
 
 ## Install
 
@@ -78,6 +78,7 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/athkar on` · `off` | Turn the athkar on or off |
 | `/athkar morning reset` · `evening reset` | Read that period again from the start |
 | `/athkar style sky` · `frame` | The look on desktop: a sky that follows the time of day (default), or plain. The terminal always shows the frame |
+| `/athkar demo` · `demo sky` · `demo frame` | Play the looks in motion, for videos or to preview them; nothing is saved |
 | `/muslim color` · `color orange` · `green` · `gold` · `blue` | Show or change the main color of the whole mod (default: Claude orange) |
 | `/salah` | Place, method and mode, then today's prayer times |
 | `/salah help` | Table of every `/salah` command |
@@ -86,6 +87,7 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/salah method <name>` | `auto` (your country's own) or a named method |
 | `/salah show always` · `<minutes>` · `off` | Show the next pray all day, only that many minutes before it (e.g. `show 20`), or hide it |
 | `/salah athan on` · `off` | `حان وقت صلاة …` when a prayer comes in |
+| `/salah athan demo` | Play the athan moment now, in a few seconds; nothing is saved |
 | `/muslim` | Version and a table of every setting, its value and the command that changes it |
 | `/muslim tashkeel on` · `off` | Show or hide Arabic diacritics on desktop (the terminal never shows them) |
 | `/muslim terminal-arabic` | Choose how Arabic shows in this terminal |
