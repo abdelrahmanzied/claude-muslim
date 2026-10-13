@@ -560,7 +560,7 @@ for (const [color, expected] of [['orange', 'claude'], ['blue', '#4a7fc0']] as c
       await review.press({ key: 'salah-skip' })
       await review.unmount()
     }
-    await run('athan demo')
+    await run('demo')
     const minaret = await $.ui.mount(band('terminal'))
     await clock.advance(2500)
     expect((await minaret.find({ type: 'Text', text: '   ☾   ' }))?.props.color).toBe(expected)

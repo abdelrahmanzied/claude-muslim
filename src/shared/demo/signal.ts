@@ -4,6 +4,7 @@ const starters = new Map<DemoFeature, () => string | Promise<string>>()
 let failure: (() => void) | undefined
 
 // Each feature captures its own hook's $; the shared bus never receives $.
+// The salah starter is shared with `/salah demo`, which previews fixed Fajr.
 export const connectDemo = (feature: DemoFeature, start: () => string | Promise<string>) => { starters.set(feature, start) }
 export const startDemo = async (feature: DemoFeature) => {
   const start = starters.get(feature)

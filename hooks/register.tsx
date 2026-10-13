@@ -33,6 +33,7 @@ const stopDemo = (playing: DemoRun) => {
 
 // Signals run after the command has returned. Each connected starter owns its
 // feature's $, and the next duration starts only when that starter has finished.
+// Salah's signal starts the same fixed Fajr moment as `/salah demo`.
 const runDemoStep = async ($: EngineInterface, playing: DemoRun, step: 0 | 1 | 2) => {
   if (demo !== playing) return
   try {

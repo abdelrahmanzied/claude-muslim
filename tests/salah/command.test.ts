@@ -180,7 +180,7 @@ test('/salah help is a table of every subcommand; unknown words answer with it',
   const help = (await $.command.run(salah('help'))).text
 
   expect(help).toContain('| Command | Description | Options |')
-  for (const word of ['/salah help', '`always`', '`<minutes>`', '/salah athan', '/salah city', '/salah method', '`<pray> <±min>`']) {
+  for (const word of ['/salah help', '`always`', '`<minutes>`', '/salah athan', '/salah demo', '/salah city', '/salah method', '`<pray> <±min>`']) {
     expect(help).toContain(word)
   }
   for (const gone of ['/salah setup', '/salah on', '/salah notify']) expect(help).not.toContain(gone)

@@ -17,10 +17,10 @@ export const demoTiming = (surface: string, style: 'sky' | 'frame') => ({
   // Thikr signals the end of its usage-limit hold; then a short gap.
   afterThikrMs: DEMO_GAP_MS,
   athkarMs: athkarDuration(surface === 'terminal' ? 'frame' : style, FINALE_MS),
-  // `/salah athan demo`: the card opens 5 s on desktop; the minaret rises in the terminal.
+  // `/salah demo`: the card opens 5 s on desktop; the minaret rises in the terminal.
   salahMs: salahDuration(surface),
 })
 
 export const demoReply = (): string =>
-  '**Muslim demo:** playing. Thikr (a real turn, about 30 s), then athkar, then the salah athan moment. The thikr part uses tokens and leaves a message in the transcript.'
+  '**Muslim demo:** playing. Thikr (a real turn, about 30 s), then athkar, then /salah demo (the athan moment). The thikr part uses tokens and leaves a message in the transcript.'
 // DEMO END

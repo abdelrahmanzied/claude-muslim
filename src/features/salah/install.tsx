@@ -400,7 +400,7 @@ export const install = (on: On, options: Options) => {
       return set('salahShow', String(show), `**Show:** ${showText(show)}`)
     }
     // DEMO BEGIN
-    if (word === 'athan' && first === 'demo') return { text: await playDemo($) }
+    if (word === 'demo') return { text: await playDemo($) }
     // DEMO END
     if (word === 'athan' && (first === 'on' || first === 'off')) return set('salahAthan', first === 'on', `**Athan:** ${first}`)
     if (word === 'city') {
@@ -462,7 +462,7 @@ export const install = (on: On, options: Options) => {
   })
   // DEMO END
 
-  // A reload restores a moment still showing (a real one or `/salah athan demo`).
+  // A reload restores a real moment still showing (the demo is module-local and ends).
   // Rendering stays read-only; the clock callback re-arms and normalizes state.
   let hasMomentTimers = false
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {

@@ -55,16 +55,38 @@ test('the card with the real photo (about 40 KB of base64) stays far under the S
   expect(athanSvg(props('A'.repeat(45000), 'fajr', '05:00'), { hoverClose: false, columns: 180 }).length).toBeLessThan(110000)
 })
 
-test('/salah athan demo works without a city', { options: { athkar: false } }, async ($, on) => {
+test('/salah demo works without a city', { options: { athkar: false } }, async ($, on) => {
   mock.clock(on, { now: NOW })
-  expect((await $.command.run(run('athan demo'))).text).toBe('**Athan demo:** Fajr')
+  expect((await $.command.run(run('demo'))).text).toBe('**Athan demo:** Fajr')
 })
 
 test('/salah athan test is an unknown word and answers with help', { options: MUNICH }, async $ => {
   expect((await $.command.run(run('athan test'))).text).toBe(salahHelp())
 })
 
-test('/salah athan demo answers without changing settings, the store or the shown-once mark', { options: MUNICH }, async ($, on) => {
+for (const surface of ['desktop', 'terminal'] as const) {
+  test(`${surface}: the retired nested demo command answers with help and starts nothing`, { options: { athkar: false } }, async ($, on) => {
+    mock.env(on, {})
+    mock.store(on)
+    mock.clock(on, { now: NOW })
+    engineBand(on)
+    const written: unknown[] = []
+    on('config.set', async (_$, e) => (written.push(e), { value: e.value }))
+    on('store.set', { key: /.*/ }, async (_$, e, next) => {
+      written.push(e)
+
+      return next(e)
+    })
+    const ui = await $.ui.mount(band(surface))
+
+    expect((await $.command.run(run('athan demo'))).text).toBe(salahHelp())
+    expect(await ui.find({ key: 'salah-athan' })).toBeUndefined()
+    expect(await ui.find({ text: 'حان وقت صلاة الفجر' })).toBeUndefined()
+    expect(written).toEqual([])
+  })
+}
+
+test('/salah demo answers without changing settings, the store or the shown-once mark', { options: MUNICH }, async ($, on) => {
   mock.env(on, {})
   mock.clock(on, { now: NOW })
   const written: unknown[] = []
@@ -79,7 +101,7 @@ test('/salah athan demo answers without changing settings, the store or the show
 
     return next(e)
   })
-  const ran = await $.command.run(run('athan demo'))
+  const ran = await $.command.run(run('demo'))
 
   expect(ran.text).toBe('**Athan demo:** Fajr')
   expect(written).toEqual([])
@@ -93,7 +115,7 @@ test('on the desktop the demo shows the shared card, never the minaret; a click 
   const asked: string[] = []
   on('fs.read', async (_$, e) => (asked.push(e.path), { value: { base64: 'QUJD' } }))
   const desktop = await $.ui.mount(band('desktop'))
-  await $.command.run(run('athan demo'))
+  await $.command.run(run('demo'))
 
   const card = await desktop.find({ in: 'salah-athan', type: 'Svg' })
   expect(card).toBeDefined()
@@ -121,7 +143,7 @@ test('the demo hovers the shared × and preserves the saved reading', { options:
   await desktop.key({ key: 'space', in: 'athkar' })
   const before = (await desktop.find({ type: 'Client', key: 'athkar' }))?.props.props
   expect(before).toMatchObject({ phase: 'reading', count: 1 })
-  await $.command.run(run('athan demo'))
+  await $.command.run(run('demo'))
   expect((await desktop.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ phase: 'reading', count: 1 })
   await desktop.resize({ columns: 100, rows: 5, in: 'salah-athan' })
   await desktop.pointer({ type: 'move', x: 2, y: 1, in: 'salah-athan' })
@@ -138,7 +160,7 @@ test('the demo hovers the shared × and preserves the saved reading', { options:
   // Let the counted thikr advance before checking the expiry path as well.
   await clock.advance(1000)
   const resumed = (await desktop.find({ type: 'Client', key: 'athkar' }))?.props.props as { thikrId: string; count: number }
-  await $.command.run(run('athan demo'))
+  await $.command.run(run('demo'))
   await clock.advance(DEMO_OPEN_MS + DEMO_FOLDED_MS)
   expect(await desktop.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
   expect((await desktop.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ thikrId: resumed.thikrId, count: resumed.count })
@@ -152,7 +174,7 @@ test('on the terminal the demo plays the minaret only, no card', { options: MUNI
   mock.clock(on, { now: NOW })
   engineBand(on)
   const terminal = await $.ui.mount(band('terminal'))
-  await $.command.run(run('athan demo'))
+  await $.command.run(run('demo'))
 
   expect(await terminal.find({ type: 'Svg' })).toBeUndefined()
   expect(await terminal.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
@@ -160,13 +182,13 @@ test('on the terminal the demo plays the minaret only, no card', { options: MUNI
 })
 
 for (const surface of ['desktop', 'terminal'] as const) {
-  test(`${surface}: athan demo before the first draw survives ticker startup`, { options: MUNICH }, async ($, on) => {
+  test(`${surface}: salah demo before the first draw survives ticker startup`, { options: MUNICH }, async ($, on) => {
     mock.env(on, {})
     mock.store(on)
     const clock = mock.clock(on, { now: NOW })
     engineBand(on)
     on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
-    await $.command.run(run('athan demo'))
+    await $.command.run(run('demo'))
     const mounted = await $.ui.mount(band(surface))
 
     if (surface === 'desktop') {
@@ -317,7 +339,7 @@ test('the desktop demo opens, folds after DEMO_OPEN_MS, and is gone DEMO_FOLDED_
   engineBand(on)
   on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
   const desktop = await $.ui.mount(band('desktop'))
-  await $.command.run(run('athan demo'))
+  await $.command.run(run('demo'))
   const picture = () => desktop.find({ in: 'salah-athan', type: 'Svg' })
   expect(Number((await picture())?.props.height)).toBe(cardHeight() + 20)
   await clock.advance(DEMO_OPEN_MS)
@@ -338,7 +360,7 @@ for (const ending of ['close', 'expire'] as const) {
       if (e.value === null) cleared.push(e.key)
       return next(e)
     })
-    await $.command.run(run('athan demo'))
+    await $.command.run(run('demo'))
     const terminal = await $.ui.mount(band('terminal'))
     expect(await terminal.find({ text: '▐███▌' })).toBeDefined()
     expect(await terminal.find({ type: 'Button', key: 'salah-athan-close' })).toBeDefined()
@@ -406,7 +428,7 @@ test('terminal × during the rise cancels later frames and folds', { options: MU
   mock.store(on)
   const clock = mock.clock(on, { now: NOW })
   engineBand(on)
-  await $.command.run(run('athan demo'))
+  await $.command.run(run('demo'))
   const terminal = await $.ui.mount(band('terminal'))
   await terminal.press({ key: 'salah-athan-close' })
   await clock.advance(TOTAL_MS + FOLD_MS)
@@ -470,7 +492,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
         ? String((await ui.find({ in: 'salah-athan', type: 'Svg' }))?.props.source)
         : JSON.stringify(await ui.findAll({ type: 'Text' }))
       expect(await shown()).toContain('حان وقت صلاة العصر')
-      expect((await $.command.run(run('athan demo'))).text).toBe('**Athan demo:** Fajr')
+      expect((await $.command.run(run('demo'))).text).toBe('**Athan demo:** Fajr')
       await clock.advance(TOTAL_MS)
       expect(await shown()).toContain('حان وقت صلاة الفجر')
       if (surface === 'desktop') expect(await shown()).toContain('٠٥:٠٠')

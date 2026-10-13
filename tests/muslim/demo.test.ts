@@ -20,5 +20,5 @@ test('sky lasts 33.2 seconds, frame 24.2 seconds, and salah 8 seconds', () => {
 })
 
 test('the reply names every demo and explains the transcript and token cost', () => {
-  expect(demoReply()).toBe('**Muslim demo:** playing. Thikr (a real turn, about 30 s), then athkar, then the salah athan moment. The thikr part uses tokens and leaves a message in the transcript.')
+  expect(demoReply()).toBe('**Muslim demo:** playing. Thikr (a real turn, about 30 s), then athkar, then /salah demo (the athan moment). The thikr part uses tokens and leaves a message in the transcript.')
 })
