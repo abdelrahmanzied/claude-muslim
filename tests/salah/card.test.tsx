@@ -57,7 +57,7 @@ test('the card with the real photo (about 40 KB of base64) stays far under the S
 
 test('/salah demo works without a city', { options: { athkar: false } }, async ($, on) => {
   mock.clock(on, { now: NOW })
-  expect((await $.command.run(run('demo'))).text).toBe('**Athan demo:** Fajr')
+  expect((await $.command.run(run('demo'))).text).toBe('**Salah demo:** athan · Fajr 05:00')
 })
 
 test('/salah athan test is an unknown word and answers with help', { options: MUNICH }, async $ => {
@@ -103,7 +103,7 @@ test('/salah demo answers without changing settings, the store or the shown-once
   })
   const ran = await $.command.run(run('demo'))
 
-  expect(ran.text).toBe('**Athan demo:** Fajr')
+  expect(ran.text).toBe('**Salah demo:** athan · Fajr 05:00')
   expect(written).toEqual([])
 })
 
@@ -492,7 +492,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
         ? String((await ui.find({ in: 'salah-athan', type: 'Svg' }))?.props.source)
         : JSON.stringify(await ui.findAll({ type: 'Text' }))
       expect(await shown()).toContain('حان وقت صلاة العصر')
-      expect((await $.command.run(run('demo'))).text).toBe('**Athan demo:** Fajr')
+      expect((await $.command.run(run('demo'))).text).toBe('**Salah demo:** athan · Fajr 05:00')
       await clock.advance(TOTAL_MS)
       expect(await shown()).toContain('حان وقت صلاة الفجر')
       if (surface === 'desktop') expect(await shown()).toContain('٠٥:٠٠')

@@ -73,7 +73,7 @@ Replies are short markdown: a bold title line first (`**Muslim › Salah**`, `**
 
 ## Demo
 
-`/salah demo` replies `**Athan demo:** Fajr` and always previews «الفجر» at 05:00, formatted by the real `clockText` function. It does not read a city, method or calculated prayer time. Disposable module-local card and minaret values have their own redraw timers. One selector per existing render path chooses the demo while it is active; the same `athan-card.tsx` and minaret builders draw it. Desktop: open 5 seconds, folded 3 seconds; terminal: rise 3.01 seconds, folded 3 seconds. Expiry or × discards only the demo, revealing any real athan with its state and timers untouched. Demo input cannot change the real card. The shared `/muslim demo` starts this same runner, which then reports its end when the moment closes or expires, through a transient signal connected in a demo-only command hook; it needs no city either.
+`/salah demo` replies `**Salah demo:** athan · Fajr 05:00` and always previews «الفجر» at 05:00, formatted by the real `clockText` function. It does not read a city, method or calculated prayer time. Disposable module-local card and minaret values have their own redraw timers. One selector per existing render path chooses the demo while it is active; the same `athan-card.tsx` and minaret builders draw it. Desktop: open 5 seconds, folded 3 seconds; terminal: rise 3.01 seconds, folded 3 seconds. Expiry or × discards only the demo, revealing any real athan with its state and timers untouched. Demo input cannot change the real card. The shared `/muslim demo` starts this same runner, which then reports its end when the moment closes or expires, through a transient signal connected in a demo-only command hook; it needs no city either.
 
 ## Settings
 

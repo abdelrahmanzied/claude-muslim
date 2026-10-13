@@ -3,10 +3,13 @@ import type { SalahCard, SalahMinaret } from '../../../types'
 import { TOTAL_MS } from './minaret.ts'
 import { clockText } from './times.ts'
 
+const FAJR = clockText(Date.UTC(2000, 0, 1, 5), 'UTC')
+
+// The reply names the command, like the other demos: `**Salah demo:** athan · Fajr 05:00`.
 export const demoMoment = () => ({
   pray: 'fajr' as const,
-  time: clockText(Date.UTC(2000, 0, 1, 5), 'UTC'),
-  text: '**Athan demo:** Fajr',
+  time: FAJR,
+  text: `**Salah demo:** athan · Fajr ${FAJR}`,
 })
 export const DEMO_OPEN_MS = 5000
 export const DEMO_FOLDED_MS = 3000
