@@ -70,6 +70,8 @@ Tashkeel is controlled on desktop by [`/muslim tashkeel`](../terminal.md#tashkee
 
 ## Demo
 
+The shared `/muslim demo` connects a transient signal to this same feature-local starter through a demo-only setup hook. It passes no engine handle across files and writes no state. It tracks its main turn id so unrelated or subagent completions cannot end the demo hold, and signals the shared runner when that hold has ended, so athkar starts after it.
+
 `/thikr demo` plays every moment for videos or to preview them, and changes no settings, store or saved state. Claude draws its working line only while it works, so the demo starts a real turn of its own: it uses tokens and leaves a message in the transcript. The reply says `Thikr demo: playing. Claude runs a few short steps (about 30 s).` Claude then runs three timed Bash steps (`sleep 6`, `sleep 14` (a long step, over 10 s), `sleep 9`, each with a "Thikr demo: …" description) and answers with one short line. If Claude asks to approve the Bash commands, approve them to let the demo go on. During that turn:
 
 1. The Spinner plays, a phrase every 1.5 s whatever the speed setting, the starting group, the thinking group, the writing group, the long group, then one salawat (the first of salawat mode's list). The last holds if the turn runs longer. The 28.5 s sequence runs from the turn's start, so time spent waiting to approve a command cuts into it.

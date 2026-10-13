@@ -26,6 +26,8 @@ Thikr is text only. This follows the shared text-only requirement.
 
 ## Demo
 
+The shared `/muslim demo` connects a transient signal to this same feature-local starter through a demo-only setup hook. It passes no engine handle across files and writes no state. It tracks its main turn id so unrelated or subagent completions cannot end the demo hold, and signals the shared runner when that hold has ended, so athkar starts after it.
+
 `/thikr demo` uses the same surfaces and the same text-only means. Claude's Spinner draws only while Claude works, so the demo submits a fixed prompt that starts a real turn (it uses tokens and leaves a message in the transcript), in which Claude runs three timed `sleep` steps. The real Spinner, the terminal `TurnDuration` and the `AbovePrompt` usage-limit row play with the real Arabic and color code, just faster. It adds no drawing, animation or color of its own, writes no settings, store or saved state (its armed and playing state is module-local), and when no demo is armed its hooks pass through. Prompt, scenes and timing: `src/features/thikr/demo.ts`; runner: the marked `DEMO` blocks in `install.tsx`.
 
 ## Text

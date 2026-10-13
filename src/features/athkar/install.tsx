@@ -20,6 +20,7 @@ import type { Style } from './look.ts'
 // DEMO BEGIN: imports and transient runner (no saved state or real view).
 import type { Accent } from '../../shared/color/index.ts'
 import { demoDuration, demoReply, demoStep, DEMO_TICK_MS } from './demo.ts'
+import { connectDemo } from '../../shared/demo/signal.ts'
 
 let demo: { style: Style; accent: Accent; startedAt: number; timer?: { cancel: () => void } } | undefined
 const demoArabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
@@ -285,6 +286,11 @@ export const install = (on: On, options: Options) => {
   })
 
   // DEMO BEGIN: a separate drawing path, registered even with athkar off.
+  on('command.run', { command: 'muslim', args: /^\s*demo\s*$/ }, ($, e, next) => {
+    connectDemo('athkar', async () => playDemo($, await $.session.surface() === 'terminal' ? 'frame' : options.athkarStyle, options.color))
+    return next(e)
+  })
+
   // The surface matcher distinguishes this registration from the real band.
   on('ui.render', { component: 'AbovePrompt', surface: ['desktop', 'terminal'] }, async ($, e, next) => {
     const theirs = await next(e)

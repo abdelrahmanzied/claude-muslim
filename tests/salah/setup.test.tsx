@@ -564,7 +564,7 @@ for (const [color, expected] of [['orange', 'claude'], ['blue', '#4a7fc0']] as c
     const minaret = await $.ui.mount(band('terminal'))
     await clock.advance(2500)
     expect((await minaret.find({ type: 'Text', text: '   ☾   ' }))?.props.color).toBe(expected)
-    expect((await minaret.find({ type: 'Text', text: 'حان وقت صلاة العصر' }))?.props.color).toBe(expected)
+    expect((await minaret.find({ type: 'Text', text: 'حان وقت صلاة الفجر' }))?.props.color).toBe(expected)
     expect((await minaret.find({ type: 'Text', text: ' ▐███▌ ' }))?.props.color).toBeUndefined()
     await minaret.unmount()
   })

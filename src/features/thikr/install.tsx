@@ -85,9 +85,11 @@ const TICK_MS = 500
 
 // DEMO BEGIN: imports and transient runner (module values only; no settings, store or saved state).
 import { demoPrompt, demoReply, demoSceneAt, DEMO_LIMIT_MS, DEMO_SUBMIT_MS, DEMO_TICK_MS } from './demo.ts'
+import { connectDemo, doneDemo, failDemo } from '../../shared/demo/signal.ts'
 
 // armed: waits for the demo's own turn; playing: that turn; limit: the usage-limit line after it.
-type DemoRun = { phase: 'armed' | 'playing' | 'limit'; startedAt: number; timer?: { cancel: () => void } }
+// shared: started by /muslim demo, which waits for this demo's end.
+type DemoRun = { phase: 'armed' | 'playing' | 'limit'; startedAt: number; turnId?: string; shared?: boolean; timer?: { cancel: () => void } }
 
 let demo: DemoRun | undefined
 const demoArabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
@@ -96,12 +98,15 @@ const demoArabicCache: { current: { terminalId: string; mode: ArabicMode } | nul
 // still runs ("would wait on the turn this hook is holding"), so it goes from a timer just
 // after the reply, and nothing waits for the turn. A submit that fails or is dropped
 // disarms, so the demo never waits for a later message.
-const armDemo = ($: EngineInterface): string => {
+const armDemo = ($: EngineInterface, shared = false): string => {
   demo?.timer?.cancel()
-  const armed: DemoRun = { phase: 'armed', startedAt: 0 }
+  const armed: DemoRun = { phase: 'armed', startedAt: 0, shared }
   demo = armed
   const disarm = () => {
-    if (demo === armed) demo = undefined
+    if (demo === armed) {
+      demo = undefined
+      if (shared) failDemo()
+    }
   }
   armed.timer = $.clock.after(DEMO_SUBMIT_MS, () => {
     $.prompt.submit({ text: demoPrompt() }).then(result => result.drop === undefined || disarm(), disarm)
@@ -110,9 +115,9 @@ const armDemo = ($: EngineInterface): string => {
   return demoReply()
 }
 
-const startDemo = async ($: EngineInterface) => {
+const startDemo = async ($: EngineInterface, turnId: string) => {
   const startedAt = await $.clock.now()
-  demo = { phase: 'playing', startedAt, timer: $.clock.every(DEMO_TICK_MS, () => $.ui.invalidate('ui.render')) }
+  demo = { phase: 'playing', startedAt, turnId, shared: demo?.shared, timer: $.clock.every(DEMO_TICK_MS, () => $.ui.invalidate('ui.render')) }
 }
 
 // The turn ended: the usage-limit line holds for its seconds, then the demo disarms itself.
@@ -120,11 +125,12 @@ const holdDemoLimit = ($: EngineInterface) => {
   const playing = demo
   if (playing?.phase !== 'playing') return
   playing.timer?.cancel()
-  const holding: DemoRun = { phase: 'limit', startedAt: playing.startedAt }
+  const holding: DemoRun = { phase: 'limit', startedAt: playing.startedAt, shared: playing.shared }
   holding.timer = $.clock.after(DEMO_LIMIT_MS, () => {
     if (demo !== holding) return
     demo = undefined
     $.ui.invalidate('ui.render')
+    if (holding.shared) doneDemo('thikr')
   })
   demo = holding
   $.ui.invalidate('ui.render')
@@ -191,15 +197,20 @@ export const install = (on: On, options: Options) => {
   })
 
   // DEMO BEGIN: separate hooks, registered even with thikr off; they pass through unless a demo is armed.
+  on('command.run', { command: 'muslim', args: /^\s*demo\s*$/ }, ($, e, next) => {
+    connectDemo('thikr', () => armDemo($, true))
+    return next(e)
+  })
+
   // The matchers (every turn, every ending) only tell these apart from the feature's own hooks.
   on('turn.start', { turnId: /./ }, async ($, e, next) => {
-    if (demo?.phase === 'armed') await startDemo($)
+    if (demo?.phase === 'armed') await startDemo($, e.turnId)
 
     return next(e)
   })
 
   on('turn.complete', { reason: ['answer', 'aborted', 'refusal', 'error'] }, async ($, e, next) => {
-    holdDemoLimit($)
+    if (e.agentId === undefined && demo?.turnId === e.turnId) holdDemoLimit($)
 
     return next(e)
   })

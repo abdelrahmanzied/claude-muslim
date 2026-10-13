@@ -45,6 +45,8 @@ On every sky the pill is the main color with a white number. Sunrise takes dark 
 
 ## Demo path
 
+The shared `/muslim demo` connects a transient signal to this same feature-local starter through a demo-only setup hook. It passes no engine handle across files and writes no state.
+
 `/athkar demo [sky|frame]` plays the real builders. Sky has eight scenes
 (33.2 seconds), with each of the six skies on a distinct reading scene:
 

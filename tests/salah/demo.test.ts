@@ -1,39 +1,23 @@
 import { expect, test } from 'claude-code/testing'
+import { demoMoment, demoState, DEMO_OPEN_MS, DEMO_FOLDED_MS } from '../../src/features/salah/demo.ts'
+import { clockText } from '../../src/features/salah/times.ts'
+import { TOTAL_MS } from '../../src/features/salah/minaret.ts'
 
-import { readOptions } from '../../src/config.ts'
-import { athanDemo, demoMoment } from '../../src/features/salah/demo.ts'
-import { momentState } from '../../src/features/salah/moment.ts'
-import { NO_ADJUST } from '../../src/features/salah/times.ts'
-
-const PLACE = { name: 'Munich, Germany', latitude: 48.1372, longitude: 11.5755, timeZone: 'Europe/Berlin', country: 'DE' }
 const NOW = Date.parse('2026-10-10T10:00:00Z')
 
-test('the demo selects the next pray and its local time, with no input changes', () => {
-  const options = readOptions({})
-  const before = JSON.stringify({ options, place: PLACE })
-
-  expect(athanDemo(options, PLACE, NOW)).toEqual({ pray: 'dhuhr', time: '13:02', text: '**Athan demo:** Dhuhr' })
-  expect(JSON.stringify({ options, place: PLACE })).toBe(before)
+test('the demo always shows Fajr at 05:00 without a city or calculation', () => {
+  expect(demoMoment()).toEqual({ pray: 'fajr', time: clockText(Date.UTC(2000, 0, 1, 5), 'UTC'), text: '**Athan demo:** Fajr' })
+  expect(demoMoment().time).toBe('05:00')
 })
 
-test('sunrise shows as Fajr, keeping the supplied local time', () => {
-  expect(demoMoment({ pray: 'sunrise', at: NOW }, PLACE.timeZone))
-    .toEqual({ pray: 'fajr', time: '12:00', text: '**Athan demo:** Fajr' })
+test('desktop is open five seconds then folded three; terminal rises then folds three', () => {
+  const moment = demoState(NOW)
+  expect(moment.card).toEqual({ pray: 'fajr', time: '05:00', isFolded: false, foldsAt: NOW + DEMO_OPEN_MS, until: NOW + DEMO_OPEN_MS + DEMO_FOLDED_MS })
+  expect(moment.minaret).toEqual({ pray: 'fajr', frame: 1, startedAt: NOW, isFolded: false, foldsAt: NOW + TOTAL_MS, until: NOW + TOTAL_MS + DEMO_FOLDED_MS })
 })
 
-test('after Isha the demo selects tomorrow\'s Fajr', () => {
-  expect(athanDemo(readOptions({}), PLACE, Date.parse('2026-10-10T21:00:00Z')))
-    .toEqual({ pray: 'fajr', time: '05:44', text: '**Athan demo:** Fajr' })
-})
-
-test('the demo respects the method and adjusted times even with the display off', () => {
-  const options = { ...readOptions({ salahMethod: 'mwl', salahShow: 'off', salahAthan: false }), salahAdjust: { ...NO_ADJUST, dhuhr: 5 } }
-
-  expect(athanDemo(options, PLACE, NOW)).toEqual({ pray: 'dhuhr', time: '13:07', text: '**Athan demo:** Dhuhr' })
-})
-
-test('the real moment and demo use the same fold and expiry deadlines', () => {
-  const moment = momentState('asr', '15:59', NOW)
-  expect(moment.card).toMatchObject({ pray: 'asr', time: '15:59', isFolded: false, foldsAt: NOW + 60_000, until: NOW + 900_000 })
-  expect(moment.minaret).toMatchObject({ pray: 'asr', frame: 1, startedAt: NOW, isFolded: false, foldsAt: NOW + 3010, until: moment.card.until })
+test('each demo constructs a disposable moment', () => {
+  const first = demoState(NOW)
+  first.card.isFolded = true
+  expect(demoState(NOW).card.isFolded).toBe(false)
 })

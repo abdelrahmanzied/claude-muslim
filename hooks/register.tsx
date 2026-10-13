@@ -11,6 +11,66 @@ import { showText } from '../src/features/salah/today.ts'
 import { install as installSalah } from '../src/features/salah/install.tsx'
 import { install as installThikr } from '../src/features/thikr/install.tsx'
 
+// DEMO BEGIN: shared runner, transient module values only.
+import type { EngineInterface } from 'claude-code'
+import { startDemo, onDemoDone, onDemoFailure } from '../src/shared/demo/signal.ts'
+import { DEMO_STEPS, DEMO_GAP_MS, DEMO_START_MS, demoReply, demoTiming } from '../src/demo.ts'
+
+type DemoRun = {
+  phase: 'thikr' | 'hold' | 'athkar' | 'salah'
+  timing: ReturnType<typeof demoTiming>
+  timer?: { cancel: () => void }
+}
+let demo: DemoRun | undefined
+
+const stopDemo = (playing: DemoRun) => {
+  if (demo !== playing) return
+  playing.timer?.cancel()
+  demo = undefined
+  onDemoFailure()
+  onDemoDone()
+}
+
+// Signals run after the command has returned. Each connected starter owns its
+// feature's $, and the next duration starts only when that starter has finished.
+const runDemoStep = async ($: EngineInterface, playing: DemoRun, step: 0 | 1 | 2) => {
+  if (demo !== playing) return
+  try {
+    await startDemo(DEMO_STEPS[step])
+    if (demo !== playing) return
+    if (step === 1) {
+      playing.timer = $.clock.after(playing.timing.athkarMs + DEMO_GAP_MS, () => {
+        playing.phase = 'salah'
+        void runDemoStep($, playing, 2)
+      })
+    } else if (step === 2) {
+      playing.timer = $.clock.after(playing.timing.salahMs, () => stopDemo(playing))
+    }
+  } catch {
+    stopDemo(playing)
+  }
+}
+
+const playDemo = async ($: EngineInterface, style: 'sky' | 'frame'): Promise<string> => {
+  if (demo) return '**Muslim demo:** already playing.'
+  const playing: DemoRun = { phase: 'thikr', timing: demoTiming((await $.session.surface()) ?? 'desktop', style) }
+  demo = playing
+  onDemoFailure(() => { if (playing.phase === 'thikr') stopDemo(playing) })
+  // Thikr's length is its real turn: it says when its usage-limit hold has ended.
+  onDemoDone(feature => {
+    if (demo !== playing || feature !== 'thikr' || playing.phase !== 'thikr') return
+    playing.phase = 'hold'
+    playing.timer = $.clock.after(playing.timing.afterThikrMs, () => {
+      playing.phase = 'athkar'
+      void runDemoStep($, playing, 1)
+    })
+  })
+  playing.timer = $.clock.after(DEMO_START_MS, () => void runDemoStep($, playing, 0))
+
+  return demoReply()
+}
+// DEMO END
+
 // Entry point. Commands are all registered here (one session.start per module);
 // each feature answers its own command. Each feature lives in its own folder under src/features/,
 // exports an `install(on, options)` function, and is imported and called
@@ -49,6 +109,16 @@ export const register: Register = (on, options) => {
   on('command.run', { command: 'muslim' }, async ($, e, next) => {
     const words = e.args.trim().split(/\s+/).filter(Boolean)
     const [word = '', feature = ''] = words
+    // DEMO BEGIN: command entry; no feature settings or saved state.
+    if (word === 'demo') {
+      if (words.length !== 1) return { text: 'Usage: /muslim demo' }
+      if (demo) return { text: '**Muslim demo:** already playing.' }
+      // Walk the demo-only setup hooks once; no self-command dispatch.
+      await next(e)
+
+      return { text: await playDemo($, settings.athkarStyle) }
+    }
+    // DEMO END
     if (word === 'color') {
       if (words.length > 2 || (feature !== '' && !isAccent(feature))) return { text: 'Usage: /muslim color orange | green | gold | blue' }
       if (feature === '') return { text: `Color ${settings.color}. Usage: /muslim color orange | green | gold | blue` }
@@ -91,6 +161,14 @@ export const register: Register = (on, options) => {
       ].join('\n'),
     }
   })
+
+  // DEMO BEGIN: a session end stops the shared demo.
+  on('session.end', async (_$, e, next) => {
+    if (demo) stopDemo(demo)
+
+    return next(e)
+  })
+  // DEMO END
 
   installThikr(on, settings)
   installAthkar(on, settings)

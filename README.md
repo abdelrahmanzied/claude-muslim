@@ -88,11 +88,12 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/salah method <name>` | `auto` (your country's own) or a named method |
 | `/salah show always` · `<minutes>` · `off` | Show the next pray all day, only that many minutes before it (e.g. `show 20`), or hide it |
 | `/salah athan on` · `off` | `حان وقت صلاة …` when a prayer comes in |
-| `/salah athan demo` | Play the athan moment now, in a few seconds; nothing is saved |
+| `/salah athan demo` | Preview Fajr at 05:00 without a city: desktop 5 s open, 3 s folded; terminal 3.01 s rise, 3 s folded; real athan state stays untouched, nothing is saved |
 | `/muslim` | Version and a table of every setting, its value and the command that changes it |
 | `/muslim tashkeel on` · `off` | Show or hide Arabic diacritics on desktop (the terminal never shows them) |
 | `/muslim terminal-arabic` | Choose how Arabic shows in this terminal |
 | `/muslim help` · `help <feature>` | Command tables of every feature, or one (`thikr`, `athkar`, `salah`) |
+| `/muslim demo` | Play every feature's demo in order: thikr in a real turn (about 30 s; it uses tokens and leaves a message in the transcript), its 3 s usage-limit hold, athkar (desktop sky 33.2 s; terminal frame 24.2 s), then the salah athan moment (`/salah athan demo`); 0.1 s between demos, no setting or saved state changes; no city needed; another request while playing says so |
 
 Every setting is also in `/config`. The shared `color` setting changes existing main-color accents across athkar, salah, thikr's usage-limit line and the terminal Arabic survey label. Orange text follows Claude's theme; other choices use light/dark shades.
 

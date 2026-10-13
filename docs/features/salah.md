@@ -59,7 +59,7 @@ Prayer times for the user's city, calculated on their machine with
 ## Commands
 
 `/salah` shows a title, then two tables under their own headings: today's times (the next prayer marked, a moved prayer with its minutes), then the settings (city, method, show, athan, adjust), each with the command that changes it, and a hint to `/salah help`.
-`/salah help` is a table of every subcommand: `show always` · `<minutes>` · `off`, `athan on` · `off`, `athan demo` (plays the athan moment now for the next prayer, changes no settings or store values; plays the same show, fold and close stages on desktop and terminal on a short clock: open 5 s, folded 3 s, then gone), `city` (the setup question) and
+`/salah help` is a table of every subcommand: `show always` · `<minutes>` · `off`, `athan on` · `off`, `athan demo` (fixed Fajr at 05:00, with no city or calculation; desktop open 5 s then folded 3 s; terminal rises 3.01 s then folded 3 s; real state, settings and store are untouched), `city` (the setup question) and
 `city <name or lat, lng>`, `method <auto or name>`, `adjust` and
 `adjust <prayer> <±min>` (any whole number of minutes, such as `+90` or `-120`; missing or malformed minutes are an error). An unknown word answers with the table.
 `/muslim help` shows the tables of thikr and salah; `/muslim help salah` only salah's.
@@ -70,6 +70,10 @@ Replies are short markdown: a bold title line first (`**Muslim › Salah**`, `**
 
 - No `$.state` write while drawing: the engine refuses it. Clearing the line (show `off`, no place) is deferred to the next clock tick.
 - The footer computes the line from the clock and the settings at draw time, never from a value saved earlier, so `show off` hides it, `show 20` far from a pray empties it, and `show always` after `off` brings it back, all at once.
+
+## Demo
+
+`/salah athan demo` replies `**Athan demo:** Fajr` and always previews «الفجر» at 05:00, formatted by the real `clockText` function. It does not read a city, method or calculated prayer time. Disposable module-local card and minaret values have their own redraw timers. One selector per existing render path chooses the demo while it is active; the same `athan-card.tsx` and minaret builders draw it. Desktop: open 5 seconds, folded 3 seconds; terminal: rise 3.01 seconds, folded 3 seconds. Expiry or × discards only the demo, revealing any real athan with its state and timers untouched. Demo input cannot change the real card. The shared `/muslim demo` starts this same runner through a transient signal connected in a demo-only command hook; it needs no city either.
 
 ## Settings
 
@@ -94,7 +98,7 @@ Surfaces, the athan moment's look and what salah never does: [salah-design.md](s
 | File | Holds |
 | --- | --- |
 | `install.tsx` | hooks: `/salah`, setup line, review form, prayer line |
-| `demo.ts` | pure demo path: next pray (sunrise as Fajr), clock text, reply and the demo's short deadlines |
+| `demo.ts` | pure demo path: fixed Fajr, real `clockText` formatting at 05:00, reply and short deadlines |
 | `help.ts` | the `/salah help` table (also in `/muslim help`) |
 | `times.ts` | a day's times, next (with and without sunrise) and last prayer |
 | `clock.ts` | local time and Hijri month in a time zone |
@@ -129,7 +133,7 @@ Terminal checklist (each reply opens with its title, tables render):
 | `/salah show 600` | the line shows, counting down |
 | `/salah show off`, then `show always` | hides, then comes back at once |
 | `/salah show 0` · `show abc` | the accepted forms, nothing changed |
-| `/salah athan demo` | the full show → fold → close moment on both surfaces in seconds, no settings or store changes |
+| `/salah athan demo` | fixed Fajr at 05:00 without a city; desktop 5 s open + 3 s folded, terminal 3.01 s rise + 3 s folded; no real state, settings or store changes |
 | `/salah athan off` · `on` | `**Athan:** off` · `on` |
 | `/salah adjust` · `adjust asr +5` | the review form · `**Adjust:** Asr +5 min` |
 | `/salah method auto` | `**Method:** auto (…)` |

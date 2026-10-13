@@ -9,7 +9,10 @@ import type { Options } from '../../config.ts'
 import { CITY_MODEL, CITY_SYSTEM, cityPrompt, parseCities, parseCoordinates, type City } from './city.ts'
 import { helpHint } from '../../table.ts'
 import { salahHelp } from './help.ts'
-import { athanDemo, demoState } from './demo.ts'
+// DEMO BEGIN
+import { demoMoment, demoState } from './demo.ts'
+import { connectDemo } from '../../shared/demo/signal.ts'
+// DEMO END
 import { momentState } from './moment.ts'
 import { guessPlace, systemTimeZone } from './location.ts'
 import { METHODS, methodFor, type Pray } from './methods.ts'
@@ -286,19 +289,38 @@ const readPhoto = async ($: EngineInterface): Promise<string | undefined> => {
   return typeof bytes === 'object' ? bytes.base64 : undefined
 }
 
-// `/salah athan demo`: plays the athan moment's stages now for the next pray
-// on the demo's short clock, without touching settings or the shown-once mark.
-const playDemo = async ($: EngineInterface, options: Options, place: Place, timer: Timer) => {
-  const now = await $.clock.now()
-  const demo = athanDemo(options, place, now)
-  const moment = demoState(demo.pray, demo.time, now)
-  resetCardView(moment.card.until)
-  await update($, minaret, () => moment.minaret)
-  await update($, card, () => moment.card)
-  await scheduleMoment($, timer)
+// DEMO BEGIN: disposable moments; never write the real card, minaret or timers.
+let demo: (ReturnType<typeof demoState> & { timers: { cancel: () => void }[] }) | undefined
+const demoCardAt = (now: number) => demo && demo.card.until > now ? demo.card : undefined
+const demoMinaretAt = (now: number) => demo && demo.minaret.until > now ? demo.minaret : undefined
 
-  return demo.text
+const closeDemo = ($: EngineInterface) => {
+  demo?.timers.forEach(timer => timer.cancel())
+  demo = undefined
+  $.ui.invalidate('ui.render')
 }
+const tickDemo = async ($: EngineInterface) => {
+  const playing = demo
+  if (!playing) return
+  const now = await $.clock.now()
+  if (demo !== playing) return
+  if (now >= Math.max(playing.card.until, playing.minaret.until)) closeDemo($)
+  else $.ui.invalidate('ui.render')
+}
+const playDemo = async ($: EngineInterface) => {
+  demo?.timers.forEach(timer => timer.cancel())
+  const now = await $.clock.now()
+  const playing = { ...demoState(now), timers: [] as { cancel: () => void }[] }
+  demo = playing
+  playing.timers.push($.clock.every(FRAME_MS, () => void tickDemo($)))
+  // Exact stage boundaries alongside the rise's regular redraws.
+  for (const at of [playing.card.foldsAt, playing.minaret.foldsAt, playing.minaret.until, playing.card.until]) {
+    playing.timers.push($.clock.after(at - now, () => void tickDemo($)))
+  }
+  $.ui.invalidate('ui.render')
+  return demoMoment().text
+}
+// DEMO END
 
 // Tells the thikr line which pray's window we are in; writes only on a change.
 const publishWindow = async ($: EngineInterface, moment: SalahWindow | null) => {
@@ -377,12 +399,9 @@ export const install = (on: On, options: Options) => {
 
       return set('salahShow', String(show), `**Show:** ${showText(show)}`)
     }
-    if (word === 'athan' && first === 'demo') {
-      const place = options.salahPlace
-      if (!place) return { text: 'Set your city first: `/salah city`' }
-
-      return { text: await playDemo($, options, place, timer) }
-    }
+    // DEMO BEGIN
+    if (word === 'athan' && first === 'demo') return { text: await playDemo($) }
+    // DEMO END
     if (word === 'athan' && (first === 'on' || first === 'off')) return set('salahAthan', first === 'on', `**Athan:** ${first}`)
     if (word === 'city') {
       const typed = e.args.trim().slice('city'.length).trim()
@@ -416,6 +435,32 @@ export const install = (on: On, options: Options) => {
 
     return { text: salahHelp() }
   })
+
+  // DEMO BEGIN: connect feature-local starters; shield real input during playback.
+  on('command.run', { command: 'muslim', args: /^\s*demo\s*$/ }, $ => {
+    connectDemo('salah', () => playDemo($))
+    return { text: '' }
+  })
+  on('ui.press', { plugin: 'muslim', element: 'salah-athan-close' }, async ($, e, next) => {
+    if (!demo || !demoMinaretAt(await $.clock.now())) return next(e)
+    closeDemo($)
+    return { element: e.element }
+  })
+  on('ui.message', { element: 'salah-athan' }, async ($, e, next) => {
+    if (!demo || !demoCardAt(await $.clock.now())) return next(e)
+    const m = e.data
+    if (!isCardMessage(m)) return {}
+    if (m.act === 'size') athan.region = { columns: m.columns, rows: m.rows }
+    const columns = m.act === 'pointer' ? (m.columns ?? athan.region.columns) : 0
+    const rows = m.act === 'pointer' ? (m.rows ?? athan.region.rows) : 0
+    if (m.act === 'hide' || (m.act === 'pointer' && m.button === 'left' && athan.props !== undefined && columns > 0 && rows > 0 && isOnClose(athanFrame(athan.props, columns), m.x, m.y, columns, rows))) closeDemo($)
+    return {}
+  })
+  on('ui.focus', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (demo && demoCardAt(await $.clock.now())) return {}
+    return next(e)
+  })
+  // DEMO END
 
   // A reload restores a moment still showing (a real one or `/salah athan demo`).
   // Rendering stays read-only; the clock callback re-arms and normalizes state.
@@ -520,7 +565,7 @@ export const install = (on: On, options: Options) => {
   // The terminal rises, folds to one line, then expires with the moment.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)
-    const playing = await read($, minaret)
+    const playing = (demo && demoMinaretAt(await $.clock.now())) ?? await read($, minaret)
     if (!playing || e.props.hasSurvey || e.surface === 'desktop') return theirs
     const { Box, Button, Text } = $.ui.resolve(e)
     const stage = minaretStage(playing, await $.clock.now())
@@ -560,7 +605,7 @@ export const install = (on: On, options: Options) => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)
     if (e.surface !== 'desktop' || e.props.hasSurvey) return theirs
-    const shown = await read($, card)
+    const shown = (demo && demoCardAt(await $.clock.now())) ?? await read($, card)
     if (!shown) return theirs
     const now = await $.clock.now()
     if (shown.until <= now) return theirs
