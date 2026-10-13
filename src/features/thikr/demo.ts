@@ -24,8 +24,9 @@ export const DEMO_STEPS: readonly { command: string; description: string }[] = [
 
 export const DEMO_DONE = 'Thikr demo done.'
 
-export const demoPrompt = (): string => [
-  'This is the muslim mod\'s thikr demo, started by the user with /thikr demo. Do nothing else.',
+// command: what the user typed, `/thikr demo` or `/muslim demo`.
+export const demoPrompt = (command = '/thikr demo'): string => [
+  `This is the muslim mod's thikr demo, started by the user with ${command}. Do nothing else.`,
   'Run these Bash commands one at a time, in this order, each with exactly the description shown, and wait for each to finish before the next:',
   ...DEMO_STEPS.map(({ command, description }, i) => `${i + 1}. command: ${command} | description: ${description}`),
   `Then answer with exactly one short line: ${DEMO_DONE}`,

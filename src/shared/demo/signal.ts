@@ -13,7 +13,7 @@ export const startDemo = async (feature: DemoFeature) => {
 }
 export const onDemoFailure = (failed?: () => void) => { failure = failed }
 export const failDemo = () => { failure?.() }
-// A feature whose length is not fixed (thikr's real turn) says when it has ended.
+// Each demo started by /muslim demo says when it has ended; the runner never knows their lengths.
 let done: ((feature: DemoFeature) => void) | undefined
 export const onDemoDone = (ended?: (feature: DemoFeature) => void) => { done = ended }
 export const doneDemo = (feature: DemoFeature) => { done?.(feature) }

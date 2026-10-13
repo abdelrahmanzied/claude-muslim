@@ -109,7 +109,7 @@ const armDemo = ($: EngineInterface, shared = false): string => {
     }
   }
   armed.timer = $.clock.after(DEMO_SUBMIT_MS, () => {
-    $.prompt.submit({ text: demoPrompt() }).then(result => result.drop === undefined || disarm(), disarm)
+    $.prompt.submit({ text: demoPrompt(shared ? '/muslim demo' : '/thikr demo') }).then(result => result.drop === undefined || disarm(), disarm)
   })
 
   return demoReply()

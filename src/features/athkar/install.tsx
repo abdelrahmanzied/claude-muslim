@@ -20,9 +20,10 @@ import type { Style } from './look.ts'
 // DEMO BEGIN: imports and transient runner (no saved state or real view).
 import type { Accent } from '../../shared/color/index.ts'
 import { demoDuration, demoReply, demoStep, DEMO_TICK_MS } from './demo.ts'
-import { connectDemo } from '../../shared/demo/signal.ts'
+import { connectDemo, doneDemo } from '../../shared/demo/signal.ts'
 
-let demo: { style: Style; accent: Accent; startedAt: number; timer?: { cancel: () => void } } | undefined
+// shared: started by /muslim demo, which waits for this demo's end.
+let demo: { style: Style; accent: Accent; startedAt: number; shared: boolean; timer?: { cancel: () => void } } | undefined
 const demoArabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
 
 const tickDemo = async ($: EngineInterface) => {
@@ -33,13 +34,16 @@ const tickDemo = async ($: EngineInterface) => {
   if (now - playing.startedAt >= demoDuration(playing.style, FINALE_MS)) {
     playing.timer?.cancel()
     demo = undefined
+    $.ui.invalidate('ui.render')
+    if (playing.shared) doneDemo('athkar')
+    return
   }
   $.ui.invalidate('ui.render')
 }
 
-const playDemo = async ($: EngineInterface, style: Style, accent: Accent) => {
+const playDemo = async ($: EngineInterface, style: Style, accent: Accent, shared = false) => {
   demo?.timer?.cancel()
-  demo = { style, accent, startedAt: await $.clock.now() }
+  demo = { style, accent, startedAt: await $.clock.now(), shared }
   demo.timer = $.clock.every(DEMO_TICK_MS, () => void tickDemo($))
   $.ui.invalidate('ui.render')
 
@@ -287,7 +291,7 @@ export const install = (on: On, options: Options) => {
 
   // DEMO BEGIN: a separate drawing path, registered even with athkar off.
   on('command.run', { command: 'muslim', args: /^\s*demo\s*$/ }, ($, e, next) => {
-    connectDemo('athkar', async () => playDemo($, await $.session.surface() === 'terminal' ? 'frame' : options.athkarStyle, options.color))
+    connectDemo('athkar', async () => playDemo($, await $.session.surface() === 'terminal' ? 'frame' : options.athkarStyle, options.color, true))
     return next(e)
   })
 

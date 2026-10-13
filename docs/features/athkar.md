@@ -37,7 +37,7 @@ Not settable: the font and the text size. The mod API sets neither.
 
 ## Demo
 
-The shared `/muslim demo` connects a transient signal to this same feature-local starter through a demo-only setup hook. It passes no engine handle across files and writes no state.
+The shared `/muslim demo` connects a transient signal to this same feature-local starter through a demo-only setup hook. It passes no engine handle across files and writes no state. Started that way, it reports its end after its folded scene, so the next demo follows it.
 
 `/athkar demo` uses the current desktop style, or Frame in the terminal.
 `/athkar demo sky` is desktop only; the terminal replies that Sky is desktop

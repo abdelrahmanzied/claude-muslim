@@ -53,3 +53,8 @@ test('the prompt says it is the demo, lists each step in order, and asks for one
   expect([...at].sort((a, b) => a - b)).toEqual(at)
   expect(prompt).toContain(`exactly one short line: ${DEMO_DONE}`)
 })
+
+test('the prompt names the command that started it', () => {
+  expect(demoPrompt()).toContain('started by the user with /thikr demo.')
+  expect(demoPrompt('/muslim demo')).toContain('started by the user with /muslim demo.')
+})

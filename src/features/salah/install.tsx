@@ -11,7 +11,7 @@ import { helpHint } from '../../table.ts'
 import { salahHelp } from './help.ts'
 // DEMO BEGIN
 import { demoMoment, demoState } from './demo.ts'
-import { connectDemo } from '../../shared/demo/signal.ts'
+import { connectDemo, doneDemo } from '../../shared/demo/signal.ts'
 // DEMO END
 import { momentState } from './moment.ts'
 import { guessPlace, systemTimeZone } from './location.ts'
@@ -290,14 +290,17 @@ const readPhoto = async ($: EngineInterface): Promise<string | undefined> => {
 }
 
 // DEMO BEGIN: disposable moments; never write the real card, minaret or timers.
-let demo: (ReturnType<typeof demoState> & { timers: { cancel: () => void }[] }) | undefined
+// shared: started by /muslim demo, which waits for this demo's end.
+let demo: (ReturnType<typeof demoState> & { timers: { cancel: () => void }[]; shared: boolean }) | undefined
 const demoCardAt = (now: number) => demo && demo.card.until > now ? demo.card : undefined
 const demoMinaretAt = (now: number) => demo && demo.minaret.until > now ? demo.minaret : undefined
 
 const closeDemo = ($: EngineInterface) => {
-  demo?.timers.forEach(timer => timer.cancel())
+  const closed = demo
+  closed?.timers.forEach(timer => timer.cancel())
   demo = undefined
   $.ui.invalidate('ui.render')
+  if (closed?.shared) doneDemo('salah')
 }
 const tickDemo = async ($: EngineInterface) => {
   const playing = demo
@@ -307,10 +310,10 @@ const tickDemo = async ($: EngineInterface) => {
   if (now >= Math.max(playing.card.until, playing.minaret.until)) closeDemo($)
   else $.ui.invalidate('ui.render')
 }
-const playDemo = async ($: EngineInterface) => {
+const playDemo = async ($: EngineInterface, shared = false) => {
   demo?.timers.forEach(timer => timer.cancel())
   const now = await $.clock.now()
-  const playing = { ...demoState(now), timers: [] as { cancel: () => void }[] }
+  const playing = { ...demoState(now), timers: [] as { cancel: () => void }[], shared }
   demo = playing
   playing.timers.push($.clock.every(FRAME_MS, () => void tickDemo($)))
   // Exact stage boundaries alongside the rise's regular redraws.
@@ -438,7 +441,7 @@ export const install = (on: On, options: Options) => {
 
   // DEMO BEGIN: connect feature-local starters; shield real input during playback.
   on('command.run', { command: 'muslim', args: /^\s*demo\s*$/ }, $ => {
-    connectDemo('salah', () => playDemo($))
+    connectDemo('salah', () => playDemo($, true))
     return { text: '' }
   })
   on('ui.press', { plugin: 'muslim', element: 'salah-athan-close' }, async ($, e, next) => {

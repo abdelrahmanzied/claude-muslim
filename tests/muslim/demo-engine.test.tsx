@@ -1,7 +1,9 @@
 import type { On } from 'claude-code'
 import { expect, mock, test, type Engine } from 'claude-code/testing'
 
-import { DEMO_GAP_MS, DEMO_START_MS, demoReply, demoTiming } from '../../src/demo.ts'
+import { DEMO_GAP_MS, DEMO_START_MS, demoReply } from '../../src/demo.ts'
+import { demoDuration as athkarDuration } from '../../src/features/athkar/demo.ts'
+import { demoDuration as salahDuration, DEMO_FOLDED_MS, DEMO_OPEN_MS } from '../../src/features/salah/demo.ts'
 import { demoPrompt, DEMO_LIMIT_MS, DEMO_SUBMIT_MS } from '../../src/features/thikr/demo.ts'
 import { USAGE_LIMIT } from '../../src/features/thikr/phrases.ts'
 import { stripTashkeel } from '../../src/shared/arabic/visual.ts'
@@ -47,7 +49,15 @@ const fixture = (on: On, surface: 'desktop' | 'terminal' = 'desktop', submit: 'a
 }
 
 // Claude Code appends a note to a prompt a plugin submits, so the turn's text is not the prompt.
-const HOST_PROMPT = `${demoPrompt()}\n\nThis is how Claude Code surfaces a prompt a plugin submits between turns.`
+const HOST_PROMPT = `${demoPrompt('/muslim demo')}\n\nThis is how Claude Code surfaces a prompt a plugin submits between turns.`
+
+// Each demo's own length, read here only to drive the clock; the runner never knows them.
+// 3200: athkar's private finale.
+const demoTiming = (surface: string, style: 'sky' | 'frame') => ({
+  afterThikrMs: DEMO_GAP_MS,
+  athkarMs: athkarDuration(surface === 'terminal' ? 'frame' : style, 3200),
+  salahMs: salahDuration(surface),
+})
 
 const complete = ($: Engine, turnId: string, reason: 'answer' | 'aborted' | 'error' = 'answer', agentId?: string) =>
   $.turn.complete({ answer: 'Thikr demo done.', durationMs: 30_000, isAborted: reason === 'aborted', reason, turnId, ...(agentId ? { agentId } : {}) })
@@ -65,7 +75,7 @@ for (const [surface, style] of [['desktop', 'sky'], ['terminal', 'sky'], ['deskt
     await clock.advance(DEMO_START_MS)
     expect(submitted).toEqual([])
     await clock.advance(DEMO_SUBMIT_MS)
-    expect(submitted).toEqual([demoPrompt()])
+    expect(submitted).toEqual([demoPrompt('/muslim demo')])
     await $.turn.start({ text: HOST_PROMPT, turnId: 'demo-turn' })
 
     const spinner = await $.ui.render({ surface, component: 'Spinner', requestId: 'spinner', props: { word: 'Working', message: null, suffix: '', mode: 'thinking' } })
@@ -112,6 +122,8 @@ for (const [surface, style] of [['desktop', 'sky'], ['terminal', 'sky'], ['deskt
     await clock.advance(1)
     expect(await salah()).toBeUndefined()
     expect(written).toEqual([])
+    // The salah demo ends with its card's deadline on both surfaces; the runner waits for that report.
+    await clock.advance(DEMO_OPEN_MS + DEMO_FOLDED_MS - timing.salahMs)
     expect((await $.command.run(run())).text).toBe(demoReply())
     await ui.unmount()
   })
@@ -142,7 +154,7 @@ for (const submit of ['drop', 'throw'] as const) {
     await $.command.run(run())
     await clock.advance(DEMO_START_MS + DEMO_SUBMIT_MS)
     await clock.advance(90_000)
-    expect(submitted).toEqual([demoPrompt()])
+    expect(submitted).toEqual([demoPrompt('/muslim demo')])
     expect((await $.command.run(run())).text).toBe(demoReply())
   })
 }
@@ -186,5 +198,5 @@ test('whitespace around demo still connects every real feature starter', { optio
   const { clock, submitted } = fixture(on)
   expect((await $.command.run(run('  demo  '))).text).toBe(demoReply())
   await clock.advance(DEMO_START_MS + DEMO_SUBMIT_MS)
-  expect(submitted).toEqual([demoPrompt()])
+  expect(submitted).toEqual([demoPrompt('/muslim demo')])
 })

@@ -11,16 +11,13 @@ import { showText } from '../src/features/salah/today.ts'
 import { install as installSalah } from '../src/features/salah/install.tsx'
 import { install as installThikr } from '../src/features/thikr/install.tsx'
 
-// DEMO BEGIN: shared runner, transient module values only.
+// DEMO BEGIN: shared runner, transient module values only. It plays the demos in order
+// and waits for each to report its end; it knows no demo's length or values.
 import type { EngineInterface } from 'claude-code'
 import { startDemo, onDemoDone, onDemoFailure } from '../src/shared/demo/signal.ts'
-import { DEMO_STEPS, DEMO_GAP_MS, DEMO_START_MS, demoReply, demoTiming } from '../src/demo.ts'
+import { DEMO_STEPS, DEMO_GAP_MS, DEMO_START_MS, demoReply } from '../src/demo.ts'
 
-type DemoRun = {
-  phase: 'thikr' | 'hold' | 'athkar' | 'salah'
-  timing: ReturnType<typeof demoTiming>
-  timer?: { cancel: () => void }
-}
+type DemoRun = { step: number; timer?: { cancel: () => void } }
 let demo: DemoRun | undefined
 
 const stopDemo = (playing: DemoRun) => {
@@ -31,42 +28,29 @@ const stopDemo = (playing: DemoRun) => {
   onDemoDone()
 }
 
-// Signals run after the command has returned. Each connected starter owns its
-// feature's $, and the next duration starts only when that starter has finished.
-// Salah's signal starts the same fixed Fajr moment as `/salah demo`.
-const runDemoStep = async ($: EngineInterface, playing: DemoRun, step: 0 | 1 | 2) => {
+// Signals run after the command has returned; each connected starter owns its feature's $.
+const runDemoStep = async (playing: DemoRun, step: number) => {
   if (demo !== playing) return
+  playing.step = step
   try {
-    await startDemo(DEMO_STEPS[step])
-    if (demo !== playing) return
-    if (step === 1) {
-      playing.timer = $.clock.after(playing.timing.athkarMs + DEMO_GAP_MS, () => {
-        playing.phase = 'salah'
-        void runDemoStep($, playing, 2)
-      })
-    } else if (step === 2) {
-      playing.timer = $.clock.after(playing.timing.salahMs, () => stopDemo(playing))
-    }
+    await startDemo(DEMO_STEPS[step]!)
   } catch {
     stopDemo(playing)
   }
 }
 
-const playDemo = async ($: EngineInterface, style: 'sky' | 'frame'): Promise<string> => {
+const playDemo = async ($: EngineInterface): Promise<string> => {
   if (demo) return '**Muslim demo:** already playing.'
-  const playing: DemoRun = { phase: 'thikr', timing: demoTiming((await $.session.surface()) ?? 'desktop', style) }
+  const playing: DemoRun = { step: 0 }
   demo = playing
-  onDemoFailure(() => { if (playing.phase === 'thikr') stopDemo(playing) })
-  // Thikr's length is its real turn: it says when its usage-limit hold has ended.
+  onDemoFailure(() => stopDemo(playing))
   onDemoDone(feature => {
-    if (demo !== playing || feature !== 'thikr' || playing.phase !== 'thikr') return
-    playing.phase = 'hold'
-    playing.timer = $.clock.after(playing.timing.afterThikrMs, () => {
-      playing.phase = 'athkar'
-      void runDemoStep($, playing, 1)
-    })
+    if (demo !== playing || feature !== DEMO_STEPS[playing.step]) return
+    const next = playing.step + 1
+    if (next >= DEMO_STEPS.length) return stopDemo(playing)
+    playing.timer = $.clock.after(DEMO_GAP_MS, () => void runDemoStep(playing, next))
   })
-  playing.timer = $.clock.after(DEMO_START_MS, () => void runDemoStep($, playing, 0))
+  playing.timer = $.clock.after(DEMO_START_MS, () => void runDemoStep(playing, 0))
 
   return demoReply()
 }
@@ -117,7 +101,7 @@ export const register: Register = (on, options) => {
       // Walk the demo-only setup hooks once; no self-command dispatch.
       await next(e)
 
-      return { text: await playDemo($, settings.athkarStyle) }
+      return { text: await playDemo($) }
     }
     // DEMO END
     if (word === 'color') {
