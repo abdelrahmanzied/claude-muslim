@@ -8,7 +8,7 @@ import type { Options } from '../../config.ts'
 import { withTashkeel } from '../../shared/arabic/visual.ts'
 import { helpHint, statusTable } from '../../table.ts'
 import { athkarHelp } from './help.ts'
-import { CELL_PX, isCardMessage, LINE_PX, REST_PX } from '../../shared/card/card.ts'
+import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, KEY_REST_MS, LEAVE_MS, LINE_PX, REST_PX } from '../../shared/card/card.ts'
 import { bandHeight, closeArea, pixelOf } from './band.ts'
 import type { BandModel } from './band.ts'
 import type { Period } from './data.ts'
@@ -116,14 +116,6 @@ const glowAtTime = (from: number, to: number, ms: number) => {
 
   return from + (to - from) * (1 - (1 - t) ** 3)
 }
-// A focus change this soon after a press on the band is the press's own.
-const FOCUS_GRACE_MS = 600
-// Faded again after this long with no input.
-const IDLE_MS = 90_000
-// How long the pointer may be off the band before it fades.
-const LEAVE_MS = 1000
-// Counting by keys with the pointer off the band: it fades this long after the last key.
-const KEY_REST_MS = 3000
 
 const isStyle = (value: string): value is Style => (STYLES as readonly string[]).includes(value)
 const isPeriod = (value: string): value is Period => value === 'morning' || value === 'evening'

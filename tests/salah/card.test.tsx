@@ -1,7 +1,7 @@
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
-import { cardHeight, frameOf, REST_PX } from '../../src/shared/card/card.ts'
+import { cardHeight, FOCUS_GRACE_MS, frameOf, IDLE_MS, KEY_REST_MS, LEAVE_MS, REST_PX } from '../../src/shared/card/card.ts'
 import { athanFrame, athanSvg, CARD_MS, FOLD_MS } from '../../src/features/salah/card.ts'
 import { FRAME_MS, HOLD_MS, ROWS_COUNT, TOTAL_MS } from '../../src/features/salah/minaret.ts'
 import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
@@ -195,7 +195,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
 // 13:01:45 in Munich; Dhuhr is at 13:02.
 const BEFORE_DHUHR = Date.parse('2026-10-10T11:01:45Z')
 
-test('the real desktop athan folds, reopens for another minute, then closes at its original deadline', { options: MUNICH }, async ($, on) => {
+test('the real desktop athan folds, reopens until idle, then closes at its original deadline', { options: MUNICH }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   const clock = mock.clock(on, { now: BEFORE_DHUHR })
@@ -212,14 +212,87 @@ test('the real desktop athan folds, reopens for another minute, then closes at i
   expect(await desktop.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
   await desktop.post({ act: 'pointer', button: 'left', x: 60, y: 1, columns: 100, rows: 2 }, { in: 'salah-athan' })
   expect(Number((await picture())?.props.height)).toBe(cardHeight() + 20)
-  await clock.advance(FOLD_MS - 1)
+  await clock.advance(IDLE_MS - 1)
   expect(Number((await picture())?.props.height)).toBe(cardHeight() + 20)
   await clock.advance(1)
   expect(Number((await picture())?.props.height)).toBe(REST_PX + 20)
-  await clock.advance(CARD_MS - 2 * FOLD_MS)
+  await clock.advance(CARD_MS - FOLD_MS - IDLE_MS)
   expect(await desktop.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
   expect(await desktop.find({ type: 'Client', key: 'athkar' })).toBeDefined()
 })
+
+for (const scenario of ['leave', 'return', 'idle', 'keys', 'focus', 'grace', 'first', 'first-leave', 'input-idle'] as const) {
+  test(`real athan rest: ${scenario}; expiry stays fixed`, { options: MUNICH }, async ($, on) => {
+    mock.env(on, {})
+    mock.store(on)
+    const clock = mock.clock(on, { now: BEFORE_DHUHR })
+    engineBand(on)
+    on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
+    on('ui.focus', { component: 'AbovePrompt' }, async () => ({}))
+    const states: unknown[] = []
+    on('state.set', { plugin: 'muslim', key: 'salahCard' }, async (_$, e, next) => {
+      states.push(e.value)
+      return next(e)
+    })
+    const desktop = await $.ui.mount(band('desktop'))
+    await clock.advance(15_000)
+    const initial = states[states.length - 1] as { until: number }
+    const picture = () => desktop.find({ in: 'salah-athan', type: 'Svg' })
+    const height = async () => Number((await picture())?.props.height)
+    const post = (act: 'enter' | 'leave') => desktop.post({ act }, { in: 'salah-athan' })
+    const focus = (plugin?: string) => $.ui.focus({ component: 'AbovePrompt', requestId: 'band', plugin, origin: { kind: 'person' } })
+    const first = scenario === 'first' || scenario === 'first-leave'
+    if (!first) {
+      await clock.advance(FOLD_MS)
+      await desktop.post({ act: 'pointer', button: 'left', x: 60, y: 1, columns: 100, rows: 2 }, { in: 'salah-athan' })
+      expect(states[states.length - 1]).toMatchObject({ isFolded: false, foldsAt: BEFORE_DHUHR + 15_000 + FOLD_MS + IDLE_MS, until: initial.until })
+    }
+    expect(await height()).toBe(cardHeight() + 20)
+    if (scenario === 'leave' || scenario === 'first-leave') {
+      if (first) await post('enter')
+      await post('leave')
+      await clock.advance(LEAVE_MS - 1)
+      expect(await height()).toBe(cardHeight() + 20)
+      await clock.advance(1)
+    } else if (scenario === 'return') {
+      await post('leave')
+      await clock.advance(LEAVE_MS - 1)
+      await post('enter')
+      await clock.advance(LEAVE_MS + KEY_REST_MS)
+      expect(await height()).toBe(cardHeight() + 20)
+    } else if (scenario === 'keys') {
+      await post('leave')
+      await desktop.key({ key: 'space', in: 'salah-athan' })
+      await clock.advance(KEY_REST_MS - 1)
+      expect(await height()).toBe(cardHeight() + 20)
+      await desktop.key({ key: 'right', in: 'salah-athan' })
+      await clock.advance(KEY_REST_MS - 1)
+      expect(await height()).toBe(cardHeight() + 20)
+      await clock.advance(1)
+    } else if (scenario === 'focus' || scenario === 'grace') {
+      if (scenario === 'grace') {
+        await clock.advance(FOCUS_GRACE_MS)
+        await focus()
+        expect(await height()).toBe(cardHeight() + 20)
+        await clock.advance(1)
+      } else await clock.advance(FOCUS_GRACE_MS + 1)
+      await focus('muslim')
+      expect(await height()).toBe(cardHeight() + 20)
+      await focus('other-plugin')
+    } else {
+      if (scenario === 'input-idle') {
+        await clock.advance(IDLE_MS - 1)
+        await desktop.key({ key: 'right', in: 'salah-athan' })
+      }
+      await clock.advance((first ? FOLD_MS : IDLE_MS) - 1)
+      expect(await height()).toBe(cardHeight() + 20)
+      await clock.advance(1)
+    }
+    expect(await height()).toBe((scenario === 'return' ? cardHeight() : REST_PX) + 20)
+    expect(states[states.length - 1]).toMatchObject({ isFolded: scenario !== 'return', until: initial.until })
+    for (const state of states) expect(state).toMatchObject({ until: initial.until })
+  })
+}
 
 test('the folded desktop × closes without reopening', { options: MUNICH }, async ($, on) => {
   mock.env(on, {})

@@ -18,8 +18,8 @@ import { writePlace, type Place } from './place.ts'
 import { athanText, isInWindow } from '../../shared/pray/line.ts'
 import { ACCENT_ROWS, FRAME_MS, isDue, LABEL_ROW, minaretRows, minaretStage, ROWS_COUNT } from './minaret.ts'
 import { nudge, reviewRows } from './review.ts'
-import { CELL_PX, isCardMessage, isOnClose, LINE_PX } from '../../shared/card/card.ts'
-import { athanFrame, cardIsFolded, FOLD_MS } from './card.ts'
+import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, isOnClose, KEY_REST_MS, LEAVE_MS, LINE_PX } from '../../shared/card/card.ts'
+import { athanFrame, cardIsFolded } from './card.ts'
 import { clockText, lastPray, nextSalah, type Adjust } from './times.ts'
 import { lineAt, methodOf, settingsTable, showText, timesTable } from './today.ts'
 
@@ -84,6 +84,41 @@ const card = atom({ plugin: 'muslim', key: 'salahCard' } as const, null as Salah
 // The pray line drawn in the footer's mode labels; null when there is none.
 const line = atom({ plugin: 'muslim', key: 'salahLine' } as const, null as string | null)
 const athanShown = atom({ plugin: 'muslim', key: 'salahAthanShown' } as const, null as number | null)
+
+// Pointer and short rest timers belong only to this module load. The idle
+// deadline and folded state remain in the card atom, so reloads keep them.
+const cardView = {
+  isInside: false,
+  isEngaged: false,
+  pressedAt: undefined as number | undefined,
+  until: 0,
+  leave: undefined as { cancel: () => void } | undefined,
+}
+
+const resetCardView = (until = 0) => {
+  cardView.leave?.cancel()
+  cardView.leave = undefined
+  cardView.isInside = false
+  cardView.isEngaged = false
+  cardView.pressedAt = undefined
+  cardView.until = until
+}
+
+// Fold the current moment through its existing persisted update path.
+const restCard = async ($: EngineInterface, until: number) => {
+  cardView.leave?.cancel()
+  cardView.leave = undefined
+  await update($, card, current => current?.until === until
+    ? { ...current, isFolded: true } : current)
+}
+
+// Later input extends only the idle deadline, never past the moment's expiry.
+const wakeCard = async ($: EngineInterface, now: number, reopen: boolean, timer: Timer) => {
+  await update($, card, current => current && current.until > now
+    && (reopen || !cardIsFolded(current, now))
+    ? { ...current, isFolded: false, foldsAt: Math.min(now + IDLE_MS, current.until) } : current)
+  await scheduleMoment($, timer)
+}
 
 // How often the pray line is redrawn: every second inside the countdown
 // window (the live countdown), else every 30 seconds.
@@ -228,12 +263,14 @@ const scheduleMoment = async ($: EngineInterface, timer: Timer) => {
 // The athan moment: its states in $.state and the timers that fold and end it.
 const showAthan = async ($: EngineInterface, pray: SalahMinaret['pray'], time: string, now: number, timer: Timer) => {
   const moment = momentState(pray, time, now)
+  resetCardView(moment.card.until)
   await update($, minaret, () => moment.minaret)
   await update($, card, () => moment.card)
   await scheduleMoment($, timer)
 }
 
 const closeMoment = async ($: EngineInterface, timer: Timer) => {
+  resetCardView()
   await update($, card, () => null)
   await update($, minaret, () => null)
   timer.moment.forEach(handle => handle.cancel())
@@ -255,6 +292,7 @@ const playDemo = async ($: EngineInterface, options: Options, place: Place, time
   const now = await $.clock.now()
   const demo = athanDemo(options, place, now)
   const moment = demoState(demo.pray, demo.time, now)
+  resetCardView(moment.card.until)
   await update($, minaret, () => moment.minaret)
   await update($, card, () => moment.card)
   await scheduleMoment($, timer)
@@ -548,20 +586,61 @@ export const install = (on: On, options: Options) => {
   on('ui.message', { element: 'salah-athan' }, async ($, e) => {
     const m = e.data
     if (!isCardMessage(m)) return {}
-    if (m.act === 'size') athan.region = { columns: m.columns, rows: m.rows }
+    if (m.act === 'size') {
+      athan.region = { columns: m.columns, rows: m.rows }
+      return {}
+    }
+    const now = await $.clock.now()
+    const current = await read($, card)
+    if (!current || current.until <= now) return {}
+    if (cardView.until !== current.until) resetCardView(current.until)
     const columns = m.act === 'pointer' ? (m.columns ?? athan.region.columns) : 0
     const rows = m.act === 'pointer' ? (m.rows ?? athan.region.rows) : 0
     const isClose = m.act === 'hide'
       || (m.act === 'pointer' && m.button === 'left' && athan.props !== undefined && columns > 0 && rows > 0 && isOnClose(athanFrame(athan.props, columns), m.x, m.y, columns, rows))
-    if (isClose) await closeMoment($, timer)
-    else if ((m.act === 'pointer' && m.button === 'left') || (m.act === 'key' && (m.key === 'return' || m.key === 'space'))) {
-      const now = await $.clock.now()
-      await update($, card, current => current && current.until > now && cardIsFolded(current, now)
-        ? { ...current, isFolded: false, foldsAt: now + FOLD_MS } : current)
-      await scheduleMoment($, timer)
+    if (isClose) {
+      await closeMoment($, timer)
+      return {}
+    }
+    if (m.act === 'enter') {
+      cardView.isInside = true
+      cardView.isEngaged = true
+      cardView.leave?.cancel()
+      await wakeCard($, now, false, timer)
+    } else if (m.act === 'leave') {
+      cardView.isInside = false
+      cardView.leave?.cancel()
+      if (cardView.isEngaged && !cardIsFolded(current, now)) {
+        cardView.leave = $.clock.after(LEAVE_MS, () => void restCard($, current.until))
+      }
+    } else if (m.act === 'pointer' || m.act === 'key') {
+      if (m.act === 'pointer') {
+        cardView.pressedAt = now
+        cardView.isInside = true
+        cardView.leave?.cancel()
+      }
+      const reopen = m.act === 'pointer' ? m.button === 'left' : m.key === 'return' || m.key === 'space'
+      if (!cardIsFolded(current, now) || reopen) {
+        cardView.isEngaged = true
+        await wakeCard($, now, reopen, timer)
+        if (m.act === 'key' && !cardView.isInside) {
+          cardView.leave?.cancel()
+          cardView.leave = $.clock.after(KEY_REST_MS, () => void restCard($, current.until))
+        }
+      }
     }
 
     return {}
+  })
+
+  on('ui.focus', { component: 'AbovePrompt' }, async ($, e, next) => {
+    const now = await $.clock.now()
+    if (e.plugin !== 'muslim' && cardView.isEngaged
+      && (cardView.pressedAt === undefined || now - cardView.pressedAt > FOCUS_GRACE_MS)) {
+      await restCard($, cardView.until)
+    }
+
+    return next(e)
   })
 
   // Until a place is saved: one line above the prompt asking for it.

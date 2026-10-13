@@ -7,6 +7,15 @@ import { SIZE_DEFAULT } from '../../config.ts'
 // folding and lighting; a feature gives only what goes inside. Pure: the
 // hooks module and the drawing thread both use it.
 
+// A focus move this soon after a card press belongs to that press.
+export const FOCUS_GRACE_MS = 600
+// Rest after this long with no input.
+export const IDLE_MS = 90_000
+// Rest after the pointer leaves, unless it returns.
+export const LEAVE_MS = 1000
+// Keys with the pointer off: rest this long after the last key.
+export const KEY_REST_MS = 3000
+
 // A cell and a line on the desktop, in CSS pixels.
 export const CELL_PX = 8.4
 export const LINE_PX = 20
