@@ -21,7 +21,7 @@ export const athanDemo = (options: Options, place: Place, now: number) =>
   demoMoment(nextSalah(place, methodOf(options, place), options.salahAdjust, now), place.timeZone)
 
 // Open this long on the desktop, then folded this long on both surfaces.
-export const DEMO_OPEN_MS = 4000
+export const DEMO_OPEN_MS = 5000
 export const DEMO_FOLDED_MS = 3000
 
 // The same states as a real moment, with the demo's deadlines.

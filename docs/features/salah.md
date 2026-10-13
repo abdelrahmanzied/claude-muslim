@@ -59,7 +59,7 @@ Prayer times for the user's city, calculated on their machine with
 ## Commands
 
 `/salah` shows a title, then two tables under their own headings: today's times (the next prayer marked, a moved prayer with its minutes), then the settings (city, method, show, athan, adjust), each with the command that changes it, and a hint to `/salah help`.
-`/salah help` is a table of every subcommand: `show always` · `<minutes>` · `off`, `athan on` · `off`, `athan demo` (plays the athan moment now for the next prayer, changes no settings or store values; plays the same show, fold and close stages on desktop and terminal on a short clock: open 4 s, folded 3 s, then gone), `city` (the setup question) and
+`/salah help` is a table of every subcommand: `show always` · `<minutes>` · `off`, `athan on` · `off`, `athan demo` (plays the athan moment now for the next prayer, changes no settings or store values; plays the same show, fold and close stages on desktop and terminal on a short clock: open 5 s, folded 3 s, then gone), `city` (the setup question) and
 `city <name or lat, lng>`, `method <auto or name>`, `adjust` and
 `adjust <prayer> <±min>` (any whole number of minutes, such as `+90` or `-120`; missing or malformed minutes are an error). An unknown word answers with the table.
 `/muslim help` shows the tables of thikr and salah; `/muslim help salah` only salah's.
