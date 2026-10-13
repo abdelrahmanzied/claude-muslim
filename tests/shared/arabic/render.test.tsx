@@ -8,7 +8,7 @@ const band = (surface: 'terminal' | 'desktop') => ({
 })
 
 for (const program of ['Apple_Terminal', 'WarpTerminal', 'unknown']) {
-  test(`${program}: only terminal Arabic is transformed, engine text stays`, { options: { thikrMode: 'salawat' } }, async ($, on) => {
+  test(`${program}: only terminal Arabic is transformed, engine text stays`, { options: { athkar: false, thikrMode: 'salawat' } }, async ($, on) => {
     mock.env(on, { TERM_PROGRAM: program })
     mock.store(on, { arabicTerminals: {} })
     mock.clock(on, { now: 0 })
@@ -48,7 +48,7 @@ for (const program of ['Apple_Terminal', 'WarpTerminal', 'unknown']) {
 }
 
 // Render-tree evidence only: this does not emulate a terminal's cell-diff repaint.
-test('thikr uses the saved current-terminal mode and desktop keeps logical Arabic', { options: { thikrMode: 'salawat' } }, async ($, on) => {
+test('thikr uses the saved current-terminal mode and desktop keeps logical Arabic', { options: { athkar: false, thikrMode: 'salawat' } }, async ($, on) => {
   mock.env(on, { TERM_PROGRAM: 'Apple_Terminal' })
   mock.store(on, { arabicTerminals: { Apple_Terminal: 'joined' } })
   mock.clock(on, { now: 0 })

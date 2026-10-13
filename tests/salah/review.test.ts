@@ -15,7 +15,7 @@ describe('review', () => {
     ])
   })
 
-  test('nudge moves one pray beyond an hour in either direction', async () => {
+  test('nudge moves one pray beyond an hour in either direction', { options: { athkar: false } }, async () => {
     expect(nudge(NO_ADJUST, 'fajr', 1).fajr).toBe(1)
     expect(nudge({ ...NO_ADJUST, fajr: 60 }, 'fajr', 1).fajr).toBe(61)
     expect(nudge({ ...NO_ADJUST, fajr: -60 }, 'fajr', -1).fajr).toBe(-61)

@@ -77,7 +77,7 @@ const answerCities = (on: On, cities: unknown[]) =>
 
 const MUNICH = { name: 'Munich, Germany', country: 'DE', latitude: 48.14, longitude: 11.58, timeZone: 'Europe/Berlin' }
 
-test('before setup the band asks for the place; Not now puts it off for good', async ($, on) => {
+test('before setup the band asks for the place; Not now puts it off for good', { options: { athkar: false } }, async ($, on) => {
   mock.env(on, {})
   engineBand(on)
   // Stands for the plugin's store.
@@ -97,7 +97,7 @@ test('before setup the band asks for the place; Not now puts it off for good', a
   expect(stored).toEqual({ salahSetupLater: true })
 })
 
-test('another city: typed in any language, found by Claude, saved', async ($, on) => {
+test('another city: typed in any language, found by Claude, saved', { options: { athkar: false } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   engineBand(on)
@@ -112,7 +112,7 @@ test('another city: typed in any language, found by Claude, saved', async ($, on
   expect(written).toEqual([{ key: 'muslim.salahPlace', value: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' }])
 })
 
-test('/salah city with no name asks the setup question', async ($, on) => {
+test('/salah city with no name asks the setup question', { options: { athkar: false } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   const written = settingsWriter(on)
@@ -125,7 +125,7 @@ test('/salah city with no name asks the setup question', async ($, on) => {
   expect(written[0]?.value).toBe('Munich, Germany; 48.14, 11.58; Europe/Berlin; DE')
 })
 
-test('a saved place shows no setup band', { options: { salahPlace: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' } }, async ($, on) => {
+test('a saved place shows no setup band', { options: { athkar: false, salahPlace: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   engineBand(on)
@@ -140,7 +140,7 @@ const AT_MUNICH = { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berli
 const prayRow = async (shown: { find: (query: { key: string }) => Promise<{ text?: string } | undefined> }) =>
   (await shown.find({ key: 'salah-line' }))?.text
 
-test('review buttons cross the old minute bounds and save on both surfaces', { options: { ...AT_MUNICH, salahAdjust: '0 0 0 60 0 -60' } }, async ($, on) => {
+test('review buttons cross the old minute bounds and save on both surfaces', { options: { athkar: false, ...AT_MUNICH, salahAdjust: '0 0 0 60 0 -60' } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
@@ -201,7 +201,7 @@ test('Skip closes the review form without saving', { options: AT_MUNICH }, async
   await shown.unmount()
 })
 
-test('always: the pray row shows the next pray, then counts down, and never toasts', { options: { ...AT_MUNICH, salahShow: 'always' } }, async ($, on) => {
+test('always: the pray row shows the next pray, then counts down, and never toasts', { options: { athkar: false, ...AT_MUNICH, salahShow: 'always' } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   // 13:30 in Munich on 10 October 2026; Asr is at 15:59.
@@ -222,7 +222,7 @@ test('always: the pray row shows the next pray, then counts down, and never toas
   await shown.unmount()
 })
 
-test('always: the call shows once the pray is in, and never toasts', { options: { ...AT_MUNICH, salahShow: 'always' } }, async ($, on) => {
+test('always: the call shows once the pray is in, and never toasts', { options: { athkar: false, ...AT_MUNICH, salahShow: 'always' } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   // 15:58 in Munich, a minute before Asr.
@@ -239,7 +239,7 @@ test('always: the call shows once the pray is in, and never toasts', { options: 
   await shown.unmount()
 })
 
-test('off leaves no pray row', { options: { ...AT_MUNICH, salahShow: 'off' } }, async ($, on) => {
+test('off leaves no pray row', { options: { athkar: false, ...AT_MUNICH, salahShow: 'off' } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   engineBand(on)
@@ -250,7 +250,7 @@ test('off leaves no pray row', { options: { ...AT_MUNICH, salahShow: 'off' } }, 
   await shown.unmount()
 })
 
-test('show off hides a line left by the last load and clears it after drawing, not during it', { options: { ...AT_MUNICH, salahShow: 'off' } }, async ($, on) => {
+test('show off hides a line left by the last load and clears it after drawing, not during it', { options: { athkar: false, ...AT_MUNICH, salahShow: 'off' } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
@@ -277,7 +277,7 @@ test('show off hides a line left by the last load and clears it after drawing, n
 const leftLine = (on: On, text: string | null) =>
   on('state.get', { plugin: 'muslim', key: 'salahLine' }, async () => ({ value: { value: text, version: 1 } }))
 
-test('after a change to minutes, a line left by the last load is not drawn outside the window', { options: { ...AT_MUNICH, salahShow: '20' } }, async ($, on) => {
+test('after a change to minutes, a line left by the last load is not drawn outside the window', { options: { athkar: false, ...AT_MUNICH, salahShow: '20' } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
@@ -290,7 +290,7 @@ test('after a change to minutes, a line left by the last load is not drawn outsi
   await shown.unmount()
 })
 
-test('after off then always, the line shows at once, before any timer', { options: { ...AT_MUNICH, salahShow: 'always' } }, async ($, on) => {
+test('after off then always, the line shows at once, before any timer', { options: { athkar: false, ...AT_MUNICH, salahShow: 'always' } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
@@ -333,7 +333,7 @@ test('show minutes: the call shows once the pray is in, then the line clears', {
   await shown.unmount()
 })
 
-test('fewer show minutes move the window; no athan skips the call', { options: { ...AT_MUNICH, salahShow: '5', salahAthan: false } }, async ($, on) => {
+test('fewer show minutes move the window; no athan skips the call', { options: { athkar: false, ...AT_MUNICH, salahShow: '5', salahAthan: false } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:44:00Z') })
@@ -372,7 +372,7 @@ test('the countdown ticks every second in the window, every 30 s outside it', { 
   await shown.unmount()
 })
 
-test('when the pray comes in a minaret rises once, then the call stays in the pray row', { options: AT_MUNICH }, async ($, on) => {
+test('when the pray comes in a minaret rises once, folds, and leaves the footer independent', { options: AT_MUNICH }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   // 15:58:45 in Munich; Asr is at 15:59.
@@ -394,19 +394,24 @@ test('when the pray comes in a minaret rises once, then the call stays in the pr
   expect(await shown.find({ type: 'Text', text: '   ☾   ' })).toBeDefined()
   expect(await shown.find({ type: 'Text', text: 'حان وقت صلاة العصر' })).toBeDefined()
 
-  // About three seconds in all, then only the pray row keeps the call.
+  // About three seconds in all, then the band folds and the footer keeps its call.
   await clock.advance(1_000)
   expect(await shown.find({ type: 'Text', text: '   ☾   ' })).toBeUndefined()
   expect(await prayRow(modes)).toBe('حان وقت صلاة العصر')
 
-  // Never again for the same pray.
+  expect(await shown.find({ key: 'salah-athan-row' })).toBeDefined()
+  await shown.press({ key: 'salah-athan-close' })
+  expect(await shown.find({ key: 'salah-athan-row' })).toBeUndefined()
+  expect(await prayRow(modes)).toBe('حان وقت صلاة العصر')
+
+  // Never again for the same pray, including after closing during its freshness window.
   await clock.advance(60_000)
   expect(await shown.find({ type: 'Text', text: ' ▐███▌ ' })).toBeUndefined()
   await modes.unmount()
   await shown.unmount()
 })
 
-test('no minaret with athan off, nor during a survey', { options: { ...AT_MUNICH, salahAthan: false } }, async ($, on) => {
+test('no minaret with athan off, nor during a survey', { options: { athkar: false, ...AT_MUNICH, salahAthan: false } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:58:45Z') })
@@ -487,7 +492,7 @@ test('the review form shows in the band while the pray line shows in the footer'
   await shown.unmount()
 })
 
-test('the countdown ticks from the load alone: no prompt draw needed (off, then show 60)', { options: { ...AT_MUNICH, salahShow: '60' } }, async ($, on) => {
+test('the countdown ticks from the load alone: no prompt draw needed (off, then show 60)', { options: { athkar: false, ...AT_MUNICH, salahShow: '60' } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   // 14:30 in Munich: Asr at 15:59 is 89 minutes off, the 60-minute window opens at 14:59.
@@ -510,3 +515,57 @@ test('the countdown ticks from the load alone: no prompt draw needed (off, then 
   expect(toasts).toEqual([])
   await shown.unmount()
 })
+
+for (const surface of ['terminal', 'desktop'] as const) {
+  for (const [color, theme, expected] of [['orange', 'light', 'claude'], ['orange', 'dark', 'claude'], ['green', 'light', '#0b7a50'], ['green', 'dark', '#1a9466']] as const) {
+    test(`salah setup color ${surface} ${color} ${theme}`, { options: { athkar: false, color,  } }, async ($, on) => {
+      mock.env(on, {})
+      mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+      mock.clock(on, { now: Date.parse('2026-10-10T12:00:00Z') })
+      on('config.list', async () => ({ value: [{ key: 'theme', label: 'Theme', kind: 'choice', value: theme, provider: { plugin: 'engine', tier: 'core' }, isLocked: false }] }))
+      on('ui.render', { component: 'AbovePrompt' }, async ($, e) => {
+        const { Box } = $.ui.resolve(e)
+        return <Box />
+      })
+
+      const shown = await $.ui.mount({ plugin: 'muslim', surface, component: 'AbovePrompt', requestId: 'colors', props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} } })
+      const accent = (await shown.findAll({ type: 'Text' }))[0]
+      expect(accent?.props.color).toBe(expected)
+      await shown.unmount()
+    })
+  }
+}
+
+for (const [color, expected] of [['orange', 'claude'], ['blue', '#4a7fc0']] as const) {
+  test(`salah prayer, review and minaret accents follow ${color}`, { options: { ...AT_MUNICH, color, athkar: false, salahShow: 'always' } }, async ($, on) => {
+    mock.env(on, {})
+    mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+    const clock = mock.clock(on, { now: Date.parse('2026-10-10T12:00:00Z') })
+    on('config.list', async () => ({ value: [] }))
+    engineBand(on)
+    engineModes(on)
+    const run = (args: string) => $.command.run({ command: 'salah', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+    for (const surface of SURFACES) {
+      const modes = await $.ui.mount(footer(surface))
+      const line = (await modes.findAll({ type: 'Text' })).find(row => row.props.bold === true)
+      expect(line?.props.color).toBe(expected)
+      expect((await modes.find({ type: 'Text', text: 'focus' }))?.props.color).toBeUndefined()
+      await modes.unmount()
+      await run('adjust')
+      const review = await $.ui.mount(band(surface))
+      const heading = (await review.findAll({ type: 'Text' }))[0]
+      expect(heading?.text).toContain("Check today's times")
+      expect(heading?.props.color).toBe(expected)
+      expect((await review.find({ type: 'Text', text: 'Fajr' }))?.props.color).toBeUndefined()
+      await review.press({ key: 'salah-skip' })
+      await review.unmount()
+    }
+    await run('demo')
+    const minaret = await $.ui.mount(band('terminal'))
+    await clock.advance(2500)
+    expect((await minaret.find({ type: 'Text', text: '   ☾   ' }))?.props.color).toBe(expected)
+    expect((await minaret.find({ type: 'Text', text: 'حان وقت صلاة الفجر' }))?.props.color).toBe(expected)
+    expect((await minaret.find({ type: 'Text', text: ' ▐███▌ ' }))?.props.color).toBeUndefined()
+    await minaret.unmount()
+  })
+}

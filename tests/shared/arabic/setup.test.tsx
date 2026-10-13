@@ -12,7 +12,7 @@ const engineBand = (on: On) => on('ui.render', { component: 'AbovePrompt' }, asy
   const { Text } = $.ui.resolve(e)
   return <Text key="engine-band">engine band</Text>
 })
-const OPTIONS = { thikr: false, tashkeel: true, salahShow: 'off', salahPlace: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' }
+const OPTIONS = { athkar: false, thikr: false, tashkeel: true, salahShow: 'off', salahPlace: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' }
 const sample = 'بِسْمِ اللَّهِ'
 const rows = { type: 'Button' as const }
 
@@ -126,7 +126,7 @@ test('/muslim status shows this terminal saved Arabic mode', { options: OPTIONS 
   mock.store(on, { arabicTerminals: { WarpTerminal: 'reversed' } })
   on('session.surface', async () => ({ value: 'terminal' }))
   const text = (await $.command.run(status)).text
-  expect(text).toContain('| Terminal Arabic | reversed for WarpTerminal | `/muslim terminal-arabic` |')
+  expect(text).toContain('| Terminal Arabic | How Arabic shows in this terminal | reversed for WarpTerminal |')
 })
 
 test('/muslim status shows the default when this terminal has no answer, and nothing on desktop', { options: OPTIONS }, async ($, on) => {
@@ -134,7 +134,23 @@ test('/muslim status shows the default when this terminal has no answer, and not
   mock.store(on)
   let surface: 'terminal' | 'desktop' = 'terminal'
   on('session.surface', async () => ({ value: surface }))
-  expect((await $.command.run(status)).text).toContain('| Terminal Arabic | plain (default, not chosen yet) for Apple_Terminal |')
+  expect((await $.command.run(status)).text).toContain('| Terminal Arabic | How Arabic shows in this terminal | plain (default, not chosen yet) for Apple_Terminal |')
   surface = 'desktop'
-  expect((await $.command.run(status)).text).toContain('| Terminal Arabic | terminal only |')
+  expect((await $.command.run(status)).text).toContain('| Terminal Arabic | How Arabic shows in this terminal | terminal only |')
 })
+
+for (const [color, expected] of [['orange', 'claude'], ['gold', '#c99a1f']] as const) {
+  test(`terminal survey label follows ${color} without coloring the other text`, { options: { athkar: false, color } }, async ($, on) => {
+    mock.env(on, {})
+    mock.store(on)
+    on('config.list', async () => ({ value: [{ key: 'theme', label: 'Theme', kind: 'choice', value: 'light', provider: { plugin: 'engine', tier: 'core' }, isLocked: false }] }))
+    on('ui.render', { component: 'AbovePrompt' }, async ($, e) => {
+      const { Box } = $.ui.resolve(e)
+      return <Box />
+    })
+    const shown = await $.ui.mount({ plugin: 'muslim', surface: 'terminal', component: 'AbovePrompt', requestId: 'survey-colors', props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} } })
+    expect((await shown.find({ type: 'Text', text: 'muslim' }))?.props.color).toBe(expected)
+    expect((await shown.find({ type: 'Text', text: 'Press 1–3' }))?.props.color).toBeUndefined()
+    await shown.unmount()
+  })
+}

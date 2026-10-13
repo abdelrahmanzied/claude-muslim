@@ -1,3 +1,5 @@
+import { readColor, type Accent } from './shared/color/index.ts'
+import type { Style } from './features/athkar/look.ts'
 import { METHODS, PRAYS, type MethodId, type Pray } from './features/salah/methods.ts'
 import { readPlace, type Place } from './features/salah/place.ts'
 import type { Speed } from './features/thikr/rotation.ts'
@@ -9,6 +11,9 @@ export type Options = {
   tashkeel: boolean
   thikrEnd: boolean
   thikrMode: Mode
+  athkar: boolean
+  athkarStyle: Style
+  color: Accent
   salahShow: Show
   salahAthan: boolean
   salahPlace: Place | undefined
@@ -32,6 +37,10 @@ export const readOptions = (raw: Record<string, unknown>): Options => ({
   tashkeel: raw.tashkeel !== false,
   thikrEnd: raw.thikrEnd !== false,
   thikrMode: raw.thikrMode === 'salawat' ? 'salawat' : 'all',
+  athkar: raw.athkar !== false,
+  // 'outline' is the old name of 'frame'.
+  athkarStyle: raw.athkarStyle === 'frame' || raw.athkarStyle === 'outline' ? 'frame' : 'sky',
+  color: readColor(raw.color),
   salahShow: readShow(raw),
   // "salahAdhan" is the old saved key name (data, read as is).
   salahAthan: (raw.salahAthan ?? raw.salahAdhan) !== false,
@@ -39,6 +48,9 @@ export const readOptions = (raw: Record<string, unknown>): Options => ({
   salahMethod: isMethod(raw.salahMethod) ? raw.salahMethod : 'auto',
   salahAdjust: readAdjust(raw.salahAdjust),
 })
+
+// The athkar's text size in pixels: fixed. A long thikr shrinks to fit the box; nothing else changes it.
+export const SIZE_DEFAULT = 14
 
 // `auto`, or whole seconds from SPEED_MIN to SPEED_MAX; anything else is auto.
 export const readSpeed = (value: unknown): Speed => {

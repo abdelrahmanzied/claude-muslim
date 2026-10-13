@@ -78,6 +78,10 @@ At draw time, each feature should first check that `e.surface === 'terminal'`, r
 
 `/muslim tashkeel on | off — show or hide Arabic diacritics on desktop (the terminal never shows them)` defaults to on. The setting applies on desktop and every non-terminal surface only. Terminal Arabic always has tashkeel stripped, regardless of mode or setting. Stored/authored words are never changed.
 
+## Athkar in the terminal
+
+The athkar reader always draws the Frame look in the terminal. The Sky look is desktop only: `athkarStyle` applies to the desktop app, and `/athkar style` in a terminal answers that and changes nothing. The plugin-wide main color (`color`, `/muslim color`, default Claude orange) applies on both, from `src/shared/color/`. Its Arabic follows the shared treatment above, like every feature.
+
 ## Decisions and limits
 
 - Modes are per terminal, rather than one value per machine, because Apple Terminal and Warp need different treatments on the same machine.

@@ -1,0 +1,13 @@
+{
+  "name": "claude-muslim",
+  "private": true,
+  "scripts": {
+    "typecheck": "tsc -p .",
+    "test": "claude plugin test .",
+    "validate": "claude plugin validate .",
+    "check": "npm run validate && npm run test && npm run typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

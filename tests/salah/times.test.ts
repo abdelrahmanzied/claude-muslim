@@ -19,15 +19,15 @@ const day = (where: typeof MUNICH, method: Parameters<typeof timesOn>[1], at = O
 }
 
 describe('timesOn', () => {
-  test('Munich, Muslim World League, in local time', async () => {
+  test('Munich, Muslim World League, in local time', { options: { athkar: false } }, async () => {
     expect(day(MUNICH, 'mwl')).toEqual(['05:42', '07:26', '13:02', '15:59', '18:35', '20:12'])
   })
 
-  test('Cairo, Egyptian General Authority', async () => {
+  test('Cairo, Egyptian General Authority', { options: { athkar: false } }, async () => {
     expect(day(CAIRO, 'egypt')).toEqual(['05:27', '06:54', '12:43', '16:00', '18:30', '19:47'])
   })
 
-  test('Makkah, Umm al-Qura: Isha 90 minutes after Maghrib, 120 in Ramadan', async () => {
+  test('Makkah, Umm al-Qura: Isha 90 minutes after Maghrib, 120 in Ramadan', { options: { athkar: false } }, async () => {
     const before = timesOn(MAKKAH, 'ummAlQura', NO_ADJUST, OCT_10)
     const ramadan = timesOn(MAKKAH, 'ummAlQura', NO_ADJUST, Date.parse('2027-02-20T10:00:00Z'))
 
@@ -40,7 +40,7 @@ describe('timesOn', () => {
       .toEqual(['05:42', '07:26', '13:02', '16:04', '18:35', '20:02'])
   })
 
-  test('the local day decides the date, not UTC', async () => {
+  test('the local day decides the date, not UTC', { options: { athkar: false } }, async () => {
     // 23:30 in Cairo on 10 October is 20:30 UTC; just after midnight is 11 October.
     const late = timesOn(CAIRO, 'egypt', NO_ADJUST, Date.parse('2026-10-10T20:30:00Z'))
     const next = timesOn(CAIRO, 'egypt', NO_ADJUST, Date.parse('2026-10-10T21:30:00Z'))
@@ -51,7 +51,7 @@ describe('timesOn', () => {
 })
 
 describe('nextPray and lastPray', () => {
-  test('mid-morning: Dhuhr is next, Fajr was last', async () => {
+  test('mid-morning: Dhuhr is next, Fajr was last', { options: { athkar: false } }, async () => {
     expect(nextPray(MUNICH, 'mwl', NO_ADJUST, Date.parse('2026-10-10T08:00:00Z')).pray).toBe('dhuhr')
     expect(lastPray(MUNICH, 'mwl', NO_ADJUST, Date.parse('2026-10-10T08:00:00Z')).pray).toBe('fajr')
   })
@@ -73,12 +73,12 @@ describe('nextPray and lastPray', () => {
 })
 
 describe('clock', () => {
-  test('reads summer and winter time in the zone', async () => {
+  test('reads summer and winter time in the zone', { options: { athkar: false } }, async () => {
     expect(localTime(Date.parse('2026-07-01T12:00:00Z'), 'Europe/Berlin').hour).toBe(14)
     expect(localTime(Date.parse('2026-12-01T12:00:00Z'), 'Europe/Berlin').hour).toBe(13)
   })
 
-  test('Ramadan 1448 is the ninth Hijri month', async () => {
+  test('Ramadan 1448 is the ninth Hijri month', { options: { athkar: false } }, async () => {
     expect(hijriMonth(Date.parse('2027-02-20T10:00:00Z'), 'Asia/Riyadh')).toBe(9)
     expect(hijriMonth(OCT_10, 'Asia/Riyadh')).not.toBe(9)
   })

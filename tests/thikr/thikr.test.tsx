@@ -273,13 +273,15 @@ test('/thikr shows status and help', async $ => {
     presentation: { isFullscreen: false, columns: 80 },
   })
 
-  expect(ran.text).toContain('thikr on · speed auto · end on · mode all')
-  expect(ran.text).toContain('/thikr speed')
+  expect(ran.text?.split('\n').slice(0, 2)).toEqual(['**Muslim › Thikr**', 'To change a setting or see every option: `/thikr help`'])
+  expect(ran.text).toContain('| Speed | How long each phrase stays | auto |')
+  expect(ran.text).toContain('| Mode | Which phrases play | all |')
 })
 
 test('/thikr unknown subcommands show help', async $ => {
   const ran = await $.command.run({ command: 'thikr', args: 'tashkeel off', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
-  expect(ran.text).toContain('/thikr                    status')
+  expect(ran.text?.split('\n')[0]).toBe('**Muslim › Thikr › Help**')
+  expect(ran.text).toContain('| `/thikr speed` |')
 })
 
 test('/thikr speed refuses out-of-range values', async $ => {
@@ -293,7 +295,7 @@ test('/thikr speed refuses out-of-range values', async $ => {
   expect(ran.text).toContain('auto, or a whole number of seconds from 1 to 60')
 })
 
-test('a usage limit shows hasbiyallah above the prompt until it resets', async ($, on) => {
+test('a usage limit shows hasbiyallah above the prompt until it resets', { options: { athkar: false } }, async ($, on) => {
   mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T12:00:00Z') })
@@ -327,3 +329,55 @@ test('a usage limit shows hasbiyallah above the prompt until it resets', async (
   expect(await cleared.find({ type: 'Text', text: USAGE_LIMIT })).toBeUndefined()
   await cleared.unmount()
 })
+
+test('a response reporting a full usage window shows hasbiyallah before any turn fails', { options: { athkar: false } }, async ($, on) => {
+  mock.clock(on, { now: Date.parse('2026-10-10T12:00:00Z') })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+  mock.env(on, {})
+  on('session.measure', async (_$, e) => ({ changed: e.changed }))
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e) => {
+    const { Box } = $.ui.resolve(e)
+
+    return <Box />
+  })
+  const band = {
+    surface: 'terminal' as const,
+    component: 'AbovePrompt' as const,
+    requestId: 'band',
+    props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} },
+  }
+  const context = { window: 200_000 }
+
+  // Not full: nothing.
+  await $.session.measure({ context, rateLimits: [{ kind: 'five_hour', percentUsed: 80 }], changed: ['rateLimits'] })
+  const before = await $.ui.mount({ plugin: 'muslim', ...band })
+  expect(await before.find({ type: 'Text', text: stripTashkeel(USAGE_LIMIT) })).toBeUndefined()
+  await before.unmount()
+
+  await $.session.measure({ context, rateLimits: [{ kind: 'five_hour', percentUsed: 100, resetsAt: '2026-10-10T13:00:00Z' }], changed: ['rateLimits'] })
+  const shown = await $.ui.mount({ plugin: 'muslim', ...band })
+  expect(await shown.find({ type: 'Text', text: stripTashkeel(USAGE_LIMIT) })).toBeDefined()
+  await shown.unmount()
+})
+
+for (const surface of ['terminal', 'desktop'] as const) {
+  for (const [color, theme, expected] of [['orange', 'light', 'claude'], ['orange', 'dark', 'claude'], ['green', 'light', '#0b7a50'], ['green', 'dark', '#1a9466']] as const) {
+    test(`usage-limit color ${surface} ${color} ${theme}`, { options: { athkar: false, color,  } }, async ($, on) => {
+      mock.env(on, {})
+      mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+      mock.clock(on, { now: Date.parse('2026-10-10T12:00:00Z') })
+      on('config.list', async () => ({ value: [{ key: 'theme', label: 'Theme', kind: 'choice', value: theme, provider: { plugin: 'engine', tier: 'core' }, isLocked: false }] }))
+      on('ui.render', { component: 'AbovePrompt' }, async ($, e) => {
+        const { Box } = $.ui.resolve(e)
+        return <Box />
+      })
+      on('session.usage', async () => ({ value: { startedAt: 0, context: { window: 200_000 }, rateLimits: [{ kind: 'five_hour', percentUsed: 100, resetsAt: '2026-10-10T13:00:00Z' }] } }))
+      on('classic.StopFailure', async () => ({}))
+      await $.classic.StopFailure({ error: 'rate_limit' })
+      const shown = await $.ui.mount({ plugin: 'muslim', surface, component: 'AbovePrompt', requestId: 'colors', props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} } })
+      const accent = await shown.find({ type: 'Text', text: surface === 'terminal' ? stripTashkeel(USAGE_LIMIT) : USAGE_LIMIT })
+      expect(accent?.props.color).toBe(expected)
+      await shown.unmount()
+    })
+  }
+}

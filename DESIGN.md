@@ -4,20 +4,14 @@ The shared base every feature follows, and the index to each feature's own desig
 
 ## Feature index
 
-| Feature | Command | Spec | Design | Status |
-| --- | --- | --- | --- | --- |
-| Thikr line | `/thikr` | [thikr.md](docs/features/thikr.md) | [thikr-design.md](docs/features/thikr-design.md): text only | 0.2.0 |
-| Salah | `/salah` | [salah.md](docs/features/salah.md) | [salah-design.md](docs/features/salah-design.md): text, richer athan moment | Unreleased |
-| Morning and evening athkar | `/athkar` | in progress in another branch | in progress | planned |
+| Feature | Command | Spec | Design |
+| --- | --- | --- | --- |
+| Thikr line | `/thikr` | [thikr.md](docs/features/thikr.md) | [thikr-design.md](docs/features/thikr-design.md): text only |
+| Morning and evening athkar | `/athkar` | [athkar.md](docs/features/athkar.md) | [athkar-design.md](docs/features/athkar-design.md): a drawn reader (Client module, desktop Svg sky) |
+| Salah | `/salah` | [salah.md](docs/features/salah.md) | [salah-design.md](docs/features/salah-design.md): text, richer athan moment |
+| Terminal Arabic check ([shared guide](docs/terminal.md)) | `/muslim terminal-arabic` | [arabic-fix.md](docs/features/arabic-fix.md) | [arabic-fix-design.md](docs/features/arabic-fix-design.md) |
 
 Everything below is shared by every feature. A feature's doc may add to it, never contradict it.
-
-## Feature index
-
-| Feature | Command | Spec | Design | Status |
-| --- | --- | --- | --- | --- |
-| Thikr line | `/thikr` | [thikr.md](docs/features/thikr.md) | [thikr-design.md](docs/features/thikr-design.md) | 0.2.0 |
-| Terminal Arabic check ([shared guide](docs/terminal.md)) | `/muslim terminal-arabic` | [arabic-fix.md](docs/features/arabic-fix.md) | [arabic-fix-design.md](docs/features/arabic-fix-design.md) | Unreleased |
 
 ## 1. Principles
 
@@ -26,7 +20,6 @@ Everything below is shared by every feature. A feature's doc may add to it, neve
 3. **Authentic content.** Every phrase is authored data with tashkeel and, where it has one, a source (Quran ayah or Hisn al-Muslim number). Nothing is generated at runtime. Display may strip tashkeel; it never changes words.
 4. **No scores.** We never count the user's worship, show streaks, rewards or guilt. Counting exists only where the user counts themselves (athkar reader), and stays private on their machine.
 5. **One feature, one switch.** Every feature can be turned off on its own, in `/config` and by its command. Off means its hooks do nothing.
-
 6. **Each feature owns its visual means.** Text in Claude's font, size and colors is the default. A feature may use richer means (images, SVG, animation) only where its design doc says so and why. Anything drawn must work on every surface the feature targets, with a text fallback in the terminal when the richer surface is desktop-only, and must follow the theme and zoom.
 
 ## 2. Surfaces
@@ -46,13 +39,17 @@ Pick the lightest surface that does the job. Each comes from the mod API (`/plug
 
 Richer surfaces (Pane, Image, Svg, Raster, Client modules) are chosen per feature in its design doc, not here. Passive content does not get a Pane.
 
+Desktop cards above the prompt use `src/shared/card/` for their size, frame, ×, hover, lighting and input. Each feature supplies its content. Only one of these cards shows at a time: the athan card takes the athkar band's place until it closes or expires. Terminal surfaces are unchanged.
+
+The shared card in `src/shared/card/card.ts` also holds the leave, key-rest, idle and focus-grace timings.
+
 ## 3. Color
 
-Wherever text is used, use theme keys, never hex, so every theme (light, dark, color-blind, ANSI) stays correct.
+The main color is one plugin-wide setting: `/muslim color orange | green | gold | blue`, default Claude orange. Every feature takes it from `src/shared/color/`; features never define their own palette. Orange text keeps the `claude` theme key so every Claude theme stays exact. Other main colors use the shared light/dark hex shade for the current theme; drawn surfaces use the shared hex palette. Text that is not already in the main color and Claude's own text and spinner keep their colors.
 
 | Role | Theme key | Use |
 | --- | --- | --- |
-| Thikr / accent | `claude` | Our phrases in bands; matches the spinner (`rgb(215,119,87)` in the default themes) |
+| Thikr / accent | Shared main color (`claude` for orange) | Our phrases in bands; matches the spinner (`rgb(215,119,87)` in the default themes) |
 | Body | `text` | Long Arabic text in the athkar reader |
 | Secondary | `subtle` / `dimColor` | Sources, counts, hints |
 | Done | `success` | Only for "completed" states the user caused (e.g. finished a reader section) |
@@ -76,9 +73,12 @@ Never use `error` or `warning` for religious text.
 
 ## 6. Commands and settings
 
-- One command per feature, named in Arabic transliteration with the `th` spelling: `/thikr`, `/athkar`, `/salah`. `/muslim` shows the version and a settings table (setting, value, command to change it), the same on every surface; a feature's row shows its main state and points to its own help for the rest. `/muslim help [feature]` shows every feature's command table, or one; `/<feature> help` shows that table.
-- Shape: `/<feature>` = status + help; `/<feature> on|off`; `/<feature> <setting> <value>`.
-- Every setting is a `userConfig` field named `<feature><Setting>` (`thikrSpeed`), so it also appears in `/config`. Commands change it with `$.config.set({ key: 'muslim.<field>' })`.
+- One command per feature, named in Arabic transliteration with the `th` spelling: `/thikr`, `/athkar`, `/salah`. Shape: `/<feature> on|off`; `/<feature> <setting> <value>`.
+- Every reply that shows settings or help has the same shape, built with `src/table.ts`, the same on every surface:
+  - **Status** (`/<feature>`, `/muslim`): the title (`**Muslim › Thikr**`), then one line pointing to help (`To change a setting or see every option: /thikr help`), then a table `| Setting | Description | State |`: what each setting is in a few English words, and its value now. No commands in the status table.
+  - **Help** (`/<feature> help`): the title (`**Muslim › Thikr › Help**`), then a table `| Command | Description | Options |`. The command stands alone (`/thikr speed`); Options lists each value and what it does, separated by ` · `, with `(default)` and `DESKTOP ONLY` beside the value they belong to; `—` when there are none.
+  - **`/muslim`**: one row per feature (`| Feature | Description | State |`, its main state only), then the shared settings (color, tashkeel, terminal Arabic). Each feature's other settings stay in its own `/<feature>`. `/muslim help` shows the shared commands, then every feature's help table; `/muslim help <feature>` one of them.
+- Shared settings (`color`, `tashkeel`) use their own names; feature settings are `userConfig` fields named `<feature><Setting>` (`thikrSpeed`), so it also appears in `/config`. Commands change it with `$.config.set({ key: 'muslim.<field>' })`.
 - Defaults are chosen so a new user needs no setup, except where the feature cannot work without input (prayer location).
 
 ## 7. Time-based behavior
@@ -87,9 +87,11 @@ Never use `error` or `warning` for religious text.
 - A timed moment (before prayer, after prayer, usage limit) appears once, clears itself when its moment passes, and survives `/clear` and reloads through `$.state` / `$.store`.
 - Timers run only while needed (e.g. the spinner ticker only during a turn).
 
-## 8. Demo (planned, not built yet)
+## 8. Demo
 
-Every feature ships a demo: scenes that play the feature's real UI on demand, through a future shared `/muslim demo` command. Scenes run on a fake clock and change no settings or state the user keeps. Scenes may live in one shared demo file or in a file inside each feature folder (e.g. `src/features/<feature>/demo.ts`). The command and the scene format are not built yet; until they are, a feature notes its scenes in its design doc.
+Each feature has its own demo subcommand and `src/features/<feature>/demo.ts` for pure scenes and timing (no `$`, plain unit tests). Its small engine runner stays in `install.ts(x)` with its atoms. A demo plays the real UI on demand and only drives drawing: no settings, store or saved-state changes. Salah uses `/salah demo`; thikr uses `/thikr demo`, which starts a real turn of its own because the Spinner draws only while Claude works.
+
+`/muslim demo` plays the thikr demo, the no-argument athkar demo, then `/salah demo` (the athan moment). Its command passes through demo-only setup hooks, which connect transient signals to each feature's own starter and engine handle. Later clock callbacks send those signals; no self-command is dispatched (`$.command.run` skips the caller in this build). `/muslim demo` only knows the order. It never holds, copies or hard-codes a demo's length or values: each demo works on its own, and when `/muslim demo` started it, it reports its own end through the signal (thikr after its usage-limit hold, athkar after its folded scene, salah after its moment). The next demo starts 0.1 s after that report. Started this way, the thikr prompt says `/muslim demo` instead of `/thikr demo`. Athkar uses its default look (sky on desktop, frame in the terminal; a configured desktop frame is respected). No city is needed. Nothing from one demo overlaps the next, and no demo writes real session atoms, settings or saved state. Salah selects its disposable moment through one guard in each existing render path; when it ends a real athan returns untouched. The reply names the sequence and says thikr uses tokens and leaves a transcript message. A repeat while playing says `Muslim demo: already playing.`; a later request plays again. The order, the start delay and the gap: `src/demo.ts`; transient signals: `src/shared/demo/signal.ts`; the runner and module-local lifetime: marked `DEMO` blocks in `hooks/register.tsx` and each feature's `install.tsx`. Removing demo blocks and the two salah render selectors removes no core behavior.
 
 ## 9. Code shape for a new feature
 
@@ -112,8 +114,8 @@ Wire it in `hooks/register.tsx` (`install<Feature>(on, settings)`), register its
 - [ ] Spec added to `docs/features/<feature>.md` (moments, phrases with sources, settings).
 - [ ] Phrases reviewed by a person; sources noted.
 - [ ] Off switch in `/config` and the command; off leaves Claude untouched.
-- [ ] Colors via theme keys; desktop tashkeel setting respected and terminal tashkeel stripped.
+- [ ] Main color via the shared module, other colors via theme keys; desktop tashkeel setting respected and terminal tashkeel stripped.
 - [ ] Tests on `terminal` and `desktop`; `claude plugin validate`, `claude plugin test`, `tsc` pass.
-- [ ] Demo scenes for the feature's real UI (planned: `/muslim demo`, fake clock, no settings changed).
+- [ ] Demo subcommand and pure `demo.ts` for the feature's real UI; no settings, store or saved-state changes.
 - [ ] Tried live in a terminal and the desktop app.
-- [ ] Change notes added under `## Unreleased` in `CHANGELOG.md` (never change the version; see CLAUDE.md).
+- [ ] Change notes added to `CHANGELOG.md` (see CLAUDE.md).
