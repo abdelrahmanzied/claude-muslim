@@ -89,7 +89,7 @@ Never use `error` or `warning` for religious text.
 
 ## 8. Demo
 
-Each feature has its own demo subcommand and `src/features/<feature>/demo.ts` for pure scenes and timing (no `$`, plain unit tests). Its small engine runner stays in `install.ts(x)` with its atoms. A demo plays the real UI on demand and only drives drawing: no settings, store or saved-state changes. Salah uses `/salah athan demo`; a shared `/muslim demo` may later play them all.
+Each feature has its own demo subcommand and `src/features/<feature>/demo.ts` for pure scenes and timing (no `$`, plain unit tests). Its small engine runner stays in `install.ts(x)` with its atoms. A demo plays the real UI on demand and only drives drawing: no settings, store or saved-state changes. Salah uses `/salah athan demo`; thikr uses `/thikr demo`, which starts a real turn of its own because the Spinner draws only while Claude works; a shared `/muslim demo` may later play them all.
 
 ## 9. Code shape for a new feature
 

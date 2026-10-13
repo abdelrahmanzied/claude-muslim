@@ -24,6 +24,10 @@ Thikr is text only. This follows the shared text-only requirement.
 | Usage limit | AbovePrompt band | One line in the shared main color (`claude` for orange, light/dark hex otherwise) until the window resets |
 | Settings | Command reply | `/thikr` status and help, one line per change |
 
+## Demo
+
+`/thikr demo` uses the same surfaces and the same text-only means. Claude's Spinner draws only while Claude works, so the demo submits a fixed prompt that starts a real turn (it uses tokens and leaves a message in the transcript), in which Claude runs three timed `sleep` steps. The real Spinner, the terminal `TurnDuration` and the `AbovePrompt` usage-limit row play with the real Arabic and color code, just faster. It adds no drawing, animation or color of its own, writes no settings, store or saved state (its armed and playing state is module-local), and when no demo is armed its hooks pass through. Prompt, scenes and timing: `src/features/thikr/demo.ts`; runner: the marked `DEMO` blocks in `install.tsx`.
+
 ## Text
 
 - Terminal rendering and tashkeel behavior follow the shared [terminal Arabic guide](../terminal.md). The shared [Arabic check](arabic-fix-design.md) is terminal-only and hidden during surveys.

@@ -83,6 +83,54 @@ const speedText = (speed: Speed) => (speed === 'auto' ? 'auto' : `${speed}s`)
 // Redraws often enough for auto speed and for a tool crossing the long mark.
 const TICK_MS = 500
 
+// DEMO BEGIN: imports and transient runner (module values only; no settings, store or saved state).
+import { demoPrompt, demoReply, demoSceneAt, DEMO_LIMIT_MS, DEMO_SUBMIT_MS, DEMO_TICK_MS } from './demo.ts'
+
+// armed: waits for the demo's own turn; playing: that turn; limit: the usage-limit line after it.
+type DemoRun = { phase: 'armed' | 'playing' | 'limit'; startedAt: number; timer?: { cancel: () => void } }
+
+let demo: DemoRun | undefined
+const demoArabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
+
+// Arms the demo and starts its own turn. The host refuses a submit made while the command
+// still runs ("would wait on the turn this hook is holding"), so it goes from a timer just
+// after the reply, and nothing waits for the turn. A submit that fails or is dropped
+// disarms, so the demo never waits for a later message.
+const armDemo = ($: EngineInterface): string => {
+  demo?.timer?.cancel()
+  const armed: DemoRun = { phase: 'armed', startedAt: 0 }
+  demo = armed
+  const disarm = () => {
+    if (demo === armed) demo = undefined
+  }
+  armed.timer = $.clock.after(DEMO_SUBMIT_MS, () => {
+    $.prompt.submit({ text: demoPrompt() }).then(result => result.drop === undefined || disarm(), disarm)
+  })
+
+  return demoReply()
+}
+
+const startDemo = async ($: EngineInterface) => {
+  const startedAt = await $.clock.now()
+  demo = { phase: 'playing', startedAt, timer: $.clock.every(DEMO_TICK_MS, () => $.ui.invalidate('ui.render')) }
+}
+
+// The turn ended: the usage-limit line holds for its seconds, then the demo disarms itself.
+const holdDemoLimit = ($: EngineInterface) => {
+  const playing = demo
+  if (playing?.phase !== 'playing') return
+  playing.timer?.cancel()
+  const holding: DemoRun = { phase: 'limit', startedAt: playing.startedAt }
+  holding.timer = $.clock.after(DEMO_LIMIT_MS, () => {
+    if (demo !== holding) return
+    demo = undefined
+    $.ui.invalidate('ui.render')
+  })
+  demo = holding
+  $.ui.invalidate('ui.render')
+}
+// DEMO END
+
 export const install = (on: On, options: Options) => {
   // Spinner timing, per turn. Module values: a reload mid-turn only restarts the order.
   let group: Group | undefined
@@ -110,6 +158,9 @@ export const install = (on: On, options: Options) => {
       return { text: deny ? `Not changed: ${deny}` : said }
     }
 
+    // DEMO BEGIN: command entry; arms and starts the demo's own turn.
+    if (word === 'demo') return { text: armDemo($) }
+    // DEMO END
     if (word === '') {
       return {
         text: [
@@ -138,6 +189,52 @@ export const install = (on: On, options: Options) => {
 
     return { text: thikrHelp() }
   })
+
+  // DEMO BEGIN: separate hooks, registered even with thikr off; they pass through unless a demo is armed.
+  // The matchers (every turn, every ending) only tell these apart from the feature's own hooks.
+  on('turn.start', { turnId: /./ }, async ($, e, next) => {
+    if (demo?.phase === 'armed') await startDemo($)
+
+    return next(e)
+  })
+
+  on('turn.complete', { reason: ['answer', 'aborted', 'refusal', 'error'] }, async ($, e, next) => {
+    holdDemoLimit($)
+
+    return next(e)
+  })
+
+  // Every phrase of every moment in order, fast, through the real Arabic and step-row code.
+  on('ui.render', { component: 'Spinner', surface: ['desktop', 'terminal'] }, async ($, e, next) => {
+    const playing = demo
+    if (playing?.phase !== 'playing') return next(e)
+    const { text } = demoSceneAt((await $.clock.now()) - playing.startedAt)
+    const phrase = await renderArabic($, e.surface, withTashkeel(text, options.tashkeel), demoArabicCache)
+    const shown = withThikr(e.props, phrase, isStepRow(e.surface, e.props, undefined))
+
+    return next({ ...e, props: { ...e.props, ...shown, suffix: '' } })
+  })
+
+  // The end-of-turn word shows even with `thikrEnd` off.
+  on('ui.render', { component: 'TurnDuration', surface: ['terminal'] }, async ($, e, next) => {
+    if (!demo || demo.phase === 'armed') return next(e)
+
+    return next({ ...e, props: { ...e.props, word: await renderArabic($, e.surface, withTashkeel(END_OF_TURN, options.tashkeel), demoArabicCache) } })
+  })
+
+  on('ui.render', { component: 'AbovePrompt', surface: ['desktop', 'terminal'] }, async ($, e, next) => {
+    const theirs = await next(e)
+    if (demo?.phase !== 'limit' || e.props.hasSurvey) return theirs
+    const { Box, Text } = $.ui.resolve(e)
+
+    return (
+      <Box flexDirection="column">
+        <Text key="usage-limit-demo" color={await mainColor($, options.color)}>{await renderArabic($, e.surface, withTashkeel(USAGE_LIMIT, options.tashkeel), demoArabicCache)}</Text>
+        {theirs}
+      </Box>
+    )
+  })
+  // DEMO END
 
   if (!options.thikr) return
 
@@ -194,6 +291,7 @@ export const install = (on: On, options: Options) => {
   })
 
   on('ui.render', { component: 'Spinner' }, async ($, e, next) => {
+    if (demo?.phase === 'playing') return next(e)
     const now = await $.clock.now()
     if (e.props.mode !== 'requesting') hasMovedOn = true
     const oldestTool = Math.min(now, ...toolsSince.values())

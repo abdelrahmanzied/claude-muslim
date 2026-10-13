@@ -73,6 +73,7 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/thikr speed <1-60>` | Every phrase stays the same number of seconds |
 | `/thikr end on` · `off` | تَمَّ بِحَمْدِ اللَّهِ at the end of a turn |
 | `/thikr mode all` · `salawat` | Every group in turn, or one salawat per request |
+| `/thikr demo` | Play every moment by itself in a real 30 s turn (it uses tokens and leaves a message in the transcript): a phrase every 1.5 s, then the end-of-turn word and the usage-limit line for 3 s; no setting or saved state changes |
 | `/athkar` | Show today's athkar status and help, and show the athkar again if hidden |
 | `/athkar help` | Table of every `/athkar` command |
 | `/athkar on` · `off` | Turn the athkar on or off |

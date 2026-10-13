@@ -9,6 +9,7 @@ export const THIKR_COMMANDS: readonly HelpRow[] = [
   ['/thikr speed', 'How long each phrase stays', `\`auto\` (default): 1 s + 0.5 s per word · \`<${SPEED_MIN}-${SPEED_MAX}>\`: the same seconds for every phrase`],
   ['/thikr end', 'تَمَّ بِحَمْدِ اللَّهِ in place of Claude\'s word at the end of a turn', '`on` (default) · `off`'],
   ['/thikr mode', 'Which phrases play', '`all` (default): every group in turn · `salawat`: one salawat for each whole turn'],
+  ['/thikr demo', 'Play every moment by itself, in a real 30 s turn (uses tokens, adds a message to the transcript); changes no settings', 'a phrase every 1.5 s of every group, then the end-of-turn word, then the usage-limit line for 3 s'],
 ]
 
 export const thikrHelp = (): string => helpReply('Thikr', THIKR_COMMANDS)
