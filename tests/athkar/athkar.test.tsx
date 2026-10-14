@@ -318,3 +318,51 @@ test('sky is desktop only: the terminal draws the frame, and /athkar style there
   expect((await run('style sky')).text).toContain('sky is desktop only')
   expect(writes).toEqual([])
 })
+
+const NIGHT = new Date(2026, 9, 10, 22, 0).getTime()
+// A store that keeps what is written, so a test can read the saved day.
+const keptStore = (on: On, day?: unknown) => {
+  const kept: { day: any } = { day }
+  on('store.get', async (_$, e) => ({ value: e.key === 'athkar' ? kept.day : undefined }))
+  on('store.set', async (_$, e) => {
+    if (e.key === 'athkar') kept.day = e.value
+
+    return { value: undefined }
+  })
+
+  return kept
+}
+const run = (args: string) => ({ command: 'athkar', args, origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } })
+
+test('/athkar morning opens the morning reader at night and counts go to it', async ($, on) => {
+  mock.clock(on, { now: NIGHT })
+  const kept = keptStore(on)
+  mock.env(on, {})
+  engineBand(on, 'terminal')
+  expect((await $.command.run(run('morning'))).text).toBe('morning athkar open above the prompt')
+  const ui = await $.ui.mount(band('terminal'))
+  expect(await ui.find({ in: 'athkar', text: stripTashkeel(TITLE.morning) })).toBeDefined()
+  await press(ui, 'return')
+  await press(ui, 'return')
+  await press(ui, 'space')
+  const saved = kept.day as { morning: { counts: Record<string, number> }; evening: { counts: Record<string, number> } }
+  expect(Object.keys(saved.morning.counts).length).toBeGreaterThan(0)
+  expect(Object.keys(saved.evening.counts)).toHaveLength(0)
+  // Picking the other period switches back.
+  await $.command.run(run('evening'))
+  expect(await ui.find({ in: 'athkar', text: stripTashkeel(TITLE.evening) })).toBeDefined()
+  await ui.unmount()
+})
+
+test('/athkar morning replies with the reset hint when that period is done, and reset still works', async ($, on) => {
+  mock.clock(on, { now: NIGHT })
+  const day = { day: '2026-10-10', morning: { index: 0, counts: {}, isDone: true, isHidden: true }, evening: { index: 0, counts: {}, isDone: false, isHidden: false } }
+  const kept = keptStore(on, day)
+  mock.env(on, {})
+  engineBand(on, 'terminal')
+  expect((await $.command.run(run('morning'))).text).toBe('morning athkar are done today: /athkar morning reset → to read again')
+  const saved = kept.day as typeof day
+  expect(saved.morning.isHidden).toBe(false)
+  expect((await $.command.run(run('morning reset'))).text).toBe('morning athkar start again from the first')
+  expect((kept.day as typeof day).morning.isDone).toBe(false)
+})

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `/athkar morning` · `evening` opens that period's reader above the prompt even outside its hours, un-hides it, and counts to it; the choice holds for the session until the other period is picked or × hides the band. A finished period replies with its reset hint. `reset` is unchanged and the help row says both.
+
 - Quran pane secondary text, icons, captions and hover fills use warm neutrals instead of a fixed green, so they sit with any `/muslim color` main color (orange by default) and match the Desktop panel; the main color stays on the status dot, play button, progress fill and rosettes.
 
 - Quran rosette rules draw a smaller 18px rosette with a matching stroke, so the dividers recede behind the content.

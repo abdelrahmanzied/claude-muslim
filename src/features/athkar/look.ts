@@ -107,6 +107,9 @@ export type ReaderProps = {
   endNote: string
 }
 
+// The done row's hint, and the reply to a finished period's command.
+export const resetHint = (period: Period): string => `/athkar ${period} reset → to read again`
+
 // A Client's props are plain data: no undefined anywhere.
 export const plain = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 
@@ -136,7 +139,7 @@ export const readerProps = (
     left: arabicDigits(Math.max(0, times - n)),
     progress: overall(period, reading),
     end: display(END),
-    endHint: `/athkar ${period} reset → to read again`,
+    endHint: resetHint(period),
     endNote: display(END_NOTE[period]),
   })
 }
