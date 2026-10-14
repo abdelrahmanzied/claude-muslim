@@ -25,7 +25,7 @@ One right-aligned reading column with 20px side margins, read top to bottom as: 
 
 ### 2. Rosette rules
 
-A thin rule with an eight-point rosette marks a change of purpose, not decoration. There are exactly two: under the heading (identity | choices) and above the next/repeat line (controls | what happens after). The rule is a 28 rosette in the shared main color between two 1px arms (80% opacity) that fade to nothing toward the page edge and start from the rosette's own dimmer colour (`--q-ornament-dim`), so it recedes behind content. Never add a third rule inside a block, and never use it as a box border. It is built by `ornament()` in `card.ts`.
+A thin rule with an eight-point rosette marks a change of purpose, not decoration. There are exactly two: under the heading (identity | choices) and above the next/repeat line (controls | what happens after). The rule is an 18 rosette (stroke 1.8 in its 40 viewBox, so the outline keeps its weight) in the shared main color between two 1px arms (80% opacity) that fade to nothing toward the page edge and start from the rosette's own dimmer colour (`--q-ornament-dim`), so it recedes behind content. Never add a third rule inside a block, and never use it as a box border. It is built by `ornament()` in `card.ts`.
 
 ### 3. Type scale, Tajawal, RTL and LTR
 
