@@ -9,6 +9,7 @@ A reader above the prompt for the morning athkar (05:00 to 17:00) and the evenin
 - **Moves on** by itself 650 ms after a thikr's last count.
 - **Passage name:** Quran items show their name beside the set position: آية الكرسي and the three short surahs (الإخلاص، الفلق، الناس). Duas have none.
 - **Progress:** each thikr is an equal share, partial counts included: `Σ min(count / times, 1) / n`.
+- **Period:** the clock picks it unless `/athkar morning` or `/athkar evening` chose one (see Settings); every count, key and click goes to the period shown.
 - **×** hides the band and keeps the reading; `/athkar` brings it back.
 - **Saved** per day and period in `$.store`. A day runs 05:00 to 05:00, so evening athkar read after midnight still count for that evening. A new day starts fresh; a finished period does not show again that day.
 - **End:** the end verse ﴿رَبَّنَا تَقَبَّلْ مِنَّا إِنَّكَ أَنتَ السَّمِيعُ الْعَلِيمُ﴾ — البقرة ١٢٧, then the done row with `/athkar <period> reset → to read again`.
@@ -25,7 +26,7 @@ Every thikr's count comes from the data file only. There is no choice of counts 
 | `athkarStyle` | `/athkar style sky` · `frame` | sky |
 | `color` (shared) | `/muslim color orange` · `green` · `gold` · `blue` | orange |
 
-`/athkar morning reset` · `/athkar evening reset` start that period again. `/athkar` shows the status and the command table; `/athkar help` and `/muslim help athkar` show the table alone. `/muslim` lists athkar in its settings table.
+`/athkar morning` · `/athkar evening` open that period's reader above the prompt even outside its hours (morning athkar at 22:00), and bring it back if hidden with ×. The band, its counts and its keys all follow that period. The choice holds for the session until you pick the other period or hide the band with ×; then the clock picks again (a reload also forgets it). If that period is finished today, the reply is its done row's hint, `/athkar <period> reset → to read again`. `/athkar morning reset` · `/athkar evening reset` start that period again. `/athkar` shows the status and the command table; `/athkar help` and `/muslim help athkar` show the table alone. `/muslim` lists athkar in its settings table.
 
 Tashkeel follows the shared `/muslim tashkeel` setting (desktop only); in the terminal the athkar go through the shared terminal Arabic path like every feature: no tashkeel, and this terminal's mode from `/muslim terminal-arabic`.
 
