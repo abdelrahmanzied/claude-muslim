@@ -1,47 +1,60 @@
-// The desktop athan card: a full-width card above the prompt with a photo
-// behind the call, built the way the athkar band is: one SVG document holding
-// HTML and CSS in a foreignObject, with the font embedded as a base64
-// @font-face and the photo as a base64 data URL in CSS. Drawn in the Svg
-// sandboxed document. Pure; install.tsx reads the photo and shows it.
+// The desktop athan card: the shared card (src/shared/card), the same size,
+// frame, × and clicks as the athkar band, holding a photo behind the call and
+// its time. Pure: install.tsx reads the photo and draws it; athan-card.tsx
+// builds the picture on the drawing thread.
 
+import { cardHeight, cardSvg, drawWidthOf, fontFace, REST_PX, type CardFrame } from '../../shared/card/card.ts'
+import type { CardProps, CardView } from '../../shared/card/client.tsx'
 import { arabicDigits, athanText, IN_MS } from '../../shared/pray/line.ts'
 import type { Pray } from '../../shared/pray/names.ts'
 import { ARUQAA_BOLD } from './card-font.ts'
 
-// A cell on the desktop and a line, in CSS pixels (the athkar band's numbers).
-export const CELL_PX = 8.4
-export const LINE_PX = 20
-// The card's own height, and the line the desktop's card around it adds.
-export const CARD_HEIGHT = 77 + LINE_PX
 // How long the card stays when nobody closes it: the call's window.
 export const CARD_MS = IN_MS
+export const FOLD_MS = 60_000
+
+export const cardIsFolded = (moment: { isFolded: boolean; foldsAt: number }, now: number) =>
+  moment.isFolded || now >= moment.foldsAt
+
+export type AthanCardProps = CardProps & {
+  isFolded: boolean
+  pray: Pray
+  // The clock text, e.g. `15:59`.
+  time: string
+  // The photo, base64 JPEG.
+  photo: string
+  // The slot's width and the desktop's cell, in CSS pixels.
+  width: number
+  card: { ch: number; lh: number }
+}
+
+export const athanFrame = (p: Pick<AthanCardProps, 'width' | 'card' | 'isFolded'>, columns = 0): CardFrame => ({
+  width: p.width,
+  height: p.isFolded ? REST_PX : cardHeight(),
+  isFolded: p.isFolded,
+  card: p.card,
+  drawWidth: drawWidthOf(p.card, columns),
+})
 
 // The photo is a 640 by 80 strip cut from the original, a little above its
-// middle; `cover` fits it to the card's width.
-const PHOTO_Y = '50%'
-// The × the desktop's Button draws sits at this spot (CSS px); the circle behind it is drawn here.
-const CLOSE_LEFT = 8
-const CLOSE_TOP = 17
+// middle; `cover` fits it to the card's width. The words are white on it, and so is the ×.
+const css = (photo: string) => [
+  fontFace('Aref Ruqaa', 700, ARUQAA_BOLD),
+  '.band.athan { height: 100%; border-radius: 10px; overflow: hidden; direction: rtl; color: #fff; --b-ink: #fff; --b-dim: rgba(255,255,255,.75);',
+  '  font-family: "Aref Ruqaa", serif; font-weight: 700; display: flex; flex-direction: column; justify-content: center;',
+  '  padding: var(--ay, 0px) calc(36px + var(--ax, 0px));',
+  `  background: linear-gradient(rgba(0,0,0,.35), rgba(0,0,0,.7)), url(data:image/jpeg;base64,${photo}) center 50% / cover; }`,
+  '.athan .main { font-size: 26px; line-height: 1.5; }',
+  '.athan.rest { flex-direction: row; justify-content: flex-start; align-items: center; gap: 12px; white-space: nowrap; }',
+  '.athan.rest .main, .athan.rest .time { font-size: 17px; line-height: 1; }',
+  '.athan .time { font-size: 17px; line-height: 1.4; color: rgba(255,255,255,.85); }',
+].join('\n')
 
-// The width the picture is drawn at: the body's columns and a cell past each side.
-export const cardWidth = (columns: number): number => Math.round((columns + 2) * CELL_PX)
-
-// The card as SVG markup. `time` is the clock text, e.g. `15:59`.
-export const cardSvg = (photoBase64: string, pray: Pray, time: string, width: number): string => {
-  const css = [
-    `@font-face { font-family: "Aref Ruqaa"; font-weight: 700; src: url(data:font/woff2;base64,${ARUQAA_BOLD}) format("woff2"); }`,
-    '* { box-sizing: border-box; margin: 0; }',
-    `.card { position: relative; width: 100%; height: 100%; border-radius: 10px; overflow: hidden; direction: rtl; color: #fff; font-family: "Aref Ruqaa", serif; font-weight: 700;`,
-    `  display: flex; flex-direction: column; justify-content: center; padding: 0 36px;`,
-    `  background: linear-gradient(rgba(0,0,0,.35), rgba(0,0,0,.7)), url(data:image/jpeg;base64,${photoBase64}) center ${PHOTO_Y} / cover; }`,
-    '.main { font-size: 26px; line-height: 1.5; }',
-    '.time { font-size: 17px; line-height: 1.4; color: rgba(255,255,255,.85); }',
-    `.close { position: absolute; left: ${CLOSE_LEFT}px; top: ${CLOSE_TOP}px; width: 26px; height: 26px; border-radius: 50%; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.5); }`,
-  ].join('\n')
-  const at = arabicDigits(time)
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${CARD_HEIGHT}" viewBox="0 0 ${width} ${CARD_HEIGHT}" preserveAspectRatio="none">`
-    + `<style><![CDATA[${css}]]></style>`
-    + `<foreignObject x="0" y="0" width="${width}" height="${CARD_HEIGHT}"><div xmlns="http://www.w3.org/1999/xhtml" class="card">`
-    + `<div class="close"></div><div class="main">${athanText(pray)}</div><div class="time">${at}</div></div></foreignObject></svg>`
-}
+export const athanSvg = (p: AthanCardProps, view: Pick<CardView, 'hoverClose' | 'columns'>) =>
+  cardSvg(athanFrame(p, view.columns), {
+    classes: `athan active${p.isFolded ? ' rest' : ''}`,
+    style: '',
+    html: `<div class="main">${athanText(p.pray)}</div><div class="time">${arabicDigits(p.time)}</div>`,
+    css: css(p.photo),
+    hoverClose: view.hoverClose,
+  })

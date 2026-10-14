@@ -1,5 +1,6 @@
 // Today's times for the saved place, as the command and the lines show them.
 
+import { statusTable } from '../../table.ts'
 import { ALWAYS_COUNTDOWN, type Options, type Show } from '../../config.ts'
 import { METHODS, methodFor, PRAYS, type MethodId } from './methods.ts'
 import { ENGLISH } from '../../shared/pray/names.ts'
@@ -42,17 +43,15 @@ export const showText = (show: Show): string =>
     : show === 'off' ? '`off` — hidden'
     : `\`${show}\` — only the ${show} min before a pray, counting down`
 
-// The settings in effect, each with the command that changes it.
+// The settings in effect, each with what it is.
 export const settingsTable = (options: Options, place: Place): string => {
   const method = METHODS[methodOf(options, place)].name + (options.salahMethod === 'auto' ? ' (auto)' : '')
   const moved = PRAYS.filter(pray => options.salahAdjust[pray] !== 0)
-  const rows: readonly (readonly [string, string, string])[] = [
-    ['City', place.name, '/salah city'],
-    ['Method', method, '/salah method <name>'],
-    ['Show', showText(options.salahShow), '/salah show always` · `<minutes>` · `off'],
-    ['Athan', options.salahAthan ? 'on' : 'off', '/salah athan on` · `off'],
-    ['Adjust', moved.length === 0 ? 'none' : moved.map(pray => `${ENGLISH[pray]} ${options.salahAdjust[pray] > 0 ? '+' : ''}${options.salahAdjust[pray]}`).join(', '), '/salah adjust'],
-  ]
-
-  return ['| Setting | Value | Change with |', '| --- | --- | --- |', ...rows.map(([name, value, command]) => `| ${name} | ${value} | \`${command}\` |`)].join('\n')
+  return statusTable([
+    ['City', 'Where the times are calculated for', place.name],
+    ['Method', 'How the times are calculated', method],
+    ['Show', 'The next pray under the prompt', showText(options.salahShow)],
+    ['Athan', 'حان وقت صلاة … when a pray comes in', options.salahAthan ? 'on' : 'off'],
+    ['Adjust', 'Minutes moved to match your mosque', moved.length === 0 ? 'none' : moved.map(pray => `${ENGLISH[pray]} ${options.salahAdjust[pray] > 0 ? '+' : ''}${options.salahAdjust[pray]}`).join(', ')],
+  ])
 }

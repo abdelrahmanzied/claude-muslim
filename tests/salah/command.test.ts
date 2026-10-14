@@ -14,7 +14,7 @@ const salah = (args: string) => ({
 })
 
 describe('settings', () => {
-  test('minutes read as six whole numbers, anything else 0', async () => {
+  test('minutes read as six whole numbers, anything else 0', { options: { athkar: false } }, async () => {
     expect(readAdjust('0 0 0 5 0 -10')).toEqual({ fajr: 0, sunrise: 0, dhuhr: 0, asr: 5, maghrib: 0, isha: -10 })
     expect(readAdjust('3 x 99')).toEqual({ fajr: 3, sunrise: 0, dhuhr: 99, asr: 0, maghrib: 0, isha: 0 })
     expect(writeAdjust(readAdjust('0 0 0 90 0 -120'))).toBe('0 0 0 90 0 -120')
@@ -23,13 +23,13 @@ describe('settings', () => {
     expect(writeAdjust(readAdjust('1 2 3 4 5 6'))).toBe('1 2 3 4 5 6')
   })
 
-  test('an unknown method is auto; a place off the globe or missing a part is unset', async () => {
+  test('an unknown method is auto; a place off the globe or missing a part is unset', { options: { athkar: false } }, async () => {
     expect(readOptions({ salahMethod: 'tehran' }).salahMethod).toBe('auto')
     expect(readOptions({ salahPlace: 'Nowhere; 120, 10; Europe/Berlin; DE' }).salahPlace).toBe(undefined)
     expect(readOptions({ salahPlace: 'Munich; 48.14, 11.58; Europe/Berlin' }).salahPlace).toBe(undefined)
   })
 
-  test('a place reads back as it was written', async () => {
+  test('a place reads back as it was written', { options: { athkar: false } }, async () => {
     const place = { name: 'Munich, Germany', latitude: 48.14, longitude: 11.58, timeZone: 'Europe/Berlin', country: 'DE' }
 
     expect(readPlace(writePlace(place))).toEqual(place)
@@ -37,30 +37,30 @@ describe('settings', () => {
   })
 })
 
-test('/salah before setup says so', async $ => {
+test('/salah before setup says so', { options: { athkar: false } }, async $ => {
   const ran = await $.command.run(salah(''))
 
   expect(ran.text).toContain('Not set up yet. Run `/salah city`.')
 })
 
-test('/salah shows today\'s times and the settings as tables, each setting with its command', { options: MUNICH }, async ($, on) => {
+test('/salah shows today\'s times and the settings as tables, each setting with what it is', { options: MUNICH }, async ($, on) => {
   mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
   const ran = await $.command.run(salah(''))
 
   expect(ran.text?.split('\n')[0]).toBe('**Muslim › Salah**')
   expect(ran.text).toContain('\n### Today in Munich, Germany\n\n| Pray | Time |')
-  expect(ran.text).toContain('\n### Settings\n\n| Setting | Value | Change with |')
+  expect(ran.text).toContain('\n### Settings\n\n| Setting | Description | State |')
   expect(ran.text).toContain('| Fajr | 05:42 |')
   expect(ran.text).toContain('| **Dhuhr** · next | 13:02 |')
   expect(ran.text).toContain('| Isha | 20:12 |')
-  expect(ran.text).toContain('| City | Munich, Germany | `/salah city` |')
-  expect(ran.text).toContain('| Method | Muslim World League (auto) | `/salah method <name>` |')
-  expect(ran.text).toContain('| Show | `20` — only the 20 min before a pray, counting down | `/salah show always` · `<minutes>` · `off` |')
-  expect(ran.text).toContain('| Adjust | none | `/salah adjust` |')
+  expect(ran.text).toContain('| City | Where the times are calculated for | Munich, Germany |')
+  expect(ran.text).toContain('| Method | How the times are calculated | Muslim World League (auto) |')
+  expect(ran.text).toContain('| Show | The next pray under the prompt | `20` — only the 20 min before a pray, counting down |')
+  expect(ran.text).toContain('| Adjust | Minutes moved to match your mosque | none |')
   expect(ran.text).toContain('/salah help')
 })
 
-test('show reads always, off or minutes, and the old salah mode and minutes; athan reads its old name', async () => {
+test('show reads always, off or minutes, and the old salah mode and minutes; athan reads its old name', { options: { athkar: false } }, async () => {
   expect(readOptions({ salahShow: 'always' }).salahShow).toBe('always')
   expect(readOptions({ salahShow: 'off' }).salahShow).toBe('off')
   expect(readOptions({ salahShow: '90' }).salahShow).toBe(90)
@@ -86,7 +86,7 @@ test('/salah show and athan save their settings and say what changed', { options
   expect((await $.command.run(salah('show'))).text).toContain('**Show:** `20` — only the 20 min before a pray')
   expect((await $.command.run(salah('show soon'))).text).toContain('Use `/salah show always`')
   expect((await $.command.run(salah('show 0'))).text).toContain('minutes from 1 to 720')
-  expect((await $.command.run(salah('reminder 20'))).text).toContain('| `/salah show <minutes>` |')
+  expect((await $.command.run(salah('reminder 20'))).text).toContain('| `/salah show` |')
   await $.command.run(salah('athan off'))
   expect(written).toEqual([
     { key: 'muslim.salahShow', value: 'always' },
@@ -153,7 +153,7 @@ test('/salah city saves the one city Claude finds, with its country\'s method', 
   expect(written).toEqual([{ key: 'muslim.salahPlace', value: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' }])
 })
 
-test('/salah city asks which one when the name is shared', async ($, on) => {
+test('/salah city asks which one when the name is shared', { options: { athkar: false } }, async ($, on) => {
   answerCities(on, [ALEXANDRIA_EG, ALEXANDRIA_US])
   const written = settingsWriter(on)
   // Stands for the user picking in the dialog.
@@ -167,7 +167,7 @@ test('/salah city asks which one when the name is shared', async ($, on) => {
   expect(written[0]?.value).toBe('Alexandria, Egypt; 31.2, 29.92; Africa/Cairo; EG')
 })
 
-test('/salah city with no match, or coordinates typed by hand', async ($, on) => {
+test('/salah city with no match, or coordinates typed by hand', { options: { athkar: false } }, async ($, on) => {
   answerCities(on, [])
   const written = settingsWriter(on)
 
@@ -176,11 +176,11 @@ test('/salah city with no match, or coordinates typed by hand', async ($, on) =>
   expect(String(written[0]?.value)).toMatch(/^48\.14, 11\.58; 48\.14, 11\.58; /)
 })
 
-test('/salah help is a table of every subcommand; unknown words answer with it', async $ => {
+test('/salah help is a table of every subcommand; unknown words answer with it', { options: { athkar: false } }, async $ => {
   const help = (await $.command.run(salah('help'))).text
 
-  expect(help).toContain('| Command | What it does |')
-  for (const word of ['/salah help', '/salah show always', '/salah show <minutes>', '/salah athan on', '/salah city', '/salah method', '/salah adjust <pray>']) {
+  expect(help).toContain('| Command | Description | Options |')
+  for (const word of ['/salah help', '`always`', '`<minutes>`', '/salah athan', '/salah demo', '/salah city', '/salah method', '`<pray> <±min>`']) {
     expect(help).toContain(word)
   }
   for (const gone of ['/salah setup', '/salah on', '/salah notify']) expect(help).not.toContain(gone)

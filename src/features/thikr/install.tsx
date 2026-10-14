@@ -1,11 +1,15 @@
+import { accentText, type Accent } from '../../shared/color/index.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
 import { atom, read } from 'claude-code'
+import { helpHint, statusTable } from '../../table.ts'
+import { thikrHelp } from './help.ts'
 import type { EngineInterface, On } from 'claude-code'
 
 import type { UsageLimit } from '../../../types'
 import { readSpeed, SPEED_MAX, SPEED_MIN } from '../../config.ts'
 import type { Mode, Options } from '../../config.ts'
 import { limitUntil } from './limit.ts'
+import type { RateLimitWindow } from './limit.ts'
 import { END_OF_TURN, SALAWAT, STARTING, USAGE_LIMIT } from './phrases.ts'
 import { groupFor, isStepRow, phraseAt, pickStart, startOf, withThikr } from './rotation.ts'
 import { withTashkeel } from '../../shared/arabic/visual.ts'
@@ -56,17 +60,19 @@ const renderArabic = async ($: EngineInterface, surface: string, text: string, c
 
 const usageLimit = atom({ plugin: 'muslim', key: 'usageLimit' } as const, null as UsageLimit | null)
 
-const HELP = [
-  '/thikr                    status',
-  '/thikr on | off           show tasabih while Claude works',
-  `/thikr speed auto          reading time: 1s + 0.5s per word`,
-  `/thikr speed <${SPEED_MIN}-${SPEED_MAX}>       fixed seconds per phrase`,
-  '/thikr end on | off       تَمَّ بِحَمْدِ اللَّهِ at the end of a turn',
-  '/thikr mode all | salawat  every group, or one salawat for each whole turn',
-].join('\n')
-
 const setLimit = ($: EngineInterface, value: UsageLimit | null) =>
   $.state.set({ plugin: 'muslim', key: 'usageLimit' }, value)
+
+// A full usage window holds the limit's thikr until it resets.
+const holdLimit = async ($: EngineInterface, windows: readonly RateLimitWindow[]) => {
+  const until = limitUntil(windows)
+  if (until === undefined) return
+  await setLimit($, { until })
+  if (until !== null) {
+    const wait = Math.max(0, until - (await $.clock.now()))
+    $.clock.after(wait, () => void setLimit($, null))
+  }
+}
 
 const onOff = (value: boolean) => (value ? 'on' : 'off')
 
@@ -76,6 +82,60 @@ const speedText = (speed: Speed) => (speed === 'auto' ? 'auto' : `${speed}s`)
 
 // Redraws often enough for auto speed and for a tool crossing the long mark.
 const TICK_MS = 500
+
+// DEMO BEGIN: imports and transient runner (module values only; no settings, store or saved state).
+import { demoPrompt, demoReply, demoSceneAt, DEMO_LIMIT_MS, DEMO_SUBMIT_MS, DEMO_TICK_MS } from './demo.ts'
+import { connectDemo, doneDemo, failDemo } from '../../shared/demo/signal.ts'
+
+// armed: waits for the demo's own turn; playing: that turn; limit: the usage-limit line after it.
+// shared: started by /muslim demo, which waits for this demo's end.
+type DemoRun = { phase: 'armed' | 'playing' | 'limit'; startedAt: number; turnId?: string; shared?: boolean; timer?: { cancel: () => void } }
+
+let demo: DemoRun | undefined
+const demoArabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
+
+// Arms the demo and starts its own turn. The host refuses a submit made while the command
+// still runs ("would wait on the turn this hook is holding"), so it goes from a timer just
+// after the reply, and nothing waits for the turn. A submit that fails or is dropped
+// disarms, so the demo never waits for a later message.
+const armDemo = ($: EngineInterface, shared = false): string => {
+  demo?.timer?.cancel()
+  const armed: DemoRun = { phase: 'armed', startedAt: 0, shared }
+  demo = armed
+  const disarm = () => {
+    if (demo === armed) {
+      demo = undefined
+      if (shared) failDemo()
+    }
+  }
+  armed.timer = $.clock.after(DEMO_SUBMIT_MS, () => {
+    $.prompt.submit({ text: demoPrompt(shared ? '/muslim demo' : '/thikr demo') }).then(result => result.drop === undefined || disarm(), disarm)
+  })
+
+  return demoReply()
+}
+
+const startDemo = async ($: EngineInterface, turnId: string) => {
+  const startedAt = await $.clock.now()
+  demo = { phase: 'playing', startedAt, turnId, shared: demo?.shared, timer: $.clock.every(DEMO_TICK_MS, () => $.ui.invalidate('ui.render')) }
+}
+
+// The turn ended: the usage-limit line holds for its seconds, then the demo disarms itself.
+const holdDemoLimit = ($: EngineInterface) => {
+  const playing = demo
+  if (playing?.phase !== 'playing') return
+  playing.timer?.cancel()
+  const holding: DemoRun = { phase: 'limit', startedAt: playing.startedAt, shared: playing.shared }
+  holding.timer = $.clock.after(DEMO_LIMIT_MS, () => {
+    if (demo !== holding) return
+    demo = undefined
+    $.ui.invalidate('ui.render')
+    if (holding.shared) doneDemo('thikr')
+  })
+  demo = holding
+  $.ui.invalidate('ui.render')
+}
+// DEMO END
 
 export const install = (on: On, options: Options) => {
   // Spinner timing, per turn. Module values: a reload mid-turn only restarts the order.
@@ -104,15 +164,25 @@ export const install = (on: On, options: Options) => {
       return { text: deny ? `Not changed: ${deny}` : said }
     }
 
+    // DEMO BEGIN: command entry; arms and starts the demo's own turn.
+    if (word === 'demo') return { text: armDemo($) }
+    // DEMO END
     if (word === '') {
       return {
         text: [
-          `thikr ${onOff(options.thikr)} · speed ${speedText(options.thikrSpeed)} · end ${onOff(options.thikrEnd)} · mode ${options.thikrMode}`,
+          '**Muslim › Thikr**',
+          helpHint('/thikr'),
           '',
-          HELP,
+          statusTable([
+            ['Thikr', 'Tasbih in Claude\'s working line', onOff(options.thikr)],
+            ['Speed', 'How long each phrase stays', speedText(options.thikrSpeed)],
+            ['End', 'تَمَّ بِحَمْدِ اللَّهِ at the end of a turn', onOff(options.thikrEnd)],
+            ['Mode', 'Which phrases play', options.thikrMode],
+          ]),
         ].join('\n'),
       }
     }
+    if (word === 'help') return { text: thikrHelp() }
     if (word === 'on' || word === 'off') return set('thikr', word === 'on', `thikr ${word}`)
     if (word === 'mode' && isMode(value)) return set('thikrMode', value, `mode ${value}`)
     if (word === 'end' && (value === 'on' || value === 'off')) return set('thikrEnd', value === 'on', `end ${value}`)
@@ -123,8 +193,59 @@ export const install = (on: On, options: Options) => {
       return { text: `Speed is auto, or a whole number of seconds from ${SPEED_MIN} to ${SPEED_MAX}.` }
     }
 
-    return { text: HELP }
+    return { text: thikrHelp() }
   })
+
+  // DEMO BEGIN: separate hooks, registered even with thikr off; they pass through unless a demo is armed.
+  on('command.run', { command: 'muslim', args: /^\s*demo\s*$/ }, ($, e, next) => {
+    connectDemo('thikr', () => armDemo($, true))
+    return next(e)
+  })
+
+  // The matchers (every turn, every ending) only tell these apart from the feature's own hooks.
+  on('turn.start', { turnId: /./ }, async ($, e, next) => {
+    if (demo?.phase === 'armed') await startDemo($, e.turnId)
+
+    return next(e)
+  })
+
+  on('turn.complete', { reason: ['answer', 'aborted', 'refusal', 'error'] }, async ($, e, next) => {
+    if (e.agentId === undefined && demo?.turnId === e.turnId) holdDemoLimit($)
+
+    return next(e)
+  })
+
+  // Every phrase of every moment in order, fast, through the real Arabic and step-row code.
+  on('ui.render', { component: 'Spinner', surface: ['desktop', 'terminal'] }, async ($, e, next) => {
+    const playing = demo
+    if (playing?.phase !== 'playing') return next(e)
+    const { text } = demoSceneAt((await $.clock.now()) - playing.startedAt)
+    const phrase = await renderArabic($, e.surface, withTashkeel(text, options.tashkeel), demoArabicCache)
+    const shown = withThikr(e.props, phrase, isStepRow(e.surface, e.props, undefined))
+
+    return next({ ...e, props: { ...e.props, ...shown, suffix: '' } })
+  })
+
+  // The end-of-turn word shows even with `thikrEnd` off.
+  on('ui.render', { component: 'TurnDuration', surface: ['terminal'] }, async ($, e, next) => {
+    if (!demo || demo.phase === 'armed') return next(e)
+
+    return next({ ...e, props: { ...e.props, word: await renderArabic($, e.surface, withTashkeel(END_OF_TURN, options.tashkeel), demoArabicCache) } })
+  })
+
+  on('ui.render', { component: 'AbovePrompt', surface: ['desktop', 'terminal'] }, async ($, e, next) => {
+    const theirs = await next(e)
+    if (demo?.phase !== 'limit' || e.props.hasSurvey) return theirs
+    const { Box, Text } = $.ui.resolve(e)
+
+    return (
+      <Box flexDirection="column">
+        <Text key="usage-limit-demo" color={await mainColor($, options.color)}>{await renderArabic($, e.surface, withTashkeel(USAGE_LIMIT, options.tashkeel), demoArabicCache)}</Text>
+        {theirs}
+      </Box>
+    )
+  })
+  // DEMO END
 
   if (!options.thikr) return
 
@@ -181,6 +302,7 @@ export const install = (on: On, options: Options) => {
   })
 
   on('ui.render', { component: 'Spinner' }, async ($, e, next) => {
+    if (demo?.phase === 'playing') return next(e)
     const now = await $.clock.now()
     if (e.props.mode !== 'requesting') hasMovedOn = true
     const oldestTool = Math.min(now, ...toolsSince.values())
@@ -216,17 +338,14 @@ export const install = (on: On, options: Options) => {
   }
 
   on('classic.StopFailure', async ($, e, next) => {
-    if (e.error === 'rate_limit') {
-      const { rateLimits } = await $.session.usage()
-      const until = limitUntil(rateLimits)
-      if (until !== undefined) {
-        await setLimit($, { until })
-        if (until !== null) {
-          const wait = Math.max(0, until - (await $.clock.now()))
-          $.clock.after(wait, () => void setLimit($, null))
-        }
-      }
-    }
+    if (e.error === 'rate_limit') await holdLimit($, (await $.session.usage()).rateLimits)
+
+    return next(e)
+  })
+
+  // A response that reports a full window shows it too, before any turn fails.
+  on('session.measure', async ($, e, next) => {
+    if (e.changed.includes('rateLimits') && e.rateLimits.some(window => window.percentUsed >= 100)) await holdLimit($, e.rateLimits)
 
     return next(e)
   })
@@ -239,9 +358,16 @@ export const install = (on: On, options: Options) => {
 
     return (
       <Box flexDirection="column">
-        <Text key="usage-limit" color="claude">{await renderArabic($, e.surface, withTashkeel(USAGE_LIMIT, options.tashkeel), arabicCache)}</Text>
+        <Text key="usage-limit" color={await mainColor($, options.color)}>{await renderArabic($, e.surface, withTashkeel(USAGE_LIMIT, options.tashkeel), arabicCache)}</Text>
         {theirs}
       </Box>
     )
   })
+}
+
+// Engine access stays in this file; the shared palette is pure.
+const mainColor = async ($: EngineInterface, color: Accent): Promise<string> => {
+  if (color === 'orange') return accentText(color, undefined)
+  const theme = (await $.config.list().catch(() => [])).find(row => row.key === 'theme')
+  return accentText(color, theme?.value)
 }

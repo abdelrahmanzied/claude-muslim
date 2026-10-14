@@ -1,3 +1,4 @@
+import { accentText, type Accent } from '../../shared/color/index.ts'
 import type { EngineInterface, On } from 'claude-code'
 import type { Options } from '../../config.ts'
 import type { QuranPlaying } from '../../../types/index.d.ts'
@@ -531,7 +532,13 @@ async function togglePlayback($: EngineInterface): Promise<void> {
   } catch (error) { await fail($, error) }
 }
 
-export const install = (on: On, _options: Options) => {
+async function mainColor($: EngineInterface, color: Accent): Promise<string> {
+  if (color === 'orange') return accentText(color, undefined)
+  const theme = (await $.config.list()).find(row => row.key === 'theme')
+  return accentText(color, theme?.value)
+}
+
+export const install = (on: On, options: Options) => {
   // Registered before salah: this outer hook prepends Quran to salah's tree.
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
     const theirs = await next(e)
@@ -542,7 +549,7 @@ export const install = (on: On, _options: Options) => {
     const name = playing && isCatalog(raw) ? raw.surahs[playing.surah - 1]!.name : 'القرآن'
     const label = playing ? `${name} ${formatTime(Math.max(0, await $.clock.now() - playing.startedAt))}` : name
     return <Box gap={1}>
-      <Button key="quran-footer" plain onPress={() => { void togglePane($) }}><Text color="success">۞ {label}</Text></Button>
+      <Button key="quran-footer" plain onPress={() => { void togglePane($) }}><Text color={await mainColor($, options.color)}>۞ {label}</Text></Button>
       {theirs}
     </Box>
   })
@@ -634,6 +641,7 @@ export const install = (on: On, _options: Options) => {
     const stored = (await $.state.get(surahRef)).value ?? 1
     const surah = nearestAvailable(reciter.key, stored) ?? stored
     const model = paneModel(raw, reciter, surah, playing, await $.clock.now(), columnsWidth(e.props.bodyColumns), runtime.generation, view.focusRevision, e.props.isFocused, error, view.wheel, trackSelection(reciter, surah), repeatMode((await $.state.get(repeatRef)).value))
+    model.color = options.color
     return <Client key="quran-card" module="./client.tsx" width="100%" props={model} />
   }).catch(async ($, e) => {
     const { Text } = $.ui.resolve(e)

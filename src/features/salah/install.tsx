@@ -1,20 +1,28 @@
+import { accentText, type Accent } from '../../shared/color/index.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
-import type { SalahMinaret, SalahCard, SalahWindow } from '../../../types'
+import type { SalahCard, SalahMinaret, SalahWindow } from '../../../types'
 
 import { countdownMinutes, isMethod, parseShow, SHOW_MAX, SHOW_MIN, writeAdjust } from '../../config.ts'
 import type { Options } from '../../config.ts'
 import { CITY_MODEL, CITY_SYSTEM, cityPrompt, parseCities, parseCoordinates, type City } from './city.ts'
+import { helpHint } from '../../table.ts'
 import { salahHelp } from './help.ts'
+// DEMO BEGIN
+import { demoMoment, demoState } from './demo.ts'
+import { connectDemo, doneDemo } from '../../shared/demo/signal.ts'
+// DEMO END
+import { momentState } from './moment.ts'
 import { guessPlace, systemTimeZone } from './location.ts'
 import { METHODS, methodFor, type Pray } from './methods.ts'
 import { ENGLISH, prayNamed } from '../../shared/pray/names.ts'
 import { writePlace, type Place } from './place.ts'
 import { athanText, isInWindow } from '../../shared/pray/line.ts'
-import { ACCENT_ROWS, FRAME_MS, HOLD_MS, isDue, LABEL_ROW, minaretRows, ROWS_COUNT } from './minaret.ts'
+import { ACCENT_ROWS, FRAME_MS, isDue, LABEL_ROW, minaretRows, minaretStage, ROWS_COUNT } from './minaret.ts'
 import { nudge, reviewRows } from './review.ts'
-import { CARD_HEIGHT, CARD_MS, cardSvg, cardWidth } from './card.ts'
+import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, isOnClose, KEY_REST_MS, LEAVE_MS, LINE_PX } from '../../shared/card/card.ts'
+import { athanFrame, cardIsFolded } from './card.ts'
 import { clockText, lastPray, nextSalah, type Adjust } from './times.ts'
 import { lineAt, methodOf, settingsTable, showText, timesTable } from './today.ts'
 
@@ -74,13 +82,46 @@ const inWindow = atom({ plugin: 'muslim', key: 'salahWindow' } as const, null as
 
 // The minaret's frame while it plays, and the pray time it last played for.
 const minaret = atom({ plugin: 'muslim', key: 'salahMinaret' } as const, null as SalahMinaret | null)
+// The desktop athan card while it shows; null otherwise. The athkar band steps aside for it.
+const card = atom({ plugin: 'muslim', key: 'salahCard' } as const, null as SalahCard | null)
 // The pray line drawn in the footer's mode labels; null when there is none.
 const line = atom({ plugin: 'muslim', key: 'salahLine' } as const, null as string | null)
-// The desktop athan card while it shows; null otherwise.
-const card = atom({ plugin: 'muslim', key: 'salahCard' } as const, null as SalahCard | null)
 const athanShown = atom({ plugin: 'muslim', key: 'salahAthanShown' } as const, null as number | null)
-// A minaret started by this load still has its timers; only a reload's is stale.
-let hasPlayedMinaret = false
+
+// Pointer and short rest timers belong only to this module load. The idle
+// deadline and folded state remain in the card atom, so reloads keep them.
+const cardView = {
+  isInside: false,
+  isEngaged: false,
+  pressedAt: undefined as number | undefined,
+  until: 0,
+  leave: undefined as { cancel: () => void } | undefined,
+}
+
+const resetCardView = (until = 0) => {
+  cardView.leave?.cancel()
+  cardView.leave = undefined
+  cardView.isInside = false
+  cardView.isEngaged = false
+  cardView.pressedAt = undefined
+  cardView.until = until
+}
+
+// Fold the current moment through its existing persisted update path.
+const restCard = async ($: EngineInterface, until: number) => {
+  cardView.leave?.cancel()
+  cardView.leave = undefined
+  await update($, card, current => current?.until === until
+    ? { ...current, isFolded: true } : current)
+}
+
+// Later input extends only the idle deadline, never past the moment's expiry.
+const wakeCard = async ($: EngineInterface, now: number, reopen: boolean, timer: Timer) => {
+  await update($, card, current => current && current.until > now
+    && (reopen || !cardIsFolded(current, now))
+    ? { ...current, isFolded: false, foldsAt: Math.min(now + IDLE_MS, current.until) } : current)
+  await scheduleMoment($, timer)
+}
 
 // How often the pray line is redrawn: every second inside the countdown
 // window (the live countdown), else every 30 seconds.
@@ -91,12 +132,13 @@ const WINDOW_TICK_MS = 1000
 // for the moment the next countdown window opens (so the 1 s countdown starts
 // on time, not on the next 30 s tick).
 type Timer = {
+  moment: { cancel: () => void }[]
   handle: { cancel: () => void } | undefined
   ms: number
   opens: { at: number; handle: { cancel: () => void } } | undefined
 }
 
-const HINT = 'Help: /salah help'
+const HINT = helpHint('/salah')
 
 // The cities a typed place can mean: coordinates as typed, else Claude's
 // reading of the name; a sentence when Claude could not be reached.
@@ -168,7 +210,7 @@ const tick = async ($: EngineInterface, options: Options, place: Place, timer: T
   await setLine($, lineAt(options, place, now))
   if (options.salahShow !== 'off' && options.salahAthan && isDue(last.at, now, await read($, athanShown))) {
     await update($, athanShown, () => last.at)
-    await showAthan($, last.pray === 'sunrise' ? 'fajr' : last.pray, clockText(last.at, place.timeZone), now)
+    await showAthan($, last.pray === 'sunrise' ? 'fajr' : last.pray, clockText(last.at, place.timeZone), now, timer)
   }
 
   const isWindow = options.salahShow !== 'off' && isInWindow(next, now, countdownMinutes(options.salahShow))
@@ -193,22 +235,49 @@ const scheduleOpen = ($: EngineInterface, options: Options, place: Place, timer:
   timer.opens = { at: opensAt, handle: $.clock.after(opensAt - now, () => void run($, options, place, timer)) }
 }
 
-// Plays the minaret once: a row every FRAME_MS from the base up, a short hold, then it goes.
-const playMinaret = async ($: EngineInterface, pray: SalahMinaret['pray']) => {
-  hasPlayedMinaret = true
-  await update($, minaret, () => ({ pray, frame: 1 }))
-  for (let frame = 2; frame <= ROWS_COUNT; frame++) {
-    $.clock.after((frame - 1) * FRAME_MS, () => void update($, minaret, () => ({ pray, frame })))
+// Re-arm only the remaining stages from persisted deadlines. Callbacks update
+// the current state, never recreate a closed moment. Handles only belong to this load.
+const scheduleMoment = async ($: EngineInterface, timer: Timer) => {
+  timer.moment.forEach(handle => handle.cancel())
+  timer.moment = []
+  const now = await $.clock.now()
+  const shown = await read($, card)
+  const playing = await read($, minaret)
+  if (shown) {
+    timer.moment.push($.clock.after(Math.max(0, shown.foldsAt - now), () => void update($, card, current =>
+      current?.until === shown.until && current.foldsAt === shown.foldsAt ? { ...current, isFolded: true } : current)))
+    timer.moment.push($.clock.after(Math.max(0, shown.until - now), () => void update($, card, current =>
+      current?.until === shown.until ? null : current)))
   }
-  $.clock.after(ROWS_COUNT * FRAME_MS + HOLD_MS, () => void update($, minaret, () => null))
+  if (playing) {
+    for (let frame = 2; frame <= ROWS_COUNT; frame++) {
+      const at = playing.startedAt + (frame - 1) * FRAME_MS
+      if (at <= now || playing.isFolded) continue
+      timer.moment.push($.clock.after(at - now, () => void update($, minaret, current =>
+        current?.until === playing.until ? { ...current, frame } : current)))
+    }
+    timer.moment.push($.clock.after(Math.max(0, playing.foldsAt - now), () => void update($, minaret, current =>
+      current?.until === playing.until ? { ...current, isFolded: true } : current)))
+    timer.moment.push($.clock.after(Math.max(0, playing.until - now), () => void update($, minaret, current =>
+      current?.until === playing.until ? null : current)))
+  }
 }
 
-// The athan moment: the card on the desktop and the minaret in the terminal
-// (each surface draws only its own), and the card ends by itself with the call's window.
-const showAthan = async ($: EngineInterface, pray: SalahMinaret['pray'], time: string, now: number) => {
-  await playMinaret($, pray)
-  await update($, card, () => ({ pray, time, until: now + CARD_MS }))
-  $.clock.after(CARD_MS, () => void update($, card, () => null))
+// The athan moment: its states in $.state and the timers that fold and end it.
+const showAthan = async ($: EngineInterface, pray: SalahMinaret['pray'], time: string, now: number, timer: Timer) => {
+  const moment = momentState(pray, time, now)
+  resetCardView(moment.card.until)
+  await update($, minaret, () => moment.minaret)
+  await update($, card, () => moment.card)
+  await scheduleMoment($, timer)
+}
+
+const closeMoment = async ($: EngineInterface, timer: Timer) => {
+  resetCardView()
+  await update($, card, () => null)
+  await update($, minaret, () => null)
+  timer.moment.forEach(handle => handle.cancel())
+  timer.moment = []
 }
 
 // The card's photo, read from the mod's own file; undefined if it cannot be read.
@@ -220,16 +289,41 @@ const readPhoto = async ($: EngineInterface): Promise<string | undefined> => {
   return typeof bytes === 'object' ? bytes.base64 : undefined
 }
 
-// `/salah athan test`: shows the athan moment now for the next pray, without
-// touching settings or the shown-once mark.
-const playTest = async ($: EngineInterface, options: Options, place: Place) => {
-  const now = await $.clock.now()
-  const next = nextSalah(place, methodOf(options, place), options.salahAdjust, now)
-  const pray = next.pray === 'sunrise' ? 'fajr' : next.pray
-  await showAthan($, pray, clockText(next.at, place.timeZone), now)
+// DEMO BEGIN: disposable moments; never write the real card, minaret or timers.
+// shared: started by /muslim demo, which waits for this demo's end.
+let demo: (ReturnType<typeof demoState> & { timers: { cancel: () => void }[]; shared: boolean }) | undefined
+const demoCardAt = (now: number) => demo && demo.card.until > now ? demo.card : undefined
+const demoMinaretAt = (now: number) => demo && demo.minaret.until > now ? demo.minaret : undefined
 
-  return `**Athan test:** ${ENGLISH[pray]}`
+const closeDemo = ($: EngineInterface) => {
+  const closed = demo
+  closed?.timers.forEach(timer => timer.cancel())
+  demo = undefined
+  $.ui.invalidate('ui.render')
+  if (closed?.shared) doneDemo('salah')
 }
+const tickDemo = async ($: EngineInterface) => {
+  const playing = demo
+  if (!playing) return
+  const now = await $.clock.now()
+  if (demo !== playing) return
+  if (now >= Math.max(playing.card.until, playing.minaret.until)) closeDemo($)
+  else $.ui.invalidate('ui.render')
+}
+const playDemo = async ($: EngineInterface, shared = false) => {
+  demo?.timers.forEach(timer => timer.cancel())
+  const now = await $.clock.now()
+  const playing = { ...demoState(now), timers: [] as { cancel: () => void }[], shared }
+  demo = playing
+  playing.timers.push($.clock.every(FRAME_MS, () => void tickDemo($)))
+  // Exact stage boundaries alongside the rise's regular redraws.
+  for (const at of [playing.card.foldsAt, playing.minaret.foldsAt, playing.minaret.until, playing.card.until]) {
+    playing.timers.push($.clock.after(at - now, () => void tickDemo($)))
+  }
+  $.ui.invalidate('ui.render')
+  return demoMoment().text
+}
+// DEMO END
 
 // Tells the thikr line which pray's window we are in; writes only on a change.
 const publishWindow = async ($: EngineInterface, moment: SalahWindow | null) => {
@@ -253,8 +347,7 @@ const putOff = async ($: EngineInterface) => {
   await $.store.set(SETUP_LATER_KEY, true)
 }
 
-// Starts the pray line's timer: a minaret left mid-play by a reload would
-// stay, so it starts clean, and the first tick runs right after the caller.
+// The first tick runs right after the caller.
 // Drops a line and window left by the last load, after this draw: drawing is read-only.
 const clearLine = ($: EngineInterface) => {
   $.clock.after(0, async () => {
@@ -265,9 +358,6 @@ const clearLine = ($: EngineInterface) => {
 
 const begin = async ($: EngineInterface, options: Options, place: Place, timer: Timer) => {
   $.clock.after(0, async () => {
-    // Rendering is read-only. Clear only an orphan from a previous load,
-    // never a test moment started before the first band or footer draw.
-    if ((await read($, minaret)) && !hasPlayedMinaret) await update($, minaret, () => null)
     await run($, options, place, timer)
   })
 }
@@ -280,9 +370,11 @@ export const install = (on: On, options: Options) => {
   // change, starts it again; register also asks for a redraw at session.start).
   let hasTicker = false
   let isLineCleared = false
-  const timer: Timer = { handle: undefined, ms: 0, opens: undefined }
+  const timer: Timer = { moment: [], handle: undefined, ms: 0, opens: undefined }
   // The card's photo (base64), read the first time the card is drawn.
   const photo: { base64: string | undefined } = { base64: undefined }
+  // The athan card last drawn and its region, for its clicks.
+  const athan: { props: { isFolded: boolean; width: number; card: { ch: number; lh: number } } | undefined; region: { columns: number; rows: number } } = { props: undefined, region: { columns: 0, rows: 0 } }
 
   on('command.run', { command: 'salah' }, async ($, e) => {
     const [word = '', first = '', second = ''] = e.args.trim().split(/\s+/)
@@ -298,7 +390,7 @@ export const install = (on: On, options: Options) => {
 
       // The host puts `muslim: ` before the first line, so a title goes there, not a table.
       return {
-        text: ['**Muslim › Salah**', '', `### Today in ${place.name}`, '', timesTable(options, place, await $.clock.now()), '', '### Settings', '', settingsTable(options, place), '', HINT].join('\n'),
+        text: ['**Muslim › Salah**', HINT, '', `### Today in ${place.name}`, '', timesTable(options, place, await $.clock.now()), '', '### Settings', '', settingsTable(options, place)].join('\n'),
       }
     }
     if (word === 'help') return { text: salahHelp() }
@@ -310,12 +402,9 @@ export const install = (on: On, options: Options) => {
 
       return set('salahShow', String(show), `**Show:** ${showText(show)}`)
     }
-    if (word === 'athan' && first === 'test') {
-      const place = options.salahPlace
-      if (!place) return { text: 'Set your city first: `/salah city`' }
-
-      return { text: await playTest($, options, place) }
-    }
+    // DEMO BEGIN
+    if (word === 'demo') return { text: await playDemo($) }
+    // DEMO END
     if (word === 'athan' && (first === 'on' || first === 'off')) return set('salahAthan', first === 'on', `**Athan:** ${first}`)
     if (word === 'city') {
       const typed = e.args.trim().slice('city'.length).trim()
@@ -348,6 +437,43 @@ export const install = (on: On, options: Options) => {
     }
 
     return { text: salahHelp() }
+  })
+
+  // DEMO BEGIN: connect feature-local starters; shield real input during playback.
+  on('command.run', { command: 'muslim', args: /^\s*demo\s*$/ }, $ => {
+    connectDemo('salah', () => playDemo($, true))
+    return { text: '' }
+  })
+  on('ui.press', { plugin: 'muslim', element: 'salah-athan-close' }, async ($, e, next) => {
+    if (!demo || !demoMinaretAt(await $.clock.now())) return next(e)
+    closeDemo($)
+    return { element: e.element }
+  })
+  on('ui.message', { element: 'salah-athan' }, async ($, e, next) => {
+    if (!demo || !demoCardAt(await $.clock.now())) return next(e)
+    const m = e.data
+    if (!isCardMessage(m)) return {}
+    if (m.act === 'size') athan.region = { columns: m.columns, rows: m.rows }
+    const columns = m.act === 'pointer' ? (m.columns ?? athan.region.columns) : 0
+    const rows = m.act === 'pointer' ? (m.rows ?? athan.region.rows) : 0
+    if (m.act === 'hide' || (m.act === 'pointer' && m.button === 'left' && athan.props !== undefined && columns > 0 && rows > 0 && isOnClose(athanFrame(athan.props, columns), m.x, m.y, columns, rows))) closeDemo($)
+    return {}
+  })
+  on('ui.focus', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (demo && demoCardAt(await $.clock.now())) return {}
+    return next(e)
+  })
+  // DEMO END
+
+  // A reload restores a real moment still showing (the demo is module-local and ends).
+  // Rendering stays read-only; the clock callback re-arms and normalizes state.
+  let hasMomentTimers = false
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    if (!hasMomentTimers) {
+      hasMomentTimers = true
+      $.clock.after(0, () => void scheduleMoment($, timer))
+    }
+    return next(e)
   })
 
   // Starts the pray line's timer (or clears the line when off) on the first draw of the band or the footer.
@@ -397,7 +523,7 @@ export const install = (on: On, options: Options) => {
 
     return (
       <Box flexDirection="column">
-        <Text key="salah-review" color="claude">{`Check today's times in ${place.name} against your mosque's, then save.`}</Text>
+        <Text key="salah-review" color={await mainColor($, options.color)}>{`Check today's times in ${place.name} against your mosque's, then save.`}</Text>
         {rows.map(row => (
           <Box key={`salah-${row.pray}`} gap={1}>
             <Text>{row.name}</Text>
@@ -432,28 +558,42 @@ export const install = (on: On, options: Options) => {
     return (
       <Box gap={1}>
         <Box key="salah-line">
-          <Text color="claude" bold>{await renderArabic($, e.surface, text, arabicCache)}</Text>
+          <Text color={await mainColor($, options.color)} bold>{await renderArabic($, e.surface, text, arabicCache)}</Text>
         </Box>
         {theirs}
       </Box>
     )
   })
 
-  // While the minaret plays (about 3 s) it takes a few rows above the prompt.
+  // The terminal rises, folds to one line, then expires with the moment.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)
-    const playing = await read($, minaret)
+    const playing = (demo && demoMinaretAt(await $.clock.now())) ?? await read($, minaret)
     if (!playing || e.props.hasSurvey || e.surface === 'desktop') return theirs
-    const { Box, Text } = $.ui.resolve(e)
+    const { Box, Button, Text } = $.ui.resolve(e)
+    const stage = minaretStage(playing, await $.clock.now())
+    if (stage.isGone) return theirs
 
+    const accent = await mainColor($, options.color)
     const label = await renderArabic($, e.surface, athanText(playing.pray), arabicCache)
+
+    const close = <Button key="salah-athan-close" label="×" plain onPress={() => closeMoment($, timer)} />
+    if (stage.isFolded) return (
+      <Box flexDirection="column">
+        <Box key="salah-athan-row" gap={1}>
+          <Text color={accent}>☾</Text><Text color={accent}>{label}</Text>{close}
+        </Box>
+        {theirs}
+      </Box>
+    )
 
     return (
       <Box flexDirection="column">
-        {minaretRows(playing.frame).map((row, i) => (
+        {minaretRows(stage.frame).map((row, i) => (
           <Box key={`salah-minaret-${i}`} gap={2}>
-            <Text color={i < ACCENT_ROWS ? 'claude' : undefined} dimColor={i >= ACCENT_ROWS}>{row}</Text>
-            {i === LABEL_ROW && playing.frame >= ROWS_COUNT - LABEL_ROW ? <Text color="claude">{label}</Text> : null}
+            <Text color={i < ACCENT_ROWS ? accent : undefined} dimColor={i >= ACCENT_ROWS}>{row}</Text>
+            {i === 0 ? close : null}
+            {i === LABEL_ROW && stage.frame >= ROWS_COUNT - LABEL_ROW ? <Text color={accent}>{label}</Text> : null}
           </Box>
         ))}
         {theirs}
@@ -461,30 +601,94 @@ export const install = (on: On, options: Options) => {
     )
   })
 
-  // The desktop athan card: a full-width photo card above the prompt, built
-  // like the athkar band. It stays until the user closes it with × or the call's
-  // window ends. The terminal never draws it (the minaret is its look).
+  // The desktop athan card: the shared card above the prompt, the athkar
+  // band's size and frame, with the photo behind the call. It stays until the
+  // user closes it with × or the call's window ends. The terminal never draws
+  // it (the minaret is its look).
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)
     if (e.surface !== 'desktop' || e.props.hasSurvey) return theirs
-    const shown = await read($, card)
-    if (!shown || shown.until <= (await $.clock.now())) return theirs
+    const shown = (demo && demoCardAt(await $.clock.now())) ?? await read($, card)
+    if (!shown) return theirs
+    const now = await $.clock.now()
+    if (shown.until <= now) return theirs
     photo.base64 ??= await readPhoto($)
     if (!photo.base64) return theirs
-    const { Box, Button, Svg } = $.ui.resolve(e)
-    const width = cardWidth(e.props.bodyColumns)
+    const { Box, Client } = $.ui.resolve(e)
+    const props = { isActive: true, isFolded: cardIsFolded(shown, now), now, pray: shown.pray, time: shown.time, photo: photo.base64, width: Math.round(e.props.bodyColumns * CELL_PX), card: { ch: CELL_PX, lh: LINE_PX } }
+    athan.props = props
 
-    // Keep the embedded HTML in a sandboxed document, as the working test card was.
     return (
-      // The desktop pads the band in a card: the picture reaches a cell and half a line past it.
+      // As the athkar band: the picture reaches a cell past the slot each side
+      // and half a line above and below, over the desktop's own card.
       <Box flexDirection="column">
-        <Box key="salah-athan-card" gap={1}>
-          <Svg source={cardSvg(photo.base64, shown.pray, shown.time, width)} alt={athanText(shown.pray)} width={width} height={CARD_HEIGHT} isInteractive />
-          <Button key="salah-athan-close" plain label="×" onPress={() => update($, card, () => null)} />
+        <Box key="salah-athan-card" marginX={-1} marginY={-1}>
+          <Client key="salah-athan" module="./athan-card.tsx" props={props} width="100%" />
         </Box>
         {theirs ?? <Box key="salah-athan-end" height={0} />}
       </Box>
     )
+  })
+
+  // The shared × closes the moment; any other left press reopens its folded card.
+  on('ui.message', { element: 'salah-athan' }, async ($, e) => {
+    const m = e.data
+    if (!isCardMessage(m)) return {}
+    if (m.act === 'size') {
+      athan.region = { columns: m.columns, rows: m.rows }
+      return {}
+    }
+    const now = await $.clock.now()
+    const current = await read($, card)
+    if (!current || current.until <= now) return {}
+    if (cardView.until !== current.until) resetCardView(current.until)
+    const columns = m.act === 'pointer' ? (m.columns ?? athan.region.columns) : 0
+    const rows = m.act === 'pointer' ? (m.rows ?? athan.region.rows) : 0
+    const isClose = m.act === 'hide'
+      || (m.act === 'pointer' && m.button === 'left' && athan.props !== undefined && columns > 0 && rows > 0 && isOnClose(athanFrame(athan.props, columns), m.x, m.y, columns, rows))
+    if (isClose) {
+      await closeMoment($, timer)
+      return {}
+    }
+    if (m.act === 'enter') {
+      cardView.isInside = true
+      cardView.isEngaged = true
+      cardView.leave?.cancel()
+      await wakeCard($, now, false, timer)
+    } else if (m.act === 'leave') {
+      cardView.isInside = false
+      cardView.leave?.cancel()
+      if (cardView.isEngaged && !cardIsFolded(current, now)) {
+        cardView.leave = $.clock.after(LEAVE_MS, () => void restCard($, current.until))
+      }
+    } else if (m.act === 'pointer' || m.act === 'key') {
+      if (m.act === 'pointer') {
+        cardView.pressedAt = now
+        cardView.isInside = true
+        cardView.leave?.cancel()
+      }
+      const reopen = m.act === 'pointer' ? m.button === 'left' : m.key === 'return' || m.key === 'space'
+      if (!cardIsFolded(current, now) || reopen) {
+        cardView.isEngaged = true
+        await wakeCard($, now, reopen, timer)
+        if (m.act === 'key' && !cardView.isInside) {
+          cardView.leave?.cancel()
+          cardView.leave = $.clock.after(KEY_REST_MS, () => void restCard($, current.until))
+        }
+      }
+    }
+
+    return {}
+  })
+
+  on('ui.focus', { component: 'AbovePrompt' }, async ($, e, next) => {
+    const now = await $.clock.now()
+    if (e.plugin !== 'muslim' && cardView.isEngaged
+      && (cardView.pressedAt === undefined || now - cardView.pressedAt > FOCUS_GRACE_MS)) {
+      await restCard($, cardView.until)
+    }
+
+    return next(e)
   })
 
   // Until a place is saved: one line above the prompt asking for it.
@@ -502,7 +706,7 @@ export const install = (on: On, options: Options) => {
     return (
       <Box flexDirection="column">
         <Box key="salah-setup" gap={1}>
-          <Text color="claude">{guess ? `Pray times for ${guess.name}?` : 'Set up pray times?'}</Text>
+          <Text color={await mainColor($, options.color)}>{guess ? `Pray times for ${guess.name}?` : 'Set up pray times?'}</Text>
           {guess ? <Button key="salah-yes" label="Yes" hotkey="1" plain onPress={async () => done(await savePlace($, guess, options))} /> : null}
           <Button key="salah-city" label={guess ? 'Another city' : 'Pick city'} hotkey={guess ? '2' : '1'} plain onPress={choose} />
           <Button key="salah-later" label="Not now" hotkey={guess ? '3' : '2'} plain dimColor onPress={() => putOff($)} />
@@ -511,4 +715,11 @@ export const install = (on: On, options: Options) => {
       </Box>
     )
   })
+}
+
+// Engine access stays in this file; the shared palette is pure.
+const mainColor = async ($: EngineInterface, color: Accent): Promise<string> => {
+  if (color === 'orange') return accentText(color, undefined)
+  const theme = (await $.config.list().catch(() => [])).find(row => row.key === 'theme')
+  return accentText(color, theme?.value)
 }

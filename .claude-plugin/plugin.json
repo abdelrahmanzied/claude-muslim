@@ -48,6 +48,34 @@
       ],
       "default": "all"
     },
+    "athkar": {
+      "type": "boolean",
+      "title": "Athkar",
+      "description": "Morning and evening athkar above the prompt, to read and count",
+      "default": true
+    },
+    "athkarStyle": {
+      "type": "string",
+      "title": "Athkar style",
+      "description": "sky: a sky that follows the time of day; frame: plain",
+      "options": [
+        "sky",
+        "frame"
+      ],
+      "default": "sky"
+    },
+    "color": {
+      "type": "string",
+      "title": "Main color",
+      "description": "The main color of the whole mod",
+      "options": [
+        "orange",
+        "green",
+        "gold",
+        "blue"
+      ],
+      "default": "orange"
+    },
     "salahShow": {
       "type": "string",
       "title": "Show pray line",

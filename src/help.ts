@@ -1,26 +1,37 @@
-// `/muslim help`: every feature's command table, or one feature's.
+// `/muslim help`: the shared commands and every feature's table, or one feature's.
 
 import { QURAN_COMMANDS } from './features/quran/help.ts'
+import { ATHKAR_COMMANDS } from './features/athkar/help.ts'
 import { SALAH_COMMANDS } from './features/salah/help.ts'
 import { THIKR_COMMANDS } from './features/thikr/help.ts'
-import { commandTable } from './table.ts'
+import { helpReply, helpTable, type HelpRow } from './table.ts'
 
-const FEATURES = { thikr: THIKR_COMMANDS, salah: SALAH_COMMANDS, quran: QURAN_COMMANDS } as const
+const FEATURES = { thikr: THIKR_COMMANDS, athkar: ATHKAR_COMMANDS, salah: SALAH_COMMANDS, quran: QURAN_COMMANDS } as const
 
-export const TASHKEEL_HELP = '/muslim tashkeel on | off — show or hide Arabic diacritics on desktop (the terminal never shows them)'
-export const TERMINAL_ARABIC_HELP = '/muslim terminal-arabic — choose how Arabic shows in this terminal (applies to all features)'
+export const MUSLIM_COMMANDS: readonly HelpRow[] = [
+  ['/muslim', 'The version, every feature\'s state and the shared settings', ''],
+  ['/muslim help', 'Every command table, or one feature\'s', '`<feature>`: thikr, athkar, salah, quran, color, tashkeel, terminal-arabic'],
+  ['/muslim color', 'The main color in every feature', '`orange` (default, Claude\'s) · `green` · `gold` · `blue`'],
+  ['/muslim tashkeel', 'Arabic diacritics on desktop; the terminal never shows them', '`on` (default) · `off`'],
+  ['/muslim terminal-arabic', 'Choose how Arabic shows in this terminal, for every feature', ''],
+  // DEMO BEGIN: shared demo help.
+  ['/muslim demo', 'Play thikr, athkar and /salah demo (the athan moment) in order; thikr uses tokens and leaves a message in the transcript', ''],
+  // DEMO END
+]
+
+const SHARED = { color: 2, tashkeel: 3, 'terminal-arabic': 4 } as const
 
 export const isFeature = (word: string): word is keyof typeof FEATURES => Object.hasOwn(FEATURES, word)
+
+const title = (name: string) => name.charAt(0).toUpperCase() + name.slice(1)
 
 // One feature's table, or all of them under a heading each.
 export const muslimHelp = (feature?: string): string => {
   if (feature === undefined || feature === '') {
-    return TASHKEEL_HELP + '\n' + TERMINAL_ARABIC_HELP + '\n\n' + Object.entries(FEATURES).map(([name, rows]) => `**${name}**\n\n${commandTable(rows)}`).join('\n\n')
+    return [`**Muslim › Help**\n\n${helpTable(MUSLIM_COMMANDS)}`, ...Object.entries(FEATURES).map(([name, rows]) => `### ${title(name)}\n\n${helpTable(rows)}`)].join('\n\n')
   }
-  if (feature === 'terminal-arabic') return TERMINAL_ARABIC_HELP
-  if (feature === 'tashkeel') return TASHKEEL_HELP
-  if (!isFeature(feature)) return `No feature "${feature}". Features: ${Object.keys(FEATURES).join(', ')}, terminal-arabic, tashkeel.`
+  if (Object.hasOwn(SHARED, feature)) return helpTable([MUSLIM_COMMANDS[SHARED[feature as keyof typeof SHARED]]!])
+  if (!isFeature(feature)) return `No feature "${feature}". Features: ${Object.keys(FEATURES).join(', ')}, ${Object.keys(SHARED).join(', ')}.`
 
-  // A title first: the host puts `muslim: ` before the first line.
-  return `**Muslim › ${feature.charAt(0).toUpperCase()}${feature.slice(1)} › Help**\n\n${commandTable(FEATURES[feature])}`
+  return helpReply(title(feature), FEATURES[feature])
 }

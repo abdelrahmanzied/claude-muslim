@@ -1,23 +1,20 @@
-// The `/salah help` table: every subcommand and what it does.
+// The `/salah help` table: each command, what it is, and its options.
 
-import { commandTable } from '../../table.ts'
 import { ALWAYS_COUNTDOWN } from '../../config.ts'
+import { helpReply, type HelpRow } from '../../table.ts'
 import { METHODS } from './methods.ts'
 
-export const SALAH_COMMANDS: readonly (readonly [string, string])[] = [
-  ['/salah', 'Today\'s times (next marked), then each setting with the command that changes it'],
-  ['/salah help', 'This table'],
-  ['/salah show always', `Show the next pray all day, counting down its last ${ALWAYS_COUNTDOWN} min`],
-  ['/salah show <minutes>', 'Show it only that many minutes before a pray, counting down; e.g. show 20 (default)'],
-  ['/salah show off', 'Hide it'],
-  ['/salah athan on` · `off', 'Show حان وقت صلاة … when a pray comes in'],
-  ['/salah athan test', 'Play the athan moment now for the next pray (desktop: the athan card); changes nothing'],
-  ['/salah city', 'Pick your city (a question, any language)'],
-  ['/salah city <name or lat, lng>', 'Set your city by name in any language, or by latitude, longitude'],
-  ['/salah method <name>', `auto (the country's own), or: ${Object.keys(METHODS).join(', ')}`],
-  ['/salah adjust', 'Match today\'s times to your mosque, a minute at a time'],
-  [`/salah adjust <pray> <±min>`, 'Move one pray by any whole number of minutes, e.g. adjust asr +5'],
+export const SALAH_COMMANDS: readonly HelpRow[] = [
+  ['/salah', 'Pray times. Alone, it shows today\'s times and the settings', ''],
+  ['/salah help', 'This table', ''],
+  ['/salah show', 'The next pray under the prompt', `\`always\`: all day, counting down its last ${ALWAYS_COUNTDOWN} min · \`<minutes>\`: only that many minutes before a pray, counting down (default 20) · \`off\`: hidden`],
+  ['/salah athan', 'حان وقت صلاة … when a pray comes in', '`on` (default) · `off`'],
+  // DEMO BEGIN: standalone preview; no settings or saved state.
+  ['/salah demo', 'Preview Fajr at 05:00 without a city; desktop open 5 s then folded 3 s, terminal rise then folded 3 s; changes no settings or saved state', ''],
+  // DEMO END
+  ['/salah city', 'Your city', 'nothing: pick it by a question, in any language · `<name>`: by name, in any language · `<lat, lng>`: by coordinates'],
+  ['/salah method', 'How the times are calculated', `\`auto\` (default): the country's own · or one of: ${Object.keys(METHODS).join(', ')}`],
+  ['/salah adjust', 'Match the times to your mosque', 'nothing: today\'s times with − and + per pray · `<pray> <±min>`: move one pray, e.g. `asr +5`'],
 ]
 
-// The host puts `muslim: ` before the first line, so a title goes there, not the table.
-export const salahHelp = (): string => `**Muslim › Salah › Help**\n\n${commandTable(SALAH_COMMANDS)}`
+export const salahHelp = (): string => helpReply('Salah', SALAH_COMMANDS)

@@ -1,0 +1,8 @@
+#!/bin/sh
+# Runs the gates before a push. Enable once per clone:
+#   git config core.hooksPath .githooks
+if [ ! -d .claude-plugin/types ]; then
+  echo "pre-push: .claude-plugin/types is missing; load the mod in Claude Code once to write it." >&2
+  exit 1
+fi
+npm run check

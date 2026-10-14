@@ -818,7 +818,23 @@ function engineFooter(on: On) {
     return <Text>model</Text>
   })
 }
-test('desktop footer chip is a green Button and toggles the pane without stopping playback', async ($, on) => {
+for (const color of ['orange', 'green', 'gold', 'blue'] as const) {
+  test(`Quran footer and pane use the shared ${color} main color`, { options: { color } }, async ($, on) => {
+    setup(on)
+    engineFooter(on)
+    const mounted = await $.ui.mount(footer('desktop'))
+    const dark = { orange: '#d97757', green: '#1a9466', gold: '#e8b93c', blue: '#4a7fc0' }
+    const light = { orange: '#c8642d', green: '#0b7a50', gold: '#c99a1f', blue: '#3a6aa3' }
+    expect((await mounted.find({ type: 'Text', text: '۞ القرآن' }))?.props.color).toBe(color === 'orange' ? 'claude' : dark[color])
+    const player = await $.ui.mount(pane('desktop'))
+    const props = (await player.find({ type: 'Client', key: 'quran-card' }))?.props.props as PaneModel
+    expect(props.color).toBe(color)
+    const svg = (await player.find({ in: 'quran-card', type: 'Svg' }))?.props.source as string
+    expect(svg).toContain(`--q-accent:${dark[color]}`)
+    expect(svg).toContain(`--q-accent:${light[color]}`)
+  })
+}
+test('desktop footer chip uses the shared main color and toggles the pane without stopping playback', async ($, on) => {
   const clock = setup(on)
   engineFooter(on)
   audio(on, clock)
@@ -829,7 +845,7 @@ test('desktop footer chip is a green Button and toggles the pane without stoppin
   const mounted = await $.ui.mount(footer('desktop'))
   expect(await mounted.find({ type: 'Button', key: 'quran-footer' })).toBeDefined()
   expect(await mounted.find({ type: 'Svg' })).toBeUndefined()
-  expect((await mounted.find({ type: 'Text', text: '۞ القرآن' }))?.props.color).toBe('success')
+  expect((await mounted.find({ type: 'Text', text: '۞ القرآن' }))?.props.color).toBe('claude')
   await mounted.press({ key: 'quran-footer' })
   expect(clock.opened).toEqual([{ id: 'quran', title: 'القرآن الكريم' }])
   panes.push({ id: 'quran', title: 'القرآن الكريم', isShown: true, isPlaced: true, isFocused: false })
@@ -855,7 +871,6 @@ test('desktop footer order is Quran, salah, model; salah retains orange accent',
   const tree = JSON.stringify(await mounted.drawn())
   expect(tree.indexOf('quran-footer')).toBeLessThan(tree.indexOf('salah-line'))
   expect(tree.indexOf('salah-line')).toBeLessThan(tree.indexOf('model'))
-  expect(tree).toContain('"color":"success"')
   expect(tree).toContain('"color":"claude"')
 })
 

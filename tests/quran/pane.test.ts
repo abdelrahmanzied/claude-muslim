@@ -108,7 +108,7 @@ test('pane colors are CSS variables with a light palette under prefers-color-sch
   expect(svg).toContain('@media (prefers-color-scheme: light){.pane{--q-bg:transparent;--q-text:#302f2a;--q-title:#302f2a')
   expect(svg).toContain('--q-field-bg:#f9f7f2')
   expect(svg).toContain('--q-field-bg:#252321')
-  expect(svg).toContain('--q-accent:#4f8b63')
+  expect(svg).toContain('--q-accent:#d97757')
   expect(svg).toContain('--q-shadow:0 10px 30px rgba(48,47,42,.14)')
   expect(svg).not.toMatch(/(^|[;{\s])color-scheme\s*:/)
   const outside = svg.replace(paletteCss('.pane'), '').replace(paletteCss('.quran'), '').replace(/<svg[^>]*kbx-root[\s\S]*?<\/svg>/, '').replace(/base64,[A-Za-z0-9+/=]+/g, '')

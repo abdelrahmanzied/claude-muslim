@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Quran adopts the shared three-column help and feature-status tables and `/muslim color` for its pane accents and footer; keep availability repair, playback and repeat modes. Quran demo remains deferred.
 - Quran hides surahs the selected recording cannot play, using the shipped support catalog, with one dim note counting them; reciter switches, next/previous, auto-advance, commands and restored state move to the nearest available surah without network work.
 - Quran pane follows the selected design: rosette rules, fields every 90px, avatar beside the title, transparent background in both themes, Tajawal throughout and the «الوقت تقريبي» hint. Repeat has three states (`off`, `surah`, `segment`) with two mutually exclusive buttons; surah repeat plays every quarter then starts over, quarter repeat replays the current quarter and is inactive for whole surahs; add `/quran repeat segment`. Nested SVGs declare their namespace so Desktop draws the rosette.
 - Add the developer-only cuts script, its offline benchmark and pure cut helpers (pause search with local offset alignment); the generated cuts file is an empty placeholder and playback does not use it yet.
@@ -23,6 +24,15 @@
 - Add `/quran`: a desktop whole-surah recitation player with complete Hafs recording and surah selectors, play/stop, previous/next, approximate time/progress, a green desktop footer chip that toggles the docked pane, and a remembered reciter. Natural ends advance with the same recording, stopping after surah 114; stopped/replaced plays cannot advance. Loudness is controlled by the OS. MP3Quran provides the catalog and remote tracks; best-effort MP3 duration metadata is cached without audio. Includes terminal fallback, help/settings integration, docs and tests.
 
 - DESIGN.md: "Quiet by default" now means silent animations and reminders; audio the user starts (such as a recitation) is allowed.
+
+- `/muslim demo` plays the thikr, athkar and salah demos in order without overlap: each demo reports its own end and the next starts 0.1 s later; it knows no demo's length or values, needs no city, and the thikr prompt then says `/muslim demo`. Feature-local demo signals replace self-command calls, which skip muslim's own hooks. The reply explains thikr's token and transcript cost; a repeat says it is already playing. The shared runner is removable demo code and changes no settings, store or saved state.
+- `/thikr demo` plays by itself: it starts a real turn (tokens, and a message in the transcript) in which Claude runs three timed Bash sleeps (about 30 s), so the Spinner plays every group in order, a phrase every 1.5 s (starting, thinking, writing, long, then one salawat), the terminal end-of-turn line says تَمَّ بِحَمْدِ اللَّهِ even with `/thikr end off`, then the usage-limit line shows above the prompt for 3 s and the demo disarms itself. It plays with thikr off, changes no settings or saved state, and leaves normal behavior untouched when not armed.
+- The athan moment now shows, folds (desktop after one minute; terminal after its rise), and closes after 15 minutes or ×; reopened or pointer-used desktop cards share the athkar band's rest rules (leave 1 s, keys off-card 3 s, idle 90 s, outside focus after a 600 ms press grace); reopening and reloads preserve its original expiry, and `/salah demo` previews Fajr at 05:00 without a city in disposable local state (desktop open 5 s, terminal rise 3.01 s; folded 3 s, then gone). Two selectors reuse the existing drawing paths and restore any real athan untouched; demo input, timers and playback never write real salah atoms. The folded row keeps the call on the right, like the athkar band's title.
+- `/athkar demo [sky|frame]` shows all six desktop skies on distinct reading scenes: morning Kursi (75), short (83) and long (84) athkar, then evening short (97), long (77, evening wording) and last thikr (98, counting to ten). Sky has eight scenes in 33.2 seconds, ending with the real finale and folded done on crescent in the evening. Frame keeps its six morning scenes, colors and 24.2-second timing on either surface. Each reply reports its style's scene count and duration. Playback uses its own drawing path, restarts on demand and never changes the real reading, view, timers or saved state.
+- Share the desktop card's size, frame, ×, hover, lighting and input between the athkar band and athan card. The athan takes the band's place while it shows; closing it or expiry brings the reading back. Keep the terminal reader and minaret unchanged.
+- One shape for every settings and help reply: `/muslim`, `/thikr`, `/athkar` and `/salah` show `| Setting | Description | State |` under a line pointing to their help; every `help` shows `| Command | Description | Options |`, each option with what it does. `/thikr help` is new; `/muslim` lists each feature's main state and the shared settings.
+- Make the main color plugin-wide with `/muslim color orange | green | gold | blue` (default Claude orange), shared by athkar, salah, thikr's usage-limit line and the terminal Arabic survey label. `/athkar color` now points to `/muslim color`. Orange text keeps Claude's theme key; other colors use shared light/dark shades.
+
 - `/muslim` shows a settings table, the same on every surface: tashkeel, thikr, and terminal Arabic (this terminal's mode, or its default if not chosen yet; `terminal only` on desktop), each with the command that changes it.
 - Terminal Arabic has three per-terminal modes: `plain` strips tashkeel, `joined` also applies presentation forms in logical order, and `reversed` also reorders Arabic runs for visual RTL display. Tashkeel is always stripped on terminal because terminals draw marks poorly and partial redraws can garble them.
 - Defaults are Apple Terminal `plain`, Warp `joined`, Windows Console `reversed`, and `plain` for every other terminal ID. The first-run survey compares these treatments with hotkeys 1–3; invalid saved modes reopen the survey. `/muslim terminal-arabic` reopens it manually.
@@ -40,7 +50,9 @@
 - The prayer line in the footer is bold.
 - `/salah adjust` accepts any whole number of minutes; saved settings and the review form no longer cap adjustments at ±60.
 - Fix the athan moment being hidden when tested before the prayer display first appears; keep the desktop card and terminal minaret unchanged.
+- `/salah demo` replaces `/salah athan demo` and shows the athan moment now, a fixed Fajr at 05:00, replying `**Salah demo:** athan · Fajr 05:00` like the other demos, without changing settings: the card on the desktop, the minaret in the terminal.
 - `/salah athan test` shows the athan moment now for the next prayer without changing settings: the card on the desktop, the minaret in the terminal.
+  Historical entry retained from feat/quran; the current command is `/salah demo`, as described above.
 - Desktop athan card: when a prayer comes in (`salahAthan`) the desktop shows a full-width card above the prompt, built like the athkar band, with a photo of the Haram behind «حان وقت صلاة المغرب» and the time in Arabic digits and a × to close; it stays until closed or the call's 15 minutes end. The minaret is terminal only.
 - Athan card polish: a sharper photo (a wide strip cut from a larger original), a × on a round dark disc that reads over the photo. No entrance animation: the desktop draws the card as a still picture, so a fade-in froze on its first, invisible frame.
 - Prayer times (`/salah`): calculated on the machine with the vendored athan library (from [adhan-js](https://github.com/batoulapps/adhan-js)), no location service or API. The first prompt after install offers the city named by the time zone, or any city typed in any language (Claude reads it into coordinates). Each country's official Sunni method, else Muslim World League; Asr by the majority.
@@ -56,11 +68,25 @@
 - The mod clears the old status-line entry (`muslim ☾ …`) at session start, so a hot reload no longer leaves it next to the model name.
 - Shared prayer helpers (names, digits, the prayer line text) moved to `src/shared/pray/`; thikr no longer imports salah's folder.
 
+- Athkar: Sky is desktop only; the terminal always shows the Frame look, and `/athkar style` there changes nothing.
+- Athkar follow the shared Arabic path: the plugin-wide `/muslim tashkeel` on desktop, and in the terminal no tashkeel and this terminal's mode (`/muslim terminal-arabic`), for the title, text, passage name, position and end.
+- `/athkar help` shows the command table; `/muslim help athkar` too, and `/muslim` lists athkar in its settings table.
+- Morning and evening athkar: a reader above the prompt for Hisn al-Muslim 75–98, morning 05:00–17:00 and evening 17:00–05:00. Counts come from the data file only (91 and 92 a hundred, 98 ten); 92 and 93 are one thikr.
+- Cover with the title and the keys (two columns, no Esc). Click, Space or Enter counts; right click or Backspace takes one back; ← next, → previous. The first click on a faded band only lights it; the cover's next click opens the reading. Moves on 650 ms after a thikr's last count.
+- Quran passages show their name beside the set position (آية الكرسي, سورة الإخلاص, الفلق, الناس), on desktop and in the terminal.
+- Progress: a horizon glow along the bottom; the repetitions left ride its head in a small pill; the set position sits at its left end.
+- Size: one open height, 77px, for the cover, reading, finale and done row; faded, each folds to one 24px row. Text at a fixed 14px that shrinks only to fit its two-line box, with no floor. No size setting.
+- Folds by itself: 1 s after the pointer leaves, 3 s after the last key with the pointer off the band, at once when typing in the prompt, and after 90 s with no input.
+- End: on desktop stars fall and ﴿رَبَّنَا تَقَبَّلْ مِنَّا إِنَّكَ أَنتَ السَّمِيعُ الْعَلِيمُ﴾ rises centered with — البقرة ١٢٧ at 18px. Then the done row: the verse at 14px, `/athkar <period> reset → to read again`, and a ✓ on the full line's head. Folded: أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الْمَسَاءُ (or الصَّبَاحُ). The verse takes the words' color on a sky, the main color on Frame.
+- Looks: Sky (default), a sky that follows the time of day on desktop and its plain color in the terminal; Frame, a main-color frame. Main color orange, green, gold or blue.
+- Reading saved per day (05:00 to 05:00) and period; × hides the band and keeps it. `/athkar`: status, on/off, style, color, `morning|evening reset`. Settings also in `/config`.
+- Thikr line: the usage-limit thikr also shows as soon as a response reports a full usage window.
+
 ## 0.2.0
 
 - Thikr line: tasabih join Claude's working line: starting phrases, then a thinking order through tools, a writing pair while Claude answers, and a long group while compacting, a subagent works, or a tool runs 10 s or more. Starting phrase random per turn. Speed auto (1 s + 0.5 s per word) by default, or fixed seconds. Claude's step text on desktop and any status message stay, with the thikr after them; the terminal's decorative verb is replaced.
 - End of turn: تَمَّ بِحَمْدِ اللَّهِ.
-- Usage limit: حَسْبِيَ اللَّهُ وَنِعْمَ الْوَكِيلُ above the prompt in Claude orange until the limit resets.
+- Usage limit: حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ above the prompt in Claude orange until the limit resets.
 - Salawat mode: `/thikr mode salawat` shows one salawat for each whole turn, a different one each turn.
 - `/thikr` command: on/off, speed, tashkeel, end, mode. Settings also in `/config`.
 

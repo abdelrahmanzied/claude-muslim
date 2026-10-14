@@ -24,7 +24,11 @@ Prayer times for the user's city, calculated on their machine with
      updated every second; for 15 minutes once it is in, `حان وقت صلاة العصر`.
    - minutes (default 20, any whole number from 1 to 720): empty until that many minutes before a prayer, then the countdown; `حان وقت صلاة …` for 15 minutes, then empty again.
    - `off`: nothing, and the line is cleared.
-   - When a prayer comes in and `salahAthan` is on, the athan moment shows once per prayer, never during a survey, and not for a prayer first seen more than 2 minutes late (a late start or reload). In the terminal a small Unicode minaret rises row by row above the prompt for about 3 seconds beside «حان وقت صلاة العصر»; the minaret is terminal only. On the desktop a full-width card with a photo of the Haram sits above the prompt with «حان وقت صلاة المغرب» and the time in Arabic digits, and a × at its top left; it appears at once in an isolated view and stays until the user closes it or the call's 15 minutes end. The prayer line keeps the call for 15 minutes either way.
+   - When a prayer comes in and `salahAthan` is on, the athan moment shows once per prayer, never during a survey, and not for a prayer first seen more than 2 minutes late (a late start). It has three stages:
+     1. **Show:** desktop opens the lit shared card over the Haram photo, with the call and time in Arabic digits; terminal plays the rising Unicode minaret (~3 seconds).
+     2. **Fold:** after 1 minute (`FOLD_MS`), desktop uses the shared folded row (24px content height, the same as athkar): call and time on one line over the photo, shared × on the left. Pressing anywhere except × reopens it with the athkar band's shared rest rules: leave folds after 1 second, enter cancels that wait, keys with the pointer off fold 3 seconds after the last key, and no input folds after 90 seconds. A focus move elsewhere in `AbovePrompt` (`plugin` other than `muslim`) folds immediately unless it arrives within 600 ms of a pointer press on the card. Reopening and later input renew the 90-second `foldsAt` deadline. These rules also apply once the pointer has entered the initially open card; an untouched first appearance still folds after 1 minute. The folded state is persisted through the existing atom. Terminal folds as soon as the rise finishes to one row above the prompt: `☾`, the call through the shared terminal Arabic path in the main color, and a × Button at the end; it stays folded.
+     3. **Close:** × closes the moment at any stage on either surface; otherwise both disappear 15 minutes after the original start (`CARD_MS`). Reopening never extends that deadline. Neither closing nor expiry announces the same prayer again.
+   - The fold state, rise start and end deadlines live in `$.state`; a reload resumes the correct open, folded or gone stage and re-arms only the remaining timers. The desktop athkar band stays hidden for both open and folded stages and returns with its reading kept after close or expiry. The footer independently keeps the call for 15 minutes, unchanged by ×.
    - `salahAthan` off drops the minaret, the card and the `حان وقت` line: the line goes straight back to the
      next prayer (`always`) or to empty (minutes).
    - The prayer line redraws every 30 seconds, and every second only while inside the countdown window (the live countdown); it goes back to 30 seconds when the window ends. A timer set for the exact moment the window opens starts the countdown on time, not on the next 30 s tick. The timer starts on every module load (the first draw of the footer or the band, and a redraw asked at session start), so it re-arms after `/salah show off` then `/salah show 60`.
@@ -55,7 +59,7 @@ Prayer times for the user's city, calculated on their machine with
 ## Commands
 
 `/salah` shows a title, then two tables under their own headings: today's times (the next prayer marked, a moved prayer with its minutes), then the settings (city, method, show, athan, adjust), each with the command that changes it, and a hint to `/salah help`.
-`/salah help` is a table of every subcommand: `show always` · `<minutes>` · `off`, `athan on` · `off`, `athan test` (plays the athan moment now for the next prayer, changes nothing; shows the card on the desktop and the minaret in the terminal), `city` (the setup question) and
+`/salah help` is a table of every subcommand: `show always` · `<minutes>` · `off`, `athan on` · `off`, `demo` (fixed Fajr at 05:00, with no city or calculation; desktop open 5 s then folded 3 s; terminal rises 3.01 s then folded 3 s; real state, settings and store are untouched), `city` (the setup question) and
 `city <name or lat, lng>`, `method <auto or name>`, `adjust` and
 `adjust <prayer> <±min>` (any whole number of minutes, such as `+90` or `-120`; missing or malformed minutes are an error). An unknown word answers with the table.
 `/muslim help` shows the tables of thikr and salah; `/muslim help salah` only salah's.
@@ -67,7 +71,13 @@ Replies are short markdown: a bold title line first (`**Muslim › Salah**`, `**
 - No `$.state` write while drawing: the engine refuses it. Clearing the line (show `off`, no place) is deferred to the next clock tick.
 - The footer computes the line from the clock and the settings at draw time, never from a value saved earlier, so `show off` hides it, `show 20` far from a pray empties it, and `show always` after `off` brings it back, all at once.
 
+## Demo
+
+`/salah demo` replies `**Salah demo:** athan · Fajr 05:00` and always previews «الفجر» at 05:00, formatted by the real `clockText` function. It does not read a city, method or calculated prayer time. Disposable module-local card and minaret values have their own redraw timers. One selector per existing render path chooses the demo while it is active; the same `athan-card.tsx` and minaret builders draw it. Desktop: open 5 seconds, folded 3 seconds; terminal: rise 3.01 seconds, folded 3 seconds. Expiry or × discards only the demo, revealing any real athan with its state and timers untouched. Demo input cannot change the real card. The shared `/muslim demo` starts this same runner, which then reports its end when the moment closes or expires, through a transient signal connected in a demo-only command hook; it needs no city either.
+
 ## Settings
+
+Main-color accents follow the plugin-wide `/muslim color orange | green | gold | blue` setting through `src/shared/color/`, default Claude orange. Other colors stay as they are.
 
 Terminal Arabic: the footer line and the minaret label follow the shared per-terminal setting (`/muslim terminal-arabic`, see the [terminal guide](../terminal.md)). The desktop footer and athan card keep logical text.
 
@@ -88,6 +98,7 @@ Surfaces, the athan moment's look and what salah never does: [salah-design.md](s
 | File | Holds |
 | --- | --- |
 | `install.tsx` | hooks: `/salah`, setup line, review form, prayer line |
+| `demo.ts` | pure demo path: fixed Fajr, real `clockText` formatting at 05:00, reply and short deadlines |
 | `help.ts` | the `/salah help` table (also in `/muslim help`) |
 | `times.ts` | a day's times, next (with and without sunrise) and last prayer |
 | `clock.ts` | local time and Hijri month in a time zone |
@@ -96,10 +107,12 @@ Surfaces, the athan moment's look and what salah never does: [salah-design.md](s
 | `place.ts` | the saved place's one-setting format |
 | `review.ts` | the review form's rows |
 | `minaret.ts` | the minaret's rows, frame timing and when it is due |
-| `card.ts` | the desktop athan card (Svg markup around a photo in `assets/`, with the embedded font in `card-font.ts`) |
+| `card.ts`, `athan-card.tsx` | desktop athan content and Client, using the shared card in `src/shared/card/` around a photo in `assets/`, with the embedded font in `card-font.ts` |
 | `today.ts` | the times and settings tables for `/salah`, and the method in effect |
 
 Shared with thikr, in `src/shared/pray/`: `names.ts` (prayer names in English and Arabic, the `Prayer` type) and `line.ts` (the prayer line, countdown, Arabic digits). Neither feature imports the other's folder.
+
+The desktop athan uses the same shared card and open size as the athkar band. Only one card shows at a time: the athan takes the band's place until closed or expired, then the band returns with the reading kept. The terminal reader and minaret are unchanged.
 
 ## To verify live
 
@@ -120,7 +133,7 @@ Terminal checklist (each reply opens with its title, tables render):
 | `/salah show 600` | the line shows, counting down |
 | `/salah show off`, then `show always` | hides, then comes back at once |
 | `/salah show 0` · `show abc` | the accepted forms, nothing changed |
-| `/salah athan test` | the minaret above the prompt, nothing saved |
+| `/salah demo` | fixed Fajr at 05:00 without a city; desktop 5 s open + 3 s folded, terminal 3.01 s rise + 3 s folded; no real state, settings or store changes |
 | `/salah athan off` · `on` | `**Athan:** off` · `on` |
 | `/salah adjust` · `adjust asr +5` | the review form · `**Adjust:** Asr +5 min` |
 | `/salah method auto` | `**Method:** auto (…)` |

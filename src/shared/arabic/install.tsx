@@ -1,3 +1,4 @@
+import { accentText, type Accent } from '../color/index.ts'
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 import type { Options } from '../../config.ts'
@@ -55,7 +56,7 @@ const terminalLine = async ($: EngineInterface): Promise<string> => {
   return `${shown} for ${id}`
 }
 
-export const install = (on: On, _options: Options): void => {
+export const install = (on: On, options: Options): void => {
   on('command.run', { command: 'muslim' }, async ($, e, next) => {
     const args = e.args.trim()
     const words = args ? args.split(/\s+/) : []
@@ -82,7 +83,7 @@ export const install = (on: On, _options: Options): void => {
     return (
       <Box flexDirection="column">
         <Box>
-          <Text color="claude">muslim</Text>
+          <Text color={await mainColor($, options.color)}>muslim</Text>
           <Text> · {TITLE} · {QUESTION}</Text>
         </Box>
         <Text dimColor>{HINT}</Text>
@@ -98,4 +99,11 @@ export const install = (on: On, _options: Options): void => {
       </Box>
     )
   })
+}
+
+// Engine access stays in this file; the shared palette is pure.
+const mainColor = async ($: EngineInterface, color: Accent): Promise<string> => {
+  if (color === 'orange') return accentText(color, undefined)
+  const theme = (await $.config.list().catch(() => [])).find(row => row.key === 'theme')
+  return accentText(color, theme?.value)
 }
