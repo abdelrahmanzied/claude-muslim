@@ -14,7 +14,7 @@ import type { BandModel } from './band.ts'
 import type { Period } from './data.ts'
 import { ADVANCE_MS, countOf, currentOf, dayOf, emptyReading, END, listFor, overall, periodAt, readDay, shouldAdvance, skyAt, step, textOf, timesOf, TITLE } from './logic.ts'
 import type { Act } from './logic.ts'
-import { lookFor, plain, readerProps } from './look.ts'
+import { lookFor, plain, readerProps, resetHint } from './look.ts'
 import type { Style } from './look.ts'
 
 // DEMO BEGIN: imports and transient runner (no saved state or real view).
@@ -125,6 +125,10 @@ const glowAtTime = (from: number, to: number, ms: number) => {
 const isStyle = (value: string): value is Style => (STYLES as readonly string[]).includes(value)
 const isPeriod = (value: string): value is Period => value === 'morning' || value === 'evening'
 
+// The period the band shows: the one picked by `/athkar morning` or
+// `/athkar evening` while it holds, else the clock's.
+const periodOf = (now: Date): Period => view.chosen ?? periodAt(now.getHours())
+
 const localNow = async ($: EngineInterface) => new Date(await $.clock.now())
 
 const hourOf = (date: Date) => date.getHours() + date.getMinutes() / 60
@@ -165,10 +169,11 @@ const advance = async ($: EngineInterface, period: Period, index: number) => {
 // next one shows by itself.
 const apply = async ($: EngineInterface, act: Act) => {
   const { now, day } = await today($)
-  const period = periodAt(now.getHours())
+  const period = periodOf(now)
   const before = day[period]
   const after = step(period, before, act)
   await save($, { ...day, [period]: after })
+  if (act.act === 'hide') view.chosen = undefined
   if (act.act === 'count' && shouldAdvance(period, before, after)) {
     $.clock.after(ADVANCE_MS, () => void advance($, period, after.index))
   }
@@ -193,6 +198,9 @@ const view = {
   // The pointer is over the band.
   isInside: false,
   pressedAt: 0,
+  // Picked by `/athkar morning` · `evening`: holds for this session until the
+  // other period is picked or the band is hidden with ×.
+  chosen: undefined as Period | undefined,
 }
 
 // Lights the band, and fades it again after a while with no input.
@@ -233,6 +241,7 @@ export const install = (on: On, options: Options) => {
   view.isOpen = false
   view.isActive = false
   view.isInside = false
+  view.chosen = undefined
 
   on('command.run', { command: 'athkar' }, async ($, e) => {
     const [word = '', value = ''] = e.args.trim().split(/\s+/)
@@ -254,7 +263,7 @@ export const install = (on: On, options: Options) => {
     // DEMO END
     if (word === '') {
       const { now, day } = await today($)
-      const period = periodAt(now.getHours())
+      const period = periodOf(now)
       if (day[period].isHidden) await save($, { ...day, [period]: { ...day[period], isHidden: false } })
 
       return {
@@ -284,6 +293,16 @@ export const install = (on: On, options: Options) => {
       rest($)
 
       return { text: `${word} athkar start again from the first` }
+    }
+    if (isPeriod(word) && value === '') {
+      const { day } = await today($)
+      const reading = day[word]
+      if (view.chosen !== word) view.isOpen = false
+      view.chosen = word
+      if (reading.isHidden) await save($, { ...day, [word]: { ...reading, isHidden: false } })
+      wake($)
+
+      return { text: reading.isDone ? `${word} athkar are done today: ${resetHint(word)}` : `${word} athkar open above the prompt` }
     }
 
     return { text: athkarHelp() }
@@ -406,7 +425,7 @@ export const install = (on: On, options: Options) => {
       }
     }
     const { now, day } = await today($)
-    const reading = day[periodAt(now.getHours())]
+    const reading = day[periodOf(now)]
     const isBack = m.act === 'pointer' ? m.button === 'right' : m.key === 'backspace'
     const isCount = m.act === 'pointer' ? m.button === 'left' : m.key === ' ' || m.key === 'space' || m.key === 'return'
     if (reading.isDone) {
@@ -472,7 +491,7 @@ export const install = (on: On, options: Options) => {
     const held = (await read($, dayRef)) ?? (await $.store.get(STORE_KEY))
     clock ??= $.clock.every(60_000, () => $.ui.invalidate('ui.render'))
     const now = await localNow($)
-    const period = periodAt(now.getHours())
+    const period = periodOf(now)
     const reading = readDay(held, dayOf(now))[period]
     if (reading.isHidden) return theirs
 

@@ -7,7 +7,7 @@ export const ATHKAR_COMMANDS: readonly HelpRow[] = [
   ['/athkar help', 'This table', ''],
   ['/athkar style', 'The look', '`sky` (DESKTOP ONLY, default): a sky that follows the time of day · `frame`: a plain frame in the main color'],
   ['/athkar demo', 'Play the looks without changing the saved reading; alone, uses the current style (terminal: frame)', '`sky` (DESKTOP ONLY): the six skies of the day · `frame`: the four main colors'],
-  ['/athkar morning` · `evening', 'Read that period again from the start', '`reset`'],
+  ['/athkar morning` · `evening', 'Open that period\'s reader above the prompt, even outside its hours', '`reset`: read it again from the start'],
 ]
 
 export const athkarHelp = (): string => helpReply('Athkar', ATHKAR_COMMANDS)

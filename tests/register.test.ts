@@ -40,7 +40,7 @@ test('/muslim help shows every feature\'s table; with a feature, only its own', 
   expect(salah).not.toContain('/thikr')
   expect(thikr).toContain('/thikr mode')
   expect(thikr).not.toContain('/salah')
-  expect(all).toContain('| `/athkar morning` · `evening` | Read that period again from the start | `reset` |')
+  expect(all).toContain('| `/athkar morning` · `evening` | Open that period\'s reader above the prompt, even outside its hours | `reset`: read it again from the start |')
   expect((await $.command.run(muslim('help athkar'))).text?.split('\n')[0]).toBe('**Muslim › Athkar › Help**')
   expect((await $.command.run(muslim('help quran'))).text).toContain('Features: thikr, athkar, salah, color, tashkeel, terminal-arabic')
 })
