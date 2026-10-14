@@ -11,6 +11,8 @@
 
 - Quran aligns its custom heading text with the Mushaf icon and adds a thin draggable scrollbar to both searchable dropdowns; lists remain inside the fixed pane picture. Native wheel dispatch remains unresolved.
 
+- Quran keeps the `/quran` heading label visible at every pane width; the title shortens instead. Dragging a dropdown scrollbar freezes its pointer scale at the press and skips redraws that change nothing, so a flickering host row count no longer shakes the list.
+
 - Quran draws the entire desktop pane in its Client: styled dropdowns with complete catalogs, inline search, keyboard scrolling, current/hover marks and overlays above the player. Embed both full Tajawal weights using lossless WOFF2 to fit engine limits; RTL Arabic and isolated Arabic-Indic option numbers follow the design system. The picture's accessibility text names both surah and quarter repeat with their current states.
 
 - Quran playback starts directly in the hook flow; Stop immediately aborts the active signal even during catalog refresh, and the pane toggle reads current state. A per-clip 200ms watchdog also aborts from the playback invocation. Keep bounded diagnostic logging available with `QURAN_DEBUG = false` for v1. Reload can orphan a clip until it ends.
