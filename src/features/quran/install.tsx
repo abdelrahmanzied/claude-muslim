@@ -7,6 +7,7 @@ import { audioUrl, CATALOG_MS, defaultReciter, filterReciters, isCatalog, matchR
 import { contentRangeTotal, decodeBase64, durationMs } from './mp3.ts'
 import { AUDIO_LIMIT_BYTES, CLIP_ERROR, SIZE_ERROR, TIMING_ERROR, cachedPlan, fileSize, lowerHeaders, makePlan, planKey, rangeHeader, readCache, timedSegments, timingRead, trimCache, sameRecording, withSegmentCut, type Checkpoint, type RecordingPlan, type Segment } from './segments.ts'
 import { SegmentScanner, SEGMENT_LEAD_MS, cbrByte, cbrCheckpoint, cbrStream, encodeBase64, seekCheckpoint } from './segment-mp3.ts'
+import { chipSize, chipText } from './footer.ts'
 import { formatTime, nextPlaybackItem, parseCommand, repeatMode, toggleRepeat, type Command } from './player.ts'
 import { isAvailable, nearestAvailable, nextAvailable, UNAVAILABLE_ERROR } from './availability.ts'
 import { quranHelp } from './help.ts'
@@ -429,6 +430,11 @@ function trackSelection(reciter: Reciter, surah: number) {
 async function open($: EngineInterface): Promise<void> {
   const surface = await $.session.surface()
   await $.ui.open({ id: 'quran', title: await arabic($, surface ?? 'desktop', 'القرآن الكريم') })
+  $.ui.invalidate('ui.render')
+}
+// The docked pane narrows the chat column and already shows the title and time, so the footer chip shrinks to its glyph while it is open.
+async function isPaneOpen($: EngineInterface): Promise<boolean> {
+  try { return (await $.ui.panes()).some(pane => pane.id === 'quran') } catch { return false }
 }
 async function togglePane($: EngineInterface): Promise<void> {
   try {
@@ -547,9 +553,12 @@ export const install = (on: On, options: Options) => {
     const playing = (await $.state.get(playingRef)).value
     const raw = await $.store.get('quran.catalog')
     const name = playing && isCatalog(raw) ? raw.surahs[playing.surah - 1]!.name : 'القرآن'
-    const label = playing ? `${name} ${formatTime(Math.max(0, await $.clock.now() - playing.startedAt))}` : name
+    const time = playing ? formatTime(Math.max(0, await $.clock.now() - playing.startedAt)) : null
+    // Desktop draws a Button from its label alone and ignores the Text inside, so the label is the visible chip text.
+    // The Text repeats it, in the main color, for a Desktop that draws the children.
+    const chip = chipText(chipSize(e.viewport?.columns, await isPaneOpen($)), name, time)
     return <Box gap={1}>
-      <Button key="quran-footer" plain onPress={() => { void togglePane($) }}><Text color={await mainColor($, options.color)}>۞ {label}</Text></Button>
+      <Button key="quran-footer" label={chip} plain onPress={() => { void togglePane($) }}><Text color={await mainColor($, options.color)}>{chip}</Text></Button>
       {theirs}
     </Box>
   })
@@ -613,10 +622,12 @@ export const install = (on: On, options: Options) => {
     if (e.element !== 'quran-card') { view.picker = null; ++view.focusRevision; $.ui.invalidate('ui.render') }
     return next(e)
   })
-  on('ui.close', { id: 'quran' }, async (_$, e, next) => {
+  on('ui.close', { id: 'quran' }, async ($, e, next) => {
     view.picker = null
     ++view.focusRevision
-    return next(e)
+    const closed = await next(e)
+    $.ui.invalidate('ui.render')
+    return closed
   })
   on('ui.scroll', { component: 'Pane', requestId: 'quran' }, async ($, e, next) => {
     const delta = pickerWheelDelta(view.picker, e, view.focusRevision, view.offset)

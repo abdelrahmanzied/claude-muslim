@@ -849,7 +849,7 @@ test('desktop footer chip uses the shared main color and toggles the pane withou
   on('ui.panes', async () => ({ value: panes }))
   on('ui.close', async (_$, e) => { closed.push(e.id); panes.length = 0; return { value: undefined } })
   const mounted = await $.ui.mount(footer('desktop'))
-  expect(await mounted.find({ type: 'Button', key: 'quran-footer' })).toBeDefined()
+  expect((await mounted.find({ type: 'Button', key: 'quran-footer' }))?.props.label).toBe('۞ القرآن')
   expect(await mounted.find({ type: 'Svg' })).toBeUndefined()
   expect((await mounted.find({ type: 'Text', text: '۞ القرآن' }))?.props.color).toBe('claude')
   await mounted.press({ key: 'quran-footer' })
@@ -857,11 +857,28 @@ test('desktop footer chip uses the shared main color and toggles the pane withou
   panes.push({ id: 'quran', title: 'القرآن الكريم', isShown: true, isPlaced: true, isFocused: false })
   await $.command.run(run('play 18')); await clock.settle()
   await clock.advance(1000)
-  expect(await mounted.find({ text: '۞ الكهف 00:01' })).toBeDefined()
+  // Docked, the pane shows the title and time: the chip keeps only its glyph. Desktop draws a Button from its label alone, so the label is the glyph too.
+  expect(await mounted.find({ type: 'Text', text: '۞' })).toBeDefined()
+  expect(await mounted.find({ text: '۞ الكهف 00:01' })).toBeUndefined()
+  expect((await mounted.find({ type: 'Button', key: 'quran-footer' }))?.props.label).toBe('۞')
   await mounted.press({ key: 'quran-footer' })
   expect(closed).toEqual(['quran'])
+  await clock.advance(1000)
+  expect(await mounted.find({ text: '۞ الكهف 00:02' })).toBeDefined()
   expect(clock.state.quranPlaying?.surah).toBe(18)
   await $.command.run(run('stop'))
+})
+test('desktop footer chip sheds words as the chat column narrows, label and text together', async ($, on) => {
+  setup(on)
+  engineFooter(on)
+  on('state.get', { plugin: 'muslim', key: 'quranPlaying' }, async () => ({ value: { value: { moshafKey: '10:20', surah: 18, startedAt: fixtureCatalog.fetchedAt - 1000, durationMs: null }, version: 1 } }))
+  for (const [columns, text] of [[120, '۞ الكهف 00:01'], [60, '۞ الكهف 00:01'], [59, '۞ 00:01'], [40, '۞ 00:01'], [39, '۞'], [10, '۞']] as const) {
+    const mounted = await $.ui.mount({ ...footer('desktop'), viewport: { columns, rows: 30 } })
+    const chip = await mounted.find({ type: 'Button', key: 'quran-footer' })
+    expect(chip?.props.label, `${columns} columns`).toBe(text)
+    expect(await mounted.find({ type: 'Text', text }), `${columns} columns`).toBeDefined()
+    await mounted.unmount()
+  }
 })
 test('Quran leaves terminal footer labels unchanged', async ($, on) => {
   setup(on)
