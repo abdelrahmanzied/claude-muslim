@@ -1,6 +1,6 @@
 import type { ClientModule, SvgProps } from 'claude-code'
 import { pointerPixels, type CardAction } from './card.ts'
-import { PANE_HEIGHT, columnsWidth, safeWidth, paneHeight, beginPickerDrag, dragPicker, moveHighlight, openPicker, options, paneHit, paneSvg, pickerInitial, scrollPicker, typeQuery, type PaneModel, type PickerState, type PickerDrag } from './pane.ts'
+import { PANE_HEIGHT, columnsWidth, dragCell, safeWidth, paneHeight, beginPickerDrag, dragPicker, moveHighlight, openPicker, options, paneHit, paneSvg, pickerInitial, scrollPicker, typeQuery, type PaneModel, type PickerState, type PickerDrag } from './pane.ts'
 
 type Local = { picker: PickerState; hover: CardAction | null; size: string; wheel: number; overList: boolean; drag: PickerDrag | null }
 const client: ClientModule<PaneModel, Local> = (props, surface) => {
@@ -42,10 +42,14 @@ const client: ClientModule<PaneModel, Local> = (props, surface) => {
     // Shared card maps cells to pixels; the full pane substitutes its own height.
     const pixels = pointerPixels(model.width, x, y, surface.columns, surface.rows, paneHeight(model))
     if (current.drag && current.picker.open && (e.type === 'move' || e.type === 'up')) {
-      const picker = dragPicker(current.picker, options(model, current.picker.open, current.picker.query).length, current.drag, pixels.y)
-      const hit = paneHit(model, picker, pixels.x, pixels.y)
+      // While dragging, vertical position is the cell count times the scale frozen at the press, never today's rows.
+      const y = Number.isFinite(current.drag.cell) ? (e.fine?.y ?? e.y + 0.5) * current.drag.cell : pixels.y
+      const picker = dragPicker(current.picker, options(model, current.picker.open, current.picker.query).length, current.drag, y)
+      const hit = paneHit(model, picker, pixels.x, y)
       const overList = hit?.act === 'row' || hit?.act === 'panel' || hit?.act === 'scrollbar'
       if (e.type === 'up' && overList !== current.overList) reportPicker(picker, overList)
+      // A move that changes nothing draws nothing: every redraw swaps a whole picture on the host.
+      if (e.type === 'move' && picker.scroll === current.picker.scroll && picker.highlight === current.picker.highlight && current.hover === null) return
       surface.setState({ ...current, picker, hover: null, overList: e.type === 'up' ? overList : current.overList, drag: e.type === 'up' ? null : current.drag })
       return
     }
@@ -59,7 +63,7 @@ const client: ClientModule<PaneModel, Local> = (props, surface) => {
       return
     }
     if (hit?.act === 'scrollbar' && current.picker.open) {
-      const result = beginPickerDrag(current.picker, options(model, current.picker.open, current.picker.query).length, pixels.y)
+      const result = beginPickerDrag(current.picker, options(model, current.picker.open, current.picker.query).length, pixels.y, dragCell(paneHeight(model), surface.rows))
       if (result) surface.setState({ ...current, ...result, hover: null, overList: true })
       reportPicker(current.picker, true)
     } else if (hit?.act === 'field') {

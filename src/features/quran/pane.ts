@@ -70,20 +70,22 @@ export function typeQuery(state: PickerState, key: string): PickerState {
   return { ...state, query: query.slice(0, 120), highlight: 0, scroll: 0, hover: -1 }
 }
 export type PickerScrollbar = { top: number; height: number; thumbTop: number; thumbHeight: number; maxScroll: number }
-export type PickerDrag = { y: number; scroll: number }
+// `cell` is the pane pixels one reported row stood for when the bar was pressed. It is frozen for the whole drag: the host's row count can change by one while the picture is swapped, and following it would move the list under a pointer that did not.
+export type PickerDrag = { y: number; scroll: number; cell: number }
+export const dragCell = (height: number, rows: number): number => Number.isFinite(height) && Number.isFinite(rows) && rows > 0 ? height / rows : NaN
 export function pickerScrollbar(state: PickerState, count: number): PickerScrollbar | null {
   if (!state.open || count <= VISIBLE_ROWS) return null
   const top = overlayTop(state.open) + 56, height = VISIBLE_ROWS * pickerRowHeight(state.open)
   const maxScroll = count - VISIBLE_ROWS, thumbHeight = Math.max(24, height * VISIBLE_ROWS / count)
   return { top, height, thumbHeight, maxScroll, thumbTop: top + Math.max(0, Math.min(maxScroll, state.scroll)) / maxScroll * (height - thumbHeight) }
 }
-export function beginPickerDrag(state: PickerState, count: number, y: number): { picker: PickerState; drag: PickerDrag } | null {
+export function beginPickerDrag(state: PickerState, count: number, y: number, cell = NaN): { picker: PickerState; drag: PickerDrag } | null {
   const bar = pickerScrollbar(state, count)
   if (!bar || !Number.isFinite(y)) return null
   const target = y >= bar.thumbTop && y <= bar.thumbTop + bar.thumbHeight ? state.scroll
     : Math.round((y - bar.top - bar.thumbHeight / 2) / (bar.height - bar.thumbHeight) * bar.maxScroll)
   const picker = scrollPicker(state, count, target - state.scroll)
-  return { picker, drag: { y, scroll: picker.scroll } }
+  return { picker, drag: { y, scroll: picker.scroll, cell } }
 }
 export function dragPicker(state: PickerState, count: number, drag: PickerDrag, y: number): PickerState {
   const bar = pickerScrollbar(state, count)
