@@ -46,9 +46,9 @@ Colors exist only as CSS variables from `paletteCss()` in `card.ts`; no componen
 | Field fill | `--q-field-bg` | `#252321` | `#f9f7f2` |
 | Hairlines, progress track, control border | `--q-line`, `--q-track`, `--q-control-border` | `#393733` | `#d9d6cd` |
 | Main accent: status, fill, rosette, selection, filled buttons | `--q-accent` | Shared dark shade | Shared light shade |
-| Player secondary text, icons, captions | `--q-soft`, `--q-label`, `--q-icon` | `#b9d9c7` | `#4c6c55` |
+| Player secondary text, icons, captions | `--q-soft`, `--q-label`, `--q-icon` | `#c6c3bb` | `#46443e` |
 | Rosette arm | `--q-ornament-dim` | Shared dark shade | Shared light shade |
-| Hover and highlight fill | `--q-hover-bg`, `--q-hot` | `#202d26` | `#e5eee5` |
+| Hover and highlight fill | `--q-hover-bg`, `--q-hot` | `#23221f` | `#f3f1ec` |
 | Dropdown, search | `--q-dropdown-bg`, `--q-search-bg` | `#252321`, `#1c1b19` | `#fdfcf9`, `#f5f3ee` |
 
 Main accents, hover borders, primary hover and rosette arms use `src/shared/color/` and `/muslim color` (default Claude orange), with the shared shade for each theme. White (`--q-on-primary`) sits on filled controls. Secondary text, muted fills and the supplied artwork retain their designed colors. Both themes must be checked on every change.

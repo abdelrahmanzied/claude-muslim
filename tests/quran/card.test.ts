@@ -155,11 +155,11 @@ test('repeat icons: two circling arrows, and the same arrows with a «1» for th
 
 const lightPalette = {
   '--q-bg': 'transparent', '--q-text': '#302f2a', '--q-title': '#302f2a', '--q-muted': '#79766c', '--q-dim': '#79766c', '--q-field-bg': '#f9f7f2', '--q-line': '#d9d6cd',
-  '--q-accent': '#c8642d', '--q-soft': '#4c6c55', '--q-track': '#d9d6cd', '--q-control-border': '#d9d6cd', '--q-on-primary': '#ffffff', '--q-ornament-dim': '#c8642d',
-  '--q-hover-border': '#c8642d', '--q-hover-bg': '#e5eee5', '--q-dropdown-bg': '#fdfcf9', '--q-search-bg': '#f5f3ee', '--q-shadow': '0 10px 30px rgba(48,47,42,.14)', '--q-hot': '#e5eee5', '--q-scrollbar': '#d9d6cd', '--q-label': '#4c6c55',
+  '--q-accent': '#c8642d', '--q-soft': '#46443e', '--q-track': '#d9d6cd', '--q-control-border': '#d9d6cd', '--q-on-primary': '#ffffff', '--q-ornament-dim': '#c8642d',
+  '--q-hover-border': '#c8642d', '--q-hover-bg': '#f3f1ec', '--q-dropdown-bg': '#fdfcf9', '--q-search-bg': '#f5f3ee', '--q-shadow': '0 10px 30px rgba(48,47,42,.14)', '--q-hot': '#f3f1ec', '--q-scrollbar': '#d9d6cd', '--q-label': '#46443e',
 }
 const darkPalette = {
-  '--q-text': '#ece9e2', '--q-muted': '#98948b', '--q-field-bg': '#252321', '--q-line': '#393733', '--q-accent': '#d97757', '--q-soft': '#b9d9c7', '--q-track': '#393733', '--q-on-primary': '#ffffff', '--q-dropdown-bg': '#252321', '--q-search-bg': '#1c1b19',
+  '--q-text': '#ece9e2', '--q-muted': '#98948b', '--q-field-bg': '#252321', '--q-line': '#393733', '--q-accent': '#d97757', '--q-soft': '#c6c3bb', '--q-track': '#393733', '--q-on-primary': '#ffffff', '--q-dropdown-bg': '#252321', '--q-search-bg': '#1c1b19',
 }
 test('card colors are CSS variables with a dark default and a light palette under prefers-color-scheme', () => {
   const svg = cardSvg(build())

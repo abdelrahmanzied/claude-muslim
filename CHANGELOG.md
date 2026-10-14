@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Quran pane secondary text, icons, captions and hover fills use warm neutrals instead of a fixed green, so they sit with any `/muslim color` main color (orange by default) and match the Desktop panel; the main color stays on the status dot, play button, progress fill and rosettes.
+
 - Quran rosette rules draw a smaller 18px rosette with a matching stroke, so the dividers recede behind the content.
 
 - Quran dropdown fields, retry and player controls now respond across the whole pointer cell on Desktop. Desktop reports the pointer as a whole cell (about 8 by 19px) snapped to its center, so a click in the bottom few pixels of a field, just under the ▾ arrow, fell outside it and did nothing. Hit testing now treats the cell's half-extent as slack when no sub-cell position is reported, hitting the target the cell overlaps and the nearest one when several do; the open dropdown still owns its pixels and exact pointers are unchanged.
