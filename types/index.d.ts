@@ -43,6 +43,9 @@ declare module 'claude-code' {
       quranCommandError: string | null
       quranSurah: number
 
+      // Which Muslim pane cards are folded to their title row.
+      paneFolds: { prayer: boolean; quran: boolean; athkar: boolean } | null
+
       // Terminal whose picker was opened by /muslim terminal-arabic.
       arabicSurveyManualTerminal: string | null
       // Per-terminal mode cached for this session's thikr renders.

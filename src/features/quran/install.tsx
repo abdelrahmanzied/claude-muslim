@@ -12,7 +12,8 @@ import { formatTime, nextPlaybackItem, parseCommand, repeatMode, toggleRepeat, t
 import { isAvailable, nearestAvailable, nextAvailable, UNAVAILABLE_ERROR } from './availability.ts'
 import { quranHelp } from './help.ts'
 import { isCardMessage, pointerPixels, pointerSlack } from './card.ts'
-import { PANE_HEIGHT, columnsWidth, isPickMessage, isPickerMessage, pickerWheelDelta, paneHit, paneModel, pickerInitial, paneHeight, type PickerMessage } from './pane.ts'
+import { connectPanelAction, connectQuran, type PanelQuran } from '../../shared/panel/signal.ts'
+import { PANE_HEIGHT, arabicDigits, columnsWidth, isPickMessage, isPickerMessage, pickerWheelDelta, paneHit, paneModel, pickerInitial, paneHeight, type PickerMessage } from './pane.ts'
 
 const QURAN_DEBUG = false
 type Preparing = { moshafKey: string; surah: number; stage: 'checking' | 'preparing' }
@@ -538,6 +539,39 @@ async function togglePlayback($: EngineInterface): Promise<void> {
   } catch (error) { await fail($, error) }
 }
 
+// What the Muslim pane shows of the player; null until the catalog has been fetched once.
+async function panelQuran($: EngineInterface): Promise<PanelQuran | null> {
+  const raw = await $.store.get('quran.catalog')
+  if (!isCatalog(raw)) return null
+  const reciter = await chosen($, raw)
+  const stored = (await $.state.get(surahRef)).value ?? 1
+  const surah = nearestAvailable(reciter.key, stored) ?? stored
+  const playing = (await $.state.get(playingRef)).value
+  const selection = trackSelection(reciter, surah)
+  const model = paneModel(raw, reciter, surah, playing, await $.clock.now(), 480, runtime.generation, view.focusRevision, false, null, 0, selection, repeatMode((await $.state.get(repeatRef)).value))
+  const active = playing ? raw.reciters.find(r => r.key === playing.moshafKey) ?? reciter : reciter
+  const index = playing?.segmentIndex ?? selection.selectedSegment
+  return {
+    reciter: active.name,
+    surah: model.title,
+    part: selection.segments.length ? `المقطع ${arabicDigits(index + 1)} من ${arabicDigits(selection.segments.length)}` : '',
+    elapsed: model.elapsed,
+    total: model.total,
+    progress: model.progress,
+    isPlaying: model.playing || !!model.preparing,
+    canPrev: model.canPrev !== false,
+    canNext: model.canNext !== false,
+  }
+}
+// Offers the pane's feed and actions to the Muslim pane; the hooks module that draws calls this each time, so a reload connects again.
+function connectToPanel($: EngineInterface): void {
+  connectQuran(() => panelQuran($))
+  connectPanelAction('quran-toggle', () => togglePlayback($))
+  connectPanelAction('quran-prev', () => paneAction($, { kind: 'prev' }))
+  connectPanelAction('quran-next', () => paneAction($, { kind: 'next' }))
+  connectPanelAction('quran-open', async () => { await dispatch($, { kind: 'open' }, false); $.ui.invalidate('ui.render') })
+}
+
 async function mainColor($: EngineInterface, color: Accent): Promise<string> {
   if (color === 'orange') return accentText(color, undefined)
   const theme = (await $.config.list()).find(row => row.key === 'theme')
@@ -548,6 +582,7 @@ export const install = (on: On, options: Options) => {
   // Registered before salah: this outer hook prepends Quran to salah's tree.
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
     const theirs = await next(e)
+    connectToPanel($)
     if (e.surface !== 'desktop') return theirs
     const { Box, Text, Button } = $.ui.resolve(e)
     const playing = (await $.state.get(playingRef)).value

@@ -14,6 +14,7 @@ import { isCatalog, defaultReciter } from '../src/features/quran/catalog.ts'
 import { nearestAvailable } from '../src/features/quran/availability.ts'
 import { terminalArabic, defaultArabicMode, isArabicMode, terminalIdFromEnv } from '../src/shared/arabic/terminal.ts'
 import { install as installThikr } from '../src/features/thikr/install.tsx'
+import { install as installMuslimPane } from '../src/features/muslim-pane/install.tsx'
 
 // $ stays in same-file helpers; Arabic transformation itself is shared pure logic.
 async function settingsArabic($: EngineInterface, surface: string, text: string): Promise<string> {
@@ -91,7 +92,7 @@ export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     await $.command.register({
       name: 'muslim',
-      description: `Show ${PLUGIN} version, terminal Arabic setup, and help`,
+      description: `Show ${PLUGIN} version, terminal Arabic setup, the Muslim pane, and help`,
     })
     await $.command.register({
       name: 'thikr',
@@ -207,7 +208,8 @@ export const register: Register = (on, options) => {
 
   installThikr(on, settings)
   installAthkar(on, settings)
-  // First registered SessionMode hook is outermost: Quran prepends to salah.
+  // First registered SessionMode hook is outermost: the pane chip prepends to Quran's, which prepends to salah's.
+  installMuslimPane(on, settings)
   installQuran(on, settings)
   installSalah(on, settings)
   installArabicFix(on, settings)

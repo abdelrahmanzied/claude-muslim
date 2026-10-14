@@ -24,6 +24,8 @@ import { nudge, reviewRows } from './review.ts'
 import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, isOnClose, KEY_REST_MS, LEAVE_MS, LINE_PX } from '../../shared/card/card.ts'
 import { athanFrame, cardIsFolded } from './card.ts'
 import { clockText, lastPray, nextSalah, type Adjust } from './times.ts'
+import { connectSalah } from '../../shared/panel/signal.ts'
+import { panelSalah } from './panel.ts'
 import { lineAt, methodOf, settingsTable, showText, timesTable } from './today.ts'
 
 // The engine follows $ only into same-file top-level functions, so the
@@ -363,6 +365,8 @@ const begin = async ($: EngineInterface, options: Options, place: Place, timer: 
 }
 
 export const install = (on: On, options: Options) => {
+  // The Muslim pane reads today's times from here; it needs no engine call.
+  connectSalah(now => panelSalah(options, now))
   const arabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
   const guess = guessPlace(systemTimeZone())
   // The pray line's timer, started once per module load by whichever of the

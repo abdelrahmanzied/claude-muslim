@@ -1,0 +1,94 @@
+import { expect, test } from 'claude-code/testing'
+import { PANE_HEIGHT } from '../../src/features/muslim-pane/layout.ts'
+import { paneModel } from '../../src/features/muslim-pane/model.ts'
+import { paneAlt, paneSvg, paletteCss } from '../../src/features/muslim-pane/view.ts'
+
+const NOW = 1_700_000_000_000
+const feeds = {
+  salah: {
+    city: 'Munich',
+    prays: [
+      { pray: 'fajr' as const, at: NOW - 600_000, clock: '05:48' },
+      { pray: 'dhuhr' as const, at: NOW - 100_000, clock: '12:58' },
+      { pray: 'asr' as const, at: NOW + 4_320_000, clock: '15:42' },
+      { pray: 'maghrib' as const, at: NOW + 14_400_000, clock: '18:21' },
+      { pray: 'isha' as const, at: NOW + 20_000_000, clock: '19:52' },
+    ],
+    next: { pray: 'asr' as const, at: NOW + 4_320_000, clock: '15:42' },
+    isAthan: true,
+  },
+  quran: { reciter: 'محمد صديق المنشاوي', surah: 'سورة البقرة', part: 'المقطع ٣ من ١٦', elapsed: '12:03', total: '41:20', progress: 0.29, isPlaying: true, canPrev: true, canNext: true },
+  athkar: { title: 'أَذْكَارُ الْمَسَاءِ', done: 4, total: 12, progress: 0.33, isDone: false },
+}
+
+test('the picture draws the three cards at the fixed pane height', () => {
+  const svg = paneSvg(paneModel(feeds, NOW, 360, 'orange'))
+  expect(svg).toContain(`height="${PANE_HEIGHT}"`)
+  expect(svg).toContain('الصلاة القادمة')
+  expect(svg).toContain('العصر')
+  expect(svg).toContain('in 1h 12m')
+  expect(svg).toContain('Munich')
+  expect(svg).toContain('Open full player')
+  expect(svg).toContain('أَذْكَارُ الْمَسَاءِ')
+  expect(svg.match(/class="pr done"/g)?.length).toBe(2)
+  expect(svg.match(/class="pr next"/g)?.length).toBe(1)
+  expect(svg).toContain('role="switch" aria-checked="true"')
+})
+
+test('a playing player shows Stop and a stopped one Play', () => {
+  expect(paneSvg(paneModel(feeds, NOW, 360, 'orange'))).toContain('aria-label="Stop"')
+  expect(paneSvg(paneModel({ ...feeds, quran: { ...feeds.quran, isPlaying: false } }, NOW, 360, 'orange'))).toContain('aria-label="Play"')
+})
+
+test('features that are not connected leave quiet notes, never a broken picture', () => {
+  const svg = paneSvg(paneModel({ salah: null, quran: null, athkar: null }, NOW, 360, 'orange'))
+  expect(svg).toContain('Choose a city first: /salah city')
+  expect(svg).toContain('--:--')
+  expect(svg).toContain('Athkar are off: /athkar on')
+})
+
+test('the main color comes from the shared palette, in both themes', () => {
+  expect(paletteCss('.dp', 'orange')).toContain('--accent:#d97757')
+  expect(paletteCss('.dp', 'orange')).toContain('--accent:#c8642d')
+  expect(paletteCss('.dp', 'green')).toContain('--accent:#1a9466')
+  expect(paneSvg(paneModel(feeds, NOW, 360, 'blue', 'light'))).toContain('class="dp theme-light"')
+  expect(paneSvg(paneModel(feeds, NOW, 360, 'blue'))).toContain('class="dp"')
+})
+
+test('hover lights the hovered target only, and text is escaped', () => {
+  const hovered = paneSvg(paneModel(feeds, NOW, 360, 'orange'), 'quran-open')
+  expect(hovered).toContain('wide dbtn hot')
+  const bad = paneSvg(paneModel({ ...feeds, salah: { ...feeds.salah, city: '<b>&' } }, NOW, 360, 'orange'))
+  expect(bad).toContain('&lt;b&gt;&amp;')
+  expect(paneAlt(paneModel(feeds, NOW, 360, 'orange'))).toContain('سورة البقرة')
+})
+
+test('the pane is transparent and uses the shared Tajawal face', () => {
+  const svg = paneSvg(paneModel(feeds, NOW, 360, 'orange'))
+  expect(svg).toContain('font-family:Tajawal')
+  expect(svg).toContain('data:font/woff2;base64,')
+  expect(svg).not.toContain('--panel')
+  expect(svg).toMatch(/\.dp\{[^}]*background:transparent/)
+  expect(svg).toMatch(/\.dcard\{[^}]*background:transparent/)
+})
+
+test('light and dark use their own consistent token sets and every element reads tokens', () => {
+  const svg = paneSvg(paneModel(feeds, NOW, 360, 'orange'))
+  const css = paletteCss('.dp', 'orange')
+  const dark = css.slice(0, css.indexOf('@media'))
+  const light = css.slice(css.indexOf('@media'), css.indexOf('.dp.theme-light'))
+  // Dark: light text, dark hairlines. Light: dark text, soft hairlines, light raised buttons.
+  for (const token of ['--text:#ecebe6', '--muted:#8f8c83', '--line:#3a3834', '--raised:#2a2926']) expect(dark).toContain(token)
+  for (const token of ['--text:#1f1e1b', '--muted:#77746a', '--line:#d9d6cc', '--raised:#ecebe4']) expect(light).toContain(token)
+  expect(paneSvg(paneModel(feeds, NOW, 360, 'orange', 'light'))).toContain('.dp.theme-light{--line:#d9d6cc')
+  expect(paneSvg(paneModel(feeds, NOW, 360, 'orange', 'dark'))).toContain('.dp.theme-dark{--line:#3a3834')
+  // No pane theme is forced when none is given: the app's color scheme decides, as in the Quran pane.
+  expect(svg).toContain('class="dp"')
+  // Elements take colors only from tokens: titles (.dh, text), big time (.nx-t), rows (.drow), borders, buttons (.dbtn).
+  const rules = svg.slice(svg.indexOf('*{box-sizing'), svg.indexOf('</style>'))
+  expect(rules).not.toMatch(/#[0-9a-fA-F]{3,6}\b/)
+  expect(rules).toMatch(/\.dp\{[^}]*color:var\(--text\)/)
+  expect(rules).toMatch(/\.dcard\{[^}]*inset 0 0 0 1px var\(--line\)/)
+  expect(rules).toMatch(/\.dbtn\{[^}]*background:var\(--raised\);color:var\(--text\)/)
+  expect(rules).toMatch(/\.pbar\{[^}]*background:var\(--line\)/)
+})

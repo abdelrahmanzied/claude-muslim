@@ -14,6 +14,7 @@ export const MUSLIM_COMMANDS: readonly HelpRow[] = [
   ['/muslim color', 'The main color in every feature', '`orange` (default, Claude\'s) · `green` · `gold` · `blue`'],
   ['/muslim tashkeel', 'Arabic diacritics on desktop; the terminal never shows them', '`on` (default) · `off`'],
   ['/muslim terminal-arabic', 'Choose how Arabic shows in this terminal, for every feature', ''],
+  ['/muslim pane', 'Open the Muslim pane on desktop: today\'s prayers, the Quran player and the athkar progress, beside the Quran pane; a plain text summary in the terminal', ''],
   // DEMO BEGIN: shared demo help.
   ['/muslim demo', 'Play thikr, athkar and /salah demo (the athan moment) in order; thikr uses tokens and leaves a message in the transcript', ''],
   // DEMO END

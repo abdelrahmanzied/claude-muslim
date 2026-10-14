@@ -6,6 +6,7 @@ import type { EngineInterface, On } from 'claude-code'
 import type { Day, SalahCard } from '../../../types'
 import type { Options } from '../../config.ts'
 import { withTashkeel } from '../../shared/arabic/visual.ts'
+import { connectAthkar, connectPanelAction, type PanelAthkar } from '../../shared/panel/signal.ts'
 import { helpHint, statusTable } from '../../table.ts'
 import { athkarHelp } from './help.ts'
 import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, KEY_REST_MS, LEAVE_MS, LINE_PX, REST_PX } from '../../shared/card/card.ts'
@@ -154,6 +155,31 @@ const statusOf = (day: Day, period: Period) => {
   const begun = list.filter(thikr => countOf(thikr, reading) > 0).length
 
   return `${begun === 0 ? 'not started' : `${reading.index + 1} of ${list.length}`}${reading.isHidden ? ' (hidden)' : ''}`
+}
+
+// What the Muslim pane shows of today's reading, in the period now.
+const panelAthkar = async ($: EngineInterface, tashkeel: boolean): Promise<PanelAthkar> => {
+  const { now, day } = await today($)
+  const period = periodAt(now.getHours())
+  const reading = day[period]
+  const list = listFor(period)
+
+  return {
+    title: withTashkeel(TITLE[period], tashkeel),
+    done: list.filter(thikr => countOf(thikr, reading) >= timesOf(thikr)).length,
+    total: list.length,
+    progress: overall(period, reading),
+    isDone: reading.isDone,
+  }
+}
+
+// The Muslim pane's Open: the reader comes back if hidden and opens, lit.
+const openFromPanel = async ($: EngineInterface) => {
+  const { now, day } = await today($)
+  const period = periodAt(now.getHours())
+  if (day[period].isHidden) await save($, { ...day, [period]: { ...day[period], isHidden: false } })
+  view.isOpen = true
+  wake($)
 }
 
 // Moves on after a thikr's last count, unless the reader moved meanwhile.
@@ -479,6 +505,8 @@ export const install = (on: On, options: Options) => {
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)
+    connectAthkar(() => panelAthkar($, options.tashkeel))
+    connectPanelAction('athkar-open', () => openFromPanel($))
     if (demo && (demo.style === 'frame' || e.surface === 'desktop')) return theirs
     // An earlier build left a debugging line in the status bar: clear it once.
     if (!isStatusCleared) {

@@ -139,3 +139,7 @@ Terminal checklist (each reply opens with its title, tables render):
 | `/salah method auto` | `**Method:** auto (…)` |
 | `/salah city <name>` | `**City:** …` and today's times above the prompt |
 | `/salah reminder` (old word) | the help table |
+
+## Muslim pane
+
+The [Muslim pane](muslim-pane.md) shows this feature on its own card. This feature connects what that card shows (and what its buttons ask of it) through `src/shared/panel/signal.ts`; see the pane spec for the table.

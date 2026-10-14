@@ -99,7 +99,7 @@ Range requests fetch at most 2MiB into temporary files, verify status 206, Conte
 
 ## Embedded font
 
-Tajawal Regular and Bold (google/fonts, OFL in `fonts/OFL.txt`) are embedded via `@font-face` as lossless WOFF2 data URIs in `fonts-embedded.ts`. Full TTF base64 totals about 160 KB and cannot fit this build’s 100 KB Client tree limit; full WOFF2 versions retain every glyph at about 56 KB combined. No font network request is needed.
+Tajawal Regular and Bold (google/fonts, OFL in `src/shared/font/fonts/OFL.txt`) are embedded via `@font-face` as lossless WOFF2 data URIs in `src/shared/font/tajawal-embedded.ts` (shared with the Muslim pane). Full TTF base64 totals about 160 KB and cannot fit this build’s 100 KB Client tree limit; full WOFF2 versions retain every glyph at about 56 KB combined. No font network request is needed.
 
 ## Design
 
@@ -116,7 +116,7 @@ Tajawal Regular and Bold (google/fonts, OFL in `fonts/OFL.txt`) are embedded via
 | `card.ts` | Pure Client model, SVG/HTML/CSS picture, message validation and circular hit testing |
 | `client.tsx` | Desktop drawing thread, local dropdown state, region size, focus/typing, hover and posts |
 | `pane.ts` | Pure full-pane model, option windows, dropdown geometry and HTML/CSS/SVG |
-| `fonts-embedded.ts`, `fonts/OFL.txt` | Full Tajawal WOFF2 data and OFL licence |
+| `src/shared/font/` (`tajawal-embedded.ts`, `fonts/OFL.txt`, `index.ts`; shared with the Muslim pane) | Full Tajawal WOFF2 data and OFL licence |
 | `catalog.ts` | Filtering, labels, command name matching, uncapped substring/number search, URL building |
 | `mp3.ts` | Pure frame, ID3, Xing/CBR, Content-Range and base64 parsing |
 | `quarter-boundaries.ts` | Shipped map version 1: 114 surahs, 240 quarters, 313 surah×quarter intersections, 6,236 ayahs; numeric ranges only, extracted from the AlQuran Cloud quarter map during research |
@@ -133,3 +133,7 @@ The desktop pane places the Mushaf book icon beside its custom Tajawal heading. 
 Open the pane in Desktop, select Minshawi and Al-Kahf, listen for continuous whole-track playback, stop, switch reciter while playing, verify the footer chip opens/closes the pane, test natural-end advancement and stopping after surah 114. Verify pane controls never show toasts and playback errors stay inside the pane unless started by a slash command. Check no acoustic overlap on fast switching and search across both full lists, Enter/row selection, keyboard scrolling and readable dropdowns in narrow panes and each theme. Temporarily enable diagnostics to check the watchdog for both initial and auto-advanced clips, and the drawn card and hover feedback against the mockup. Confirm the terminal fallback and Arabic modes. Check open/close, focus loss and embedded Tajawal in the full pane. Engine tests exercise hooks and trees; they do not prove sound or native paint.
 
 Native Desktop validation on macOS confirmed both drag scrollbars reach the last rows and return to the first rows while the Pane remains stationary. Surah search for 18 returns Al-Kahf and hides the scrollbar. Desktop pointer events are whole cells, so clicks on a field, the retry button or a control count anywhere the cell overlaps the target (a click on the field's bottom edge opens it); the open dropdown still owns its pixels. Drag input is quantized by the host cell coordinates. The pixels one reported row stands for are frozen when the bar is pressed, so a row count that flickers by one while the picture is swapped cannot move the list under a still pointer, and a move that changes nothing redraws nothing. A report of the list shaking up and down during a drag on Desktop (macOS laptop) is covered by these two rules in tests; the host-side causes (the pane window moving under the held pointer) are not provable offline and need a live check. Engine tests also cover release outside the Client, search and selection after dragging. This validates the drag control, not mouse-wheel behavior or other operating systems.
+
+## Muslim pane
+
+The [Muslim pane](muslim-pane.md) shows this feature on its own card. This feature connects what that card shows (and what its buttons ask of it) through `src/shared/panel/signal.ts`; see the pane spec for the table.

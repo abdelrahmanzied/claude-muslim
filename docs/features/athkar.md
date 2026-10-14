@@ -87,3 +87,7 @@ runner and separate drawing path.
 ## Design
 
 Looks, size, folding, the finale and the reader's visual means: [athkar-design.md](athkar-design.md).
+
+## Muslim pane
+
+The [Muslim pane](muslim-pane.md) shows this feature on its own card. This feature connects what that card shows (and what its buttons ask of it) through `src/shared/panel/signal.ts`; see the pane spec for the table.
