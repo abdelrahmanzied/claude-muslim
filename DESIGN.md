@@ -10,13 +10,14 @@ The shared base every feature follows, and the index to each feature's own desig
 | Morning and evening athkar | `/athkar` | [athkar.md](docs/features/athkar.md) | [athkar-design.md](docs/features/athkar-design.md): a drawn reader (Client module, desktop Svg sky) |
 | Salah | `/salah` | [salah.md](docs/features/salah.md) | [salah-design.md](docs/features/salah-design.md): text, richer athan moment |
 | Terminal Arabic check ([shared guide](docs/terminal.md)) | `/muslim terminal-arabic` | [arabic-fix.md](docs/features/arabic-fix.md) | [arabic-fix-design.md](docs/features/arabic-fix-design.md) |
+| Quran | `/quran` | [quran.md](docs/features/quran.md) | [quran-design.md](docs/features/quran-design.md): desktop footer chip and a full Client-drawn pane with searchable dropdowns |
 
 Everything below is shared by every feature. A feature's doc may add to it, never contradict it.
 
 ## 1. Principles
 
 1. **Claude stays Claude.** We add a layer of thikr to Claude's interface; we never redesign it. Claude's own text (timer, token counts, `esc to interrupt`, tool output) is never translated, reworded or hidden.
-2. **Quiet by default.** A reminder, never an interruption. Nothing blocks work, steals focus, plays sound, or appears more than once for the same moment.
+2. **Quiet by default.** A reminder, never an interruption. Nothing blocks work, steals focus, or appears more than once for the same moment. Animations and reminders are silent; audio plays only when the user starts it (e.g. a recitation they chose), and stops when they ask.
 3. **Authentic content.** Every phrase is authored data with tashkeel and, where it has one, a source (Quran ayah or Hisn al-Muslim number). Nothing is generated at runtime. Display may strip tashkeel; it never changes words.
 4. **No scores.** We never count the user's worship, show streaks, rewards or guilt. Counting exists only where the user counts themselves (athkar reader), and stays private on their machine.
 5. **One feature, one switch.** Every feature can be turned off on its own, in `/config` and by its command. Off means its hooks do nothing.
@@ -31,7 +32,7 @@ Pick the lightest surface that does the job. Each comes from the mod API (`/plug
 | Spinner | Claude's working line | Short phrase while Claude works; rewrite `word`/`message`/`suffix` only | Thikr line |
 | TurnDuration | Line closing a turn (terminal) | One short phrase; keep Claude's duration | تَمَّ بِحَمْدِ اللَّهِ |
 | AbovePrompt band | Rows above the input | A suggestion, notice or glanceable fact that needs to be seen; at most one line unless it is a reader. Each feature's hook keeps what `next(e)` returns and adds its own row, so rows stack | Usage limit, athkar reader |
-| SessionMode | Mode labels at the right of the prompt footer, before the model name (terminal and desktop) | A glanceable fact as plain text beside the engine's labels; the hook keeps `next(e)` and adds its own | Prayer line |
+| SessionMode | Mode labels at the right of the prompt footer (terminal and desktop). The host places the slot: before the model name in the terminal, and in the redesigned Desktop (app 2.37) on a row under the model controls | A glanceable fact as plain text beside the engine's labels; the hook keeps `next(e)` and adds its own. Never rely on it being inline. A native Button there takes the Desktop's own chrome and foreground and is drawn from its `label` alone, so keep it short and make the label the visible text. The API has no size prop, so an item that must narrow with the window sheds words by `e.viewport.columns` | Prayer line, Quran chip |
 | Status line | `$.ui.status`, under the prompt | Always-on, glanceable fact; plain text, no color | Not used by a feature yet (the prayer line is in SessionMode) |
 | Toast | `$.ui.toast` | One-off confirmation after an action, or a timed reminder inside the app | "speed 3s" (prefer command reply) |
 | Notification | `$.ui.notify` | Not used: OS banners show in meetings and screen shares; use a band row or a toast | — |
@@ -73,7 +74,7 @@ Never use `error` or `warning` for religious text.
 
 ## 6. Commands and settings
 
-- One command per feature, named in Arabic transliteration with the `th` spelling: `/thikr`, `/athkar`, `/salah`. Shape: `/<feature> on|off`; `/<feature> <setting> <value>`.
+- One command per feature, named in Arabic transliteration with the `th` spelling: `/thikr`, `/athkar`, `/salah`, `/quran`. Shape: `/<feature> on|off`; `/<feature> <setting> <value>`.
 - Every reply that shows settings or help has the same shape, built with `src/table.ts`, the same on every surface:
   - **Status** (`/<feature>`, `/muslim`): the title (`**Muslim › Thikr**`), then one line pointing to help (`To change a setting or see every option: /thikr help`), then a table `| Setting | Description | State |`: what each setting is in a few English words, and its value now. No commands in the status table.
   - **Help** (`/<feature> help`): the title (`**Muslim › Thikr › Help**`), then a table `| Command | Description | Options |`. The command stands alone (`/thikr speed`); Options lists each value and what it does, separated by ` · `, with `(default)` and `DESKTOP ONLY` beside the value they belong to; `—` when there are none.
@@ -89,7 +90,7 @@ Never use `error` or `warning` for religious text.
 
 ## 8. Demo
 
-Each feature has its own demo subcommand and `src/features/<feature>/demo.ts` for pure scenes and timing (no `$`, plain unit tests). Its small engine runner stays in `install.ts(x)` with its atoms. A demo plays the real UI on demand and only drives drawing: no settings, store or saved-state changes. Salah uses `/salah demo`; thikr uses `/thikr demo`, which starts a real turn of its own because the Spinner draws only while Claude works.
+Quran's demo is deferred to a separate task and is not part of the current shared sequence. Each other feature has its own demo subcommand and `src/features/<feature>/demo.ts` for pure scenes and timing (no `$`, plain unit tests). Its small engine runner stays in `install.ts(x)` with its atoms. A demo plays the real UI on demand and only drives drawing: no settings, store or saved-state changes. Salah uses `/salah demo`; thikr uses `/thikr demo`, which starts a real turn of its own because the Spinner draws only while Claude works.
 
 `/muslim demo` plays the thikr demo, the no-argument athkar demo, then `/salah demo` (the athan moment). Its command passes through demo-only setup hooks, which connect transient signals to each feature's own starter and engine handle. Later clock callbacks send those signals; no self-command is dispatched (`$.command.run` skips the caller in this build). `/muslim demo` only knows the order. It never holds, copies or hard-codes a demo's length or values: each demo works on its own, and when `/muslim demo` started it, it reports its own end through the signal (thikr after its usage-limit hold, athkar after its folded scene, salah after its moment). The next demo starts 0.1 s after that report. Started this way, the thikr prompt says `/muslim demo` instead of `/thikr demo`. Athkar uses its default look (sky on desktop, frame in the terminal; a configured desktop frame is respected). No city is needed. Nothing from one demo overlaps the next, and no demo writes real session atoms, settings or saved state. Salah selects its disposable moment through one guard in each existing render path; when it ends a real athan returns untouched. The reply names the sequence and says thikr uses tokens and leaves a transcript message. A repeat while playing says `Muslim demo: already playing.`; a later request plays again. The order, the start delay and the gap: `src/demo.ts`; transient signals: `src/shared/demo/signal.ts`; the runner and module-local lifetime: marked `DEMO` blocks in `hooks/register.tsx` and each feature's `install.tsx`. Removing demo blocks and the two salah render selectors removes no core behavior.
 

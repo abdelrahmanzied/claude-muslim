@@ -1,4 +1,4 @@
-import { expect, test } from 'claude-code/testing'
+import { expect, mock, test } from 'claude-code/testing'
 
 const muslim = (args: string) => ({
   command: 'muslim',
@@ -7,7 +7,9 @@ const muslim = (args: string) => ({
   presentation: { isFullscreen: false, columns: 80 },
 })
 
-test('/muslim shows each setting with its state and how to change it', { options: { tashkeel: false } }, async $ => {
+test('/muslim shows each setting with its state and how to change it', { options: { tashkeel: false } }, async ($, on) => {
+  mock.store(on)
+  on('session.surface', async () => ({ value: 'desktop' }))
   const ran = await $.command.run(muslim(''))
   expect(ran.text?.split('\n')[1]).toContain('To change a setting or see every option: `/muslim help`')
   expect(ran.text).toContain('### Features\n\n| Feature | Description | State |')
@@ -17,6 +19,7 @@ test('/muslim shows each setting with its state and how to change it', { options
   expect(ran.text).toContain('### Shared\n\n| Setting | Description | State |')
   expect(ran.text).toContain('| Tashkeel | Arabic diacritics on desktop; the terminal never shows them | off |')
   expect(ran.text).toContain('| Terminal Arabic | How Arabic shows in this terminal | terminal only |')
+  expect(ran.text).toContain('| Quran | Desktop recitation player; the selected recording | Muhammad Siddiq Al-Minshawi — murattal |')
 })
 
 test('/muslim help shows every feature\'s table; with a feature, only its own', async $ => {
@@ -40,19 +43,34 @@ test('/muslim help shows every feature\'s table; with a feature, only its own', 
   expect(salah).not.toContain('/thikr')
   expect(thikr).toContain('/thikr mode')
   expect(thikr).not.toContain('/salah')
+  expect((await $.command.run(muslim('help quran'))).text).toContain('| `/quran play` |')
+  expect(all).toContain('/quran reciter')
+  expect((await $.command.run(muslim('help unknown'))).text).toContain('Features: thikr, athkar, salah, quran, color, tashkeel, terminal-arabic')
   expect(all).toContain('| `/athkar morning` · `evening` | Open that period\'s reader above the prompt, even outside its hours | `reset`: read it again from the start |')
   expect((await $.command.run(muslim('help athkar'))).text?.split('\n')[0]).toBe('**Muslim › Athkar › Help**')
-  expect((await $.command.run(muslim('help quran'))).text).toContain('Features: thikr, athkar, salah, color, tashkeel, terminal-arabic')
+  const quran = (await $.command.run(muslim('help quran'))).text
+  expect(quran?.split('\n')[0]).toBe('**Muslim › Quran › Help**')
+  expect(quran).toContain('| Command | Description | Options |')
+  expect(quran).toContain('| `/quran repeat segment` |')
+  expect(quran).not.toContain('/athkar')
+  expect(quran).not.toContain('/quran demo')
+  expect((await $.command.run({ ...muslim('help'), command: 'quran' })).text).toBe(quran)
 })
 
 test('session start clears a status line left by an earlier version', async ($, on) => {
   const seen: Array<string | undefined> = []
-  on('command.register', async (_$, e) => ({ value: { command: e.name } }))
+  const commands: string[] = []
+  mock.store(on)
+  on('command.register', async (_$, e) => {
+    commands.push(e.name)
+    return { value: { command: e.name } }
+  })
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
   on('ui.status', async (_$, e) => (seen.push(e.text), { value: undefined }))
   await $.session.start({ cwd: '/tmp', surface: 'terminal', isInteractive: true })
 
   expect(seen).toEqual([undefined])
+  expect(commands).toEqual(['muslim', 'thikr', 'athkar', 'salah', 'quran'])
 })
 
 test('/muslim tashkeel reads and changes the plugin-wide setting', async ($, on) => {
@@ -75,6 +93,8 @@ test('the old arabic-fix subcommand no longer handles or changes settings', asyn
 
 for (const color of ['orange', 'green', 'gold', 'blue']) {
   test(`/muslim color reads and writes ${color}`, { options: { color } }, async ($, on) => {
+    mock.store(on)
+    on('session.surface', async () => ({ value: 'desktop' }))
     const writes: unknown[] = []
     on('config.set', async (_$, e) => (writes.push(e), { value: e.value }))
     expect((await $.command.run(muslim('color'))).text).toContain(`Color ${color}.`)

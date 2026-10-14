@@ -30,9 +30,19 @@ export type SalahMinaret = { pray: SalahWindow['pray']; frame: number; startedAt
 // The desktop moment: call, clock text, persisted fold and expiry deadlines in ms since epoch.
 export type SalahCard = { pray: SalahWindow['pray']; time: string; foldsAt: number; isFolded: boolean; until: number }
 
+// Repeat is one of: off, the whole surah (every quarter then start over), or the current quarter only.
+export type QuranRepeat = 'off' | 'surah' | 'segment'
+export type QuranPlaying = { moshafKey: string; surah: number; startedAt: number; durationMs: number | null; segmentIndex?: number; segmentCount?: number }
+
 declare module 'claude-code' {
   interface PluginState {
     muslim: {
+      quranPlaying: QuranPlaying | null
+      quranRepeat: QuranRepeat
+      quranError: string | null
+      quranCommandError: string | null
+      quranSurah: number
+
       // Terminal whose picker was opened by /muslim terminal-arabic.
       arabicSurveyManualTerminal: string | null
       // Per-terminal mode cached for this session's thikr renders.

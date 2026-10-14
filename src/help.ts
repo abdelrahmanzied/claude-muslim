@@ -1,15 +1,16 @@
 // `/muslim help`: the shared commands and every feature's table, or one feature's.
 
+import { QURAN_COMMANDS } from './features/quran/help.ts'
 import { ATHKAR_COMMANDS } from './features/athkar/help.ts'
 import { SALAH_COMMANDS } from './features/salah/help.ts'
 import { THIKR_COMMANDS } from './features/thikr/help.ts'
 import { helpReply, helpTable, type HelpRow } from './table.ts'
 
-const FEATURES = { thikr: THIKR_COMMANDS, athkar: ATHKAR_COMMANDS, salah: SALAH_COMMANDS } as const
+const FEATURES = { thikr: THIKR_COMMANDS, athkar: ATHKAR_COMMANDS, salah: SALAH_COMMANDS, quran: QURAN_COMMANDS } as const
 
 export const MUSLIM_COMMANDS: readonly HelpRow[] = [
   ['/muslim', 'The version, every feature\'s state and the shared settings', ''],
-  ['/muslim help', 'Every command table, or one feature\'s', '`<feature>`: thikr, athkar, salah, color, tashkeel, terminal-arabic'],
+  ['/muslim help', 'Every command table, or one feature\'s', '`<feature>`: thikr, athkar, salah, quran, color, tashkeel, terminal-arabic'],
   ['/muslim color', 'The main color in every feature', '`orange` (default, Claude\'s) · `green` · `gold` · `blue`'],
   ['/muslim tashkeel', 'Arabic diacritics on desktop; the terminal never shows them', '`on` (default) · `off`'],
   ['/muslim terminal-arabic', 'Choose how Arabic shows in this terminal, for every feature', ''],

@@ -29,7 +29,7 @@ The moment keeps its fold state and absolute deadlines in `salahCard` and `salah
 
 ## Surfaces
 
-Setup, review and terminal rows stack: each feature's AbovePrompt hook keeps what `next(e)` returns and adds its own row above it (setup or review rows, thikr's usage-limit row, the minaret moment). The desktop cards share one place: the athan replaces the athkar band while it shows. The prayer line is not a band row: it is bold text in the `SessionMode` labels at the right of the prompt footer, before the model name; the hook keeps what `next(e)` returns and adds the line beside it.
+Setup, review and terminal rows stack: each feature's AbovePrompt hook keeps what `next(e)` returns and adds its own row above it (setup or review rows, thikr's usage-limit row, the minaret moment). The desktop cards share one place: the athan replaces the athkar band while it shows. The prayer line is not a band row: it is bold text in the `SessionMode` labels at the right of the prompt footer, before the model name; the hook keeps what `next(e)` returns and adds the line beside it. The Desktop owns that placement: its redesigned footer (app 2.37) draws the slot on a row of its own under the model, effort and context controls, right-aligned. The line is plain Text, so it keeps its bold main color there; nothing in the mod depends on it being inline.
 
 | Moment | Surface | Shows |
 | --- | --- | --- |

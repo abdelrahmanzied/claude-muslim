@@ -27,6 +27,10 @@ A reader above the prompt for the morning athkar (05:00–17:00) and the evening
 
 The next prayer under the prompt (`☾ العصر ١٥:٥٩`) all day, or only the minutes before it (20 by default), with a live mm:ss countdown (`☾ العصر ١٩:٤٢`) and, when it comes in, a small minaret that rises above the prompt for about 3 seconds, then folds to one line with a × (on the desktop app, a photo card that folds to a slim row after a minute); it closes by itself after 15 minutes, and the footer shows `حان وقت صلاة …` (no toast, no OS notification). Calculated on your machine; on first use the mod offers the city of your time zone, or any city you type in any language, then shows today's times so you can match them to your mosque. While Claude works inside that window, the thikr turn opens with `حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د`. Details: [docs/features/salah.md](docs/features/salah.md).
 
+### Quran recitation (`/quran`)
+
+A desktop pane player with searchable Hafs recordings, available surahs and quarters for large recordings. Playback is explicit, with stop, previous/next and mutually exclusive surah or quarter repeat. The footer button toggles the pane; your recording choice is remembered. Details: [docs/features/quran.md](docs/features/quran.md).
+
 ## Install
 
 Pick whichever fits where you are. All three install the same mod, at the user scope, so it runs in every project, in the terminal and in the Claude desktop app.
@@ -89,13 +93,21 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/salah show always` · `<minutes>` · `off` | Show the next pray all day, only that many minutes before it (e.g. `show 20`), or hide it |
 | `/salah athan on` · `off` | `حان وقت صلاة …` when a prayer comes in |
 | `/salah demo` | Preview Fajr at 05:00 without a city: desktop 5 s open, 3 s folded; terminal 3.01 s rise, 3 s folded; real athan state stays untouched, nothing is saved |
-| `/muslim` | Version and a table of every setting, its value and the command that changes it |
+| `/quran` | Open the desktop player |
+| `/quran help` | Table of every `/quran` command |
+| `/quran play <surah>` | Play an available surah by number or Arabic name |
+| `/quran stop` | Stop playback or pending preparation |
+| `/quran next` · `/quran prev` | Adjacent quarter when split, otherwise the next or previous available surah |
+| `/quran repeat` · `/quran repeat segment` | Toggle surah or current-quarter repeat; mutually exclusive |
+| `/quran retry` | Refresh recording size and timing metadata |
+| `/quran reciter` · `/quran reciter <number or name>` | List recordings or remember a choice |
+| `/muslim` | Version, each feature's main state and the shared settings; a hint points to help |
 | `/muslim tashkeel on` · `off` | Show or hide Arabic diacritics on desktop (the terminal never shows them) |
 | `/muslim terminal-arabic` | Choose how Arabic shows in this terminal |
-| `/muslim help` · `help <feature>` | Command tables of every feature, or one (`thikr`, `athkar`, `salah`) |
-| `/muslim demo` | Play every feature's demo in order: thikr in a real turn (about 30 s; it uses tokens and leaves a message in the transcript), its 3 s usage-limit hold, athkar (desktop sky 33.2 s; terminal frame 24.2 s), then the salah athan moment (`/salah demo`); 0.1 s between demos, no setting or saved state changes; no city needed; another request while playing says so |
+| `/muslim help` · `help <feature>` | Command tables of every feature, or one (`thikr`, `athkar`, `salah`, `quran`) |
+| `/muslim demo` | Play the thikr, athkar and salah demos in order: thikr in a real turn (about 30 s; it uses tokens and leaves a message in the transcript), its 3 s usage-limit hold, athkar (desktop sky 33.2 s; terminal frame 24.2 s), then the salah athan moment (`/salah demo`); 0.1 s between demos, no setting or saved state changes; no city needed; another request while playing says so |
 
-Every setting is also in `/config`. The shared `color` setting changes existing main-color accents across athkar, salah, thikr's usage-limit line and the terminal Arabic survey label. Orange text follows Claude's theme; other choices use light/dark shades.
+Shared and feature settings are also in `/config`; Quran remembers its recording in the local store to avoid reloading playback. The shared `color` setting changes existing main-color accents across athkar, salah, Quran, thikr's usage-limit line and the terminal Arabic survey label. Orange text follows Claude's theme; other choices use light/dark shades.
 
 ## Update
 
@@ -205,7 +217,7 @@ Open a session with no dev link, for example in the main worktree. It runs the i
 claude plugin list
 ```
 
-That shows the installed version. `/muslim` shows the running version. Bump the version on the feature branch so you can tell the copies apart.
+That shows the installed version. `/muslim` shows the running version. Keep feature branches unversioned; use the debug log to confirm which copy loaded.
 
 Updates arrive only after the version changes on GitHub `main` and the user runs `claude plugin update`.
 
