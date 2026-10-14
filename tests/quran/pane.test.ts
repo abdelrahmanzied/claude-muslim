@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { CARD_TOP, FIELD_HEIGHT, PANE_HEIGHT, SEGMENT_EXTRA, VISIBLE_ROWS, arabicDigits, fieldTop, isPickMessage, moveHighlight, openPicker, options, overlayTop, columnsWidth, safeWidth, paneHit, paneModel, paneSvg, pickerInitial, typeQuery } from '../../src/features/quran/pane.ts'
+import { CARD_TOP, FIELD_HEIGHT, PANE_HEIGHT, SEGMENT_EXTRA, VISIBLE_ROWS, arabicDigits, fieldTop, isPickMessage, moveHighlight, openPicker, options, overlayTop, columnsWidth, headingLayout, HEADING_EDGE, HEADING_GAP, safeWidth, paneHit, paneModel, paneSvg, pickerInitial, typeQuery } from '../../src/features/quran/pane.ts'
 import { fixtureCatalog } from './fixtures/catalog.ts'
 import { CONTROLS_Y, controls, paletteCss } from '../../src/features/quran/card.ts'
 import { AUDIO_LIMIT_BYTES, timedSegments } from '../../src/features/quran/segments.ts'
@@ -225,4 +225,23 @@ test('every control is hit-testable in the pane at supported widths, with the re
   const on = paneModel(fixtureCatalog, fixtureCatalog.reciters[0]!, 18, null, 0, 420, 4, 0, true, null, 0, undefined, 'surah')
   expect(paneSvg(on, pickerInitial(on))).toContain('aria-label="تكرار السورة" aria-disabled="false" aria-pressed="true"')
   expect(paneSvg(model, pickerInitial(model))).toContain('aria-label="تكرار السورة" aria-disabled="false" aria-pressed="false"')
+})
+
+test('the /quran label is always rendered and never overlaps the heading at any supported width', () => {
+  for (const width of [240, 260, 300, 301, 340, 370, 371, 420, 672, 1200]) {
+    const picture = { ...model, width }
+    const svg = paneSvg(picture, pickerInitial(picture))
+    expect(svg).toContain('<div class="command" dir="ltr"><bdi dir="ltr">/quran</bdi></div>')
+    expect(svg).not.toMatch(/\.command[^}]*display:none/)
+    expect(svg).not.toContain('display:none')
+    expect(svg).toContain('<span>القرآن الكريم</span>')
+    const layout = headingLayout(width)
+    // The label occupies [labelLeft, labelRight] from the left edge; the title is capped to end GAP before it, from the right edge.
+    expect(layout.labelRight + HEADING_GAP + layout.titleMaxWidth + HEADING_EDGE).toBe(width)
+    expect(layout.titleMaxWidth).toBeGreaterThan(0)
+    expect(svg).toContain(`max-width:${layout.titleMaxWidth}px`)
+    expect(svg).toContain(`.command{position:absolute;left:${layout.labelLeft}px`)
+  }
+  expect([240, 300, 340, 420].map(w => headingLayout(w).titleSize)).toEqual([18, 18, 20, 23])
+  expect(headingLayout(240).titleMaxWidth).toBeGreaterThanOrEqual(22 + 9 + 6 * 18)
 })
