@@ -8,6 +8,7 @@ import { showText } from '../src/features/salah/today.ts'
 import { install as installSalah } from '../src/features/salah/install.tsx'
 import { install as installQuran } from '../src/features/quran/install.tsx'
 import { isCatalog, defaultReciter } from '../src/features/quran/catalog.ts'
+import { nearestAvailable } from '../src/features/quran/availability.ts'
 import { terminalArabic, defaultArabicMode, isArabicMode, terminalIdFromEnv } from '../src/shared/arabic/terminal.ts'
 import { install as installThikr } from '../src/features/thikr/install.tsx'
 
@@ -54,9 +55,17 @@ export const register: Register = (on, options) => {
       description: 'Pray times: today, help, show, athan, city, method, adjust',
     })
 
-    await $.command.register({ name: 'quran', description: 'Quran player: play, stop, next, prev, reciter, help' })
+    await $.command.register({ name: 'quran', description: 'Quran player: play, stop, next, prev, repeat, reciter, help' })
     // Audio handles do not survive a module reload. Never resume stale tracking.
     await $.state.set({ plugin: 'muslim', key: 'quranPlaying' }, null)
+    await $.state.set({ plugin: 'muslim', key: 'quranRepeat' }, 'off')
+    // Repair restored selection using shipped metadata only; never resume audio.
+    const catalog = await $.store.get('quran.catalog').catch(() => undefined)
+    const savedReciter = await $.store.get('quran.reciter').catch(() => undefined)
+    const reciterKey = isCatalog(catalog) ? (catalog.reciters.find(r => r.key === savedReciter) ?? defaultReciter(catalog)).key : typeof savedReciter === 'string' ? savedReciter : ''
+    const storedSurah = (await $.state.get({ plugin: 'muslim', key: 'quranSurah' })).value ?? 1
+    const selected = nearestAvailable(reciterKey, storedSurah)
+    if (selected !== null && selected !== storedSurah) await $.state.set({ plugin: 'muslim', key: 'quranSurah' }, selected)
 
     // Older versions pinned the pray line in the status line; clear what a
     // reload may have left there. The mod no longer sets it.

@@ -1,31 +1,119 @@
 # Quran — design
 
-The Quran feature's visual means and surface scope, following [DESIGN.md](../../DESIGN.md). Behavior is in [quran.md](quran.md).
+The Quran feature's visual means, design principles and surface scope, following [DESIGN.md](../../DESIGN.md). Behavior is in [quran.md](quran.md).
+
+The [recording catalog design](quran-catalog.md) covers developer audits and the shipped support catalog. The pane hides unavailable surahs and shows one dim unavailable-count note.
 
 ## Visual means
 
-The entire desktop pane body is one Client (`client.tsx`), rendering Svg/foreignObject HTML/CSS. `pane.ts` builds its pure model, dropdown state transitions, option filtering and hit testing; `card.ts` retains the playback card picture and control geometry. Nothing is copied or imported from another branch.
+The entire desktop pane body is one Client (`client.tsx`), rendering Svg/foreignObject HTML/CSS. `pane.ts` builds its pure model, dropdown state transitions, option filtering and hit testing; `card.ts` retains the playback picture and control geometry; `avatar.ts` draws the avatar. Nothing is copied or imported from another branch.
 
-**Visual means and why:** native controls cannot draw the agreed mockup's typography, radius, fill and spacing consistently. Both picker fields and the player therefore live in the same picture. Labels are 12px `#8a857c`; rounded 8px fields use `#232120`, a `#3a3734` border, 14px `#e9e6df` values and a left-side «▾». Reciter values show `<reciter> · <moshaf>`; surah values show the Arabic-Indic number in an isolated LTR run and its authored name. Every Arabic line is RTL and right-aligned; times stay isolated LTR, with tabular digits. The green now-playing card keeps its 14px radius, 26px bold title, 6px RTL progress, round controls and hover states; a dim automatic-next line follows it. This dark green palette remains the stated exception to shared theme colors, distinct from salah's orange.
+**Visual means and why:** native controls cannot draw the selected design's typography, radius, fill and spacing consistently, so the heading, picker fields, optional quarter picker and player live in one picture. The selected design is the «integrated / clear / madinah» direction of the Quran design lab: the pane has no panel of its own (transparent root, no card or border around the player), so it sits directly on the host surface in both app themes. The terminal and other surfaces get only the dim fallback line (see Surfaces).
 
-**Embedded font:** Tajawal is used throughout, with real 400 and 700 weights. The OFL licence is in `fonts/OFL.txt`. The full TTFs as base64 are about 160 KB, above the 100 KB Client tree bound (and the 131072-character Svg bound). `fonts-embedded.ts` contains lossless WOFF2 encodings of those same full fonts, retaining all glyphs: approximately 56 KB combined. Both faces are embedded as data URIs in `@font-face` inside the foreignObject style, without network font loading. WOFF2 is required to fit this build's limits.
+## Design principles
 
-**Dropdowns:** clicking a field opens an overlay directly below it. It contains a drawn search box with caret, up to eight visible 34px rows, a current-choice check/accent, row hover and highlight, and a “more” indicator. Empty search exposes the complete list: no pages and no Select limit. Arabic-normalized substring search keeps article letters; Arabic or Latin digits select exact surah numbers or reciter list numbers. Client-local state holds the open list, query, highlight and scroll. Printable keys append, Backspace deletes, Up/Down moves and scrolls the highlight, Enter picks, and a row click picks. Picking clears and closes the panel. Field toggle and outside clicks close it. The overlay intercepts clicks over the player below it.
+Each rule says what it serves, so a later change can keep the intent when values move. Pane width is W, the player is W − 40 wide, and every value below is in px.
 
-**Focus and sizing:** the API says a click gives the Client focus and `surface.onKey` then receives keys. Escape returns focus to the app and never reaches the Client; there is no Client blur callback. Pane `isFocused` changes and the `ui.focus` hook supply reported focus loss, closing local panels through a model revision. The pointer API has no wheel event, so lists use Up/Down plus the visible “more” indicator. The Client reports columns/rows, maps cells to pixels (8.4px per desktop column, as the reference card does), and draws a stable 650px pane picture. Dropdowns overlay the card within that height rather than growing the Client region. App pane chrome, zoom and focus-event delivery remain host-controlled.
+### 1. Layout and vertical rhythm
+
+One right-aligned reading column with 20px side margins, read top to bottom as: identity, choice, now playing, controls, what comes next. Each block has one job and the blocks are spaced by fixed steps instead of boxes, so the pane needs no panel or divider chrome.
+- Heading, 0–65: Mushaf book icon (22, 1.7 stroke, green) beside the bold «القرآن الكريم» on the right; the 12 LTR `/quran` command label at the left (hidden below 300). The title keeps a 0.12em optical drop so it sits on the icon's centre line.
+- Rosette rule, 65–90 (see 2).
+- Fields, one every 90: reciter at 135, surah at 225, and «ابدأ من» (quarter) at 315 only for split surahs. A field is a 12 muted label 26 above a 46 box. The quarter field adds an 11 muted note «المقطع N من M داخل سورة …» and shifts the player down by 118. Choices come before playback so the player always reads as the result of what is chosen above it.
+- Player, from 293 (751 total height whole, 869 split): top block 12–137, reciter line 149, progress 192, times 210, approximate-time hint 233, controls centred on 287 with captions beneath, closing rosette 369, next/repeat line 405, 12 bottom margin. The player lives inside the pane's own column and never draws a surface of its own.
+- Height follows content: wrapped errors and the retry control grow the picture so they stay reachable; dropdowns overlay rather than push.
+
+### 2. Rosette rules
+
+A thin rule with an eight-point rosette marks a change of purpose, not decoration. There are exactly two: under the heading (identity | choices) and above the next/repeat line (controls | what happens after). The rule is a 28 rosette in the accent green between two 1px arms (80% opacity) that fade to nothing toward the page edge and start from the rosette's own dimmer colour (`--q-ornament-dim`), so it recedes behind content. Never add a third rule inside a block, and never use it as a box border. It is built by `ornament()` in `card.ts`.
+
+### 3. Type scale, Tajawal, RTL and LTR
+
+- Tajawal throughout, real 400 and 700 weights; bold is for the heading and the surah title only. Arabic is the designed language, so Arabic lines get the larger sizes and no mixed-script fallback look.
+- Scale: heading 23 (20 at W ≤ 370, 18 at W ≤ 300); surah title 30 (25 at W ≤ 370, 22 at W ≤ 280); field value 14; reciter/riwaya line 13; status, field labels, next line and unavailable note 12; times 14 monospace; quarter line, «الوقت تقريبي» hint, segment note and captions 10–11.
+- Every Arabic line is RTL and right-aligned. Times, `/quran` and numeric runs are isolated LTR so digits never reorder: the elapsed time sits at the left and the total at the right of the progress bar, which fills from the left, like a clock and unlike the text. Surah values show the Arabic-Indic number in an isolated LTR run and its authored name; reciter values show `<reciter> · <moshaf>`.
+- Arabic is shown as authored on desktop; nothing is shaped, reordered or reworded here.
+- **Embedded font:** the OFL licence is in `fonts/OFL.txt`. The full TTFs as base64 are about 160 KB, above the 100 KB Client tree bound (and the 131072-character Svg bound). `fonts-embedded.ts` holds lossless WOFF2 encodings of those same full fonts, all glyphs retained, about 56 KB combined, embedded as data URIs in `@font-face` inside the foreignObject style with no network loading. WOFF2 is required to fit this build's limits.
+
+### 4. Palette tokens, light and dark
+
+Colors exist only as CSS variables from `paletteCss()` in `card.ts`; no component names a hex. Dark is the default; light applies under `prefers-color-scheme: light` (the desktop app theme, not the CLI theme) or is forced with `theme-light` / `theme-dark`. The pane and player backgrounds are transparent (`--q-bg`), so the host surface shows through in both; only the dropdown and search keep opaque backgrounds, because they float over content.
+
+| Role | Token | Dark | Light |
+| --- | --- | --- | --- |
+| Text and title | `--q-text`, `--q-title` | `#ece9e2` | `#302f2a` |
+| Muted and dim: field labels, hints, notes, `/quran`, «▾» | `--q-muted`, `--q-dim` | `#98948b` | `#79766c` |
+| Field fill | `--q-field-bg` | `#252321` | `#f9f7f2` |
+| Hairlines, progress track, control border | `--q-line`, `--q-track`, `--q-control-border` | `#393733` | `#d9d6cd` |
+| Accent green: status, fill, rosette, selection, filled buttons | `--q-accent` | `#4f8b63` | `#4f8b63` |
+| Player secondary text, icons, captions | `--q-soft`, `--q-label`, `--q-icon` | `#b9d9c7` | `#4c6c55` |
+| Rosette arm | `--q-ornament-dim` | `#4f7257` | `#4f7257` |
+| Hover and highlight fill | `--q-hover-bg`, `--q-hot` | `#202d26` | `#e5eee5` |
+| Dropdown, search | `--q-dropdown-bg`, `--q-search-bg` | `#252321`, `#1c1b19` | `#fdfcf9`, `#f5f3ee` |
+
+Green is the same in both themes, white (`--q-on-primary`) sits on every filled green control, and hierarchy comes from text/muted/soft, never from extra hues. Both themes must be checked on every change.
+
+### 5. Avatar
+
+The embossed Quran avatar is the player's face and its state indicator: it sits at the left of the status/title block (the end of the row opposite the reading start), 120 wide above W 370, 95 at W ≤ 370 and smaller when narrower (never below 48). It moves only while playback is active and is still in every other state: stopped, preparing and failed. Reduced-motion preferences also stop it. `avatar.ts` preserves the supplied artwork, drops its permanently hidden duplicate layer to fit the Client payload limit and enables CSS motion only while active. Negative animation delays follow the elapsed clock so one-second redraws keep the phase. "Active" starts once the audio request is made, because the API exposes no audible-start event.
+
+### 6. Control row
+
+The row is LTR and centred on 287: previous (40), play/stop (59, filled green, white icon), next (40), with 10 captions «السابق»، «تشغيل/إيقاف»، «التالي» beneath. Play is the only large filled control so the main action is unmistakable; manual previous/next on split surahs read «المقطع السابق / التالي» and dim to 35% when nothing remains in that direction.
+
+Two 34 round repeat buttons flank it, matching the design: the quarter repeat «المقطع» (`aria-label` «تكرار المقطع») at the outer left and the surah repeat «السورة» («تكرار السورة») at the outer right, each with its caption underneath. Icons are the standard glyphs: two circling arrows for the surah, the same arrows plus a small «1» for the quarter (the «1» means "this one piece").
+- **States:** off is outlined in the line colour with the soft icon; on is filled green with a white icon and `aria-pressed="true"`; hover outlines in green with the hover fill. Hover is drawn by the Client because the API has no pointer-cursor prop.
+- **Exclusion:** state is `off` | `surah` | `segment`, so at most one repeat is on. Pressing one turns the other off; pressing the active one turns repeat off. This keeps the pressed look truthful: what is lit is exactly what will happen.
+- **Inactive:** the quarter button is always drawn so the row never reflows, but while the surah plays whole it is 35% opaque with `aria-disabled="true"`, no hover and no hit. A stale quarter repeat on a whole surah reads as off and is reset to off when that surah starts.
+- All buttons are hit-tested as circles using the same geometry that draws them.
+
+### 7. Dim hints
+
+Secondary information is quiet text in `--q-dim` (muted in both themes), never a toast, a coloured chip or a new element type.
+- «الوقت تقريبي» (11), directly under the times at 233, because the clock is approximate and the numbers must not look exact.
+- The next/repeat line (12, up to two lines, under the closing rosette): names the next quarter or surah, or «تكرار: المقطع … · الآيات …» / «تكرار: سورة …» when repeat is on; it names the available target, never one that will be skipped.
+- The unavailable-surah note (below) and the quarter segment note.
+- Errors are drawn dim inside the picture with a retry control; actions never show toasts.
+
+### 8. Dropdowns
+
+Fields open an overlay 8 below themselves that covers the player. It holds a drawn search box with caret, up to eight visible 34 rows (46 for quarters, with a two-line value: segment number, ayah range, approximate duration), a current-choice check and accent edge, row hover and highlight, and a «more» indicator. The overlay is opaque with a shadow (`--q-shadow`) so it reads as above the pane, and it intercepts clicks over the player beneath it. Empty search exposes the available surahs or the full recording list, with no pages. Arabic-normalized substring search keeps article letters; Arabic or Latin digits select exact surah numbers or reciter list numbers. Client-local state holds the open list, query, highlight and scroll. Printable keys append, Backspace deletes, Up/Down moves and scrolls the highlight, Enter picks, a row click picks; picking clears and closes, and a field toggle or outside click closes. A thin green 6 thumb sits on an 8 left track, with a 14 drawn region and 16 hit area, a 24 minimum height, position and size following the filtered row count. Dragging scales pointer movement to the full list and clamps at both ends; clicking the track jumps. Pointer capture lasts until release, including outside the Client; query changes, closing, picking and reported focus loss clear the drag. Lists of eight or fewer rows hide the bar. The quarter field appears only after a large recording has valid timing metadata; the player then adds the selected segment's ayah range, and preparing shows a status and a stop control with the avatar still. Failures wrap inside the picture and expose «إعادة المحاولة».
+
+### 9. Desktop rendering constraints
+
+The pane is one SVG image whose foreignObject holds XHTML, and Desktop parses it as XML, so the picture must be well-formed and self-contained.
+- Every nested `<svg>` (rosette, control icons, heading icon, avatar) carries `xmlns="http://www.w3.org/2000/svg"`; without it XML parsing puts it in the XHTML namespace and it silently disappears. HTML previews hide this, and a card test enforces it.
+- The root `<div>` declares `xmlns="http://www.w3.org/1999/xhtml"`; no external assets, fonts, images or network requests: the font and avatar are embedded.
+- Size limits: Svg source at most 131072 characters and Client tree under 100 KB; tests assert the sizes.
+- Positions are absolute pixels from the constants shared by `pane.ts`, `card.ts` and tests, so a layout change is made once.
+- Hover feedback is drawn; pointer shape, pane chrome and zoom stay host-controlled.
+
+### 10. Narrow widths
+
+The minimum pane width is 240. Narrow panes scale instead of wrapping the control row: heading 20 then 18, `/quran` hidden below 300, surah title 25 then 22, avatar shrinking to 48, and the control row scales by `min(1, (W − 44) / 259)` with captions down to 9 so the five circles and their captions always fit in one row (full size from about W 303). Long values truncate with an ellipsis; the next line wraps to two lines. Dropdowns keep their row heights at every width.
+
+**Focus and sizing:** the API says a click gives the Client focus and `surface.onKey` then receives keys. Escape returns focus to the app and never reaches the Client; there is no Client blur callback. Pane `isFocused` changes and the `ui.focus` hook supply reported focus loss, closing local panels through a model revision. The Client pointer API has no wheel event. A `ui.scroll` hook routes person-origin wheel/trackpad movement to a cumulative model revision, consumed by the Client to scroll filtered rows. Event coordinates use the current pane offset; when Desktop omits coordinates, Client metadata reports whether the pointer is over the overlay, including search and empty areas. Leaving, closing, picking and reported focus loss clear that routing. Each accepted tick moves one row, with a 120ms rate limit for trackpad bursts. Live Desktop testing found that the host only dispatches while its own viewport can move; intercepting it can cause host movement and prevents reverse ticks at its edge. Wheel behavior is therefore not a completed native fix. The experimental overflow/centering wrapper and diagnostic probes were removed. Up/Down navigation remains available. The Client reports columns/rows, maps cells to pixels (8.4px per desktop column, as the reference card does), and draws a 751px whole-recording picture or an 869px segmented picture, plus any wrapped error/retry space. Dropdowns overlay the card within that height rather than growing the Client region. App pane chrome, zoom and focus-event delivery remain host-controlled.
 
 `<Client key="quran-card" module="./client.tsx" width="100%" props={model} />` mounts the full pane. Picks post `{ act: 'pick', list, value }` through `surface.post` to `ui.message`; the hooks validate the value against the authoritative cached catalog, then save/restart the reciter or play the surah using existing dispatch. Playback controls still use validated pointer hit testing or keyboard posts. Once-per-second props update elapsed/progress without resetting dropdown state. Errors are drawn dim inside the picture; actions never show toasts.
 
 The desktop footer is a plain native Button whose `Text color="success"` contains «۞» before its label. Idle: «۞ القرآن». Playing: `۞ <surah Arabic name> mm:ss` (`h:mm:ss` from an hour). A separate Svg passed engine tests but did not appear in live Desktop, so the visible text symbol replaces it. Pressing toggles `quran` using `$.ui.panes`, `$.ui.open` and `$.ui.close`, without changing audio. Quran's outer SessionMode hook stays before salah's, preserving `[Quran] [salah] [model]`. Salah is unchanged.
 
-**Why:** listening is an explicit activity with choices and controls; the Pane keeps those together without interrupting Claude's transcript. No AbovePrompt band or automatic opening at startup. Natural ends continue to the next surah with the same recording, stopping after 114. Salah’s athan moment does not interrupt recitation.
+**Why:** listening is an explicit activity with choices and controls; the Pane keeps those together without interrupting Claude's transcript. No AbovePrompt band or automatic opening at startup. Whole-track natural ends continue to the next available surah with the same recording, stopping when none remains. Split segments continue within the surah and then to the next available surah; previous/next skip unavailable surahs when crossing surah boundaries. Salah’s athan moment does not interrupt recitation.
+
+## Unavailable-surah note
+
+For a known recording with unavailable surahs, its surah overlay adds exactly one 34px row below the eight-option viewport and above the existing position indicator. It uses 12px Tajawal and the existing `--q-dim` variable in both light and dark palettes, including `prefers-color-scheme`; it adds no background. The fields, option row sizes, scrollbar viewport and pane dimensions are unchanged. Arabic remains authored RTL text; Arabic-Indic numeric runs are isolated LTR, with no shaping or reordering.
+
+The row has no option role, selected state, highlight, hover background or action. CSS disables pointer events; hit testing treats its pixels as inert panel space so clicks cannot reach the player beneath. Option navigation and scrollbar geometry count only playable search results. The note remains visible during search and is absent at zero; it never appears in the recording dropdown.
+
+Its text forms are: 1 → «سورة واحدة غير متاحة لهذا القارئ»; 2 → «سورتان غير متاحتين لهذا القارئ»; 3–10 → «N سور غير متاحة لهذا القارئ»; 11+ → «N سورة غير متاحة لهذا القارئ», with `N` in Arabic-Indic digits. The pure `unavailableNote` function owns and tests this agreement.
 
 ## Surfaces
 
 | Moment | Surface | Shows |
 | --- | --- | --- |
 | Footer idle/playing | Desktop SessionMode | Green native Button with ۞: القرآن or surah + approximate elapsed; toggles the docked pane |
-| User opens player | Desktop docked Pane `quran` | One full Client picture: dropdown fields/search overlays and rounded player card with hit-tested controls, RTL Arabic and embedded Tajawal; dim next hint |
+| User opens player | Desktop docked Pane `quran` | One full Client picture: dropdown fields/search overlays and a card-less player with hit-tested controls (two repeat buttons), RTL Arabic and embedded Tajawal; dim hints |
 | Non-desktop pane | Terminal, mobile, vscode Pane | Only dim «مشغّل القرآن متاح على تطبيق Claude للديسكتوب» |
 | Commands/help/settings | Command reply on all surfaces | Short status or requested catalog/help; Quran row in `/muslim` |
 | Playback failure after command | Quran CommandOutput and pane | Dim error line; command output only for playback started by a command |
@@ -39,7 +127,7 @@ Desktop is the supported v1 surface, a stated scope exception to the shared cros
 
 ## Settings exception
 
-**Stated exception to CLAUDE.md's “settings are userConfig” rule:** all durable Quran data—remembered recording, catalog and duration numbers—stays in `$.store` (`quran.reciter`, `quran.catalog`, `quran.durations`), not userConfig. `$.config.set` reloads the module and would cut playback continuity by losing the AbortController; an old clip may remain audible without a handle. Choosing a recording must not reload the module. No new userConfig fields are added. The `/muslim` row points to `/quran reciter`. Stop is the user's off action; there is no unsolicited playback or enabled switch. Loudness is controlled by the OS.
+**Stated exception to CLAUDE.md's “settings are userConfig” rule:** all durable Quran data—remembered recording, catalog, duration numbers and recording segment metadata—stays in `$.store` (`quran.reciter`, `quran.catalog`, `quran.durations`, `quran.segmentCache`), not userConfig. `$.config.set` reloads the module and would cut playback continuity by losing the AbortController; an old clip may remain audible without a handle. Choosing a recording must not reload the module. No new userConfig fields are added. The `/muslim` row points to `/quran reciter`. Stop is the user's off action; there is no unsolicited playback or enabled switch. Loudness is controlled by the OS.
 
 Playback state stays in the declared session contract; handles stay in the runtime only. On reload, existing `session.start` clears tracking and does not resume. A reload orphans the clip: the mod cannot stop it, and it ends with the surah, a documented v1 limitation.
 
@@ -53,7 +141,7 @@ Every play invocation creates a 200ms `$.clock.every` beside its `$.audio.play` 
 
 ## Never
 
-No seeking, pause/resume, audio cache, ayah splitting, chunking, unsolicited autoplay, OS notifications or generated religious text. The temporary Range prefix is duration metadata only and is removed after use.
+No seeking, pause/resume, persistent audio cache, separate ayah clips, gapless sequencing, unsolicited autoplay, OS notifications or generated religious text. Large recordings use verified cuts from the original MP3; temporary Range files are removed after reading. The fixed quarter map ships separately from per-user timing/byte metadata.
 
 ## Demo scenes (planned)
 
@@ -67,4 +155,7 @@ When shared `/muslim demo` lands: stopped with Minshawi/Al-Fatiha selected; play
 - [ ] Redraw timer runs only while playing; per-clip watchdog cancels on settlement; elapsed remains explicitly approximate.
 - [ ] No config reload from recording changes; all durable Quran data in store.
 - [ ] Both full lists open without pages; Up/Down scrolls, search filters, and choosing clears/closes the panel. Catalog is reused for seven days and refreshes on demand, retaining stale data on failure; duration failure is silent.
+- [ ] Every `<svg>` nested in the pane or card (rosette, control icons, avatar) carries `xmlns="http://www.w3.org/2000/svg"`. Desktop draws the pane as an SVG image parsed as XML, so a nested `<svg>` without it falls into the XHTML namespace and silently disappears; HTML preview renders hide this. A card test checks it.
 - [ ] Engine gates pass; live sound and native paint verified separately.
+
+Native Desktop validation on macOS confirmed both drag scrollbars reach the last rows and return to the first rows while the Pane remains stationary. Surah search for 18 returns Al-Kahf and hides the scrollbar. Drag input is quantized by the host cell coordinates; engine tests also cover release outside the Client, search and selection after dragging. This validates the drag control, not mouse-wheel behavior or other operating systems.

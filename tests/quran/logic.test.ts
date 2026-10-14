@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 import { audioUrl, defaultReciter, filterReciters, isCatalog, matchReciter, matchSurah, normalizeName, readSurahs, searchReciters, searchSurahs } from '../../src/features/quran/catalog.ts'
-import { formatTime, nextSurahAfterEnd, parseCommand, progressBar } from '../../src/features/quran/player.ts'
+import { effectiveRepeat, formatTime, nextPlaybackItem, repeatMode, nextSurahAfterEnd, parseCommand, progressBar } from '../../src/features/quran/player.ts'
 import { quranHelp } from '../../src/features/quran/help.ts'
 import { fixtureCatalog, reciters, surahs } from './fixtures/catalog.ts'
 
@@ -47,9 +47,10 @@ test('command grammar accepts only the supported v1 actions', () => {
   expect(parseCommand('')).toEqual({ kind: 'open' })
   expect(parseCommand('play آل عمران')).toEqual({ kind: 'play', value: 'آل عمران' })
   expect(parseCommand('reciter')).toEqual({ kind: 'reciter', value: '' })
-  for (const word of ['stop', 'help', 'next', 'prev']) expect(parseCommand(word).kind).toBe(word)
+  for (const word of ['stop', 'help', 'next', 'prev', 'repeat']) expect(parseCommand(word).kind).toBe(word)
   expect(quranHelp()).toContain('/quran play <surah>')
-  for (const args of ['play', 'stop now', 'pause', 'seek 10', 'unknown']) expect(parseCommand(args)).toEqual({ kind: 'usage' })
+  expect(quranHelp()).toContain('/quran repeat')
+  for (const args of ['play', 'stop now', 'repeat on', 'pause', 'seek 10', 'unknown']) expect(parseCommand(args)).toEqual({ kind: 'usage' })
   expect(quranHelp()).toContain('advance on natural end')
 })
 
@@ -79,4 +80,38 @@ test('search preserves article letters, normalizes Arabic and searches names and
   expect(searchSurahs('', surahs)).toHaveLength(114)
   expect(searchReciters('  ', fixtureCatalog.reciters)).toEqual(fixtureCatalog.reciters)
   expect(searchReciters('٢', fixtureCatalog.reciters)[0]?.key).toBe('10:21')
+})
+
+test('repeat table: off advances, surah replays through every quarter, segment replays the current quarter', () => {
+  const rule = (mode: 'off' | 'surah' | 'segment', surah: number, index: number | null, count: number) => nextPlaybackItem(surah, index, count, mode, true, 7, 7)
+  // Whole files: segment repeat means nothing, so it reads as off.
+  expect(rule('off', 18, null, 0)).toEqual({ surah: 19, index: 0 })
+  expect(rule('surah', 18, null, 0)).toEqual({ surah: 18, index: 0 })
+  expect(rule('segment', 18, null, 0)).toEqual({ surah: 19, index: 0 })
+  expect(rule('off', 114, null, 0)).toBe(null)
+  expect(rule('surah', 114, null, 0)).toEqual({ surah: 114, index: 0 })
+  expect(rule('segment', 114, null, 0)).toBe(null)
+  // Split surahs.
+  expect(rule('off', 2, 5, 20)).toEqual({ surah: 2, index: 6 })
+  expect(rule('off', 2, 19, 20)).toEqual({ surah: 3, index: 0 })
+  expect(rule('surah', 2, 5, 20)).toEqual({ surah: 2, index: 6 })
+  expect(rule('surah', 2, 19, 20)).toEqual({ surah: 2, index: 0 })
+  expect(rule('surah', 114, 3, 4)).toEqual({ surah: 114, index: 0 })
+  expect(rule('segment', 2, 5, 20)).toEqual({ surah: 2, index: 5 })
+  expect(rule('segment', 2, 19, 20)).toEqual({ surah: 2, index: 19 })
+  expect(rule('segment', 2, 0, 20)).toEqual({ surah: 2, index: 0 })
+  expect(rule('segment', 114, 3, 4)).toEqual({ surah: 114, index: 3 })
+  for (const mode of ['off', 'surah', 'segment'] as const) {
+    expect(nextPlaybackItem(2, 5, 20, mode, false, 7, 7)).toBe(null)
+    expect(nextPlaybackItem(2, 5, 20, mode, true, 7, 8)).toBe(null)
+  }
+})
+test('stored repeat values normalise, and the two repeat buttons exclude each other', () => {
+  expect([true, false, 'surah', 'segment', 'off', undefined, 7, null].map(repeatMode)).toEqual(['surah', 'off', 'surah', 'segment', 'off', 'off', 'off', 'off'])
+  expect(effectiveRepeat('segment', false)).toBe('off')
+  expect(effectiveRepeat('segment', true)).toBe('segment')
+  expect(effectiveRepeat('surah', false)).toBe('surah')
+  expect(parseCommand('repeat')).toEqual({ kind: 'repeat' })
+  expect(parseCommand('repeat segment')).toEqual({ kind: 'repeat-segment' })
+  expect(parseCommand('repeat quarter')).toEqual({ kind: 'usage' })
 })

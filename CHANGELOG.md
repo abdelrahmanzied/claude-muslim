@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Quran hides surahs the selected recording cannot play, using the shipped support catalog, with one dim note counting them; reciter switches, next/previous, auto-advance, commands and restored state move to the nearest available surah without network work.
+- Quran pane follows the selected design: rosette rules, fields every 90px, avatar beside the title, transparent background in both themes, Tajawal throughout and the «الوقت تقريبي» hint. Repeat has three states (`off`, `surah`, `segment`) with two mutually exclusive buttons; surah repeat plays every quarter then starts over, quarter repeat replays the current quarter and is inactive for whole surahs; add `/quran repeat segment`. Nested SVGs declare their namespace so Desktop draws the rosette.
+- Add the developer-only cuts script, its offline benchmark and pure cut helpers (pause search with local offset alignment); the generated cuts file is an empty placeholder and playback does not use it yet.
+
+- Add the developer-only Quran support audit, pure availability classifier, offline catalog checks and the two-script catalog design; catalog-driven playback UI and silence cuts are planned separately.
+
+- Quran checks recording size before playback, keeps small surahs whole and adds a searchable quarter selector for large recordings. It matches MP3Quran timing metadata to the exact recording, verifies actual MP3 frame cuts under the Claude audio limit, stores bounded per-user metadata under `quran.segmentCache`, cleans temporary ranges, and prevents stopped preparation from starting late. Quarter navigation stays within the selected surah; add `/quran retry`.
+
+- Quran aligns its custom heading text with the Mushaf icon and adds a thin draggable scrollbar to both searchable dropdowns; lists remain inside the fixed pane picture. Native wheel dispatch remains unresolved.
+
 - Quran now draws the entire desktop pane in its Client: styled dropdowns with complete catalogs, inline search, keyboard scrolling, current/hover marks and overlays above the player. Embed both full Tajawal weights using lossless WOFF2 to fit engine limits; RTL Arabic and isolated Arabic-Indic option numbers follow the design system. Playback watchdog, debug logging and footer are unchanged.
 
 - Quran adds a per-clip 200ms stop watchdog in the playback invocation and temporary bounded debug logging. The desktop player card is now Client-drawn HTML/CSS in Svg, matching the rounded green mockup with hit-tested round controls and hover feedback; native searchable pickers remain. The footer uses the green ۞ text symbol because its separate SVG was not visible live.

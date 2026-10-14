@@ -17,12 +17,15 @@ export type SalahMinaret = { pray: SalahWindow['pray']; frame: number }
 // The desktop athan card while it shows: the pray, its clock text and when it ends by itself (ms since epoch).
 export type SalahCard = { pray: SalahWindow['pray']; time: string; until: number }
 
-export type QuranPlaying = { moshafKey: string; surah: number; startedAt: number; durationMs: number | null }
+// Repeat is one of: off, the whole surah (every quarter then start over), or the current quarter only.
+export type QuranRepeat = 'off' | 'surah' | 'segment'
+export type QuranPlaying = { moshafKey: string; surah: number; startedAt: number; durationMs: number | null; segmentIndex?: number; segmentCount?: number }
 
 declare module 'claude-code' {
   interface PluginState {
     muslim: {
       quranPlaying: QuranPlaying | null
+      quranRepeat: QuranRepeat
       quranError: string | null
       quranCommandError: string | null
       quranSurah: number
