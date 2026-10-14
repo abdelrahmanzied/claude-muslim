@@ -110,7 +110,7 @@ are pure in `demo.ts`; marked blocks in `install.tsx` hold only the demo path.
 - On the cover, the next click opens the reading; it does not count either. After that, clicks count.
 - The cover lists no Esc key: the mod never receives Esc (see rule 4).
 - Click, Space or Enter counts. Right click or Backspace takes one back. ← next, → previous.
-- × hides the band for this period and keeps the reading. `/athkar` brings it back.
+- × hides the band for this period and keeps the reading. `/athkar` brings it back. `/athkar morning` · `evening` shows that period by the same cover and reading even outside its hours; the choice ends at ×.
 
 ## When it folds (collapse rules)
 
