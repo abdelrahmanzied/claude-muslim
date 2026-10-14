@@ -97,7 +97,7 @@ const client: ClientModule<PaneModel, Local> = (props, surface) => {
       surface.setState({ ...current, picker: pickerInitial(model), overList: false, drag: null })
     }
   })
-  const svg: SvgProps = { source: paneSvg(model, local.picker, local.hover), width: model.width, height: paneHeight(model), alt: `المصحف · القارئ · السورة · ${model.segmented ? 'ابدأ من · ' + model.segmentLabel + ' · ' : ''}${model.status} · ${model.title} · ${model.reciter} · ${model.elapsed} / ${model.total} · السابقة · ${model.playing || model.preparing ? 'إيقاف' : 'تشغيل'} · التالية · تكرار السورة ${model.repeat ? 'مفعّل' : 'متوقف'}` }
+  const svg: SvgProps = { source: paneSvg(model, local.picker, local.hover), width: model.width, height: paneHeight(model), alt: `المصحف · القارئ · السورة · ${model.segmented ? 'ابدأ من · ' + model.segmentLabel + ' · ' : ''}${model.status} · ${model.title} · ${model.reciter} · ${model.elapsed} / ${model.total} · السابقة · ${model.playing || model.preparing ? 'إيقاف' : 'تشغيل'} · التالية · تكرار السورة ${model.repeat === 'surah' ? 'مفعّل' : 'متوقف'} · تكرار المقطع ${model.repeat === 'segment' ? 'مفعّل' : 'متوقف'}` }
   return <Box width="100%">{h('Svg', svg)}</Box>
 }
 export default client

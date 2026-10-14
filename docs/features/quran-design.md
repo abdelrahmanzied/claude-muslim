@@ -137,11 +137,11 @@ The API has no pointer-cursor prop. The Client draws hover feedback; pointer sha
 
 Every play invocation creates a 200ms `$.clock.every` beside its `$.audio.play` call. Stop/replacement still abort directly and bump generation; the old clip's own timer checks generation and calls its controller's abort from inside that timer callback. It does so even if a direct abort already marked the signal, and cancels when the play promise resolves or rejects. This addresses the live invocation-context hypothesis; engine tests do not prove audible stop. Duration work never blocks it.
 
-`QURAN_DEBUG = true` temporarily enables serialized read/append/write diagnostics under the OS temp folder: `claude-muslim-quran/debug.log`. Keep the last 200 lines; log generation/surah/start path (command, pane, auto-advance), direct and watchdog aborts, resolved/rejected settlement, aborted flag and elapsed milliseconds. Failures are silent and logging never blocks playback. Set the one constant false later to disable it.
+`QURAN_DEBUG = false` disables diagnostics for v1. Setting it to `true` temporarily enables serialized read/append/write diagnostics under the OS temp folder: `claude-muslim-quran/debug.log`. Keep the last 200 lines; log generation/surah/start path (command, pane, auto-advance), direct and watchdog aborts, resolved/rejected settlement, aborted flag and elapsed milliseconds. Failures are silent and logging never blocks playback. Return the constant to `false` after live diagnosis.
 
 ## Never
 
-No seeking, pause/resume, persistent audio cache, separate ayah clips, gapless sequencing, unsolicited autoplay, OS notifications or generated religious text. Large recordings use verified cuts from the original MP3; temporary Range files are removed after reading. The fixed quarter map ships separately from per-user timing/byte metadata.
+No seeking, pause/resume, persistent audio cache, separate ayah clips, gapless sequencing, unsolicited autoplay, OS notifications or generated religious text. Large recordings use MP3Quran timing boundaries from the original MP3, with possible mid-word edges accepted for v1; temporary Range files are removed after reading. The fixed quarter map ships separately from per-user timing/byte metadata.
 
 ## Demo scenes (planned)
 

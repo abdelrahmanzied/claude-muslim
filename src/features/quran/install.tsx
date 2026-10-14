@@ -13,7 +13,7 @@ import { quranHelp } from './help.ts'
 import { isCardMessage, pointerPixels } from './card.ts'
 import { PANE_HEIGHT, columnsWidth, isPickMessage, isPickerMessage, pickerWheelDelta, paneHit, paneModel, pickerInitial, paneHeight, type PickerMessage } from './pane.ts'
 
-const QURAN_DEBUG = true
+const QURAN_DEBUG = false
 type Preparing = { moshafKey: string; surah: number; stage: 'checking' | 'preparing' }
 type PreparedSegment = { plan: RecordingPlan; source: { base64: string; mime: string } }
 type PrefetchTarget = { key: string; index: number }

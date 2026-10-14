@@ -366,6 +366,8 @@ test('pane buttons: quarter repeat is inert on a whole surah, and each button tu
   await $.command.run(run('play 18')); await clock.settle()
   const mounted = await $.ui.mount(pane('desktop'))
   const quarter = controls(380).find(b => b.action === 'repeat-segment')!, surah = controls(380).find(b => b.action === 'repeat')!
+  const alt = async () => String((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.alt)
+  expect(await alt()).toContain('تكرار السورة متوقف · تكرار المقطع متوقف')
   await clickPixel(mounted, quarter.x + 20, quarter.y + CARD_TOP)
   expect(clock.state.quranRepeat).not.toBe('segment')
   expect(String((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source)).toContain('aria-label="تكرار المقطع" aria-disabled="true"')
@@ -373,12 +375,16 @@ test('pane buttons: quarter repeat is inert on a whole surah, and each button tu
   const offset = SEGMENT_EXTRA
   await clickPixel(mounted, quarter.x + 20, quarter.y + CARD_TOP + offset, PANE_HEIGHT + SEGMENT_EXTRA)
   expect(clock.state.quranRepeat).toBe('segment')
+  expect(await alt()).toContain('تكرار السورة متوقف · تكرار المقطع مفعّل')
   await clickPixel(mounted, surah.x + 20, surah.y + CARD_TOP + offset, PANE_HEIGHT + SEGMENT_EXTRA)
   expect(clock.state.quranRepeat).toBe('surah')
+  expect(await alt()).toContain('تكرار السورة مفعّل · تكرار المقطع متوقف')
   await clickPixel(mounted, quarter.x + 20, quarter.y + CARD_TOP + offset, PANE_HEIGHT + SEGMENT_EXTRA)
   expect(clock.state.quranRepeat).toBe('segment')
+  expect(await alt()).toContain('تكرار السورة متوقف · تكرار المقطع مفعّل')
   await clickPixel(mounted, quarter.x + 20, quarter.y + CARD_TOP + offset, PANE_HEIGHT + SEGMENT_EXTRA)
   expect(clock.state.quranRepeat).toBe('off')
+  expect(await alt()).toContain('تكرار السورة متوقف · تكرار المقطع متوقف')
   await $.command.run(run('stop')); await clock.settle()
 })
 test('pane repeat is a silent toggle and persists through manual navigation and picks', async ($, on) => {
@@ -974,10 +980,11 @@ test('pane Stop aborts immediately during a blocked catalog refresh and cancels 
   expect(clock.state.quranPlaying).toBe(null)
 })
 
-test('pane Stop has an originating-invocation watchdog abort on its next 200ms tick and bounded diagnostics', async ($, on) => {
+test('pane Stop aborts while watchdog ticks and settlement leave diagnostics disabled', async ($, on) => {
   const clock = setup(on, {}, { TMPDIR: '/fixture-debug/' })
   const path = '/fixture-debug/claude-muslim-quran/debug.log'
-  clock.logs[path] = Array.from({ length: 205 }, (_, i) => `old ${i}`).join('\n') + '\n'
+  const oldLog = 'existing diagnostic\n'
+  clock.logs[path] = oldLog
   const signals: AbortSignal[] = []
   // Keep the play promise pending after direct abort, as a remote clip may do.
   on('audio.play', async (_$, _e, next) => {
@@ -990,20 +997,17 @@ test('pane Stop has an originating-invocation watchdog abort on its next 200ms t
   await mounted.post({ act: 'key', key: 'return' }, { in: 'quran-card' })
   expect(signals[0]?.aborted).toBe(true)
   await clock.advance(199)
-  expect(clock.logs[path]).not.toContain('watchdog abort')
+  expect(clock.logs[path]).toBe(oldLog)
   await clock.advance(1)
   expect(signals[0]?.aborted).toBe(true)
-  expect(clock.logs[path]).toContain('path=pane')
-  expect(clock.logs[path]).toContain('abort from=pane:stop')
-  expect(clock.logs[path]).toContain('watchdog abort generation=')
+  expect(clock.logs[path]).toBe(oldLog)
   await clock.advance(800)
-  expect(clock.logs[path]).toContain('result=resolved aborted=true elapsedMs=1000')
-  expect(clock.logs[path]!.trim().split('\n')).toHaveLength(200)
+  expect(clock.logs[path]).toBe(oldLog)
   const log = clock.logs[path]
   await clock.advance(1000)
   expect(clock.logs[path]).toBe(log)
 })
-for (const key of ['right', 'left']) test(`Client ${key} aborts the old signal before starting a replacement and watchdog checks it`, async ($, on) => {
+for (const key of ['right', 'left']) test(`Client ${key} aborts the old signal before starting a replacement with diagnostics disabled`, async ($, on) => {
   const clock = setup(on, {}, { TMPDIR: '/fixture-debug/' })
   const signals: AbortSignal[] = []
   const priorAborted: boolean[] = []
@@ -1019,7 +1023,8 @@ for (const key of ['right', 'left']) test(`Client ${key} aborts the old signal b
   expect(signals).toHaveLength(2)
   expect(priorAborted).toEqual([true])
   await clock.advance(200)
-  expect(clock.logs['/fixture-debug/claude-muslim-quran/debug.log']).toContain('watchdog abort')
+  expect(signals[0]?.aborted).toBe(true)
+  expect(clock.logs).toEqual({})
   expect(clock.state.quranPlaying?.surah).toBe(key === 'right' ? 19 : 17)
   await mounted.post({ act: 'key', key: 'return' }, { in: 'quran-card' })
 })

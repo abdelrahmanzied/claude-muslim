@@ -1,6 +1,6 @@
 # Quran — recitation and recording quarters
 
-A Quran recitation player in Claude Desktop. Small recordings play as whole remote MP3 tracks. Recordings at or above the host’s 26,214,400-byte limit use quarter intersections from the same recording, started only by the user.
+A Quran recitation player in Claude Desktop. Small recordings play as whole remote MP3 tracks. Recordings at or above the conservative 24 MiB playback limit (below the host’s 26,214,400-byte limit) use quarter intersections from the same recording, started only by the user.
 
 ## Flow
 
@@ -24,7 +24,7 @@ Repeat is one of three session states: off, `surah` or `segment` (`PluginState['
 
 Stop leaves repeat on; manual navigation never triggers it.
 
-Explicit number/name picks, including slash commands and Client posts, refuse a known unavailable surah with «هذه السورة غير متاحة لهذا القارئ. اختر سورة أخرى أو قارئًا آخر.» using the existing dim pane/command error path. The check runs before catalog refresh or any audio, size, timing, Range or duration request. Startup repairs restored selection without fetching recording metadata or resuming audio; pane rendering uses the same fallback read-only, and actions repair state before playback. Existing runtime size checks, timing errors and `CLIP_ERROR` remain necessary because the shipped catalog can become stale.
+Explicit number/name picks, including slash commands and Client posts, refuse a known unavailable surah with «هذه السورة غير متاحة لهذا القارئ. اختر سورة أخرى أو قارئًا آخر.» using the existing dim pane/command error path. The check runs before catalog refresh or any audio, size, timing, Range or duration request. Startup repairs restored selection without fetching recording metadata or resuming audio; pane rendering uses the same fallback read-only, and actions repair state before playback. Existing runtime size checks, timing errors and `CLIP_ERROR` remain necessary because the shipped catalog can become stale. Automatic support-catalog refresh is tracked in [issue #13](https://github.com/abdelrahmanzied/claude-muslim/issues/13).
 
 ## Commands
 
@@ -67,7 +67,7 @@ The catalog is fetched at most weekly after a successful fetch, on pane opening 
 | --- | --- | --- |
 | Recording key `<reciterId>:<moshafId>` | `$.store` `quran.reciter` | Minshawi murattal, else first |
 | Filtered catalog with `fetchedAt` | `$.store` `quran.catalog` | Fetch on first need; reuse for 7 days; refresh when the pane opens or a command needs it; retain old catalog on refresh failure |
-| Recording metadata keyed `<moshafKey>:<surah>` | `$.store` `quran.segmentCache` | Schema/map versions, recording names and IDs, surah/ayah count, source URL and validators, actual whole size, duration, timing read ID, segment ranges/times, verified byte cuts/checkpoints, `computedAt`, `updatedAt`, `sourceCheckedAt`; no audio |
+| Recording metadata keyed `<moshafKey>:<surah>` | `$.store` `quran.segmentCache` | Schema/map versions, recording names and IDs, surah/ayah count, source URL and validators, actual whole size, duration, timing read ID, segment ranges/times, frame-validated byte boundaries/checkpoints, `computedAt`, `updatedAt`, `sourceCheckedAt`; no audio |
 | Duration numbers keyed `<moshafKey>:<surah>` | `$.store` `quran.durations` | Unknown |
 | Current track (key, surah, start time, duration), selected surah, pane error and command-origin error | Declared session `$.state` | Stopped, 1, no error |
 
@@ -77,15 +77,17 @@ Verified finding supplied for this feature: a probe of 12 MP3Quran files from 6 
 
 ## Large-recording preparation
 
+For v1, large surahs are split into hizb quarters at the MP3Quran ayah timings, mapped to MP3 frame boundaries. Drift can put a quarter edge mid-word for some reciters: measured examples are Minshawi surah 9 about 9 s late after ayah ~91, and Hudhaifi up to +30 s in surah 2 and +8.5 s in surah 9. This is accepted for v1. The next quarter continues from the same source byte boundary, with the small preceding MP3 reservoir context retained, so nothing is lost.
+
 The fixed map ships as code in `src/features/quran/quarter-boundaries.ts`, under `QURAN_QUARTER_BOUNDARIES` and `QURAN_QUARTER_MAP_VERSION`. It contains surah and ayah numbers, no reader timestamps. Small files stay whole regardless of their number of quarters. A large file requires complete, ordered, nonoverlapping timing rows for that exact recording; the first segment includes the recording introduction and each quarter is clipped to the selected surah. Estimated oversize quarters are further divided at ayah boundaries with a 1MiB planning margin. Actual clip size is checked independently and must stay strictly below the host limit; an unsafe cut fails rather than being sent to the player.
 
-Range requests fetch at most 2MiB into temporary files, verify status 206, Content-Range, body length and available recording validators, then remove the files. Scanning Layer III frames supplies actual byte offsets for CBR and VBR recordings. Up to 64 preceding frame records provide reusable seek checkpoints; a small amount of preceding frame context initializes the MP3 bit reservoir. This can add tens of milliseconds at a cut. Accurate recitation boundaries and native playback still require listening; no sample proves every reader’s timing data. The final segment keeps remaining audio through the end of that surah file. Once verified, cuts reuse cached byte offsets. Each playback downloads its clip again; audio bytes are not stored in `$.store`.
+Range requests fetch at most 2MiB into temporary files, verify status 206, Content-Range, body length and available recording validators, then remove the files. Scanning Layer III frames supplies actual byte offsets for CBR and VBR recordings. Up to 64 preceding frame records provide reusable seek checkpoints; a small amount of preceding frame context initializes the MP3 bit reservoir. This can add tens of milliseconds at a cut. Frame validation checks decodable byte ranges and size, not audible ayah alignment; timing drift remains accepted for v1. The final segment keeps remaining audio through the end of that surah file. Once frame-validated, segments reuse cached byte offsets. Each playback downloads its clip again; audio bytes are not stored in `$.store`.
 
 `quran.segmentCache` is a separate key in the existing per-user plugin store, not a shipped cache and not a separate user-managed JSON file. It expires after seven days, rejects old schema/map versions or changed source URLs, and holds at most 120 plans with a conservative 1.5MB JSON budget to leave room for other features. Retry refreshes size and timings. Missing size shows the Claude 25MiB restriction, retry and alternate reader/surah choices. Large files with missing timings remain unavailable. Stop or replacement clears preparation immediately and late requests cannot start audio. The current bounded curl call may finish before cleanup; Stop never waits for it to finish.
 
 ## Temporary debug log
 
-`QURAN_DEBUG = true` in `install.tsx` writes the last 200 diagnostic lines to `${TMPDIR}/claude-muslim-quran/debug.log` on macOS/Linux (fallback `/tmp/claude-muslim-quran/debug.log`), or `${TEMP}/claude-muslim-quran/debug.log` on Windows. It logs each play's generation, surah and path (`command`, `pane`, `auto-advance`), abort caller, watchdog abort, and resolved/rejected settlement with aborted flag and elapsed milliseconds. Appends are serialized and best effort; they never block playback or show UI errors. Turn the one constant off after live diagnosis. This file holds diagnostics, not audio.
+`QURAN_DEBUG = false` in `install.tsx` disables diagnostics for v1. Setting it to `true` for live diagnosis writes the last 200 diagnostic lines to `${TMPDIR}/claude-muslim-quran/debug.log` on macOS/Linux (fallback `/tmp/claude-muslim-quran/debug.log`), or `${TEMP}/claude-muslim-quran/debug.log` on Windows. It logs each play's generation, surah and path (`command`, `pane`, `auto-advance`), abort caller, watchdog abort, and resolved/rejected settlement with aborted flag and elapsed milliseconds. Appends are serialized and best effort; they never block playback or show UI errors. Return the constant to `false` after live diagnosis. This file holds diagnostics, not audio.
 
 ## Limits
 
@@ -103,7 +105,7 @@ Tajawal Regular and Bold (google/fonts, OFL in `fonts/OFL.txt`) are embedded via
 
 [Quran design](quran-design.md): one full Client-drawn pane with embedded Tajawal, dropdown overlays and hit-tested controls; storage exception and surface fallback.
 
-[Recording catalogs](quran-catalog.md): developer support audit, generated availability metadata, the shipped availability behavior, and the planned silence-cut audit and scheduled updates.
+[Recording catalogs](quran-catalog.md): developer support audit, generated availability metadata, the shipped availability behavior, accepted v1 timing drift, and automatic support refresh tracked in issue #13.
 
 ## Files
 
@@ -128,6 +130,6 @@ The desktop pane places the Mushaf book icon beside its custom Tajawal heading. 
 
 ## To verify live
 
-Open the pane in Desktop, select Minshawi and Al-Kahf, listen for continuous whole-track playback, stop, switch reciter while playing, verify the footer chip opens/closes the pane, test natural-end advancement and stopping after surah 114. Verify pane controls never show toasts and playback errors stay inside the pane unless started by a slash command. Check no acoustic overlap on fast switching and search across both full lists, Enter/row selection, keyboard scrolling and readable dropdowns in narrow panes and each theme. Check watchdog diagnostics for both initial and auto-advanced clips, and the drawn card and hover feedback against the mockup. Confirm the terminal fallback and Arabic modes. Check open/close, focus loss and embedded Tajawal in the full pane. Engine tests exercise hooks and trees; they do not prove sound or native paint.
+Open the pane in Desktop, select Minshawi and Al-Kahf, listen for continuous whole-track playback, stop, switch reciter while playing, verify the footer chip opens/closes the pane, test natural-end advancement and stopping after surah 114. Verify pane controls never show toasts and playback errors stay inside the pane unless started by a slash command. Check no acoustic overlap on fast switching and search across both full lists, Enter/row selection, keyboard scrolling and readable dropdowns in narrow panes and each theme. Temporarily enable diagnostics to check the watchdog for both initial and auto-advanced clips, and the drawn card and hover feedback against the mockup. Confirm the terminal fallback and Arabic modes. Check open/close, focus loss and embedded Tajawal in the full pane. Engine tests exercise hooks and trees; they do not prove sound or native paint.
 
 Native Desktop validation on macOS confirmed both drag scrollbars reach the last rows and return to the first rows while the Pane remains stationary. Surah search for 18 returns Al-Kahf and hides the scrollbar. Drag input is quantized by the host cell coordinates; engine tests also cover release outside the Client, search and selection after dragging. This validates the drag control, not mouse-wheel behavior or other operating systems.
