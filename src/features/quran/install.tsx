@@ -10,7 +10,7 @@ import { SegmentScanner, SEGMENT_LEAD_MS, cbrByte, cbrCheckpoint, cbrStream, enc
 import { formatTime, nextPlaybackItem, parseCommand, repeatMode, toggleRepeat, type Command } from './player.ts'
 import { isAvailable, nearestAvailable, nextAvailable, UNAVAILABLE_ERROR } from './availability.ts'
 import { quranHelp } from './help.ts'
-import { isCardMessage, pointerPixels } from './card.ts'
+import { isCardMessage, pointerPixels, pointerSlack } from './card.ts'
 import { PANE_HEIGHT, columnsWidth, isPickMessage, isPickerMessage, pickerWheelDelta, paneHit, paneModel, pickerInitial, paneHeight, type PickerMessage } from './pane.ts'
 
 const QURAN_DEBUG = false
@@ -602,7 +602,7 @@ export const install = (on: On, options: Options) => {
       const selected = (await $.state.get(surahRef)).value ?? 1
       const model = paneModel(raw, c, selected, playing, await $.clock.now(), message.width, runtime.generation, view.focusRevision, true, (await $.state.get(errorRef)).value, view.wheel, trackSelection(c, selected), repeatMode((await $.state.get(repeatRef)).value))
       const pixels = pointerPixels(message.width, message.x, message.y, message.columns, message.rows, paneHeight(model))
-      const hit = paneHit(model, pickerInitial(model), pixels.x, pixels.y)
+      const hit = paneHit(model, pickerInitial(model), pixels.x, pixels.y, pointerSlack(message.width, message.columns, message.rows, paneHeight(model), message.coarse === true))
       buttonAction = hit?.act === 'control' ? hit.action : null
     } else buttonAction = message.key === 'left' ? 'prev' : message.key === 'right' ? 'next' : message.key === 'return' || message.key === ' ' ? 'toggle' : null
     if (buttonAction === 'toggle') await togglePlayback($)

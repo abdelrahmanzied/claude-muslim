@@ -44,6 +44,11 @@ test('hit testing uses actual circular targets, resized cell coordinates and ign
   const pixel = pointerPixels(380, 20, CONTROLS_Y / CARD_HEIGHT * 20, 40, 20)
   expect(hitTest(380, pixel.x, pixel.y)).toBe('toggle')
   expect(hitTest(380, 0, 0)).toBe(null)
+  const play = controls(380).find(b => b.action === 'toggle')!
+  expect(hitTest(380, play.x, play.y + play.radius + 4)).toBe(null)
+  expect(hitTest(380, play.x, play.y + play.radius + 4, 4, 5)).toBe('toggle')
+  expect(hitTest(380, play.x, play.y + play.radius + 6, 4, 5)).toBe(null)
+  expect(hitTest(380, play.x, play.y, -1, 0)).toBe(null)
   expect(hitTest(380, NaN, 0)).toBe(null)
   expect(isCardMessage({ act: 'pointer', x: 1, y: 1, width: 380, columns: 40, rows: 20, generation: 1, button: 'left' })).toBe(true)
   expect(isCardMessage({ act: 'pointer', x: 1, y: 1, width: 380, columns: 0, rows: 20, generation: 1, button: 'left' })).toBe(false)

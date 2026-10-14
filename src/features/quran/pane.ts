@@ -94,25 +94,43 @@ export function dragPicker(state: PickerState, count: number, drag: PickerDrag, 
   return scrollPicker(state, count, target - state.scroll)
 }
 export type PaneHit = { act: 'field'; list: List } | { act: 'row'; index: number } | { act: 'scrollbar' } | { act: 'panel' } | { act: 'close' } | { act: 'control'; action: CardAction } | null
-export function paneHit(model: PaneModel, state: PickerState, x: number, y: number): PaneHit {
+export type PointerSlack = { x: number; y: number }
+// Distance from a point to the nearest point of [lo, hi]; 0 inside it.
+const gap = (v: number, lo: number, hi: number): number => v < lo ? lo - v : v > hi ? v - hi : 0
+// `slack` is the half-extent in pixels of the pointer's cell. Desktop reports whole cells only (no `fine`), so the pointer is snapped to the
+// cell center and may really be anywhere within it: field, retry and control targets count as hit when the cell overlaps them, the one
+// nearest the center winning. The open overlay still owns the pixels its center falls on, so slack never reaches beneath it.
+export function paneHit(model: PaneModel, state: PickerState, x: number, y: number, slack: PointerSlack = { x: 0, y: 0 }): PaneHit {
   if (![x, y].every(Number.isFinite)) return null
+  const sx = Number.isFinite(slack.x) && slack.x > 0 ? slack.x : 0, sy = Number.isFinite(slack.y) && slack.y > 0 ? slack.y : 0
   // Open overlay owns its pixels; it must never click the player beneath it.
   if (state.open) {
     const top = overlayTop(state.open)
     if (x >= 20 && x <= model.width - 20 && y >= top && y < top + pickerOverlayHeight(state.open, unavailableSurahs(model.selectedReciter).length)) {
       const bar = pickerScrollbar(state, options(model, state.open, state.query).length)
-      if (bar && x >= 22 && x <= 38 && y >= bar.top && y < bar.top + bar.height) return { act: 'scrollbar' }
+      if (bar && x + sx >= 22 && x - sx <= 38 && y >= bar.top && y < bar.top + bar.height) return { act: 'scrollbar' }
       const row = Math.floor((y - top - 56) / pickerRowHeight(state.open))
       const count = options(model, state.open, state.query).length
       if (row >= 0 && row < VISIBLE_ROWS && state.scroll + row < count) return { act: 'row', index: state.scroll + row }
       return { act: 'panel' }
     }
   }
+  // Candidates under the cell, each with its distance from the cell center; the nearest wins.
+  let best: PaneHit = null, bestDistance = Infinity
+  const consider = (hit: PaneHit, distance: number) => { if (distance < bestDistance) { best = hit; bestDistance = distance } }
   const lists: List[] = model.selection?.segments.length ? ['reciter', 'surah', 'segment'] : ['reciter', 'surah']
-  for (const list of lists) if (x >= 20 && x <= model.width - 20 && y >= fieldTop(list) && y <= fieldTop(list) + FIELD_HEIGHT) return { act: 'field', list }
+  const inX = x + sx >= 20 && x - sx <= model.width - 20
+  for (const list of lists) {
+    const top = fieldTop(list), dy = gap(y, top, top + FIELD_HEIGHT)
+    if (inX && dy <= sy) consider({ act: 'field', list }, dy)
+  }
+  if (best) return best
   if (state.open) return { act: 'close' }
-  if (model.error && x >= 20 && x <= 160 && y >= paneRetryTop(model) && y <= paneRetryTop(model) + 34) return { act: 'control', action: 'retry' }
-  const action = hitTest(model.width - 40, x - 20, y - paneCardTop(model))
+  if (model.error) {
+    const top = paneRetryTop(model)
+    if (x + sx >= 20 && x - sx <= 160 && y + sy >= top && y - sy <= top + 34) return { act: 'control', action: 'retry' }
+  }
+  const action = hitTest(model.width - 40, x - 20, y - paneCardTop(model), sx, sy)
   if (action === 'prev' && model.canPrev === false || action === 'next' && model.canNext === false || action === 'repeat-segment' && !model.segmented) return null
   return action ? { act: 'control', action } : null
 }

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Quran dropdown fields, retry and player controls now respond across the whole pointer cell on Desktop. Desktop reports the pointer as a whole cell (about 8 by 19px) snapped to its center, so a click in the bottom few pixels of a field, just under the ▾ arrow, fell outside it and did nothing. Hit testing now treats the cell's half-extent as slack when no sub-cell position is reported, hitting the target the cell overlaps and the nearest one when several do; the open dropdown still owns its pixels and exact pointers are unchanged.
+
 - Quran adopts the shared three-column help and feature-status tables and `/muslim color` for its pane accents and footer; keep availability repair, playback and repeat modes. Quran demo remains deferred.
 - Quran hides surahs the selected recording cannot play, using the shipped support catalog, with one dim note counting them; reciter switches, next/previous, auto-advance, commands and restored state move to the nearest available surah without network work.
 - Quran pane follows the selected design: rosette rules, fields every 90px, avatar beside the title, transparent background in both themes, Tajawal throughout and the «الوقت تقريبي» hint. Repeat has three states (`off`, `surah`, `segment`) with two mutually exclusive buttons; surah repeat plays every quarter then starts over, quarter repeat replays the current quarter and is inactive for whole surahs; add `/quran repeat segment`. Nested SVGs declare their namespace so Desktop draws the rosette.

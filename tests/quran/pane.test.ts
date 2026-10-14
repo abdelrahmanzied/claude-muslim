@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import { CARD_TOP, FIELD_HEIGHT, PANE_HEIGHT, SEGMENT_EXTRA, VISIBLE_ROWS, arabicDigits, fieldTop, isPickMessage, moveHighlight, openPicker, options, overlayTop, columnsWidth, headingLayout, HEADING_EDGE, HEADING_GAP, safeWidth, paneHit, paneModel, paneSvg, pickerInitial, typeQuery } from '../../src/features/quran/pane.ts'
 import { fixtureCatalog } from './fixtures/catalog.ts'
-import { CONTROLS_Y, controls, paletteCss } from '../../src/features/quran/card.ts'
+import { CONTROLS_Y, controls, paletteCss, pointerSlack } from '../../src/features/quran/card.ts'
 import { AUDIO_LIMIT_BYTES, timedSegments } from '../../src/features/quran/segments.ts'
 
 const model = paneModel(fixtureCatalog, fixtureCatalog.reciters[0]!, 18, { moshafKey: '10:20', surah: 18, durationMs: 60000, startedAt: 0 }, 10000, 420, 4, 0, true, null)
@@ -244,4 +244,55 @@ test('the /quran label is always rendered and never overlaps the heading at any 
   }
   expect([240, 300, 340, 420].map(w => headingLayout(w).titleSize)).toEqual([18, 18, 20, 23])
   expect(headingLayout(240).titleMaxWidth).toBeGreaterThanOrEqual(22 + 9 + 6 * 18)
+})
+test('a whole-cell pointer (no fine position) hits a field whose bottom edge it overlaps, and never a neighbour', () => {
+  // Desktop reports cells only: the pointer is snapped to the cell center, 8.4px wide and about 19px tall at 751px / 40 rows.
+  const rows = 40, columns = Math.round(420 / 8.4)
+  const slack = pointerSlack(420, columns, rows, PANE_HEIGHT, true)
+  expect(slack.y).toBeGreaterThan(9)
+  const initial = pickerInitial(model)
+  for (const list of ['reciter', 'surah'] as const) {
+    const bottom = fieldTop(list) + FIELD_HEIGHT
+    // Cell centers just below the field's bottom edge, and above its top edge, belong to cells that overlap it.
+    expect(paneHit(model, initial, 210, bottom + 5)).toBe(null)
+    expect(paneHit(model, initial, 210, bottom + 5, slack)).toEqual({ act: 'field', list })
+    expect(paneHit(model, initial, 210, fieldTop(list) - 5, slack)).toEqual({ act: 'field', list })
+    // Sideways: a cell centered just outside the field edges still overlaps it.
+    expect(paneHit(model, initial, 20 - 3, bottom - 10, slack)).toEqual({ act: 'field', list })
+    expect(paneHit(model, initial, 420 - 20 + 3, bottom - 10, slack)).toEqual({ act: 'field', list })
+    // Beyond the half cell the cell no longer touches it: labels, gaps and the next field stay unclaimed.
+    expect(paneHit(model, initial, 210, bottom + slack.y + 1, slack)).toBe(null)
+    expect(paneHit(model, initial, 210, fieldTop(list) - slack.y - 1, slack)).toBe(null)
+    expect(paneHit(model, initial, 20 - slack.x - 1, bottom - 10, slack)).toBe(null)
+  }
+  // Midway in the 44px gap between two fields hits neither, with or without slack.
+  expect(paneHit(model, initial, 210, fieldTop('reciter') + FIELD_HEIGHT + 22, slack)).toBe(null)
+  // Without slack (exact pointer) the edges are unchanged.
+  expect(paneHit(model, initial, 210, fieldTop('surah') + FIELD_HEIGHT)).toEqual({ act: 'field', list: 'surah' })
+  expect(paneHit(model, initial, 210, fieldTop('surah') + FIELD_HEIGHT + 0.5)).toBe(null)
+})
+test('slack does not let a field steal the open overlay, controls keep the nearest circle and the segment note stays inert', () => {
+  const slack = pointerSlack(420, 50, 40, PANE_HEIGHT, true)
+  const opened = { ...openPicker(model, pickerInitial(model), 'reciter'), query: '', scroll: 0 }
+  // Surah field sits under the open reciter overlay: its pixels belong to the overlay.
+  expect(paneHit(model, opened, 210, fieldTop('surah') + 20, slack)?.act).toBe('row')
+  // Controls: a cell centered just past the play circle's edge overlaps it; one a full half cell further does not.
+  const play = controls(420 - 40).find(b => b.action === 'toggle')!
+  const edge = CARD_TOP + play.y + play.radius
+  expect(paneHit(model, pickerInitial(model), 210, edge + 5)).toBe(null)
+  expect(paneHit(model, pickerInitial(model), 210, edge + 5, slack)).toEqual({ act: 'control', action: 'toggle' })
+  expect(paneHit(model, pickerInitial(model), 210, edge + slack.y + 1, slack)).toBe(null)
+  // Neighbouring circles stay distinct: the nearest to the cell center wins.
+  const next = controls(420 - 40).find(b => b.action === 'next')!
+  expect(paneHit(model, pickerInitial(model), 20 + next.x, CARD_TOP + next.y, slack)).toEqual({ act: 'control', action: 'next' })
+  expect(paneHit(model, pickerInitial(model), 20 + play.x, CARD_TOP + play.y, slack)).toEqual({ act: 'control', action: 'toggle' })
+  // The segment field is hit by its bottom-edge cell; the note beneath it is not, beyond the half cell.
+  const segments = timedSegments(Array.from({ length: 286 }, (_, i) => ({ ayah: i + 1, start_time: i * 1000, end_time: (i + 1) * 1000 })), 2, AUDIO_LIMIT_BYTES * 2)
+  const segmented = paneModel(fixtureCatalog, fixtureCatalog.reciters[0]!, 2, null, 0, 420, 1, 0, true, null, 0, { segments, selectedSegment: 0, durationMs: 286000, loading: null })
+  const bottom = fieldTop('segment') + FIELD_HEIGHT
+  expect(paneHit(segmented, pickerInitial(segmented), 210, bottom + 5, slack)).toEqual({ act: 'field', list: 'segment' })
+  expect(paneHit(segmented, pickerInitial(segmented), 210, bottom + slack.y + 1, slack)).toBe(null)
+  // No slack when the host gave exact (fine) positions, or sizes are nonsense.
+  expect(pointerSlack(420, 50, 40, PANE_HEIGHT, false)).toEqual({ x: 0, y: 0 })
+  expect(pointerSlack(420, 0, 40, PANE_HEIGHT, true)).toEqual({ x: 0, y: 0 })
 })

@@ -43,14 +43,28 @@ export const controls = (width: number) => {
     { action: 'repeat-segment' as const, x: c - 112.5 * s, y: CONTROLS_Y, radius: 17 * s },
   ]
 }
-export function hitTest(width: number, x: number, y: number): CardAction | null {
-  if (![width, x, y].every(Number.isFinite) || width < 180 || width > 1200) return null
-  return controls(width).find(b => (x - b.x) ** 2 + (y - b.y) ** 2 <= b.radius ** 2 + 1e-8)?.action ?? null
+// `sx`/`sy` are the half-extent of the pointer's cell in pixels: a pointer known only as a whole cell may sit anywhere in it, so a
+// circle is hit when the cell overlaps it. The overlapping circle nearest the cell center wins. Both default to 0 (exact point).
+export function hitTest(width: number, x: number, y: number, sx = 0, sy = 0): CardAction | null {
+  if (![width, x, y, sx, sy].every(Number.isFinite) || width < 180 || width > 1200 || sx < 0 || sy < 0) return null
+  let best: CardAction | null = null, bestDistance = Infinity
+  for (const b of controls(width)) {
+    const dx = Math.max(Math.abs(x - b.x) - sx, 0), dy = Math.max(Math.abs(y - b.y) - sy, 0)
+    if (dx ** 2 + dy ** 2 > b.radius ** 2 + 1e-8) continue
+    const distance = (x - b.x) ** 2 + (y - b.y) ** 2
+    if (distance < bestDistance) { best = b.action; bestDistance = distance }
+  }
+  return best
+}
+// Half-extent in pixels of one pointer cell, or 0 when the pointer is exact (`fine`) so exact hits stay exact.
+export function pointerSlack(width: number, columns: number, rows: number, height: number, coarse: boolean): { x: number; y: number } {
+  if (!coarse || !(columns > 0) || !(rows > 0) || !Number.isFinite(width) || !Number.isFinite(height)) return { x: 0, y: 0 }
+  return { x: width / columns / 2, y: height / rows / 2 }
 }
 export function pointerPixels(width: number, x: number, y: number, columns: number, rows: number, height = CARD_HEIGHT) {
   return { x: x * width / columns, y: y * height / rows }
 }
-export type CardMessage = { act: 'pointer'; x: number; y: number; columns: number; rows: number; width: number; generation: number; button: string } | { act: 'size'; columns: number; rows: number } | { act: 'key'; key: string }
+export type CardMessage = { act: 'pointer'; x: number; y: number; columns: number; rows: number; width: number; generation: number; button: string; coarse?: boolean } | { act: 'size'; columns: number; rows: number } | { act: 'key'; key: string }
 export function isCardMessage(value: unknown): value is CardMessage {
   if (!value || typeof value !== 'object') return false
   const m = value as Record<string, unknown>

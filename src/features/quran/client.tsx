@@ -1,5 +1,5 @@
 import type { ClientModule, SvgProps } from 'claude-code'
-import { pointerPixels, type CardAction } from './card.ts'
+import { pointerPixels, pointerSlack, type CardAction } from './card.ts'
 import { PANE_HEIGHT, columnsWidth, dragCell, safeWidth, paneHeight, beginPickerDrag, dragPicker, moveHighlight, openPicker, options, paneHit, paneSvg, pickerInitial, scrollPicker, typeQuery, type PaneModel, type PickerState, type PickerDrag } from './pane.ts'
 
 type Local = { picker: PickerState; hover: CardAction | null; size: string; wheel: number; overList: boolean; drag: PickerDrag | null }
@@ -41,11 +41,14 @@ const client: ClientModule<PaneModel, Local> = (props, surface) => {
     const x = e.fine?.x ?? e.x + 0.5, y = e.fine?.y ?? e.y + 0.5
     // Shared card maps cells to pixels; the full pane substitutes its own height.
     const pixels = pointerPixels(model.width, x, y, surface.columns, surface.rows, paneHeight(model))
+    // Without `fine` the pointer is a whole cell snapped to its center; hit testing then treats the cell's half-extent as slack.
+    const coarse = e.fine === undefined
+    const slack = pointerSlack(model.width, surface.columns, surface.rows, paneHeight(model), coarse)
     if (current.drag && current.picker.open && (e.type === 'move' || e.type === 'up')) {
       // While dragging, vertical position is the cell count times the scale frozen at the press, never today's rows.
       const y = Number.isFinite(current.drag.cell) ? (e.fine?.y ?? e.y + 0.5) * current.drag.cell : pixels.y
       const picker = dragPicker(current.picker, options(model, current.picker.open, current.picker.query).length, current.drag, y)
-      const hit = paneHit(model, picker, pixels.x, y)
+      const hit = paneHit(model, picker, pixels.x, y, slack)
       const overList = hit?.act === 'row' || hit?.act === 'panel' || hit?.act === 'scrollbar'
       if (e.type === 'up' && overList !== current.overList) reportPicker(picker, overList)
       // A move that changes nothing draws nothing: every redraw swaps a whole picture on the host.
@@ -53,7 +56,7 @@ const client: ClientModule<PaneModel, Local> = (props, surface) => {
       surface.setState({ ...current, picker, hover: null, overList: e.type === 'up' ? overList : current.overList, drag: e.type === 'up' ? null : current.drag })
       return
     }
-    const hit = paneHit(model, current.picker, pixels.x, pixels.y)
+    const hit = paneHit(model, current.picker, pixels.x, pixels.y, slack)
     const hover = e.type !== 'leave' && hit?.act === 'control' ? hit.action : null
     const overList = e.type !== 'leave' && (hit?.act === 'row' || hit?.act === 'panel' || hit?.act === 'scrollbar')
     const rowHover = e.type !== 'leave' && hit?.act === 'row' ? hit.index : -1
@@ -78,7 +81,7 @@ const client: ClientModule<PaneModel, Local> = (props, surface) => {
       reportPicker(pickerInitial(model))
       surface.setState({ ...current, picker: pickerInitial(model), overList: false, drag: null })
     } else if (hit?.act === 'panel' && overList !== current.overList) reportPicker(current.picker, overList)
-    else if (hit?.act === 'control') surface.post({ act: 'pointer', x, y, columns: surface.columns, rows: surface.rows, width: model.width, generation: props.generation, button: 'left' })
+    else if (hit?.act === 'control') surface.post({ act: 'pointer', x, y, columns: surface.columns, rows: surface.rows, width: model.width, generation: props.generation, button: 'left', coarse })
   })
   surface.onKey(e => {
     const current = surface.state ?? local
