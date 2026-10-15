@@ -220,7 +220,7 @@ const tick = async ($: EngineInterface, options: Options, place: Place, timer: T
   await setLine($, lineAt(options, place, now))
   if (options.salahShow !== 'off' && options.salahAthan && isDue(last.at, now, await read($, athanShown))) {
     await update($, athanShown, () => last.at)
-    await showAthan($, last.pray === 'sunrise' ? 'fajr' : last.pray, clockText(last.at, place.timeZone), now, timer)
+    await showAthan($, last.pray === 'sunrise' ? 'fajr' : last.pray, clockText(last.at, place.timeZone), now, last.at, timer)
   }
 
   const isWindow = options.salahShow !== 'off' && isInWindow(next, now, countdownMinutes(options.salahShow))
@@ -274,8 +274,8 @@ const scheduleMoment = async ($: EngineInterface, timer: Timer) => {
 }
 
 // The athan moment: its states in $.state and the timers that fold and end it.
-const showAthan = async ($: EngineInterface, pray: SalahMinaret['pray'], time: string, now: number, timer: Timer) => {
-  const moment = momentState(pray, time, now)
+const showAthan = async ($: EngineInterface, pray: SalahMinaret['pray'], time: string, now: number, at: number, timer: Timer) => {
+  const moment = momentState(pray, time, now, at)
   resetCardView(moment.card.until)
   await update($, minaret, () => moment.minaret)
   await update($, card, () => moment.card)
@@ -385,6 +385,7 @@ export const install = (on: On, options: Options) => {
   // prompt band or the footer is drawn first (a reload, e.g. after any setting
   // change, starts it again; register also asks for a redraw at session.start).
   let hasTicker = false
+  let caught = 0
   let isLineCleared = false
   const timer: Timer = { moment: [], handle: undefined, ms: 0, opens: undefined }
   // The card's photo (base64), read the first time the card is drawn.
@@ -567,8 +568,17 @@ export const install = (on: On, options: Options) => {
     // Read so the timer's writes redraw this; the text itself comes from the
     // clock and these settings, so a line left by the last load never shows.
     await read($, line)
-    const text = lineAt(options, place, await $.clock.now())
+    const now = await $.clock.now()
+    const text = lineAt(options, place, now)
     if (!text) return theirs
+    // The call is drawn from the clock, the moment from the timer's tick: when the
+    // line shows the call and the moment never started (the timer was late or lost
+    // in a reload), run a tick at once. Once per pray; `athanShown` guards the rest.
+    const last = lastPray(place, methodOf(options, place), options.salahAdjust, now)
+    if (options.salahAthan && caught !== last.at && isDue(last.at, now, await read($, athanShown))) {
+      caught = last.at
+      $.clock.after(0, () => void run($, options, place, timer))
+    }
     const { Box, Text } = $.ui.resolve(e)
 
     return (

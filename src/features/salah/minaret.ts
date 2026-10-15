@@ -1,3 +1,5 @@
+import { IN_MS } from '../../shared/pray/line.ts'
+
 // The terminal athan moment: a small Unicode minaret rising row by row above
 // the prompt when a pray comes in. Pure frames; install.tsx plays them.
 
@@ -29,8 +31,9 @@ export const minaretStage = (moment: { startedAt: number; foldsAt: number; until
   isGone: now >= moment.until,
 })
 
-// A pray first seen this long after its time is not announced (a late start, a reload).
-export const FRESH_MS = 2 * 60_000
+// A pray first seen this long after its time is not announced: the same 15 minutes
+// the footer keeps «حان وقت», so the line and the moment agree (a late tick, a reload).
+export const FRESH_MS = IN_MS
 
 // The seven rows at `frame`: built from the base up, unseen rows blank so the band keeps its height.
 export const minaretRows = (frame: number): string[] =>

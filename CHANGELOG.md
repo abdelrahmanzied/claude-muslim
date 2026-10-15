@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix the athan card not appearing at prayer time on desktop when the timer ticked late (a reload, a busy turn): the moment is now due for the same 15 minutes the footer keeps «حان وقت», ends 15 minutes after the prayer's time, and the footer's draw asks for a tick when it shows the call but the card never started. Never replays (`athanShown`).
+
 - Muslim pane: the prayer card and the «الصلاة» settings row use a minaret line icon; the crescent stays the symbol of Muslim as a whole.
 
 - Muslim pane settings say «العربية في Terminal»: the word Terminal stays in English.
