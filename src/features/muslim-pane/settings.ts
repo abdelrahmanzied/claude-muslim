@@ -92,7 +92,7 @@ export const settingsRows = (m: SettingsModel): SettingRow[] => {
     case 'general': return [
       row('اللون الرئيسي',(['orange','green','gold','blue'] as const).map(v => control(`color:${v}`,v,config('color',v),'swatch',23,o.color === v)),'Shared accent across every feature'),
       row('التشكيل',toggle(o,'tashkeel'),'Desktop only · terminal strips diacritics'),
-      { ...row('العربية في الطرفية',face('terminal','/muslim terminal-arabic'),'Per terminal · run the check in your terminal. Desktop needs no Arabic setup.'), height: 114 },
+      { ...row('العربية في Terminal',face('terminal','/muslim terminal-arabic'),'Per terminal · run the check in your terminal. Desktop needs no Arabic setup.'), height: 114 },
     ]
     default: return []
   }

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Muslim pane settings say «العربية في Terminal»: the word Terminal stays in English.
+
 - Quran pane tab reads «۞ القرآن الكريم» on desktop, matching its footer chip and sitting beside the Muslim tab's moon.
 
 - Add the Muslim pane’s folded «الإعدادات» accordion with all 13 plugin settings, Quran reciter and session repeat controls, paged lists, city handoff and terminal command summary.

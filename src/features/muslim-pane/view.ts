@@ -196,7 +196,7 @@ const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
       body+=b.rows.map(({row,y})=>`<span class="setting-label" style="top:${y+4}px;max-width:calc(100% - ${m.width<360?32:Math.max(160,row.controls.reduce((n,c)=>n+c.width+4,0)+50)}px)">${escape(row.label)}</span><span class="setting-hint" style="top:${y+(row.extra?96:row.sample?88:58)}px">${escape(row.hint)}</span>${row.extra?`<span class="setting-extra" style="top:${y+68}px">${escape(row.extra.label)}</span>`:''}${row.sample?`<span class="setting-sample" style="top:${y+64}px">${escape(row.sample)}</span>`:''}`).join('')
       if (s.category==='athkar') body+=`<div class="settings-sky ${model.options.athkarStyle}" style="top:204px">${icon('sun')}<span>أذكار الصباح</span></div>`
     } else {
-      const title=s.face==='methods'?'طريقة الحساب':s.face==='reciters'?'اختيار القارئ':s.face==='adjust'?'تعديل المواقيت':s.face==='city'?'اختيار المدينة':'العربية في الطرفية'
+      const title=s.face==='methods'?'طريقة الحساب':s.face==='reciters'?'اختيار القارئ':s.face==='adjust'?'تعديل المواقيت':s.face==='city'?'اختيار المدينة':'العربية في Terminal'
       body=`<strong class="settings-subtitle">${title}</strong>`
       if (s.face==='methods'||s.face==='reciters') {
         body+=b.choices.map(c=>`<div class="list-choice${c.control.selected?' on':''}${hover===c.control.id?' hot':''}" style="top:${c.y}px" role="button" aria-pressed="${!!c.control.selected}"><span>${escape(c.label)}<small>${escape(c.note)}</small></span>${c.control.selected?icon('check'):''}</div>`).join('')
