@@ -78,7 +78,7 @@ test('list pages cover all twenty methods and the full reciter feed with a fixed
       const body=settingsBody(320,{...m,state:{...m.state,page}})
       expect(body.choices.length).toBeLessThanOrEqual(LIST_SIZE)
       keys.push(...body.choices.map(c=>c.control.id))
-      expect(settingsBodyHeight({...m.state,page})).toBe(440)
+      expect(settingsBodyHeight({...m.state,page})).toBe(548)
     }
     expect(keys).toHaveLength(category==='prayer'?20:17)
     expect(new Set(keys).size).toBe(keys.length)

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Muslim pane: the Athan label and other icon rows sit on their icon's line, and settings rows have more space between label, controls, hint and the next row.
+
 - Muslim pane: the footer keeps one button, `☾ Muslim` (the Arabic trial button is removed).
 
 - Muslim pane: the prayer card shows its city on a quiet bottom line («مواقيت <city>») instead of the title row.

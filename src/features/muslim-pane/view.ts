@@ -10,7 +10,7 @@ import {
   ATHAN_H, ATHAN_TOP, BAR_TOP, CITY_H, CITY_TOP, CONTROLS_CY, FIELD_H, HEAD_H, HEAD_TOP, KBTN_W, KROW_H, KROW_TOP, KFINISH_W, KROW_GAP, NX_H, NX_TOP, OPEN_H, OPEN_TOP,
   AVATAR_H, PAD, RECITER_TOP, TOP_H, TOP_Y, ROWS_TOP, ROW_H, SIDE, SURAH_TOP, TIMES_TOP, cardRects, type PaneAct,
 } from './layout.ts'
-import { SETTINGS_TOP, SETTINGS_BODY_TOP, TABS_H, TAB_INSET, categoryTabs, settingsBody, type SettingsTarget } from './settings.ts'
+import { SETTINGS_TOP, SETTINGS_BODY_TOP, TABS_H, TAB_INSET, LIST_CHOICE_H, categoryTabs, settingsBody, type SettingsTarget } from './settings.ts'
 import type { PaneModel } from './model.ts'
 import { avatar } from './avatar.ts'
 
@@ -69,16 +69,18 @@ const CSS = `
 .nx-in{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
 .pr{position:absolute;left:${SIDE - 8}px;right:${SIDE - 8}px;height:${ROW_H}px;font-size:14px;display:flex;align-items:center;gap:11px;padding-inline:8px;border-radius:11px}
 .pr .ic{width:16px;height:16px;color:var(--muted)}
+.pr>span{line-height:1;transform:translateY(.12em)}
 .pr .t{margin-inline-start:auto;font-variant-numeric:tabular-nums}
 .pr.done{color:var(--dim)}.pr.done .ic{color:var(--dim)}
 .pr.next{background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent);font-weight:500}.pr.next .ic{color:var(--accent)}
 .note{position:absolute;left:${SIDE}px;right:${SIDE}px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);font-size:12px;direction:ltr}
 .drow{display:flex;align-items:center;gap:12px;height:${FIELD_H}px;white-space:nowrap}
 .drow .ic{color:var(--text-2);width:18px;height:18px}
-.drow .who{min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+.drow .who{min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:14px;line-height:1;transform:translateY(.12em)}
 .drow .who.off{color:var(--dim)}
 .athan{display:flex;align-items:center;gap:12px;height:${ATHAN_H}px;border-top:1px solid var(--line-soft);border-radius:0 0 11px 11px;padding-top:2px}
 .athan .ic{color:var(--text-2);width:18px;height:18px}
+.athan>span:not(.tog){line-height:1;transform:translateY(.12em)}
 .athan.hot{background:var(--hover)}
 .athan.off{opacity:.55}
 .prayer-city{position:absolute;left:${SIDE}px;right:${SIDE}px;top:${CITY_TOP}px;height:${CITY_H}px;text-align:center;font-size:12px;color:var(--muted);line-height:1}
@@ -105,7 +107,7 @@ const CSS = `
 .krow .ic{color:var(--text-2);width:18px;height:18px}
 .krow .dbtn{width:${KBTN_W}px;height:${KROW_H - 4}px;flex:none;padding-inline:10px;font-size:14px}
 .krow .dbtn.finish{width:${KFINISH_W}px}
-.krow .none{flex:1;color:var(--muted);font-size:12px;direction:ltr}
+.krow .none{flex:1;color:var(--muted);font-size:12px;direction:ltr;line-height:1;transform:translateY(.12em)}
 `
 
 // Icon and title at the start (the right, in RTL), the muted meta at the far end, and the fold control last.
@@ -175,12 +177,13 @@ const SETTINGS_CSS = `
 .sc{position:absolute;display:flex;align-items:center;justify-content:center;gap:4px;border-radius:7px;font-size:14px;color:var(--text-2);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .sc.pill,.sc.value{background:var(--raised);padding:3px 6px}.sc.pill.on{color:var(--accent);box-shadow:inset 0 0 0 1px var(--line)}
 .sc.hot{background:var(--raised-2)}.sc.disabled{opacity:.38}.sc.step{border:1px solid var(--line);direction:ltr;border-radius:4px}.sc.step.output{opacity:1;color:var(--text);font-size:14px}.sc.step:not(.output){font-size:20px;line-height:1}
+.sc.pill .value-text,.sc.value .value-text{line-height:1;transform:translateY(.12em)}
 .sc .value-text{min-width:0;overflow:hidden;text-overflow:ellipsis}.sc .ic{width:12px;height:12px;flex:none}.sc.switch{overflow:visible}.sc .tog{margin:0}.sc.swatch{overflow:visible}.sc.swatch::before{content:'';width:16px;height:16px;border-radius:50%;background:var(--sw)}.sc.swatch.on::before{box-shadow:0 0 0 2px var(--card),0 0 0 3.5px var(--text-2)}
-.list-choice{position:absolute;left:16px;right:16px;padding:6px 10px;border-radius:8px;height:48px;font-size:14px;display:flex;align-items:center;justify-content:space-between;gap:6px}
-.list-choice small{display:block;font-size:12px;color:var(--muted);line-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.list-choice>span{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.list-choice.on{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}.list-choice.hot{background:var(--raised-2)}
-.settings-subtitle{position:absolute;right:16px;top:4px;font-size:14px}.settings-page{position:absolute;top:368px;left:94px;right:94px;text-align:center;font-size:12px;color:var(--muted)}
-.command-sheet{position:absolute;left:16px;right:16px;top:46px;font-size:12px;color:var(--muted)}.command-sheet p{direction:ltr;text-align:right;line-height:18px;height:126px;margin-bottom:10px}.command-sheet code{display:block;direction:ltr;text-align:left;font:12px/18px monospace;padding:12px;background:var(--raised);border-radius:9px;overflow-wrap:anywhere}
-.settings-sky{position:absolute;left:16px;right:16px;height:62px;border-radius:10px;padding:14px;display:flex;align-items:center;gap:10px;background:var(--raised);color:var(--text-2)}.settings-sky.frame{background:transparent;border:1px solid var(--accent)}
+.list-choice{position:absolute;left:16px;right:16px;padding:6px 10px;border-radius:8px;height:${LIST_CHOICE_H}px;font-size:14px;display:flex;align-items:center;justify-content:space-between;gap:6px}
+.list-choice small{display:block;margin-top:4px;font-size:12px;color:var(--muted);line-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.list-choice>span{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.list-choice.on{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}.list-choice.hot{background:var(--raised-2)}
+.settings-subtitle{position:absolute;right:16px;top:4px;font-size:14px}.settings-page{position:absolute;top:476px;left:94px;right:94px;text-align:center;font-size:12px;color:var(--muted)}
+.command-sheet{position:absolute;left:16px;right:16px;top:46px;font-size:12px;color:var(--muted)}.command-sheet p{direction:ltr;text-align:right;line-height:18px;height:126px;margin-bottom:16px}.command-sheet code{display:block;direction:ltr;text-align:left;font:12px/18px monospace;padding:12px;background:var(--raised);border-radius:9px;overflow-wrap:anywhere}
+.settings-sky{position:absolute;left:16px;right:16px;height:62px;border-radius:10px;padding:14px;display:flex;align-items:center;gap:10px;background:var(--raised);color:var(--text-2)}.settings-sky>span{line-height:1;transform:translateY(.12em)}.settings-sky.frame{background:transparent;border:1px solid var(--accent)}
 
 `
 const settingControl = (t: SettingsTarget, hover: PaneAct | null): string => {
@@ -200,8 +203,8 @@ const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
     if (s.face==='main') {
       body=`<div class="settings-head"><span>الإعدادات</span><small>Applies immediately</small></div>`
       if (s.category==='thikr') body+='<span class="setting-extra spinner-note" style="top:28px;max-width:none;color:var(--accent)">يتحكّم في الذكر المعروض في <bdi dir="ltr">Spinner</bdi> (سطر العمل) في <bdi dir="ltr">Claude Code</bdi></span>'
-      body+=b.rows.map(({row,y})=>`<span class="setting-label" style="top:${y+4}px;max-width:calc(100% - ${m.width<360?32:Math.max(160,row.controls.reduce((n,c)=>n+c.width+4,0)+50)}px)">${escape(row.label)}</span><span class="setting-hint" style="top:${y+(row.extra?96:row.sample?88:58)}px">${escape(row.hint)}</span>${row.extra?`<span class="setting-extra" style="top:${y+68}px">${escape(row.extra.label)}</span>`:''}${row.sample?`<span class="setting-sample" style="top:${y+64}px">${escape(row.sample)}</span>`:''}`).join('')
-      if (s.category==='athkar') body+=`<div class="settings-sky ${model.options.athkarStyle}" style="top:204px">${icon('sun')}<span>أذكار الصباح</span></div>`
+      body+=b.rows.map(({row,y})=>`<span class="setting-label" style="top:${y+4}px;max-width:calc(100% - ${m.width<360?32:Math.max(160,row.controls.reduce((n,c)=>n+c.width+4,0)+50)}px)">${escape(row.label)}</span><span class="setting-hint" style="top:${y+(row.extra?106:row.sample?98:68)}px">${escape(row.hint)}</span>${row.extra?`<span class="setting-extra" style="top:${y+74}px">${escape(row.extra.label)}</span>`:''}${row.sample?`<span class="setting-sample" style="top:${y+70}px">${escape(row.sample)}</span>`:''}`).join('')
+      if (s.category==='athkar') body+=`<div class="settings-sky ${model.options.athkarStyle}" style="top:240px">${icon('sun')}<span>أذكار الصباح</span></div>`
     } else {
       const title=s.face==='methods'?'طريقة الحساب':s.face==='reciters'?'اختيار القارئ':s.face==='adjust'?'تعديل المواقيت':s.face==='city'?'اختيار المدينة':'العربية في Terminal'
       body=`<strong class="settings-subtitle">${title}</strong>`
@@ -209,10 +212,10 @@ const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
         body+=b.choices.map(c=>`<div class="list-choice${c.control.selected?' on':''}${hover===c.control.id?' hot':''}" style="top:${c.y}px" role="button" aria-pressed="${!!c.control.selected}"><span>${escape(c.label)}<small>${escape(c.note)}</small></span>${c.control.selected?icon('check'):''}</div>`).join('')
         body+=`<span class="settings-page">${escape(String(b.page+1))} / ${b.pages}</span>`
         if (!b.choices.length) body+=`<span class="setting-hint" style="top:52px">Catalog unavailable. /quran reciter</span>`
-        body+=`<span class="setting-hint" style="top:402px">${s.face==='methods'?'All 20 manifest options · applies immediately.':'Complete Hafs recordings.'}</span>`
+        body+=`<span class="setting-hint" style="top:510px">${s.face==='methods'?'All 20 manifest options · applies immediately.':'Complete Hafs recordings.'}</span>`
       } else if (s.face==='adjust') {
-        body+=b.rows.map(({row,y})=>`<span class="setting-label" style="top:${y+6}px;max-width:calc(100% - 142px)">${escape(row.label)}</span><span class="setting-extra" style="top:${y+29}px;direction:ltr">${escape(row.hint)}</span>`).join('')
-        body+=`<span class="setting-hint" style="top:388px">Any whole minutes, positive or negative.<br/>Order: Fajr → Sunrise → Dhuhr → Asr → Maghrib → Isha.</span>`
+        body+=b.rows.map(({row,y})=>`<span class="setting-label" style="top:${y+6}px;max-width:calc(100% - 142px)">${escape(row.label)}</span><span class="setting-extra" style="top:${y+39}px;direction:ltr">${escape(row.hint)}</span>`).join('')
+        body+=`<span class="setting-hint" style="top:496px">Any whole minutes, positive or negative.<br/>Order: Fajr → Sunrise → Dhuhr → Asr → Maghrib → Isha.</span>`
       } else body+=`<div class="command-sheet"><p>${s.face==='terminal'?'Run this in the terminal you want to configure. The three-choice check remembers that terminal’s mode. Desktop needs no Arabic setup.':'The city question opens in Claude. Enter a city in any language, or latitude and longitude. You can also run this command.'}</p><code>${s.face==='terminal'?'/muslim terminal-arabic':'/salah city'}</code></div>`
     }
     body+=b.controls.filter(t=>!t.act.startsWith('settings:pick:')).map(t=>settingControl(t,hover)).join('')

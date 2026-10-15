@@ -52,11 +52,12 @@ export const TAB_GAP = 4
 export const SETTINGS_BODY_TOP = SETTINGS_TOP + TABS_H + 12
 export const BODY_TOP = 28
 export const LIST_SIZE = 6
-export const LIST_ROW_H = 52
+export const LIST_ROW_H = 70
+export const LIST_CHOICE_H = LIST_ROW_H - 12
 // Includes subheader, six slots (even on the last page), paging and note.
-export const LIST_H = 440
-export const MAIN_HEIGHTS = { prayer: 478, quran: 196, athkar: 274, thikr: 448, general: 310 } as const
-export const FACE_HEIGHTS = { methods: LIST_H, reciters: LIST_H, adjust: 436, city: 292, terminal: 292 } as const
+export const LIST_H = 548
+export const MAIN_HEIGHTS = { prayer: 568, quran: 232, athkar: 310, thikr: 520, general: 364 } as const
+export const FACE_HEIGHTS = { methods: LIST_H, reciters: LIST_H, adjust: 544, city: 310, terminal: 310 } as const
 export const settingsBodyHeight = (s: SettingsState): number => !s.open ? 0 : s.face === 'main' ? MAIN_HEIGHTS[s.category] : FACE_HEIGHTS[s.face]
 export const settingsHeight = (s: SettingsState): number => s.open ? SETTINGS_BODY_TOP + settingsBodyHeight(s) + 12 : SETTINGS_TOP
 // width is the whole pane; rectangles are pane-relative in x, card-relative in y.
@@ -80,7 +81,8 @@ const control = (id: string, label: string, effect: Effect, style: SettingContro
 const toggle = (o: SettingsOptions, field: 'thikr' | 'thikrEnd' | 'tashkeel' | 'athkar' | 'salahAthan') => [control(field, o[field] ? 'on' : 'off', config(field, !o[field]), 'switch', 38, o[field])]
 const pills = (field: keyof Options, selected: string, values: readonly (readonly [string, string])[]) => values.map(([v,l]) => control(`${field}:${v}`, l, config(field, v), 'pill', l.length > 10 ? 108 : 46, selected === v))
 const face = (id: SettingsState['face'], label: string) => [control(id, label, { kind: 'face', face: id }, 'value', 142)]
-const row = (label: string, controls: SettingControl[], hint: string, extra?: SettingRow['extra'], sample?: string): SettingRow => ({ label, controls, hint, height: extra || sample ? 114 : 84, ...(extra ? { extra } : {}), ...(sample ? { sample } : {}) })
+// Each row adds 6px before controls, 4px before the hint, and 8px before the next row.
+const row = (label: string, controls: SettingControl[], hint: string, extra?: SettingRow['extra'], sample?: string): SettingRow => ({ label, controls, hint, height: extra || sample ? 132 : 102, ...(extra ? { extra } : {}), ...(sample ? { sample } : {}) })
 const step = (id: string, value: number, min: number, max: number, effect: (n: number) => Effect): SettingControl[] => [
   control(`${id}:-`, '−', effect(value - 1), 'step', 30, false, value <= min),
   control(`${id}:value`, arabicDigits(`${id.startsWith('adjust') && value > 0 ? '+' : ''}${value}`), effect(value), 'step', 40, false, true),
@@ -110,7 +112,7 @@ export const settingsRows = (m: SettingsModel): SettingRow[] => {
     case 'general': return [
       row('اللون الرئيسي',(['orange','green','yellow','blue'] as const).map(v => control(`color:${v}`,v,config('color',v),'swatch',23,o.color === v)),'Shared accent across every feature'),
       row('التشكيل',toggle(o,'tashkeel'),'Desktop only · terminal strips diacritics'),
-      { ...row('العربية في Terminal',face('terminal','/muslim terminal-arabic'),'Per terminal · run the check in your terminal. Desktop needs no Arabic setup.'), height: 114 },
+      { ...row('العربية في Terminal',face('terminal','/muslim terminal-arabic'),'Per terminal · run the check in your terminal. Desktop needs no Arabic setup.'), height: 132 },
     ]
     default: return []
   }
@@ -133,28 +135,28 @@ export const settingsBody = (width: number, m: SettingsModel): SettingsBody => {
     out.pages = Math.max(1,Math.ceil(choices.length/LIST_SIZE)); out.page = Math.min(s.page,out.pages-1)
     out.choices = choices.slice(out.page*LIST_SIZE,(out.page+1)*LIST_SIZE).map((r,i) => {
       const c = control(`pick:${r.key}`,r.label,s.face === 'methods' ? config('salahMethod',r.key) : {kind:'reciter',key:r.key},'value',right-left,s.face === 'methods' ? o.salahMethod === r.key : q.selected === r.key)
-      const y = 42+i*LIST_ROW_H; add(c,left,y,right-left,LIST_ROW_H-4)
+      const y = 42+i*LIST_ROW_H; add(c,left,y,right-left,LIST_CHOICE_H)
       return {label:r.label,note:r.note,y,control:c}
     })
-    add(control('page-prev','السابق',{kind:'page',page:out.page-1},'value',70,false,out.page===0),left,362)
-    add(control('page-next','التالي',{kind:'page',page:out.page+1},'value',70,false,out.page+1===out.pages),right-70,362)
+    add(control('page-prev','السابق',{kind:'page',page:out.page-1},'value',70,false,out.page===0),left,470)
+    add(control('page-next','التالي',{kind:'page',page:out.page+1},'value',70,false,out.page+1===out.pages),right-70,470)
   } else if (s.face === 'adjust') {
     PRAYERS.forEach(([pray,label],i) => {
       const controls = step(`adjust:${pray}`,o.salahAdjust[pray],-Infinity,Infinity,n => config('salahAdjust',writeAdjust({...o.salahAdjust,[pray]:n})))
-      const y = 42+i*56
-      out.rows.push({y,row:{label,hint:`${pray} · min`,height:56,controls}})
-      controls.forEach((c,j) => add(c,left+j*30+(j===2?10:0),y+8))
+      const y = 42+i*74
+      out.rows.push({y,row:{label,hint:`${pray} · min`,height:74,controls}})
+      controls.forEach((c,j) => add(c,left+j*30+(j===2?10:0),y+14))
     })
   } else if (s.face === 'city' || s.face === 'terminal') {
     const command = s.face === 'city' ? '/salah city' : '/muslim terminal-arabic'
-    add(control('copy','نسخ الأمر',{kind:'copy',command},'value',right-left),left,238,right-left,36)
+    add(control('copy','نسخ الأمر',{kind:'copy',command},'value',right-left),left,248,right-left,36)
   } else {
     let y = BODY_TOP + (s.category === 'thikr' ? 32 : 0)
     for (const r of settingsRows(m)) {
       out.rows.push({row:r,y})
       let x = left
-      for (const c of r.controls) { add(c,x,y+(width<360?28:2)); x += c.width+4 }
-      if (r.extra) { x=left; for (const c of r.extra.controls) { add(c,x,y+64); x+=c.width } }
+      for (const c of r.controls) { add(c,x,y+(width<360?34:8)); x += c.width+4 }
+      if (r.extra) { x=left; for (const c of r.extra.controls) { add(c,x,y+70); x+=c.width } }
       y+=r.height
     }
   }
