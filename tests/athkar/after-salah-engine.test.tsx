@@ -1,3 +1,4 @@
+import { IN_MS } from '../../src/shared/pray/line.ts'
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 import type { Day, SalahLast } from '../../types'
@@ -64,16 +65,16 @@ for (const surface of ['desktop', 'terminal'] as const) {
     expect((await $.command.run(run('after-salah reset'))).text).toBe('Athkar after salah start again from the first')
     expect(kept.day.afterSalah).toEqual(emptyDay(day.day).afterSalah)
     expect((await $.command.run(run(''))).text).toContain('| Athkar after salah |')
-    expect((await $.command.run(run('help'))).text).toContain('offered automatically for an hour')
+    expect((await $.command.run(run('help'))).text).toContain('offered automatically after the athan card duration')
     await ui.unmount()
   })
 
-  test(`${surface}: automatic offer hides back to morning, new prayer resets the slot, done falls back, manual still opens`, { options: MUNICH }, async ($, on) => {
+  test(`${surface}: automatic offer hides back to morning, new prayer resets the slot, done falls back, manual still opens`, { options: MUNICH, timeoutMs: 15000 }, async ($, on) => {
     const clock = mock.clock(on, { now: NOW })
     mock.store(on)
     engine(on, surface)
     const kept = savedDay(on)
-    let last: SalahLast = { pray: 'fajr', at: NOW - 10 * 60_000 }
+    let last: SalahLast = { pray: 'fajr', at: NOW - IN_MS }
     on('state.get', { plugin: 'muslim', key: 'salahLast' }, async (_$, e, next) => {
       const actual = await next(e)
       return { value: { value: last, version: actual.value?.version ?? 0 } }
@@ -88,6 +89,8 @@ for (const surface of ['desktop', 'terminal'] as const) {
     expect({ stage: 2, visible: await title('morning') }).toEqual({ stage: 2, visible: true })
     last = { pray: 'dhuhr', at: NOW + 60_000 }
     await clock.advance(60_000)
+    expect(await title('morning')).toBe(true)
+    await clock.advance(IN_MS)
     expect({ stage: 3, visible: await title('afterSalah') }).toEqual({ stage: 3, visible: true })
     await clock.advance(0)
     let saved = kept.day
@@ -124,30 +127,32 @@ test('without prayer times there is no automatic offer, including a stale signal
   await ui.unmount()
 })
 
-test('the automatic offer expires at its exact deadline between minute redraws', { options: MUNICH }, async ($, on) => {
+test('the automatic offer starts at its exact deadline and stays beyond an hour', { options: MUNICH, timeoutMs: 15000 }, async ($, on) => {
   const clock = mock.clock(on, { now: NOW })
   mock.store(on)
   engine(on, 'terminal')
   savedDay(on)
   // Deadline is 13:10:01, a second after mounting, rather than the next minute tick.
-  const last: SalahLast = { pray: 'dhuhr', at: NOW - 3599_000 }
+  const last: SalahLast = { pray: 'dhuhr', at: NOW - IN_MS + 1000 }
   on('state.get', { plugin: 'muslim', key: 'salahLast' }, async (_$, e, next) => {
     const actual = await next(e)
     return { value: { value: last, version: actual.value?.version ?? 0 } }
   })
   const ui = await $.ui.mount(band('terminal'))
-  expect(await ui.find({ in: 'athkar', text: stripTashkeel(TITLE.afterSalah) })).toBeDefined()
-  await clock.advance(999)
-  expect(await ui.find({ in: 'athkar', text: stripTashkeel(TITLE.afterSalah) })).toBeDefined()
-  await clock.advance(1)
   expect(await ui.find({ in: 'athkar', text: stripTashkeel(TITLE.morning) })).toBeDefined()
+  await clock.advance(999)
+  expect(await ui.find({ in: 'athkar', text: stripTashkeel(TITLE.morning) })).toBeDefined()
+  await clock.advance(1)
+  expect(await ui.find({ in: 'athkar', text: stripTashkeel(TITLE.afterSalah) })).toBeDefined()
+  await clock.advance(2 * 3600_000)
+  expect(await ui.find({ in: 'athkar', text: stripTashkeel(TITLE.afterSalah) })).toBeDefined()
   await ui.unmount()
 })
 
-test('a reload keeps the saved prayer reading until salah publishes its initial signal', { options: MUNICH }, async ($, on) => {
+test('a reload keeps the saved prayer reading until salah publishes its initial signal', { options: MUNICH, timeoutMs: 15000 }, async ($, on) => {
   const place = { latitude: 48.1372, longitude: 11.5755, timeZone: 'Europe/Berlin' }
   const at = timesOn(place, 'mwl', NO_ADJUST, NOW).dhuhr
-  const clock = mock.clock(on, { now: at + 60_000 })
+  const clock = mock.clock(on, { now: at + IN_MS })
   const day = emptyDay(dayOf(new Date(at)))
   day.afterSalah = { ...day.afterSalah, pray: 'dhuhr', at, counts: { '66-istighfar': 2 } }
   mock.store(on, { athkar: day })
@@ -167,7 +172,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
   test(`${surface}: a saved place offers after-salah with show off using the real prayer ticker`, { options: { ...MUNICH, salahShow: 'off', salahAthan: true } }, async ($, on) => {
     const place = { latitude: 48.1372, longitude: 11.5755, timeZone: 'Europe/Berlin' }
     const at = timesOn(place, 'mwl', NO_ADJUST, NOW).dhuhr
-    const clock = mock.clock(on, { now: at + 60_000 })
+    const clock = mock.clock(on, { now: at + IN_MS })
     mock.store(on)
     engine(on, surface)
     let published: SalahLast | null | undefined

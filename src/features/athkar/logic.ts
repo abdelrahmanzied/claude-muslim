@@ -1,3 +1,4 @@
+import { IN_MS } from '../../shared/pray/line.ts'
 import { ATHKAR } from './data.ts'
 import type { Period, Thikr } from './data.ts'
 import { afterSalah } from './after-salah.ts'
@@ -48,7 +49,6 @@ export const EVENING_FROM = 17
 
 // Wait after a thikr's last count before the next one shows.
 export const ADVANCE_MS = 650
-export const AFTER_SALAH_MINUTES = 60
 
 export const TITLE: Record<AthkarSet, string> = {
   afterSalah: 'أَذْكَارُ بَعْدَ الصَّلَاةِ',
@@ -128,11 +128,15 @@ export const syncAfterSalah = (day: Day, last: SalahLast | null): Day => {
   return { ...day, afterSalah: { ...emptyReading(), pray: last?.pray ?? null, at: last?.at ?? null } }
 }
 
-export const setAt = (now: Date, day: Day, last: SalahLast | null, chosen?: AthkarSet): AthkarSet => {
+// The card and the automatic reader hand off at the same prayer-based deadline.
+// A matching explicit request starts early; it cannot carry over to the next prayer.
+export const offerStart = (last: SalahLast, requested?: SalahLast | null) =>
+  requested?.at === last.at && requested.pray === last.pray ? last.at : last.at + IN_MS
+
+export const setAt = (now: Date, day: Day, last: SalahLast | null, chosen?: AthkarSet, requested?: SalahLast | null): AthkarSet => {
   if (chosen) return chosen
-  const elapsed = last ? now.getTime() - last.at : -1
   const slot = day.afterSalah
-  return last && elapsed >= 0 && elapsed < AFTER_SALAH_MINUTES * 60_000 && !slot.isDone && !slot.isHidden
+  return last && now.getTime() >= offerStart(last, requested) && !slot.isDone && !slot.isHidden
     ? 'afterSalah' : periodAt(now.getHours())
 }
 

@@ -1,6 +1,7 @@
+import { IN_MS } from '../../src/shared/pray/line.ts'
 import { expect, test } from 'claude-code/testing'
 import { AFTER_SALAH, afterSalah } from '../../src/features/athkar/after-salah.ts'
-import { AFTER_SALAH_MINUTES, currentOf, dayOf, emptyAfterSalah, emptyDay, emptyReading, listFor, overall, readDay, setAt, shouldAdvance, step, syncAfterSalah } from '../../src/features/athkar/logic.ts'
+import { currentOf, dayOf, emptyAfterSalah, emptyDay, emptyReading, listFor, overall, readDay, setAt, shouldAdvance, step, syncAfterSalah } from '../../src/features/athkar/logic.ts'
 import { resetHint } from '../../src/features/athkar/look.ts'
 import { bandHeight, fitOf } from '../../src/features/athkar/band.ts'
 import { TEXT_WIDTH } from '../../src/features/athkar/metrics.ts'
@@ -45,17 +46,18 @@ test('one slot keeps the same prayer and resets counts, hidden and done for a di
   expect(syncAfterSalah(day, null).afterSalah).toEqual(emptyAfterSalah())
 })
 
-test('the offer includes prayer time, excludes 60 minutes, and falls back when done, hidden or no times', () => {
-  expect(AFTER_SALAH_MINUTES).toBe(60)
+test('the offer starts after the shared card duration, stays without expiry, and done, hidden or no times fall back', () => {
   const day = fresh()
-  for (const [offset, expected] of [[-1, 'morning'], [0, 'afterSalah'], [3599999, 'afterSalah'], [3600000, 'morning']] as const) {
+  for (const [offset, expected] of [[-1, 'morning'], [0, 'morning'], [IN_MS - 1, 'morning'], [IN_MS, 'afterSalah'], [3 * 3600_000, 'afterSalah']] as const) {
     expect(setAt(new Date(NOW + offset), day, last)).toBe(expected)
   }
   expect(setAt(new Date(NOW), day, null)).toBe('morning')
   expect(setAt(new Date(2026, 9, 10, 20), day, null)).toBe('evening')
   for (const key of ['isDone', 'isHidden'] as const) {
-    expect(setAt(new Date(NOW), { ...day, afterSalah: { ...day.afterSalah, [key]: true } }, last)).toBe('morning')
+    expect(setAt(new Date(NOW + IN_MS), { ...day, afterSalah: { ...day.afterSalah, [key]: true } }, last)).toBe('morning')
   }
+  expect(setAt(new Date(NOW), day, last, undefined, last)).toBe('afterSalah')
+  expect(setAt(new Date(NOW), day, last, undefined, { ...last, at: NOW - 1 })).toBe('morning')
   expect(setAt(new Date(NOW), day, last, 'evening')).toBe('evening')
   expect(setAt(new Date(NOW + 7200_000), day, null, 'afterSalah')).toBe('afterSalah')
 })

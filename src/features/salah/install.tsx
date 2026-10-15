@@ -1,4 +1,4 @@
-import { accentText, type Accent } from '../../shared/color/index.ts'
+import { accentText, isDarkTheme, type Accent } from '../../shared/color/index.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
@@ -22,7 +22,7 @@ import { athanText, isInWindow } from '../../shared/pray/line.ts'
 import { ACCENT_ROWS, FRAME_MS, isDue, LABEL_ROW, minaretRows, minaretStage, ROWS_COUNT } from './minaret.ts'
 import { nudge, reviewRows } from './review.ts'
 import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, isOnClose, KEY_REST_MS, LEAVE_MS, LINE_PX } from '../../shared/card/card.ts'
-import { athanFrame, cardIsFolded } from './card.ts'
+import { athanFrame, cardIsFolded, CARD_MS, isOnStart, type AthanCardProps } from './card.ts'
 import { clockText, lastPray, lastSalahToday, nextSalah, type Adjust } from './times.ts'
 import { lineAt, methodOf, settingsTable, showText, timesTable } from './today.ts'
 
@@ -214,7 +214,7 @@ const tick = async ($: EngineInterface, options: Options, place: Place, timer: T
   await setLine($, lineAt(options, place, now))
   if (options.salahShow !== 'off' && options.salahAthan && isDue(last.at, now, await read($, athanShown))) {
     await update($, athanShown, () => last.at)
-    await showAthan($, last.pray === 'sunrise' ? 'fajr' : last.pray, clockText(last.at, place.timeZone), now, timer)
+    await showAthan($, last.pray === 'sunrise' ? 'fajr' : last.pray, clockText(last.at, place.timeZone), now, timer, last.at)
   }
 
   const isWindow = options.salahShow !== 'off' && isInWindow(next, now, countdownMinutes(options.salahShow))
@@ -268,8 +268,8 @@ const scheduleMoment = async ($: EngineInterface, timer: Timer) => {
 }
 
 // The athan moment: its states in $.state and the timers that fold and end it.
-const showAthan = async ($: EngineInterface, pray: SalahMinaret['pray'], time: string, now: number, timer: Timer) => {
-  const moment = momentState(pray, time, now)
+const showAthan = async ($: EngineInterface, pray: SalahMinaret['pray'], time: string, now: number, timer: Timer, prayerAt: number) => {
+  const moment = momentState(pray, time, now, prayerAt)
   resetCardView(moment.card.until)
   await update($, minaret, () => moment.minaret)
   await update($, card, () => moment.card)
@@ -386,7 +386,7 @@ export const install = (on: On, options: Options) => {
   // The card's photo (base64), read the first time the card is drawn.
   const photo: { base64: string | undefined } = { base64: undefined }
   // The athan card last drawn and its region, for its clicks.
-  const athan: { props: { isFolded: boolean; width: number; card: { ch: number; lh: number } } | undefined; region: { columns: number; rows: number } } = { props: undefined, region: { columns: 0, rows: 0 } }
+  const athan: { props: AthanCardProps | undefined; region: { columns: number; rows: number } } = { props: undefined, region: { columns: 0, rows: 0 } }
 
   on('command.run', { command: 'salah' }, async ($, e) => {
     const [word = '', first = '', second = ''] = e.args.trim().split(/\s+/)
@@ -627,7 +627,8 @@ export const install = (on: On, options: Options) => {
     photo.base64 ??= await readPhoto($)
     if (!photo.base64) return theirs
     const { Box, Client } = $.ui.resolve(e)
-    const props = { isActive: true, isFolded: cardIsFolded(shown, now), now, pray: shown.pray, time: shown.time, photo: photo.base64, width: Math.round(e.props.bodyColumns * CELL_PX), card: { ch: CELL_PX, lh: LINE_PX } }
+    const theme = (await $.config.list().catch(() => [])).find(row => row.key === 'theme')
+    const props = { canStart: options.athkar && !demo, accent: options.color, isDark: isDarkTheme(theme?.value), isActive: true, isFolded: cardIsFolded(shown, now), now, pray: shown.pray, time: shown.time, photo: photo.base64, width: Math.round(e.props.bodyColumns * CELL_PX), card: { ch: CELL_PX, lh: LINE_PX } }
     athan.props = props
 
     return (
@@ -656,6 +657,12 @@ export const install = (on: On, options: Options) => {
     if (cardView.until !== current.until) resetCardView(current.until)
     const columns = m.act === 'pointer' ? (m.columns ?? athan.region.columns) : 0
     const rows = m.act === 'pointer' ? (m.rows ?? athan.region.rows) : 0
+    if (m.act === 'pointer' && m.button === 'left' && athan.props?.canStart && columns > 0 && rows > 0
+      && isOnStart(athan.props, m.x, m.y, columns, rows)) {
+      await closeMoment($, timer)
+      await $.state.set({ plugin: 'muslim', key: 'salahAfterSalahStart' }, { pray: current.pray, at: current.until - CARD_MS })
+      return {}
+    }
     const isClose = m.act === 'hide'
       || (m.act === 'pointer' && m.button === 'left' && athan.props !== undefined && columns > 0 && rows > 0 && isOnClose(athanFrame(athan.props, columns), m.x, m.y, columns, rows))
     if (isClose) {

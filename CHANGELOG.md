@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Add Athkar after salah to the shared reader, with prayer-specific counts, one current reading slot, manual commands and an automatic one-hour offer after each obligatory prayer when a place is saved, including with `/salah show off` (prayer tracking continues without the footer, countdown or athan).
+- Add Athkar after salah to the shared reader, with prayer-specific counts, one current reading slot, manual commands and an automatic offer from prayer time plus the shared athan card duration (currently 15 minutes) when a place is saved, including with `/salah show off`. The desktop athan button «ابدأ أذكار بعد الصلاة» closes the card and starts that prayer's reading immediately; × waits for the original deadline. The offer stays until done, hidden or the next prayer, with no expiry timer. Prayer tracking continues without the footer, countdown or athan.
 
 - `/athkar morning` · `evening` opens that period's reader above the prompt even outside its hours, un-hides it, and counts to it; the choice holds for the session until the other period is picked or × hides the band. A finished period replies with its reset hint. `reset` is unchanged and the help row says both.
 

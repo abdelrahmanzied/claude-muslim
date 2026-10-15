@@ -2,7 +2,7 @@ import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
 import { cardHeight, FOCUS_GRACE_MS, frameOf, IDLE_MS, KEY_REST_MS, LEAVE_MS, REST_PX } from '../../src/shared/card/card.ts'
-import { athanFrame, athanSvg, CARD_MS, FOLD_MS } from '../../src/features/salah/card.ts'
+import { athanFrame, athanSvg, CARD_MS, FOLD_MS, isOnStart, START_LABEL } from '../../src/features/salah/card.ts'
 import { FRAME_MS, HOLD_MS, ROWS_COUNT, TOTAL_MS } from '../../src/features/salah/minaret.ts'
 import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
 import { athanText } from '../../src/shared/pray/line.ts'
@@ -511,6 +511,25 @@ for (const surface of ['desktop', 'terminal'] as const) {
       expect(seed).toEqual({ salahCard: realCard, salahMinaret: realMinaret })
       expect(written).toEqual([])
       await ui.unmount()
+    })
+  }
+}
+
+for (const isFolded of [false, true]) {
+  for (const isDark of [false, true]) {
+    test(`after-salah control retains the card look, fits the Svg budget and hits independently of ×: ${isFolded ? 'folded' : 'open'} ${isDark ? 'dark' : 'light'}`, () => {
+      const p = { ...props('A'.repeat(45000), 'fajr', '05:00'), canStart: true, isFolded, isDark, accent: 'blue' as const }
+      const svg = athanSvg(p, { hoverClose: false, hoverAction: true, columns: 100 })
+      expect(svg).toContain(START_LABEL)
+      expect(svg).toContain('حان وقت صلاة الفجر')
+      expect(svg).toContain('٠٥:٠٠')
+      expect(svg).toContain('class="start hot"')
+      expect(svg).toContain(isDark ? '--start-accent:#4a7fc0' : '--start-accent:#3a6aa3')
+      expect(svg.length).toBeLessThan(131072)
+      expect(isOnStart(p, 90, isFolded ? 1 : 2, 100, isFolded ? 2 : 5)).toBe(true)
+      expect(isOnStart(p, 2, 1, 100, 5)).toBe(false)
+      expect(isOnStart(p, 50, 1, 100, 5)).toBe(false)
+      expect(isOnStart({ ...p, canStart: false }, 90, 1, 100, 5)).toBe(false)
     })
   }
 }

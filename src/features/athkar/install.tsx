@@ -12,7 +12,7 @@ import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, KEY_REST_MS, LEAVE_MS,
 import { bandHeight, closeArea, pixelOf } from './band.ts'
 import type { BandModel } from './band.ts'
 import type { AthkarSet } from './logic.ts'
-import { AFTER_SALAH_MINUTES, ADVANCE_MS, countOf, currentOf, dayOf, emptyReading, END, listFor, overall, setAt, syncAfterSalah, readDay, shouldAdvance, skyAt, step, textOf, timesOf, TITLE } from './logic.ts'
+import { ADVANCE_MS, countOf, currentOf, dayOf, emptyReading, END, listFor, overall, offerStart, setAt, syncAfterSalah, readDay, shouldAdvance, skyAt, step, textOf, timesOf, TITLE } from './logic.ts'
 import type { Act } from './logic.ts'
 import { lookFor, plain, readerProps, resetHint } from './look.ts'
 import type { Style } from './look.ts'
@@ -129,8 +129,8 @@ const isStyle = (value: string): value is Style => (STYLES as readonly string[])
 const setNamed = (value: string): AthkarSet | undefined => value === 'after-salah' ? 'afterSalah' : value === 'morning' || value === 'evening' ? value : undefined
 const setLabel = (set: AthkarSet) => set === 'afterSalah' ? 'Athkar after salah' : `${set} athkar`
 
-// Manual choices hold; otherwise offer after-salah in its window, then the clock's period.
-const periodOf = (now: Date, day: Day, last: SalahLast | null): AthkarSet => setAt(now, day, last, view.chosen)
+// Manual choices hold; otherwise offer after-salah after the card, then the clock's period.
+const periodOf = (now: Date, day: Day, last: SalahLast | null, requested?: SalahLast | null): AthkarSet => setAt(now, day, last, view.chosen, requested)
 
 const localNow = async ($: EngineInterface) => new Date(await $.clock.now())
 
@@ -146,8 +146,12 @@ const today = async ($: EngineInterface) => {
   const signal = (await $.state.get({ plugin: 'muslim', key: 'salahLast' })).value
   const last = hasPrayerTimes ? signal ?? null : null
   const day = signal === undefined && hasPrayerTimes ? stored : syncAfterSalah(stored, last)
-  if (day !== stored) await save($, day)
-  return { now, day, last }
+  if (day !== stored) {
+    if (view.chosen === 'afterSalah') view.chosen = undefined
+    await save($, day)
+  }
+  const requested = (await $.state.get({ plugin: 'muslim', key: 'salahAfterSalahStart' })).value
+  return { now, day, last, requested }
 }
 
 const save = async ($: EngineInterface, day: Day) => {
@@ -176,8 +180,8 @@ const advance = async ($: EngineInterface, period: AthkarSet, index: number, at?
 // One step of today's reading, saved; after a count that ends a thikr, the
 // next one shows by itself.
 const apply = async ($: EngineInterface, act: Act) => {
-  const { now, day, last } = await today($)
-  const period = periodOf(now, day, last)
+  const { now, day, last, requested } = await today($)
+  const period = periodOf(now, day, last, requested)
   const before = day[period]
   const after = step(period, before, act)
   await save($, { ...day, [period]: after })
@@ -212,13 +216,17 @@ const view = {
 }
 
 // Lights the band, and fades it again after a while with no input.
-const wake = ($: EngineInterface) => {
+const light = ($: EngineInterface) => {
   view.isActive = true
   view.idle?.cancel()
   view.idle = $.clock.after(IDLE_MS, () => {
     view.isActive = false
     $.ui.invalidate('ui.render')
   })
+}
+
+const wake = ($: EngineInterface) => {
+  light($)
   $.ui.invalidate('ui.render')
 }
 
@@ -234,8 +242,9 @@ const rest = ($: EngineInterface) => {
 export const install = (on: On, options: Options) => {
   hasPrayerTimes = !!options.salahPlace
   let shownSlot: { key: string; period: AthkarSet } | undefined
-  let offerAt: number | null = null
-  let offerTimer: { cancel: () => void } | undefined
+  let openedRequest: number | undefined
+  let startsAt: number | null = null
+  let startTimer: { cancel: () => void } | undefined
   // The sky follows the clock, and the period and the day turn on it.
   let clock: { cancel: () => void } | undefined
   // The glow eases from where it last stood.
@@ -275,8 +284,8 @@ export const install = (on: On, options: Options) => {
     }
     // DEMO END
     if (word === '') {
-      const { now, day, last } = await today($)
-      const period = periodOf(now, day, last)
+      const { now, day, last, requested } = await today($)
+      const period = periodOf(now, day, last, requested)
       if (day[period].isHidden) await save($, { ...day, [period]: { ...day[period], isHidden: false } })
 
       return {
@@ -386,6 +395,21 @@ export const install = (on: On, options: Options) => {
   // DEMO END
   if (!options.athkar) return
 
+  on('state.set', { plugin: 'muslim', key: 'salahAfterSalahStart' }, async ($, e, next) => {
+    const result = await next(e)
+    if (!result.value?.isSet || !e.value) return result
+    const { day, last } = await today($)
+    if (!last || last.at !== e.value.at || last.pray !== e.value.pray) return result
+    // This explicit start resumes an unfinished reading, or restarts a finished one.
+    const reading = day.afterSalah
+    await save($, { ...day, afterSalah: { ...reading, ...(reading.isDone ? emptyReading() : {}), isHidden: false } })
+    view.chosen = undefined
+    view.pressedAt = Date.now()
+    openedRequest = undefined // The next picture opens after its slot transition.
+    wake($)
+    return result
+  })
+
   on('ui.message', { element: 'athkar' }, async ($, e) => {
     const m = e.data
     if (!isCardMessage(m)) return {}
@@ -439,8 +463,8 @@ export const install = (on: On, options: Options) => {
         return {}
       }
     }
-    const { now, day, last } = await today($)
-    const reading = day[periodOf(now, day, last)]
+    const { now, day, last, requested } = await today($)
+    const reading = day[periodOf(now, day, last, requested)]
     const isBack = m.act === 'pointer' ? m.button === 'right' : m.key === 'backspace'
     const isCount = m.act === 'pointer' ? m.button === 'left' : m.key === ' ' || m.key === 'space' || m.key === 'return'
     if (reading.isDone) {
@@ -508,18 +532,22 @@ export const install = (on: On, options: Options) => {
     const now = await localNow($)
     const signal = (await $.state.get({ plugin: 'muslim', key: 'salahLast' })).value
     const last = hasPrayerTimes ? signal ?? null : null
-    const deadline = last ? last.at + AFTER_SALAH_MINUTES * 60_000 : null
-    if (offerAt !== deadline) {
-      offerTimer?.cancel()
-      offerAt = deadline
+    const requested = (await $.state.get({ plugin: 'muslim', key: 'salahAfterSalahStart' })).value
+    const deadline = last ? offerStart(last, requested) : null
+    if (startsAt !== deadline) {
+      startTimer?.cancel()
+      startsAt = deadline
       if (deadline !== null && deadline > now.getTime()) {
-        offerTimer = $.clock.after(deadline - now.getTime(), () => $.ui.invalidate('ui.render'))
+        startTimer = $.clock.after(deadline - now.getTime(), () => $.ui.invalidate('ui.render'))
       }
     }
     const stored = readDay(held, dayOf(now))
     const day = signal === undefined && hasPrayerTimes ? stored : syncAfterSalah(stored, last)
-    if (day !== stored) $.clock.after(0, () => void today($))
-    const period = periodOf(now, day, last)
+    if (day !== stored) {
+      if (view.chosen === 'afterSalah') view.chosen = undefined
+      $.clock.after(0, () => void today($))
+    }
+    const period = periodOf(now, day, last, requested)
     const reading = day[period]
     const slotKey = `${day.day}:${period}:${period === 'afterSalah' ? day.afterSalah.at : ''}`
     if (shownSlot !== undefined && shownSlot.key !== slotKey && (shownSlot.period === 'afterSalah' || period === 'afterSalah')) {
@@ -528,6 +556,12 @@ export const install = (on: On, options: Options) => {
     }
     shownSlot = { key: slotKey, period }
     if (reading.isHidden) return theirs
+    if (period === 'afterSalah' && last && requested?.at === last.at && requested.pray === last.pray
+      && !reading.isDone && openedRequest !== last.at) {
+      openedRequest = last.at
+      view.isOpen = true
+      light($)
+    }
 
     // Light themes take the deeper main colors.
     const theme = (await $.config.list().catch(() => [])).find(row => row.key === 'theme')

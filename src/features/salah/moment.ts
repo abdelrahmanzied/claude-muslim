@@ -6,7 +6,7 @@ import { CARD_MS, FOLD_MS } from './card.ts'
 import { TOTAL_MS } from './minaret.ts'
 
 // The moment's states when it begins now.
-export const momentState = (pray: SalahCard['pray'], time: string, now: number): { card: SalahCard; minaret: SalahMinaret } => ({
-  card: { pray, time, foldsAt: now + FOLD_MS, isFolded: false, until: now + CARD_MS },
-  minaret: { pray, frame: 1, startedAt: now, foldsAt: now + TOTAL_MS, isFolded: false, until: now + CARD_MS },
+export const momentState = (pray: SalahCard['pray'], time: string, now: number, prayerAt = now): { card: SalahCard; minaret: SalahMinaret } => ({
+  card: { pray, time, foldsAt: now + FOLD_MS, isFolded: false, until: prayerAt + CARD_MS },
+  minaret: { pray, frame: 1, startedAt: now, foldsAt: now + TOTAL_MS, isFolded: false, until: prayerAt + CARD_MS },
 })
