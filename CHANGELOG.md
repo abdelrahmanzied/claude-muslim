@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Muslim pane: the sujood and sunrise-sunset icons are redrawn to fill their box and read clearly; card header icons are 20px and sit on the same line as the title and its value.
+
 - Muslim pane: the space above the heading matches the bottom margin (12px to the avatar), not 18px.
 
 - Icons are one standard set (DESIGN.md §3 Icons, `src/shared/icon/`): the Muslim pane's prayer, Quran and athkar cards now show the same icons as their settings tabs (realistic sujood, the Quran mushaf, sunrise-sunset).

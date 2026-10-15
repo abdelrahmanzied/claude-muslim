@@ -60,7 +60,7 @@ Never use `error` or `warning` for religious text.
 
 ### Icons
 
-One icon per feature, the same everywhere a drawn surface marks it: the Muslim pane's card headers, its settings tabs, and any later desktop surface. A feature never draws a second icon for itself. The standard set lives once in `src/shared/icon/` as 24×24 line fragments (stroke `currentColor`, the main color where the surface tints it), copied verbatim from the approved catalog:
+One icon per feature, the same everywhere a drawn surface marks it: the Muslim pane's card headers, its settings tabs, and any later desktop surface. A feature never draws a second icon for itself. The standard set lives once in `src/shared/icon/` as 24×24 line fragments (stroke `currentColor`, the main color where the surface tints it), copied verbatim from the approved catalog. Each fills the 24×24 box (about 3 to 21 on both axes) so the set reads at the same weight at 20px; a drawing that sits low or small is redrawn, not scaled per surface:
 
 | Mark | Icon | Key |
 | --- | --- | --- |

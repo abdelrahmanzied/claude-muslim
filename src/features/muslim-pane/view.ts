@@ -55,7 +55,8 @@ const CSS = `
 .dcard{position:absolute;left:${PAD}px;right:${PAD}px;border-radius:19px;background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
 .in{position:absolute;left:${SIDE}px;right:${SIDE}px}
 .dh{display:flex;align-items:center;gap:8px;height:${HEAD_H}px;font-size:15.4px;font-weight:500;line-height:1.25;white-space:nowrap}
-.dh .hi{width:18px;height:18px;color:var(--accent)}
+.dh .hi{width:20px;height:20px;color:var(--accent)}
+.dh>span:not(.fold){line-height:1;transform:translateY(.12em)}
 .dh .fold{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:var(--muted);flex:none;margin-inline-end:-6px}
 .dh .fold .ic{width:16px;height:16px}
 .dh .fold.hot{background:var(--hover);color:var(--text)}
