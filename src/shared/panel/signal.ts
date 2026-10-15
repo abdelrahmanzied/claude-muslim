@@ -36,7 +36,7 @@ export type PanelAthkar = {
   isDone: boolean
 }
 
-export type PanelAction = 'quran-toggle' | 'quran-prev' | 'quran-next' | 'quran-open' | 'athkar-open'
+export type PanelAction = 'quran-toggle' | 'quran-prev' | 'quran-next' | 'quran-open' | 'athkar-open' | 'athkar-finish'
 
 const feeds: {
   salah?: (now: number) => PanelSalah | null

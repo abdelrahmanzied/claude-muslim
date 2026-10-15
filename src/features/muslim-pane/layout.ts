@@ -37,6 +37,8 @@ export const QURAN_H = OPEN_TOP + OPEN_H + 14
 export const KROW_TOP = 48
 export const KROW_H = 36
 export const KBTN_W = 72
+export const KFINISH_W = 64
+export const KROW_GAP = 8
 export const ATHKAR_H = KROW_TOP + KROW_H + 14
 
 // A folded card is just its title row.
@@ -62,10 +64,10 @@ export const QURAN_Y = PRAYER_Y + PRAYER_H + GAP
 export const ATHKAR_Y = QURAN_Y + QURAN_H + GAP
 export const PANE_HEIGHT = paneHeight(NO_FOLDS)
 
-export type PaneAct = 'fold-prayer' | 'fold-quran' | 'fold-athkar' | 'athan' | 'quran-prev' | 'quran-toggle' | 'quran-next' | 'quran-open' | 'athkar-open'
+export type PaneAct = 'fold-prayer' | 'fold-quran' | 'fold-athkar' | 'athan' | 'quran-prev' | 'quran-toggle' | 'quran-next' | 'quran-open' | 'athkar-open' | 'athkar-finish'
 
 // What can be pressed now: the Quran controls need a connected Quran, the athkar button a connected athkar, the athan row a place.
-export type Enabled = { athan: boolean; quran: boolean; canPrev: boolean; canNext: boolean; athkar: boolean }
+export type Enabled = { athan: boolean; quran: boolean; canPrev: boolean; canNext: boolean; athkar: boolean; athkarFinish?: boolean }
 
 type Circle = { act: PaneAct; x: number; y: number; r: number }
 const circles = (width: number, f: Folds): Circle[] => {
@@ -86,12 +88,13 @@ const boxes = (width: number, f: Folds): Box[] => {
     ...(f.prayer ? [] : [{ act: 'athan' as const, x0: PAD + SIDE - 8, x1: width - PAD - SIDE + 8, y0: r.prayerY + ATHAN_TOP, y1: r.prayerY + ATHAN_TOP + ATHAN_H }]),
     ...(f.quran ? [] : [{ act: 'quran-open' as const, x0: PAD + SIDE, x1: width - PAD - SIDE, y0: r.quranY + OPEN_TOP, y1: r.quranY + OPEN_TOP + OPEN_H }]),
     // In RTL the button sits at the left end of its row.
+    ...(f.athkar ? [] : [{ act: 'athkar-finish' as const, x0: PAD + SIDE + KBTN_W + KROW_GAP, x1: PAD + SIDE + KBTN_W + KROW_GAP + KFINISH_W, y0: r.athkarY + KROW_TOP + 2, y1: r.athkarY + KROW_TOP + KROW_H - 2 }]),
     ...(f.athkar ? [] : [{ act: 'athkar-open' as const, x0: PAD + SIDE, x1: PAD + SIDE + KBTN_W, y0: r.athkarY + KROW_TOP + 2, y1: r.athkarY + KROW_TOP + KROW_H - 2 }]),
   ]
 }
 
 const isEnabled = (act: PaneAct, on: Enabled): boolean =>
-  act === 'fold-prayer' || act === 'fold-quran' || act === 'fold-athkar' ? true : act === 'athan' ? on.athan : act === 'quran-open' ? true : act === 'athkar-open' ? on.athkar
+  act === 'fold-prayer' || act === 'fold-quran' || act === 'fold-athkar' ? true : act === 'athan' ? on.athan : act === 'quran-open' ? true : act === 'athkar-finish' ? !!on.athkarFinish : act === 'athkar-open' ? on.athkar
     : act === 'quran-prev' ? on.quran && on.canPrev : act === 'quran-next' ? on.quran && on.canNext : on.quran
 
 const gap = (v: number, lo: number, hi: number) => (v < lo ? lo - v : v > hi ? v - hi : 0)

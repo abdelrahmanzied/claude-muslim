@@ -229,3 +229,30 @@ test('an unplaced Quran pane is reported instead of treated as a successful pres
   await ui.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: 25, y: Math.floor((QURAN_Y + OPEN_TOP + 21) * 40 / PANE_HEIGHT) })
   expect(toasts).toEqual(['Quran is not ready yet. /quran'])
 })
+
+for (const style of ['sky', 'frame'] as const) {
+  test(`pane finish ${style}: fills counts, updates fraction/bar, hides its button and plays the visible band's finale`, { options: { athkarStyle: style } }, async ($, on) => {
+    engine(on, 'desktop')
+    const written: unknown[] = []
+    on('state.set', { plugin: 'muslim', key: 'athkar' }, async (_$, e, next) => { written.push(e.value); return next(e) })
+    const reader = await $.ui.mount(band('desktop'))
+    const ui = await $.ui.mount(pane('desktop'))
+    await ui.resize({ columns: 50, rows: 40, in: 'muslim-pane' })
+    const model = async () => (await ui.find({ type: 'Client', key: 'muslim-pane' }))!.props.props as PaneModel
+    expect((await model()).athkar).toMatchObject({ isAvailable: true, isDone: false, progress: 0 })
+    expect(String((await ui.find({ in: 'muslim-pane', type: 'Svg' }))?.props.source)).toContain('✓ أتممتُها')
+    // Finish is immediately to Open's right, in the same RTL row.
+    const fine = { x: 148 * 50 / 420, y: (ATHKAR_Y + KROW_TOP + 18) * 40 / PANE_HEIGHT }
+    await ui.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: Math.floor(fine.x), y: Math.floor(fine.y), fine })
+    const card = (await model()).athkar
+    expect(card).toMatchObject({ isDone: true, progress: 1 })
+    if (card.isAvailable) {
+      const [done, total] = card.fraction.split(' / ')
+      expect(done).toBe(total)
+    }
+    expect(written).toHaveLength(1)
+    expect(String((await ui.find({ in: 'muslim-pane', type: 'Svg' }))?.props.source)).not.toContain('✓ أتممتُها')
+    expect(String((await reader.find({ in: 'athkar', type: 'Svg' }))?.props.source)).toContain('class="fall"')
+    await ui.unmount(); await reader.unmount()
+  })
+}

@@ -1,9 +1,9 @@
 import { ACCENTS, accentHex, type Accent } from '../../shared/color/index.ts'
-import { BAND_CSS } from './band-css.ts'
+import { BAND_CSS, QUESTION_CSS } from './band-css.ts'
 import type { Period } from './data.ts'
 import { AREF_RUQAA_BOLD, TAJAWAL_BOLD, TAJAWAL_REGULAR } from './fonts.ts'
 import type { Sky } from './logic.ts'
-import type { Style } from './look.ts'
+import type { ReaderProps, Style } from './look.ts'
 import { SIZE_DEFAULT } from '../../config.ts'
 import { CARD_BORDER_PX, CARD_FOOT, CARD_LINE, CARD_TOP, cardArea, cardHeight, cardHtml, cardSvg, closeArea as cardClose, fontFace, frameOf as cardFrame, pixelOf as cardPixel, type CardFrame } from '../../shared/card/card.ts'
 import { END_CITE_CHAR, END_CITE_EM, END_VERSE_CHAR, HINT_CHAR, TEXT_WIDTH } from './metrics.ts'
@@ -12,11 +12,12 @@ import { END_CITE_CHAR, END_CITE_EM, END_VERSE_CHAR, HINT_CHAR, TEXT_WIDTH } fro
 // SVG document (an interactive Svg runs CSS animation; no script). Clicks and
 // keys are caught by the Client drawn over it.
 
-export type Phase = 'cover' | 'reading' | 'done'
+export type Phase = 'cover' | 'reading' | 'question' | 'done'
 
 export type BandModel = {
   // The text's size in pixels; SIZE_DEFAULT when absent.
   textSize?: number
+  question?: ReaderProps['question']
   phase: Phase
   period: Period
   sky: Sky
@@ -262,11 +263,27 @@ const bandClasses = (m: BandModel) => {
   return `band ${layout} bg-${m.style} acc-${m.accent} ts-plain al-breathe tc-auto bd-auto dn-soft nm-ink fx-calm ui-classic fc-white${edge}${active}`
 }
 
+// Fixed choice geometry, also used by the hooks' pointer hit testing.
+export const questionAreas = (width: number) => {
+  const left = 40, right = width - 16, middle = (left + right) / 2
+  return [
+    { x0: middle + 4, x1: right, y0: 40, y1: 70, act: 'finish' as const },
+    { x0: left, x1: middle - 4, y0: 40, y1: 70, act: 'resume' as const },
+  ]
+}
+const question = (m: BandModel) => {
+  const q = m.question
+  if (!q) return ''
+  if (isFolded(m)) return `<div class="peek"><span class="pk-text">${esc(q.title)}</span></div>`
+  return `<div class="end-question" dir="rtl"><strong>${esc(q.title)}</strong><small>${esc(q.remaining)}</small></div>`
+    + questionAreas(m.width).map(a => `<span role="button" class="end-choice ${a.act}${q.focus === a.act ? ' selected' : ''}" style="left:calc(${a.x0}px + var(--ax, 0px));width:${a.x1-a.x0}px;font-size:${Math.min(14, (a.x1-a.x0)/8)}px;top:calc(${a.y0}px + var(--ay, 0px))">${esc(a.act === 'finish' ? q.confirm : q.resume)}</span>`).join('')
+}
+
 const bandContent = (m: BandModel) => {
   const isFinale = m.phase === 'done' && m.finaleMs !== undefined
-  const inner = isFinale ? '' : m.phase === 'cover' ? (isFolded(m) ? foldedCover(m) : cover(m)) : m.phase === 'done' ? (isFolded(m) ? foldedDone(m) : done(m)) : isFolded(m) ? folded(m) : reading(m)
+  const inner = isFinale ? '' : m.phase === 'question' ? question(m) : m.phase === 'cover' ? (isFolded(m) ? foldedCover(m) : cover(m)) : m.phase === 'done' ? (isFolded(m) ? foldedDone(m) : done(m)) : isFolded(m) ? folded(m) : reading(m)
   const fx = m.style === 'sky' ? `<span class="fx">${SKY_FX[m.sky]}</span>` : ''
-  const hasLine = m.phase === 'reading' || (m.phase === 'cover' && isFolded(m))
+  const hasLine = m.phase === 'question' || m.phase === 'reading' || (m.phase === 'cover' && isFolded(m))
   const progress = hasLine ? m.progress : 100
   const from = hasLine ? m.from : 100
   // Reading, the pill carries the repetitions left; done, a ✓ at the full line's head.
@@ -285,7 +302,7 @@ const bandContent = (m: BandModel) => {
   const cv = m.phase === 'cover' ? coverFit(m.width) : 1
   const style = `--t:${t};--fs:${reads ? fit.size : (m.textSize ?? SIZE_DEFAULT)}px${reads ? `;--th:${fit.area}px` : ''}${m.phase === 'cover' ? `;--cv:${cv}` : ''}`
 
-  return { classes: bandClasses(m).replace(/^band /, ''), style, html: `${inner}${fx}${glow}${end}`, hoverClose: m.hoverClose }
+  return { classes: bandClasses(m).replace(/^band /, ''), style, html: `${inner}${fx}${m.phase === 'question' ? '' : glow}${end}`, hoverClose: m.hoverClose }
 }
 
 export const bandHtml = (m: BandModel) => cardHtml(cardFrameOf(m), { ...bandContent(m), css: '' })
@@ -294,7 +311,7 @@ export const bandSvg = (m: BandModel) => {
   const fonts = [fontFace('Tajawal', 400, TAJAWAL_REGULAR), fontFace('Tajawal', 700, TAJAWAL_BOLD)]
   if (m.phase === 'cover' || m.finaleMs !== undefined) fonts.push(fontFace('Aref Ruqaa', 700, AREF_RUQAA_BOLD))
   const mainColors = Object.keys(ACCENTS).map(color => `--${color === 'orange' ? 'claude' : color}: ${accentHex(color as Accent, m.isDark)};`).join(' ')
-  const css = `${fonts.join('\n')}\n:root { ${m.isDark ? ROOT_DARK : ROOT_LIGHT} ${mainColors} ${FONTS} }\n${BAND_CSS}\n${EXTRA_CSS}`
+  const css = `${fonts.join('\n')}\n:root { ${m.isDark ? ROOT_DARK : ROOT_LIGHT} ${mainColors} ${FONTS} }\n${BAND_CSS}\n${EXTRA_CSS}${m.phase === 'question' ? QUESTION_CSS : ''}`
 
   return cardSvg(cardFrameOf(m), { ...bandContent(m), css, theme: m.isDark ? 'dark' : 'light' })
 }

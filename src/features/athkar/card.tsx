@@ -17,5 +17,5 @@ export default cardClient<BandModel>((model, view) => {
     drawWidth: drawWidthOf(model.card, view.columns) ?? model.drawWidth,
   }
 
-  return { svg: bandSvg(band), alt: band.phase === 'cover' ? band.title : band.text, frame: cardFrameOf(band) }
+  return { svg: bandSvg(band), alt: band.phase === 'question' && band.question ? `${band.question.title} · ${band.question.remaining} · ${band.question.confirm} · ${band.question.resume}` : band.phase === 'cover' ? band.title : band.text, frame: cardFrameOf(band) }
 })

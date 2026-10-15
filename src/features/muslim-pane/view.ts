@@ -6,7 +6,7 @@
 import { TAJAWAL_FAMILY, tajawalFontFaceCss } from '../../shared/font/index.ts'
 import { accentHex } from '../../shared/color/index.ts'
 import {
-  ATHAN_H, ATHAN_TOP, BAR_TOP, CONTROLS_CY, FIELD_H, HEAD_H, HEAD_TOP, KBTN_W, KROW_H, KROW_TOP, NX_H, NX_TOP, OPEN_H, OPEN_TOP,
+  ATHAN_H, ATHAN_TOP, BAR_TOP, CONTROLS_CY, FIELD_H, HEAD_H, HEAD_TOP, KBTN_W, KROW_H, KROW_TOP, KFINISH_W, KROW_GAP, NX_H, NX_TOP, OPEN_H, OPEN_TOP,
   PAD, RECITER_TOP, ROWS_TOP, ROW_H, SIDE, SURAH_TOP, TIMES_TOP, cardRects, type PaneAct,
 } from './layout.ts'
 import type { PaneModel } from './model.ts'
@@ -95,9 +95,10 @@ const CSS = `
 .dbtn.hot{background:var(--raised-2)}
 .dbtn.off{opacity:.45}
 .wide{position:absolute;left:${SIDE}px;right:${SIDE}px;height:${OPEN_H}px}
-.krow{display:flex;align-items:center;gap:12px;height:${KROW_H}px}
+.krow{display:flex;align-items:center;gap:${KROW_GAP}px;height:${KROW_H}px}
 .krow .ic{color:var(--text-2);width:18px;height:18px}
 .krow .dbtn{width:${KBTN_W}px;height:${KROW_H - 4}px;flex:none}
+.krow .dbtn.finish{width:${KFINISH_W}px;font-size:13px}
 .krow .none{flex:1;color:var(--muted);font-size:13px;direction:ltr}
 `
 
@@ -147,7 +148,7 @@ const athkarCard = (m: PaneModel, hover: PaneAct | null): string => {
     ? `${icon('sunset')}<div class="pbar"><i style="width:${Math.round(k.progress * 1000) / 10}%"></i></div>`
     : `${icon('sunset')}<span class="none">Athkar are off: /athkar on</span>`
   return `<section class="dcard" style="top:${r.athkarY}px;height:${r.athkarH}px">${head(false)}`
-    + `<div class="in krow" style="top:${KROW_TOP}px">${row}<span class="dbtn${hover === 'athkar-open' ? ' hot' : ''}${k.isAvailable ? '' : ' off'}" role="button">Open</span></div></section>`
+    + `<div class="in krow" style="top:${KROW_TOP}px">${row}${k.isAvailable && !k.isDone ? `<span class="dbtn finish${hover === 'athkar-finish' ? ' hot' : ''}" role="button">✓ أتممتُها</span>` : ''}<span class="dbtn${hover === 'athkar-open' ? ' hot' : ''}${k.isAvailable ? '' : ' off'}" role="button">Open</span></div></section>`
 }
 
 export const paneSvg = (m: PaneModel, hover: PaneAct | null = null): string => {

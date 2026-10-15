@@ -5,6 +5,8 @@
 export type UsageLimit = { until: number | null }
 
 // The athkar read today, both periods; see src/features/athkar/logic.ts.
+// Completion includes explicit confirmation, which fills every count.
+// The end question and its selection live only in the feature module, never $.state.
 export type AthkarReading = {
   index: number
   counts: Record<string, number>

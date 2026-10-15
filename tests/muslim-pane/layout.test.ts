@@ -86,3 +86,11 @@ test('the whole title row folds, even by a whole-cell pointer, and folded cards 
   expect(hitAt(W, W / 2, PRAYER_Y + ATHAN_TOP + 10, ALL, 0, 0, folds)).toBeNull()
   expect(hitOfCells(W, 20, (r.athkarY + 20) / (r.height / 40), 40, 40, false, ALL, folds)).toBe('fold-athkar')
 })
+
+test('athkar finish sits beside Open and is inactive when done, off or folded', () => {
+  const y = ATHKAR_Y + KROW_TOP + 18, x = PAD + 16 + 72 + 12 + 36
+  expect(hitAt(W, x, y, { ...ALL, athkarFinish: true })).toBe('athkar-finish')
+  expect(hitAt(W, x, y, { ...ALL, athkarFinish: false })).toBeNull()
+  expect(hitAt(W, x, y, { ...ALL, athkarFinish: true }, 0, 0, { ...NO_FOLDS, athkar: true })).toBeNull()
+  expect(hitOfCells(W, x * 40 / W, y * 40 / PANE_HEIGHT, 40, 40, true, { ...ALL, athkarFinish: true })).toBe('athkar-finish')
+})

@@ -49,6 +49,7 @@ const enabledOf = (m: PaneModel): Enabled => ({
   canPrev: m.quran.isAvailable && m.quran.canPrev,
   canNext: m.quran.isAvailable && m.quran.canNext,
   athkar: m.athkar.isAvailable,
+  athkarFinish: m.athkar.isAvailable && !m.athkar.isDone,
 })
 
 // The athan toggle changes the salah setting itself (the module reloads); every other press is the owning feature's own action.
@@ -65,8 +66,8 @@ async function press($: EngineInterface, options: Options, act: PaneAct): Promis
     if (deny) $.ui.toast(`Not changed: ${deny}`)
     return
   }
-  const took = await runPanelAction(act === 'quran-toggle' ? 'quran-toggle' : act === 'quran-prev' ? 'quran-prev' : act === 'quran-next' ? 'quran-next' : act === 'quran-open' ? 'quran-open' : 'athkar-open')
-  if (!took) $.ui.toast(act === 'athkar-open' ? 'Athkar are off. /athkar on' : 'Quran is not ready yet. /quran')
+  const took = await runPanelAction(act === 'quran-toggle' ? 'quran-toggle' : act === 'quran-prev' ? 'quran-prev' : act === 'quran-next' ? 'quran-next' : act === 'quran-open' ? 'quran-open' : act === 'athkar-finish' ? 'athkar-finish' : 'athkar-open')
+  if (!took) $.ui.toast((act === 'athkar-open' || act === 'athkar-finish') ? 'Athkar are off. /athkar on' : 'Quran is not ready yet. /quran')
 }
 
 // The footer chip toggles the pane: it opens it when closed and closes it when open.

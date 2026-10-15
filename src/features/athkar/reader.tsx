@@ -71,6 +71,20 @@ const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
     </Box>
   )
 
+  if (props.phase === 'question' && props.question) {
+    const q = props.question
+    if (!isLit) return shell([<Text key="question" color={look.dim}>{q.title}</Text>])
+    return shell([
+      <Box key="question" flexDirection="row-reverse" justifyContent="space-between"><Text bold color={look.ink}>{q.title}</Text>{close}</Box>,
+      <Text key="remaining" color={look.dim}>{q.remaining}</Text>,
+      <Box key="choices" flexDirection="row-reverse" gap={2}>
+        <Button key="finish" plain label={`${q.focus === 'finish' ? '› ' : ''}${q.confirm}`} onPress={() => surface.post({ act: 'finish' })} />
+        <Button key="resume" plain label={`${q.focus === 'resume' ? '› ' : ''}${q.resume}`} onPress={() => surface.post({ act: 'resume' })} />
+      </Box>,
+      <Text key="choice-keys" color={look.dim}>Tab / ← select · Space / Enter choose · → / ⌫ back</Text>,
+    ])
+  }
+
   if (props.phase === 'done') {
     return shell([
       // Faded, it folds to one line.

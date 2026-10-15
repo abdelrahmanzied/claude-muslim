@@ -7,7 +7,7 @@ export type Reading = {
   index: number
   // Counts so far, by thikr id.
   counts: Record<string, number>
-  // Every thikr was counted to its end.
+  // Every thikr was counted or explicitly confirmed complete.
   isDone: boolean
   // × hid the band; the reading is kept.
   isHidden: boolean
@@ -30,6 +30,8 @@ export type Act =
   | { act: 'next' }
   | { act: 'previous' }
   | { act: 'hide' }
+  | { act: 'finish' }
+  | { act: 'resume' }
 
 // The morning athkar are read 05:00 to 17:00, the evening ones 17:00 to 05:00.
 export const MORNING_FROM = 5
@@ -82,19 +84,21 @@ export const readDay = (raw: unknown, day: string): Day => {
   const stored = raw as Partial<Day>
   if (stored.day !== day) return emptyDay(day)
 
-  return { day, morning: readReading(stored.morning), evening: readReading(stored.evening) }
+  return { day, morning: readReading(stored.morning, 'morning'), evening: readReading(stored.evening, 'evening') }
 }
 
-const readReading = (raw: unknown): Reading => {
+const readReading = (raw: unknown, period: Period): Reading => {
   if (!raw || typeof raw !== 'object') return emptyReading()
   const r = raw as Partial<Reading>
 
-  return {
+  const reading: Reading = {
     index: Number.isInteger(r.index) && (r.index ?? 0) >= 0 ? r.index ?? 0 : 0,
     counts: isNumbers(r.counts) ? r.counts : {},
     isDone: r.isDone === true,
     isHidden: r.isHidden === true,
   }
+  // Older builds could finish with skipped counts. Keep saved completion consistent.
+  return reading.isDone ? finishReading(period, reading) : reading
 }
 
 const isNumbers = (value: unknown): value is Record<string, number> =>
@@ -135,8 +139,34 @@ const withCount = (reading: Reading, thikr: Thikr, n: number): Reading => ({
   counts: { ...reading.counts, [thikr.id]: n },
 })
 
-// One step of the reader. Counting past the end moves on; the last thikr's
-// last count, once moved on from, finishes the period.
+export const incomplete = (period: Period, reading: Reading) => listFor(period).filter(t => !isComplete(t, reading))
+
+// The only explicit finish operation: shared by the band and the pane.
+export const finishReading = (period: Period, reading: Reading): Reading => ({
+  ...reading,
+  counts: { ...reading.counts, ...Object.fromEntries(listFor(period).map(t => [t.id, timesOf(t)])) },
+  isDone: true,
+})
+
+// The question belongs to the view, never Reading or the saved day.
+export const asksToFinish = (period: Period, reading: Reading, act: Act) =>
+  !reading.isDone && reading.index >= listFor(period).length - 1 && incomplete(period, reading).length > 0
+  && (act.act === 'next' || (act.act === 'count' && isComplete(currentOf(period, reading), reading)))
+
+export type FinishQuestion = { day: string; period: Period; focus: 'finish' | 'resume'; blockedKey: string | undefined }
+export const countKey = (key: string) => key === ' ' ? 'space' : key
+
+// The host supplies key presses only, without key-up or repeat metadata.
+// Never infer a release from a timeout: explicitly selecting a choice clears
+// the entry-key latch. A different activation key is also a fresh choice.
+export const questionKey = (q: FinishQuestion, key: string): { question?: FinishQuestion; act?: Act } => {
+  if (key === 'right' || key === 'backspace') return {}
+  if (key === 'tab' || key === 'left') return { question: { ...q, focus: q.focus === 'finish' ? 'resume' : 'finish', blockedKey: undefined } }
+  if ((key === 'return' || countKey(key) === 'space') && countKey(key) !== q.blockedKey) return { act: { act: q.focus } }
+  return { question: q }
+}
+
+// One step of the reader. Only a fully counted set finishes on next.
 export const step = (period: Period, reading: Reading, act: Act): Reading => {
   const list = listFor(period)
   const last = list.length - 1
@@ -144,6 +174,8 @@ export const step = (period: Period, reading: Reading, act: Act): Reading => {
   const n = countOf(thikr, reading)
   const times = timesOf(thikr)
 
+  if (act.act === 'finish') return finishReading(period, reading)
+  if (act.act === 'resume') return { ...reading, index: Math.max(0, list.findIndex(t => !isComplete(t, reading))) }
   if (act.act === 'hide') return { ...reading, isHidden: true }
   if (reading.isDone) return act.act === 'back' || act.act === 'previous' ? { ...reading, isDone: false } : reading
 
@@ -153,7 +185,7 @@ export const step = (period: Period, reading: Reading, act: Act): Reading => {
     case 'next':
       if (reading.index < last) return { ...reading, index: reading.index + 1 }
 
-      return isComplete(thikr, reading) ? { ...reading, isDone: true } : reading
+      return incomplete(period, reading).length === 0 ? { ...reading, isDone: true } : reading
     case 'previous':
       return { ...reading, index: Math.max(0, reading.index - 1) }
     case 'back':
@@ -173,7 +205,7 @@ export const shouldAdvance = (period: Period, before: Reading, after: Reading) =
 export const isAct = (value: unknown): value is Act => {
   if (!value || typeof value !== 'object') return false
   const { act } = value as { act?: unknown }
-  return act === 'count' || act === 'back' || act === 'next' || act === 'previous' || act === 'hide'
+  return act === 'count' || act === 'back' || act === 'next' || act === 'previous' || act === 'hide' || act === 'finish' || act === 'resume'
 }
 
 const DIGITS = '٠١٢٣٤٥٦٧٨٩'

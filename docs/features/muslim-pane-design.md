@@ -32,7 +32,7 @@ Scrolling moves the host's body window over this fixed picture only when there i
 
 - **Prayer** — header «الصلاة» with the city at the left. The next block: «الصلاة القادمة», the name at 28px bold in the main color; at the left the time at 28px and the countdown below. Five 32px rows: icon, name, time at the end; done rows dim with a check ring, the next row tinted 15% main color with a dotted ring, upcoming rows a ring. A divider, then the 40px Athan row: bell, `Athan`, switch at the left end.
 - **Quran** — header «القرآن» with the quarter at the left. Two 36px rows (microphone + reciter, book + surah), a 5px bar with LTR elapsed and total under it, three round controls (40px previous and next, 52px play-stop in the main color), then the full-width 42px **Open full player** button.
-- **Athkar** — header with the period's title and `٤ / ١٢`, then one 36px row: sunset icon, the bar, a 72px **Open** button at the left end.
+- **Athkar** — header with the period's title and `٤ / ١٢`, then one 36px row: sunset icon, the bar, a small 64px ✓ **أتممتُها** button beside the 72px **Open** button at the left end. Finish is present and hit-testable only for an available unfinished period; its space returns to the bar when done. Both buttons share the existing quiet raised style and hover tint. Confirmation fills every count through the owning feature's `athkar-finish` action, producing a full fraction and bar and the visible current-period band's existing finale. It neither opens nor unhides a band. Header folding and card height stay unchanged.
 
 ## States
 

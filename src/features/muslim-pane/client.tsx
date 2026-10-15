@@ -14,6 +14,7 @@ const enabledOf = (m: PaneModel): Enabled => ({
   canPrev: m.quran.isAvailable && m.quran.canPrev,
   canNext: m.quran.isAvailable && m.quran.canNext,
   athkar: m.athkar.isAvailable,
+  athkarFinish: m.athkar.isAvailable && !m.athkar.isDone,
 })
 
 const client: ClientModule<PaneModel, Local> = (props, surface) => {

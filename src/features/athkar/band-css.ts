@@ -128,3 +128,12 @@ button:focus-visible {outline: 2px solid var(--accent); outline-offset: 2px;}
 @property --cx {syntax: '<percentage>'; initial-value: -30%; inherits: false;}
 @property --sy {syntax: '<percentage>'; initial-value: 130%; inherits: false;}
 `
+
+export const QUESTION_CSS = `
+.end-question {position:absolute;top:calc(3px + var(--ay, 0px));left:calc(40px + var(--ax, 0px));right:calc(16px + var(--ax, 0px));text-align:center;color:var(--b-ink);font:14px/18px var(--font-band);z-index:3;}
+.end-question strong,.end-question small {display:block;}
+.end-question small {color:var(--b-dim);font-size:11px;line-height:16px;}
+.end-choice {position:absolute;height:30px;display:grid;place-items:center;border-radius:7px;color:var(--b-dim);font:14px/1 var(--font-band);z-index:3;white-space:nowrap;}
+.end-choice.finish {background:var(--ring);color:#fff;}
+.end-choice.selected {outline:1px solid var(--b-ink);outline-offset:1px;}
+`

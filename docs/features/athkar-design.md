@@ -128,6 +128,14 @@ The band is lit while the person uses it, by mouse or keyboard, and folds by its
 
 Counting by keys with the pointer on the band keeps it open until the pointer leaves (rule 1) or rule 6.
 
+## End question
+
+Before completion, next past the last item checks the whole period. If any item is not fully counted, show «أتممتَ الأذكار؟» and a small muted Arabic-digit count («٨ دون عدّ كامل»), with primary «نعم، أتممتُها» on the right and quiet «أكمل العدّ» on the left. This is UI chrome, not religious text. It uses the same layout, tokens and controls in Sky and Frame: the existing 77px open band and 24px folded row; no finale or completed progress while asking. Choice text shrinks with narrow widths. The folded row shows the question alone and a first press wakes it. Choice rectangles in `band.ts` also drive pointer hit testing; background clicks do nothing. A thin outline shows the selected choice.
+
+The terminal draws the question, muted line and two native text buttons through the shared Arabic display path, and lists the keys. Tab/← selects; Enter/Space activates the selected choice; →/Backspace/right click returns to the last thikr. Since `ClientKeyEvent` has neither release nor repeat metadata, the key that entered the question cannot activate it until an explicit selection key; the other activation key works immediately. No timeout guesses a release.
+
+«أكمل العدّ» finds the first incomplete item. «نعم، أتممتُها» and the pane's ✓ «أتممتُها» share `step(..., { act: 'finish' })`: fill all period counts and set `isDone`, then use the existing finale/done path. The question, selected choice and key latch are transient module view values scoped to day and period, never persisted. Demos retain their existing scenes and timings.
+
 ## End
 
 - The finale (desktop): falling stars, and the end verse ﴿رَبَّنَا تَقَبَّلْ مِنَّا إِنَّكَ أَنتَ السَّمِيعُ الْعَلِيمُ﴾ rising centered with — البقرة ١٢٧, at a fixed 18px.

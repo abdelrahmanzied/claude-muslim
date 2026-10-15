@@ -1,6 +1,6 @@
 import { accentHex, type Accent } from '../../shared/color/index.ts'
 import type { Period } from './data.ts'
-import { arabicDigits, countOf, currentOf, END, END_NOTE, hasBegun, listFor, overall, textOf, timesOf, TITLE } from './logic.ts'
+import { arabicDigits, countOf, currentOf, END, END_NOTE, hasBegun, incomplete, listFor, overall, textOf, timesOf, TITLE } from './logic.ts'
 import type { Reading, Sky } from './logic.ts'
 
 export type Style = 'sky' | 'frame'
@@ -86,7 +86,8 @@ export const lookFor = (style: Style, accent: Accent, sky: Sky, isDark: boolean,
 
 export type ReaderProps = {
   period: Period
-  phase: 'cover' | 'reading' | 'done'
+  phase: 'cover' | 'reading' | 'question' | 'done'
+  question?: { title: string; remaining: string; confirm: string; resume: string; focus: 'finish' | 'resume' }
   // Lit by a click; faded again when idle.
   isActive: boolean
   // Desktop: the band is the shared card's picture (card.tsx), not this reader.
@@ -118,7 +119,7 @@ export const readerProps = (
   reading: Reading,
   look: Look,
   display: (text: string) => string,
-  view: { isOpen: boolean; isActive: boolean; isPicture: boolean },
+  view: { isOpen: boolean; isActive: boolean; isPicture: boolean; question?: { focus: 'finish' | 'resume' } },
 ): ReaderProps => {
   const list = listFor(period)
   const thikr = currentOf(period, reading)
@@ -127,7 +128,8 @@ export const readerProps = (
 
   return plain({
     period,
-    phase: reading.isDone ? 'done' : view.isOpen ? 'reading' : 'cover',
+    phase: reading.isDone ? 'done' : view.question ? 'question' : view.isOpen ? 'reading' : 'cover',
+    question: view.question ? { title: display('أتممتَ الأذكار؟'), remaining: display(`${arabicDigits(incomplete(period, reading).length)} دون عدّ كامل`), confirm: display('نعم، أتممتُها'), resume: display('أكمل العدّ'), focus: view.question.focus } : undefined,
     isActive: view.isActive,
     isPicture: view.isPicture,
     look,

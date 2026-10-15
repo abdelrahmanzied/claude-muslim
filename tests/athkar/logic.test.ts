@@ -66,14 +66,14 @@ test('progress gives each thikr an equal share, partial counts included', async 
   expect(Math.abs(overall('morning', r) - 1.5 / n)).toBeLessThan(1e-9)
 })
 
-test('the last thikr counted to its end finishes the period', async () => {
+test('the last thikr alone counted to its end does not finish skipped athkar', async () => {
   const list = listFor('evening')
   const last = list[list.length - 1]!
   let r: Reading = { ...emptyReading(), index: list.length - 1, counts: { [last.id]: last.times - 1 } }
   r = step('evening', r, { act: 'count' })
   expect(r.isDone).toBe(false)
   r = step('evening', r, { act: 'next' })
-  expect(r.isDone).toBe(true)
+  expect(r.isDone).toBe(false)
 })
 
 test('there is no 10 | 100 choice: no such act, and an old saved reading with choices still loads', async () => {

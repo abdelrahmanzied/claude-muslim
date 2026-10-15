@@ -10,11 +10,11 @@ import { connectAthkar, connectPanelAction, type PanelAthkar } from '../../share
 import { helpHint, statusTable } from '../../table.ts'
 import { athkarHelp } from './help.ts'
 import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, KEY_REST_MS, LEAVE_MS, LINE_PX, REST_PX } from '../../shared/card/card.ts'
-import { bandHeight, closeArea, pixelOf } from './band.ts'
+import { bandHeight, closeArea, pixelOf, questionAreas } from './band.ts'
 import type { BandModel } from './band.ts'
 import type { Period } from './data.ts'
-import { ADVANCE_MS, countOf, currentOf, dayOf, emptyReading, END, listFor, overall, periodAt, readDay, shouldAdvance, skyAt, step, textOf, timesOf, TITLE } from './logic.ts'
-import type { Act } from './logic.ts'
+import { ADVANCE_MS, asksToFinish, countKey, countOf, currentOf, dayOf, emptyReading, END, listFor, overall, periodAt, questionKey, readDay, shouldAdvance, skyAt, step, textOf, timesOf, TITLE } from './logic.ts'
+import type { Act, FinishQuestion } from './logic.ts'
 import { lookFor, plain, readerProps, resetHint } from './look.ts'
 import type { Style } from './look.ts'
 
@@ -177,31 +177,52 @@ const panelAthkar = async ($: EngineInterface, tashkeel: boolean): Promise<Panel
 const openFromPanel = async ($: EngineInterface) => {
   const { now, day } = await today($)
   const period = periodAt(now.getHours())
+  if (view.chosen !== period) view.question = undefined
+  view.chosen = period
   if (day[period].isHidden) await save($, { ...day, [period]: { ...day[period], isHidden: false } })
   view.isOpen = true
   wake($)
 }
 
+// Finish from the pane targets the clock's period, even if another reader was chosen.
+const finishFromPanel = async ($: EngineInterface) => {
+  const { now, day } = await today($)
+  const period = periodAt(now.getHours())
+  await save($, { ...day, [period]: step(period, day[period], { act: 'finish' }) })
+  if (periodOf(now) === period) view.question = undefined
+  $.ui.invalidate('ui.render')
+}
+
 // Moves on after a thikr's last count, unless the reader moved meanwhile.
-const advance = async ($: EngineInterface, period: Period, index: number) => {
+const advance = async ($: EngineInterface, period: Period, index: number, revision: number) => {
+  if (view.revision !== revision || view.question) return
   const { day } = await today($)
   const reading = day[period]
   const thikr = currentOf(period, reading)
   if (reading.index !== index || reading.isDone || countOf(thikr, reading) < timesOf(thikr)) return
-  await save($, { ...day, [period]: step(period, reading, { act: 'next' }) })
+  await apply($, { act: 'next' }, period)
 }
 
 // One step of today's reading, saved; after a count that ends a thikr, the
 // next one shows by itself.
-const apply = async ($: EngineInterface, act: Act) => {
+const apply = async ($: EngineInterface, act: Act, target?: Period) => {
   const { now, day } = await today($)
-  const period = periodOf(now)
+  const period = target ?? periodOf(now)
   const before = day[period]
+  view.revision++
+  if (asksToFinish(period, before, act)) {
+    view.question = { day: day.day, period, focus: 'finish', blockedKey: view.lastKey }
+    view.isOpen = true
+    wake($)
+    return
+  }
+  view.question = undefined
   const after = step(period, before, act)
   await save($, { ...day, [period]: after })
   if (act.act === 'hide') view.chosen = undefined
   if (act.act === 'count' && shouldAdvance(period, before, after)) {
-    $.clock.after(ADVANCE_MS, () => void advance($, period, after.index))
+    const revision = view.revision
+    $.clock.after(ADVANCE_MS, () => void advance($, period, after.index, revision))
   }
 }
 
@@ -210,12 +231,18 @@ const apply = async ($: EngineInterface, act: Act) => {
 // anywhere else counts or opens the band.
 type Hit = { x0: number; x1: number; y0: number; y1: number; act: Act }
 
-export const hitsFor = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' | 'finaleMs'>): Hit[] => [{ ...closeArea(m), act: { act: 'hide' } }]
+export const hitsFor = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' | 'finaleMs'> & { width?: number }): Hit[] => [
+  { ...closeArea(m), act: { act: 'hide' } },
+  ...(m.phase === 'question' && m.isActive ? questionAreas(m.width ?? 0).map(a => ({ ...a, act: { act: a.act } })) : []),
+]
 
 // This session's view: past the cover, lit, and when it fades.
 const arabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
 
 const view = {
+  question: undefined as FinishQuestion | undefined,
+  revision: 0,
+  lastKey: undefined as string | undefined,
   isOpen: false,
   isActive: false,
   idle: undefined as { cancel: () => void } | undefined,
@@ -268,6 +295,9 @@ export const install = (on: On, options: Options) => {
   view.isActive = false
   view.isInside = false
   view.chosen = undefined
+  view.question = undefined
+  view.revision++
+  view.lastKey = undefined
 
   on('command.run', { command: 'athkar' }, async ($, e) => {
     const [word = '', value = ''] = e.args.trim().split(/\s+/)
@@ -315,6 +345,8 @@ export const install = (on: On, options: Options) => {
       const { day } = await today($)
       await save($, { ...day, [word]: emptyReading() })
       view.isOpen = false
+      view.question = undefined
+      view.revision++
       // Back at the cover, folded: the person has moved on to the prompt.
       rest($)
 
@@ -323,7 +355,7 @@ export const install = (on: On, options: Options) => {
     if (isPeriod(word) && value === '') {
       const { day } = await today($)
       const reading = day[word]
-      if (view.chosen !== word) view.isOpen = false
+      if (view.chosen !== word) { view.isOpen = false; view.question = undefined; view.revision++ }
       view.chosen = word
       if (reading.isHidden) await save($, { ...day, [word]: { ...reading, isHidden: false } })
       wake($)
@@ -399,6 +431,15 @@ export const install = (on: On, options: Options) => {
 
   on('ui.message', { element: 'athkar' }, async ($, e) => {
     const m = e.data
+    // Terminal native choice buttons use the same finish/resume operations.
+    if (m && typeof m === 'object' && 'act' in m && (m.act === 'finish' || m.act === 'resume')) {
+      const { now, day } = await today($)
+      if (view.question?.day === day.day && view.question.period === periodOf(now) && view.isActive) {
+        await apply($, { act: m.act })
+        wake($)
+      }
+      return {}
+    }
     if (!isCardMessage(m)) return {}
     if (m.act === 'size') {
       region = { columns: m.columns, rows: m.rows }
@@ -439,19 +480,23 @@ export const install = (on: On, options: Options) => {
       view.leave?.cancel()
       view.leave = $.clock.after(KEY_REST_MS, () => rest($))
     }
+    const { now, day } = await today($)
+    const period = periodOf(now)
+    const reading = day[period]
+    if (view.question && (view.question.day !== day.day || view.question.period !== period || reading.isDone)) view.question = undefined
+    if (m.act === 'pointer') view.lastKey = undefined
     if (m.act === 'pointer' && m.button === 'left' && lastBand && columns > 0 && rows > 0) {
       // The × sits at the left, so a click is placed from the left edge.
       const { px, py } = pixelOf(lastBand, m.x, m.y, columns, rows)
       const hit = hitsFor(lastBand).find(h => px >= h.x0 && px <= h.x1 && py >= h.y0 && py <= h.y1)
       if (hit) {
+        if ((hit.act.act === 'finish' || hit.act.act === 'resume') && (!view.question || !view.isActive)) return {}
         if (hit.act.act === 'hide') view.isOpen = false
         await apply($, hit.act)
 
         return {}
       }
     }
-    const { now, day } = await today($)
-    const reading = day[periodOf(now)]
     const isBack = m.act === 'pointer' ? m.button === 'right' : m.key === 'backspace'
     const isCount = m.act === 'pointer' ? m.button === 'left' : m.key === ' ' || m.key === 'space' || m.key === 'return'
     if (reading.isDone) {
@@ -482,6 +527,19 @@ export const install = (on: On, options: Options) => {
       return {}
     }
     wake($)
+    if (view.question) {
+      if (m.act === 'pointer' && isBack) {
+        view.question = undefined
+        view.revision++
+      } else if (m.act === 'key') {
+        const result = questionKey(view.question, m.key)
+        view.question = result.question
+        if (result.act) await apply($, result.act)
+      }
+      $.ui.invalidate('ui.render')
+      return {}
+    }
+    if (m.act === 'key') view.lastKey = countKey(m.key)
     if (isCount) await apply($, { act: 'count' })
     else if (isBack) await apply($, { act: 'back' })
     else if (m.act === 'key' && m.key === 'left') await apply($, { act: 'next' })
@@ -507,6 +565,7 @@ export const install = (on: On, options: Options) => {
     const theirs = await next(e)
     connectAthkar(() => panelAthkar($, options.tashkeel))
     connectPanelAction('athkar-open', () => openFromPanel($))
+    connectPanelAction('athkar-finish', () => finishFromPanel($))
     if (demo && (demo.style === 'frame' || e.surface === 'desktop')) return theirs
     // An earlier build left a debugging line in the status bar: clear it once.
     if (!isStatusCleared) {
@@ -533,7 +592,8 @@ export const install = (on: On, options: Options) => {
     // The shared Arabic path: the tashkeel setting, then this terminal's mode.
     const arabicMode = await arabicModeOf($, e.surface, arabicCache)
     const show = (text: string) => terminalArabic(e.surface, arabicMode, withTashkeel(text, options.tashkeel))
-    const props = readerProps(period, reading, look, show, { isOpen: view.isOpen, isActive: view.isActive, isPicture })
+    if (view.question && (view.question.day !== dayOf(now) || view.question.period !== period || reading.isDone)) view.question = undefined
+    const props = readerProps(period, reading, look, show, { isOpen: view.isOpen, isActive: view.isActive, isPicture, question: view.question })
     // Finished just now, not found finished on a reload: the finale plays once.
     if (props.phase === 'done' && lastPhase !== undefined && lastPhase !== 'done') {
       finishedAt = Date.now()
@@ -544,6 +604,7 @@ export const install = (on: On, options: Options) => {
     const { Box, Client } = $.ui.resolve(e)
 
     if (e.surface !== 'desktop') {
+      lastBand = undefined
       return (
         <Box flexDirection="column">
           <Box key="athkar-band" width="100%">
@@ -572,6 +633,7 @@ export const install = (on: On, options: Options) => {
     const width = Math.round(e.props.bodyColumns * CELL_PX)
     const model: BandModel = {
       phase: props.phase,
+      question: props.question,
       period,
       sky,
       style: options.athkarStyle,
