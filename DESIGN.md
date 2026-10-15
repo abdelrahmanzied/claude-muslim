@@ -58,6 +58,22 @@ The main color is one plugin-wide setting: `/muslim color orange | green | gold 
 
 Never use `error` or `warning` for religious text.
 
+### Icons
+
+One icon per feature, the same everywhere a drawn surface marks it: the Muslim pane's card headers, its settings tabs, and any later desktop surface. A feature never draws a second icon for itself. The standard set lives once in `src/shared/icon/` as 24×24 line fragments (stroke `currentColor`, the main color where the surface tints it), copied verbatim from the approved catalog:
+
+| Mark | Icon | Key |
+| --- | --- | --- |
+| Muslim as a whole | the avatar head (desktop pane heading), `☾` on text surfaces | `avatar.ts`, `☾` |
+| عام (general settings) | منزلقات | `sliders` |
+| الصلاة | سجود واقعي | `sujoodreal` |
+| القرآن | مصحف pane القرآن | `qpane` |
+| الأذكار | شروق وغروب (both periods) | `horizon` |
+| الذكر | حبّات Spinner | `spinbeads` |
+| الإعدادات (settings as a whole) | ترس بأسنان | `gearteeth` |
+
+Inside a card, small row icons that describe a row rather than a feature (a bell, a microphone, a check ring) stay free. A new feature adds its row here and to `src/shared/icon/` before it is drawn anywhere. Text surfaces (terminal, Spinner, SessionMode, band rows) use text glyphs, never these drawings.
+
 ## 4. Typography and Arabic
 
 - **Font and size:** Claude's. We cannot and do not change them.
@@ -116,6 +132,7 @@ Wire it in `hooks/register.tsx` (`install<Feature>(on, settings)`), register its
 - [ ] Spec added to `docs/features/<feature>.md` (moments, phrases with sources, settings).
 - [ ] Phrases reviewed by a person; sources noted.
 - [ ] Off switch in `/config` and the command; off leaves Claude untouched.
+- [ ] One icon from the standard set (§3 Icons), the same on every drawn surface.
 - [ ] Main color via the shared module, other colors via theme keys; desktop tashkeel setting respected and terminal tashkeel stripped.
 - [ ] Tests on `terminal` and `desktop`; `claude plugin validate`, `claude plugin test`, `tsc` pass.
 - [ ] Demo subcommand and pure `demo.ts` for the feature's real UI; no settings, store or saved-state changes.

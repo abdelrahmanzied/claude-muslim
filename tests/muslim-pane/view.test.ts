@@ -3,6 +3,7 @@ import { PANE_HEIGHT } from '../../src/features/muslim-pane/layout.ts'
 import { paneModel } from '../../src/features/muslim-pane/model.ts'
 import { CLOSED_SETTINGS, CATEGORIES } from '../../src/features/muslim-pane/settings.ts'
 import { paneAlt, paneSvg, paletteCss } from '../../src/features/muslim-pane/view.ts'
+import { FEATURE_ICONS } from '../../src/shared/icon/index.ts'
 
 const NOW = 1_700_000_000_000
 const feeds = {
@@ -94,11 +95,39 @@ test('light and dark use their own consistent token sets and every element reads
   expect(rules).toMatch(/\.pbar\{[^}]*background:var\(--line\)/)
 })
 
-test('the prayer card header uses the minaret icon, not the crescent', () => {
-  const svg = paneSvg(paneModel(feeds, NOW, 360, 'orange'))
-  expect(svg).toContain('M9.5 10v11M14.5 10v11')
-  expect(svg).not.toContain('M20 14.5A8.2 8.2 0 019.5 4')
-})
+for (const folded of [false, true]) {
+  test(`daily card headers use their settings tab fragments when ${folded ? 'folded' : 'open'}`, () => {
+    const model = paneModel(feeds, NOW, 360, 'orange')
+    model.folds = { prayer: folded, quran: folded, athkar: folded }
+    model.settings = { ...model.settings, state: { ...CLOSED_SETTINGS, open: true } }
+    const svg = paneSvg(model)
+    const headers = svg.match(/<div class="in dh"[^>]*>.*?<\/div>/g)!
+    for (const [category, key] of [['prayer', 'sujoodreal'], ['quran', 'qpane'], ['athkar', 'horizon']] as const) {
+      const label = CATEGORIES.find(c => c[0] === category)![1]
+      const head = headers.find(h => h.includes(`<span class="ar">${category === 'athkar' ? feeds.athkar.title : label}</span>`))!
+      const tab = svg.match(new RegExp(`role="tab"[^>]*aria-label="${label}">.*?</svg>`))![0]
+      expect(head).toContain(FEATURE_ICONS[key])
+      expect(tab).toContain(FEATURE_ICONS[key])
+    }
+  })
+
+  for (const title of ['أَذْكَارُ الصَّبَاحِ', 'أَذْكَارُ الْمَسَاءِ', null]) {
+    test(`athkar use horizon in the header, row and tab: ${title ?? 'off'}, ${folded ? 'folded' : 'open'}`, () => {
+      const model = paneModel({ ...feeds, athkar: title === null ? null : { ...feeds.athkar, title } }, NOW, 360, 'orange')
+      model.folds = { ...model.folds, athkar: folded }
+      model.settings = { ...model.settings, state: { ...CLOSED_SETTINGS, open: true } }
+      const svg = paneSvg(model)
+      const head = svg.match(/<div class="in dh"[^>]*>.*?<\/div>/g)![2]!
+      const tab = svg.match(/role="tab"[^>]*aria-label="الأذكار">.*?<\/svg>/)![0]
+      expect(head).toContain(FEATURE_ICONS.horizon)
+      expect(tab).toContain(FEATURE_ICONS.horizon)
+      if (!folded) {
+        const row = svg.match(/<div class="in krow"[^>]*>.*?<\/svg>/)![0]
+        expect(row).toContain(FEATURE_ICONS.horizon)
+      }
+    })
+  }
+}
 
 test('settings uses the approved gear, Quran mushaf, and exact five tab labels',()=>{
   const model=paneModel(feeds,NOW,240,'orange')
@@ -108,12 +137,6 @@ test('settings uses the approved gear, Quran mushaf, and exact five tab labels',
   const header=settings.slice(0,settings.indexOf('<div class="settings-tabs"'))
   expect(header).toContain('M10.3 3h3.4l.5 2.3')
   expect(header).not.toContain('M4 7h9M17 7h3')
-  for(const folded of [false,true]){
-    const picture=paneSvg({...model,folds:{...model.folds,quran:folded}})
-    const quranHeader=picture.match(/<div class="in dh"[^>]*>.*?<\/div>/g)!.find(head=>head.includes('<span class="ar">القرآن</span>'))!
-    expect(quranHeader).toContain('M12 5v15M12 5C8.72 2.54 5.44 3')
-    expect(quranHeader).not.toContain('M12 6c-2-1.5-5-2-8-2')
-  }
   const tabs=settings.slice(settings.indexOf('<div class="settings-tabs"'),settings.indexOf('<div class="settings-body"'))
   expect(tabs.match(/role="tab"/g)).toHaveLength(5)
   let last=-1

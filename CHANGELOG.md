@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Muslim pane: the space above the heading matches the bottom margin (12px to the avatar), not 18px.
+
+- Icons are one standard set (DESIGN.md §3 Icons, `src/shared/icon/`): the Muslim pane's prayer, Quran and athkar cards now show the same icons as their settings tabs (realistic sujood, the Quran mushaf, sunrise-sunset).
+
 - Muslim pane: a heading row above the cards with the Muslim avatar's head at 24px beside «مسلم», spaced like the Quran pane's title, and `/muslim` always shown at the left edge.
 
 - Muslim pane: replace settings category accordion rows with one fixed, non-scrolling RTL tab strip, عام first, using the approved sliders, realistic sujood, Quran mushaf, horizon and Spinner-bead icons. Use the toothed gear for the settings header and the same mushaf for the Quran card; retain all settings/detail controls and migrate old null-category state safely. Terminal settings follow the same order and «الذكر» label.

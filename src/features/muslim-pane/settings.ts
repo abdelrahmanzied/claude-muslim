@@ -2,13 +2,14 @@
 // and control rectangles; neither the Client nor the hooks measure HTML.
 import { readOptions, writeAdjust, type Options } from '../../config.ts'
 import type { PaneSettings } from '../../../types/index.d.ts'
+import type { FeatureIconKey } from '../../shared/icon/index.ts'
 import type { PanelQuranSettings } from '../../shared/panel/signal.ts'
 import { arabicDigits } from '../../shared/pray/line.ts'
 
 export type SettingsState = PaneSettings
 export const CATEGORIES = [
   ['general', 'عام', 'sliders'], ['prayer', 'الصلاة', 'sujoodreal'], ['quran', 'القرآن', 'qpane'], ['athkar', 'الأذكار', 'horizon'], ['thikr', 'الذكر', 'spinbeads'],
-] as const
+] as const satisfies readonly (readonly [SettingsState['category'], string, FeatureIconKey])[]
 export const CLOSED_SETTINGS: SettingsState = { open: false, category: 'general', face: 'main', page: 0 }
 export const isSettings = (v: unknown): v is SettingsState => {
   if (!v || typeof v !== 'object') return false

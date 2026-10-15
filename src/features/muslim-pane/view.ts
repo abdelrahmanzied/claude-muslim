@@ -5,6 +5,7 @@
 
 import { TAJAWAL_FAMILY, tajawalFontFaceCss } from '../../shared/font/index.ts'
 import { accentHex } from '../../shared/color/index.ts'
+import { FEATURE_ICONS } from '../../shared/icon/index.ts'
 import {
   ATHAN_H, ATHAN_TOP, BAR_TOP, CONTROLS_CY, FIELD_H, HEAD_H, HEAD_TOP, KBTN_W, KROW_H, KROW_TOP, KFINISH_W, KROW_GAP, NX_H, NX_TOP, OPEN_H, OPEN_TOP,
   AVATAR_SIZE, PAD, RECITER_TOP, TOP_H, TOP_Y, ROWS_TOP, ROW_H, SIDE, SURAH_TOP, TIMES_TOP, cardRects, type PaneAct,
@@ -26,18 +27,12 @@ export const paletteCss = (root: string, color: PaneModel['color']): string => {
   return `${root}{${dark}}@media (prefers-color-scheme: light){${root}{${light}}}${root}.theme-light{${light}}${root}.theme-dark{${dark}}`
 }
 
-// Approved icons-avatars catalog fragments are kept verbatim.
+// Feature marks come from the standard set; row and control icons stay local.
 const PATHS = {
-  sliders: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
-  sujoodreal: '<circle cx="5.2" cy="17.8" r="1.9"/><path d="M7 15.8C9.5 11.5 12.5 9.5 15.5 9.5c2 0 3 1.5 3 4v5H21M9.5 14.2l1.5 3.6-3 2.2M2.5 20.2h19"/>',
-  qpane: '<path d="M12 5v15M12 5C8.72 2.54 5.44 3 2.98 4v16c3.28-2 6.56-1 9.02 1 2.46-2 5.74-3 9.02-1V4c-2.46-1-5.74-2-9.02 1Z"/>',
-  horizon: '<path d="M3 19h18M6.5 19a5.5 5.5 0 0111 0M12 7v3M4.6 11.6l1.5 1.5M19.4 11.6l-1.5 1.5M9.8 5.2L12 3l2.2 2.2"/>',
-  spinbeads: '<circle cx="12" cy="3.8" r="2"/><circle cx="17.8" cy="6.2" r="1.75"/><circle cx="20.2" cy="12" r="1.5"/><circle cx="17.8" cy="17.8" r="1.25"/><circle cx="12" cy="20.2" r="1"/><circle cx="6.2" cy="17.8" r=".8"/><circle cx="3.8" cy="12" r=".6"/>',
-  gearteeth: '<path d="M10.3 3h3.4l.5 2.3 1.6.7 2-1.3 2.4 2.4-1.3 2 .7 1.6 2.3.5v3.4l-2.3.5-.7 1.6 1.3 2-2.4 2.4-2-1.3-1.6.7-.5 2.3h-3.4l-.5-2.3-1.6-.7-2 1.3-2.4-2.4 1.3-2-.7-1.6L3 13.7v-3.4l2.3-.5.7-1.6-1.3-2 2.4-2.4 2 1.3 1.6-.7z"/><circle cx="12" cy="12" r="3"/>',
+  ...FEATURE_ICONS,
   chev: '<path d="M6 9l6 6 6-6"/>',
   chevl: '<path d="M15 6l-6 6 6 6"/>',
   moon: '<path d="M20 14.5A8.2 8.2 0 019.5 4a8.2 8.2 0 1010.5 10.5z"/>',
-  minaret: '<path d="M13.2 1.4a1.7 1.7 0 11-1.7 2.8 1.3 1.3 0 001.7-2.8zM9.5 8c0-2 1.2-3.2 2.5-3.9 1.3.7 2.5 1.9 2.5 3.9M8 8h8v2H8zM9.5 10v11M14.5 10v11M7 21h10"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
   check: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.2l2.5 2.5 4.5-5"/>',
   ring: '<circle cx="12" cy="12" r="8.5"/>',
@@ -45,7 +40,6 @@ const PATHS = {
   bell: '<path d="M6 16v-5a6 6 0 0112 0v5l2 2H4zM10 21h4"/>',
   mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/>',
   book: '<path d="M12 6c-2-1.5-5-2-8-2v13c3 0 6 .5 8 2 2-1.5 5-2 8-2V4c-3 0-6 .5-8 2zM12 6v13"/>',
-  sunset: '<path d="M3 19h18M7 19a5 5 0 0110 0M12 7v3M5.5 10.5L7 12M18.5 10.5L17 12"/>',
   play: '<path d="M8 5.5l10.5 6.5L8 18.5z" fill="currentColor" stroke="none"/>',
   stop: '<rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor" stroke="none"/>',
   prev: '<path d="M7 6v12"/><path d="M18 6.5v11L10 12z"/>',
@@ -119,7 +113,7 @@ const header = (name: keyof typeof PATHS, title: string, value: string, isFolded
 
 const prayerCard = (m: PaneModel, hover: PaneAct | null): string => {
   const p = m.prayer, r = cardRects(m.folds)
-  if (m.folds.prayer) return `<section class="dcard" style="top:${r.prayerY}px;height:${r.prayerH}px">${header('minaret', 'الصلاة', p.isSet ? escape(p.city) : '', true, hover === 'fold-prayer', true)}</section>`
+  if (m.folds.prayer) return `<section class="dcard" style="top:${r.prayerY}px;height:${r.prayerH}px">${header('sujoodreal', 'الصلاة', p.isSet ? escape(p.city) : '', true, hover === 'fold-prayer', true)}</section>`
   let body: string
   if (!p.isSet) {
     body = `<div class="note" style="top:${NX_TOP}px;height:${NX_H + 5 * ROW_H + 10}px">Choose a city first: /salah city</div>`
@@ -128,7 +122,7 @@ const prayerCard = (m: PaneModel, hover: PaneAct | null): string => {
     body = `<div class="in nx" style="top:${NX_TOP}px"><div><div class="nx-k ar">الصلاة القادمة</div><div class="nx-n ar">${escape(p.nextName)}</div></div><div class="nx-r"><div class="nx-t ar">${ltr(p.nextTime)}</div><div class="nx-in">${escape(p.until)}</div></div></div>${rows}`
   }
   const athan = `<div class="in athan${hover === 'athan' ? ' hot' : ''}${p.isSet ? '' : ' off'}" style="top:${ATHAN_TOP}px" role="switch" aria-checked="${p.isAthan}" aria-label="Athan">${icon('bell')}<span dir="ltr">Athan</span><span class="tog${p.isAthan ? ' on' : ''}"><i></i></span></div>`
-  return `<section class="dcard" style="top:${r.prayerY}px;height:${r.prayerH}px">${header('minaret', 'الصلاة', p.isSet ? escape(p.city) : '', false, hover === 'fold-prayer', true)}${body}${athan}</section>`
+  return `<section class="dcard" style="top:${r.prayerY}px;height:${r.prayerH}px">${header('sujoodreal', 'الصلاة', p.isSet ? escape(p.city) : '', false, hover === 'fold-prayer', true)}${body}${athan}</section>`
 }
 
 const quranCard = (m: PaneModel, hover: PaneAct | null): string => {
@@ -152,12 +146,11 @@ const quranCard = (m: PaneModel, hover: PaneAct | null): string => {
 
 const athkarCard = (m: PaneModel, hover: PaneAct | null): string => {
   const k = m.athkar, r = cardRects(m.folds)
-  const mark = k.isAvailable && k.isEvening ? 'sunset' : 'sun'
-  const head = (folded: boolean) => header(mark, k.isAvailable ? k.title : 'أذكار', k.isAvailable ? ltr(k.fraction) : '', folded, hover === 'fold-athkar')
+  const head = (folded: boolean) => header('horizon', k.isAvailable ? k.title : 'أذكار', k.isAvailable ? ltr(k.fraction) : '', folded, hover === 'fold-athkar')
   if (m.folds.athkar) return `<section class="dcard" style="top:${r.athkarY}px;height:${r.athkarH}px">${head(true)}</section>`
   const row = k.isAvailable
-    ? `${icon('sunset')}<div class="pbar"><i style="width:${Math.round(k.progress * 1000) / 10}%"></i></div>`
-    : `${icon('sunset')}<span class="none">Athkar are off: /athkar on</span>`
+    ? `${icon('horizon')}<div class="pbar"><i style="width:${Math.round(k.progress * 1000) / 10}%"></i></div>`
+    : `${icon('horizon')}<span class="none">Athkar are off: /athkar on</span>`
   return `<section class="dcard" style="top:${r.athkarY}px;height:${r.athkarH}px">${head(false)}`
     + `<div class="in krow" style="top:${KROW_TOP}px">${row}${k.isAvailable && !k.isDone ? `<span class="dbtn finish${hover === 'athkar-finish' ? ' hot' : ''}" role="button">✓ أتممتُها</span>` : ''}<span class="dbtn${hover === 'athkar-open' ? ' hot' : ''}${k.isAvailable ? '' : ' off'}" role="button">Open</span></div></section>`
 }
