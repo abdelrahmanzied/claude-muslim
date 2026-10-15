@@ -37,6 +37,38 @@ test('the picture draws the three cards at the fixed pane height', () => {
   expect(svg).toContain('role="switch" aria-checked="true"')
 })
 
+for (const folded of [false, true]) {
+  test(`the prayer city is only on the bottom line when ${folded ? 'folded' : 'open'}`, () => {
+    const model = paneModel(feeds, NOW, 360, 'orange')
+    model.folds = { ...model.folds, prayer: folded }
+    const svg = paneSvg(model)
+    const header = svg.match(/<div class="in dh"[^>]*>.*?<\/div>/)![0]
+    expect(header).not.toContain('Munich')
+    expect(header).toContain('<span class="dv"></span>')
+    expect(header).toContain('<span class="fold">')
+    expect(header).toContain(`aria-expanded="${!folded}"`)
+    if (folded) {
+      expect(svg).not.toContain('Munich')
+      expect(svg).not.toContain('class="prayer-city"')
+    } else {
+      expect(svg).toContain('<div class="prayer-city">مواقيت <bdi>Munich</bdi></div>')
+      expect(svg.indexOf('class="prayer-city"')).toBeGreaterThan(svg.indexOf('class="in athan'))
+      expect(svg).toMatch(/\.prayer-city\{[^}]*text-align:center;font-size:12px;color:var\(--muted\);line-height:1/)
+    }
+  })
+}
+
+for (const [city, escaped] of [
+  ['Munich, Germany', 'Munich, Germany'],
+  ['القاهرة، مصر', 'القاهرة، مصر'],
+  ['  <Munich> & "Germany"  ', '  &lt;Munich&gt; &amp; &quot;Germany&quot;  '],
+]) {
+  test(`the bottom line isolates and escapes the stored city: ${city}`, () => {
+    const svg = paneSvg(paneModel({ ...feeds, salah: { ...feeds.salah, city: city! } }, NOW, 360, 'orange'))
+    expect(svg).toContain(`<div class="prayer-city">مواقيت <bdi>${escaped}</bdi></div>`)
+  })
+}
+
 test('a playing player shows Stop and a stopped one Play', () => {
   expect(paneSvg(paneModel(feeds, NOW, 360, 'orange'))).toContain('aria-label="Stop"')
   expect(paneSvg(paneModel({ ...feeds, quran: { ...feeds.quran, isPlaying: false } }, NOW, 360, 'orange'))).toContain('aria-label="Play"')
@@ -45,6 +77,9 @@ test('a playing player shows Stop and a stopped one Play', () => {
 test('features that are not connected leave quiet notes, never a broken picture', () => {
   const svg = paneSvg(paneModel({ salah: null, quran: null, athkar: null }, NOW, 360, 'orange'))
   expect(svg).toContain('Choose a city first: /salah city')
+  expect(svg).not.toContain('class="prayer-city"')
+  expect(svg).not.toContain('مواقيت')
+  expect(svg).toContain(`height="${PANE_HEIGHT}"`)
   expect(svg).toContain('--:--')
   expect(svg).toContain('Athkar are off: /athkar on')
 })

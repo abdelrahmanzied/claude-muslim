@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Muslim pane: the footer keeps one button, `☾ Muslim` (the Arabic trial button is removed).
+
+- Muslim pane: the prayer card shows its city on a quiet bottom line («مواقيت <city>») instead of the title row.
+
 - Muslim pane: the prayer icon is the original flat sujood drawing again, raised to sit on the text line.
 
 - The main color "gold" is now called "yellow"; the old saved value still works.

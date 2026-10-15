@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { AVATAR_H, CARDS_TOP, FOLDED_H, GAP, TOP_H, TOP_Y, NO_FOLDS, TITLE_HIT_H, cardRects, paneHeight, ATHAN_TOP, ATHKAR_H, ATHKAR_Y, CONTROLS_CY, KBTN_W, KFINISH_W, KROW_GAP, KROW_TOP, OPEN_TOP, PAD, SIDE, PANE_HEIGHT, PRAYER_Y, QURAN_Y, hitAt, hitOfCells, isPaneMessage, keyAct, type Enabled } from '../../src/features/muslim-pane/layout.ts'
+import { AVATAR_H, CARDS_TOP, CITY_H, CITY_TOP, FOLDED_H, GAP, TOP_H, TOP_Y, NO_FOLDS, TITLE_HIT_H, cardRects, paneHeight, ATHAN_H, ATHAN_TOP, ATHKAR_H, ATHKAR_Y, CONTROLS_CY, KBTN_W, KFINISH_W, KROW_GAP, KROW_TOP, OPEN_TOP, PAD, SIDE, PANE_HEIGHT, PRAYER_H, PRAYER_Y, QURAN_Y, hitAt, hitOfCells, isPaneMessage, keyAct, type Enabled } from '../../src/features/muslim-pane/layout.ts'
 
 const ALL: Enabled = { athan: true, quran: true, canPrev: true, canNext: true, athkar: true }
 const W = 360
@@ -12,9 +12,21 @@ test('the cards stack in order and the pane height ends under the folded setting
   expect(CARDS_TOP).toBe(44)
   expect(CARDS_TOP - TOP_Y - TOP_H).toBe(8)
   expect(hitAt(W, W / 2, TOP_Y + TOP_H / 2, ALL)).toBeNull()
-  expect(QURAN_Y).toBeGreaterThan(PRAYER_Y)
+  expect(QURAN_Y).toBe(PRAYER_Y + PRAYER_H + GAP)
   expect(ATHKAR_Y).toBeGreaterThan(QURAN_Y)
   expect(PANE_HEIGHT).toBe(ATHKAR_Y + ATHKAR_H + GAP + FOLDED_H + PAD)
+})
+
+test('the city line reserves fixed space below Athan without a hit target', () => {
+  expect(CITY_TOP).toBe(ATHAN_TOP + ATHAN_H + 4)
+  expect(CITY_H).toBe(16)
+  expect(PRAYER_H).toBe(CITY_TOP + CITY_H + 12)
+  expect(PRAYER_H).toBe(356)
+  for (const x of [PAD + SIDE, W / 2, W - PAD - SIDE]) {
+    for (const y of [CITY_TOP, CITY_TOP + CITY_H / 2, CITY_TOP + CITY_H]) {
+      expect(hitAt(W, x, PRAYER_Y + y, ALL)).toBeNull()
+    }
+  }
 })
 
 test('each control is hit at its center', () => {

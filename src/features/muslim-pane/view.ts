@@ -7,7 +7,7 @@ import { TAJAWAL_FAMILY, tajawalFontFaceCss } from '../../shared/font/index.ts'
 import { accentHex } from '../../shared/color/index.ts'
 import { FEATURE_ICONS } from '../../shared/icon/index.ts'
 import {
-  ATHAN_H, ATHAN_TOP, BAR_TOP, CONTROLS_CY, FIELD_H, HEAD_H, HEAD_TOP, KBTN_W, KROW_H, KROW_TOP, KFINISH_W, KROW_GAP, NX_H, NX_TOP, OPEN_H, OPEN_TOP,
+  ATHAN_H, ATHAN_TOP, BAR_TOP, CITY_H, CITY_TOP, CONTROLS_CY, FIELD_H, HEAD_H, HEAD_TOP, KBTN_W, KROW_H, KROW_TOP, KFINISH_W, KROW_GAP, NX_H, NX_TOP, OPEN_H, OPEN_TOP,
   AVATAR_H, PAD, RECITER_TOP, TOP_H, TOP_Y, ROWS_TOP, ROW_H, SIDE, SURAH_TOP, TIMES_TOP, cardRects, type PaneAct,
 } from './layout.ts'
 import { SETTINGS_TOP, SETTINGS_BODY_TOP, TABS_H, TAB_INSET, categoryTabs, settingsBody, type SettingsTarget } from './settings.ts'
@@ -81,6 +81,7 @@ const CSS = `
 .athan .ic{color:var(--text-2);width:18px;height:18px}
 .athan.hot{background:var(--hover)}
 .athan.off{opacity:.55}
+.prayer-city{position:absolute;left:${SIDE}px;right:${SIDE}px;top:${CITY_TOP}px;height:${CITY_H}px;text-align:center;font-size:12px;color:var(--muted);line-height:1}
 .tog{direction:ltr;position:relative;width:38px;height:22px;border-radius:99px;background:var(--line);flex:none;margin-inline-start:auto}
 .tog.on{background:var(--accent)}
 .tog i{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--on);transition:transform .15s}
@@ -113,7 +114,7 @@ const header = (name: keyof typeof PATHS, title: string, value: string, isFolded
 
 const prayerCard = (m: PaneModel, hover: PaneAct | null): string => {
   const p = m.prayer, r = cardRects(m.folds)
-  if (m.folds.prayer) return `<section class="dcard" style="top:${r.prayerY}px;height:${r.prayerH}px">${header('sujoodreal', 'الصلاة', p.isSet ? escape(p.city) : '', true, hover === 'fold-prayer', true)}</section>`
+  if (m.folds.prayer) return `<section class="dcard" style="top:${r.prayerY}px;height:${r.prayerH}px">${header('sujoodreal', 'الصلاة', '', true, hover === 'fold-prayer')}</section>`
   let body: string
   if (!p.isSet) {
     body = `<div class="note" style="top:${NX_TOP}px;height:${NX_H + 5 * ROW_H + 10}px">Choose a city first: /salah city</div>`
@@ -122,7 +123,8 @@ const prayerCard = (m: PaneModel, hover: PaneAct | null): string => {
     body = `<div class="in nx" style="top:${NX_TOP}px"><div><div class="nx-k ar">الصلاة القادمة</div><div class="nx-n ar">${escape(p.nextName)}</div></div><div class="nx-r"><div class="nx-t ar">${ltr(p.nextTime)}</div><div class="nx-in">${escape(p.until)}</div></div></div>${rows}`
   }
   const athan = `<div class="in athan${hover === 'athan' ? ' hot' : ''}${p.isSet ? '' : ' off'}" style="top:${ATHAN_TOP}px" role="switch" aria-checked="${p.isAthan}" aria-label="Athan">${icon('bell')}<span dir="ltr">Athan</span><span class="tog${p.isAthan ? ' on' : ''}"><i></i></span></div>`
-  return `<section class="dcard" style="top:${r.prayerY}px;height:${r.prayerH}px">${header('sujoodreal', 'الصلاة', p.isSet ? escape(p.city) : '', false, hover === 'fold-prayer', true)}${body}${athan}</section>`
+  const city = p.isSet ? `<div class="prayer-city">مواقيت <bdi>${escape(p.city)}</bdi></div>` : ''
+  return `<section class="dcard" style="top:${r.prayerY}px;height:${r.prayerH}px">${header('sujoodreal', 'الصلاة', '', false, hover === 'fold-prayer')}${body}${athan}${city}</section>`
 }
 
 const quranCard = (m: PaneModel, hover: PaneAct | null): string => {

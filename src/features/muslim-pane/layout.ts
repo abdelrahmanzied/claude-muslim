@@ -30,7 +30,9 @@ export const ROW_H = 32
 export const ROW_COUNT = 5
 export const ATHAN_TOP = ROWS_TOP + ROW_COUNT * ROW_H + 6
 export const ATHAN_H = 40
-export const PRAYER_H = ATHAN_TOP + ATHAN_H + 10
+export const CITY_TOP = ATHAN_TOP + ATHAN_H + 4
+export const CITY_H = 16
+export const PRAYER_H = CITY_TOP + CITY_H + 12
 
 // Quran card, from its top.
 export const FIELD_H = 36

@@ -124,8 +124,8 @@ test('the terminal pane body is text too', { options: { salahPlace: MUNICH } }, 
   expect(await ui.find({ text: /Munich/ })).toBeDefined()
 })
 
-for (const [key, label] of [['muslim-footer-en', '☾ Muslim'], ['muslim-footer-ar', '☾ مسلم']] as const) {
-  test(`the trial footer button ${label} toggles the Muslim pane on desktop`, { options: { salahPlace: MUNICH } }, async ($, on) => {
+for (const [key, label] of [['muslim-footer', '☾ Muslim']] as const) {
+  test(`the footer button ${label} toggles the Muslim pane on desktop`, { options: { salahPlace: MUNICH } }, async ($, on) => {
     const opened = engine(on, 'desktop')
     const panes: { id: string; title: string; isShown: boolean; isPlaced: boolean; isFocused: boolean }[] = []
     const closed: string[] = []
@@ -145,19 +145,18 @@ for (const [key, label] of [['muslim-footer-en', '☾ Muslim'], ['muslim-footer-
   })
 }
 
-test('both trial footer buttons remain before the engine items at narrow widths', { options: { salahPlace: MUNICH } }, async ($, on) => {
+test('the footer button remains before the engine items at narrow widths', { options: { salahPlace: MUNICH } }, async ($, on) => {
   engine(on, 'desktop')
   const narrow = await $.ui.mount({ ...modes('desktop'), viewport: { columns: 10, rows: 30 } })
-  expect((await narrow.find({ type: 'Button', key: 'muslim-footer-en' }))?.props.label).toBe('☾ Muslim')
-  expect((await narrow.find({ type: 'Button', key: 'muslim-footer-ar' }))?.props.label).toBe('☾ مسلم')
+  expect((await narrow.find({ type: 'Button', key: 'muslim-footer' }))?.props.label).toBe('☾ Muslim')
+  expect(await narrow.find({ text: '☾ مسلم' })).toBeUndefined()
   expect(await narrow.find({ text: 'x' })).toBeDefined()
 })
 
-test('the terminal footer gets neither trial button', { options: { salahPlace: MUNICH } }, async ($, on) => {
+test('the terminal footer gets no Muslim button', { options: { salahPlace: MUNICH } }, async ($, on) => {
   engine(on, 'terminal')
   const mounted = await $.ui.mount(modes('terminal'))
-  expect(await mounted.find({ type: 'Button', key: 'muslim-footer-en' })).toBeUndefined()
-  expect(await mounted.find({ type: 'Button', key: 'muslim-footer-ar' })).toBeUndefined()
+  expect(await mounted.find({ type: 'Button', key: 'muslim-footer' })).toBeUndefined()
 })
 
 test('pressing a card title folds it and unfolds it again, kept in the session', { options: { salahPlace: MUNICH } }, async ($, on) => {
