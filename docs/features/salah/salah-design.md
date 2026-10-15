@@ -1,6 +1,6 @@
 # Salah — design
 
-The salah feature's own design. It adds to the shared base in [DESIGN.md](../../../DESIGN.md) and never contradicts it. What the feature does is in [salah spec](spec.md).
+The salah feature's own design. It adds to the shared base in [DESIGN.md](../../../DESIGN.md) and never contradicts it. What the feature does is in [salah spec](salah.md).
 
 ## Visual means
 
@@ -50,7 +50,7 @@ What the user chose:
 | Placement | The prayer line sits in the prompt footer beside the model: plain text, the shared main color (`claude` for orange, light/dark hex otherwise), terminal and desktop alike; no status line. A row of its own above the prompt was dropped because the desktop draws that area as a card |
 | Digits | Arabic-Indic |
 | Countdown | Live `mm:ss` in the footer line inside the countdown window, `☾ العصر ١٩:٤٢` |
-| Thikr | The first phrase of a thikr turn inside the window is «حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د» ([thikr spec](../thikr/spec.md#moments-and-phrases)) |
+| Thikr | The first phrase of a thikr turn inside the window is «حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د» ([thikr spec](../thikr/thikr.md#moments-and-phrases)) |
 | Terminal athan moment | The rising text minaret above |
 | Desktop athan card | A photo-background card above the prompt, as described above |
 

@@ -43,7 +43,7 @@ Every thikr's count comes from the data file only. There is no choice of counts 
 
 Tashkeel follows the shared `/muslim tashkeel` setting (desktop only); in the terminal the athkar go through the shared terminal Arabic path like every feature: no tashkeel, and this terminal's mode from `/muslim terminal-arabic`.
 
-**Terminal:** the style is always Frame, and `/athkar style` changes nothing there. Sky is desktop only; `athkarStyle` applies to the desktop app. The shared main color applies on both. See the [terminal guide](../../terminal.md#athkar-in-the-terminal).
+**Terminal:** the style is always Frame, and `/athkar style` changes nothing there. Sky is desktop only; `athkarStyle` applies to the desktop app. The shared main color applies on both. See the [terminal guide](../../terminal/terminal-arabic.md#athkar-in-the-terminal).
 
 On desktop the athan card uses the same shared card and open size as the athkar band, and takes its place while it shows. The band returns with the reading kept when the athan closes or expires. Terminal behavior is unchanged.
 
@@ -103,4 +103,4 @@ runner and separate drawing path.
 
 ## Design
 
-Looks, size, folding, the finale and the reader's visual means: [athkar design](design.md).
+Looks, size, folding, the finale and the reader's visual means: [athkar design](athkar-design.md).

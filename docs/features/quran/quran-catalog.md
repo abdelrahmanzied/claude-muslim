@@ -68,7 +68,7 @@ Automatically refreshing the support catalog is tracked in [issue #13](https://g
 
 ## Plugin behavior
 
-For the selected recording, unavailable surahs are hidden from the dropdown with one dim unavailable-count note. Whole-surah playback stays whole; supported large surahs use the MP3Quran timing boundaries accepted for v1. Recording selection remains available so a user can choose another reader. Saved unavailable selections are repaired, and navigation and auto-advance skip unavailable surahs without wrapping. Recordings absent from the shipped catalog retain runtime checks and all 114 choices. See [quran spec](spec.md#recording-availability) for the behavior and staleness limits.
+For the selected recording, unavailable surahs are hidden from the dropdown with one dim unavailable-count note. Whole-surah playback stays whole; supported large surahs use the MP3Quran timing boundaries accepted for v1. Recording selection remains available so a user can choose another reader. Saved unavailable selections are repaired, and navigation and auto-advance skip unavailable surahs without wrapping. Recordings absent from the shipped catalog retain runtime checks and all 114 choices. See [quran spec](quran.md#recording-availability) for the behavior and staleness limits.
 
 ## Known source issues and review boundaries
 

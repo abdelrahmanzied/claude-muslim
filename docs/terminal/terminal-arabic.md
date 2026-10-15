@@ -90,4 +90,28 @@ The athkar reader always draws the Frame look in the terminal. The Sky look is d
 - The first-run check survives module reloads because no answer is stored until the user chooses.
 - A changing Arabic line can still be partially repainted incorrectly by Apple Terminal. The plugin API cannot force a complete terminal redraw. Reversed-mode text copied from a terminal is in visual order.
 
-The per-terminal survey UI is specified in [the Arabic check design](features/arabic-fix/design.md). The thikr feature's use is described in [thikr docs](features/thikr/spec.md).
+The per-terminal survey UI is specified in [the Arabic check design](#design). The thikr feature's use is described in [thikr docs](../features/thikr/thikr.md).
+
+## Above-prompt check
+
+The `/muslim terminal-arabic` check is a terminal-only survey above the prompt. Its checks come first, then its design.
+
+### Checks
+
+- The label reads `muslim · Terminal Arabic Setup · Which word is written correctly?`, with the dim hint `Some terminals break Arabic letters apart or reverse them — pick the one you can read.` below it.
+- Three vertical plain Button rows use hotkeys 1–3; each Arabic sample is a `Text` child, and the hint reads `Press 1–3`.
+- The picker preserves the rest of the AbovePrompt band and waits while another survey is active.
+- Selecting a row hides the picker; `/muslim terminal-arabic` opens it again for the active terminal.
+- Desktop shows no picker and replies that the check is terminal-only.
+
+The sample strings, mode order, terminal defaults, and persistence rules belong to the sections above, the single cross-feature reference.
+
+### Design
+
+- **Surface:** terminal `AbovePrompt`; return existing prompt rows alongside the survey.
+- **Header:** `muslim` in the shared main color (`/muslim color`, default Claude orange), followed by ` · Terminal Arabic Setup · Which word is written correctly?`, then a dim hint line `Some terminals break Arabic letters apart or reverse them — pick the one you can read.`.
+- **Rows:** one vertical plain Button per choice, with its digit hotkey; Arabic samples are `Text` children. The choices follow the fixed three-mode order in the shared guide.
+- **Hint:** dim `Press 1–3`.
+- **Desktop:** no survey; `/muslim terminal-arabic` replies that the check is terminal-only.
+
+Visual and command checks live in [Checks](#checks). Shared terminal behavior lives only in the sections above.

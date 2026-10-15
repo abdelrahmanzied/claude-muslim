@@ -49,7 +49,7 @@ Full text with tashkeel: `src/features/thikr/phrases.ts`.
 
 Main-color accents follow the plugin-wide `/muslim color orange | green | gold | blue` setting through `src/shared/color/`, default Claude orange. Other colors stay as they are.
 
-Terminal Arabic uses the shared three-mode behavior, and terminal output always strips tashkeel. The desktop-only tashkeel setting follows `/muslim tashkeel`; `/thikr tashkeel` was replaced by `/muslim tashkeel`. See [the Arabic check](../arabic-fix/spec.md) and the single [terminal Arabic reference](../../terminal.md).
+Terminal Arabic uses the shared three-mode behavior, and terminal output always strips tashkeel. The desktop-only tashkeel setting follows `/muslim tashkeel`; `/thikr tashkeel` was replaced by `/muslim tashkeel`. See [the Arabic check](../../terminal/terminal-arabic.md#checks) and the single [terminal Arabic reference](../../terminal/terminal-arabic.md).
 
 | `/config` field | Command | Default |
 | --- | --- | --- |
@@ -60,7 +60,7 @@ Terminal Arabic uses the shared three-mode behavior, and terminal output always 
 
 `/thikr` alone shows the current settings and help.
 
-Tashkeel is controlled on desktop by [`/muslim tashkeel`](../../terminal.md#tashkeel); terminals always strip it.
+Tashkeel is controlled on desktop by [`/muslim tashkeel`](../../terminal/terminal-arabic.md#tashkeel); terminals always strip it.
 
 ## To verify live
 
@@ -82,7 +82,7 @@ The demo then disarms itself; `/thikr demo` again plays it again. It plays with 
 
 ## Design
 
-Text only, in Claude's font, size and colors: [thikr design](design.md).
+Text only, in Claude's font, size and colors: [thikr design](thikr-design.md).
 
 ## Files
 
