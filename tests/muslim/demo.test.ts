@@ -12,5 +12,5 @@ test('signals start shortly after the reply; each following demo starts a short 
 })
 
 test('the reply names every demo and explains the transcript and token cost', () => {
-  expect(demoReply()).toBe('**Muslim demo:** playing. Thikr (a real turn, about 30 s), then athkar, then /salah demo (the athan moment). The thikr part uses tokens and leaves a message in the transcript.')
+  expect(demoReply()).toBe('**Muslim demo:** playing. Thikr (a real turn, about 30 s), then athkar, then /salah demo (athan and athkar after salah). The thikr part uses tokens and leaves a message in the transcript.')
 })

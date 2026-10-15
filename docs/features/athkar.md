@@ -11,7 +11,7 @@ The third set, **Athkar after salah** (أَذْكَارُ بَعْدَ الصَ�
 - With a known prayer, use that prayer's list at any time today. Fajr and Maghrib have the three Quls three times each and hisn:72 ten times; Fajr also has hisn:73. With no known prayer use the general list: items without `only`, at their base counts.
 - The day contains **one** `afterSalah` reading slot, with `pray` and `at` (`null` for a general reading). A new prayer timestamp replaces it with a fresh, visible reading. There is no history or per-prayer completion ledger. Losing prayer times selects a fresh general slot. The existing 05:00 athkar day boundary resets all three slots; older saved days missing the third slot load it empty.
 - Without a manual set choice, offer after-salah from the prayer timestamp plus the shared athan duration: `IN_MS` in `src/shared/pray/line.ts` (`CARD_MS` in salah), currently 15 minutes. This is the same deadline whether the desktop card stays open, is closed with ×, or never appears (terminal, athan off, show off, late session or missing photo). A one-shot start timer redraws at that deadline; there is no offer expiry timer.
-- On the desktop athan card, **ابدأ أذكار بعد الصلاة** closes the athan moment immediately and starts this prayer's reader lit and opened, skipping the cover and ready to count. Salah writes `salahAfterSalahStart: { pray, at } | null`; athkar reads it and accepts only a match for `salahLast`. It resumes an unfinished slot, unhides it, and restarts a completed slot. This explicit action replaces any manual set choice. The button is absent with athkar off and during disposable demos.
+- On the desktop athan card, **ابدأ أذكار بعد الصلاة** closes the athan moment immediately and starts this prayer's reader lit and opened, skipping the cover and ready to count. Salah writes `salahAfterSalahStart: { pray, at } | null`; athkar reads it and accepts only a match for `salahLast`. It resumes an unfinished slot, unhides it, and restarts a completed slot. This explicit action replaces any manual set choice. The real button is absent with athkar off; the demo always includes it.
 - Once offered, the reader stays until done, hidden with ×, or replaced by the next obligatory prayer (and the normal day boundary still applies). Done or × returns immediately to morning/evening. The next prayer resets the one slot and begins the same delay again; an earlier button request cannot start it early. Manual after-salah selection also ends on that new prayer. Explicit morning/evening choices retain their existing session hold. Without prayer times there is no automatic offer.
 - Counting, undo, navigation, progress, hide, reset, done hint and status use the same paths for all three sets. The sky follows the current hour. The desktop athan card keeps precedence.
 
@@ -53,6 +53,10 @@ Not settable: the font and the text size. The mod API sets neither.
 
 The shared `/muslim demo` connects a transient signal to this same feature-local starter through a demo-only setup hook. It passes no engine handle across files and writes no state. Started that way, it reports its end after its folded scene, so the next demo follows it.
 
+The `/salah demo` continuation uses these same builders and `demoStep`, with the real `listFor('afterSalah', reading)` Fajr list in a disposable reading (`pray: 'fajr'`). It shows eight readings in order: `66-istighfar` (1.2s, counts every 200ms), `66-salam` (1.2s, 400ms), `69-tasbih` (3.6s, 100ms to 33), each of `70-ikhlas`, `70-falaq`, `70-nas` (1.2s, 200ms to three), `72` (1.6s, 100ms to ten), and `73` (1.2s, 400ms). It skips the intervening long passages using the existing disposable-counts technique. Reading totals 12.4s, followed by the real `FINALE_MS` (3.2s) and a 1.2s folded done row: 16.8s total. The sky follows the current hour and uses the configured accent and desktop style; terminal uses Frame. There is no new drawing path, command or saved state.
+
+A demo-only command hook connects the `afterSalah` starter on the shared transient bus for both `/salah demo` and `/muslim demo`. Salah's start button, × or expiry closes its disposable athan and starts this continuation immediately. Athkar calls the supplied completion callback only after the folded done row, allowing salah to report its end to `/muslim demo`. A real athan waits until the continuation finishes, then returns untouched. Restarting the salah demo cancels the previous continuation. Demo input targets `athkar-demo` and cannot change the real reading, store or signals.
+
 `/athkar demo` uses the current desktop style, or Frame in the terminal.
 `/athkar demo sky` is desktop only; the terminal replies that Sky is desktop
 only. `/athkar demo frame` plays on either surface. Sky has eight scenes in
@@ -90,7 +94,7 @@ Desktop celebrates with falling stars and the rising dua for the real
 
 Another demo command restarts playback. Input, including ×, has no handler
 and cannot change the real reading. The demo has its own Client key and
-render hook; it shows even when athkar is hidden, done or switched off. The
+render hook; it shows even when athkar is hidden, done or switched off. For standalone athkar previews, the
 desktop athan card still takes precedence. The demo never writes settings,
 the store or state, and never changes the real band's view or timers. When
 it ends, the real band redraws from its own unchanged logic. Pure scenes live

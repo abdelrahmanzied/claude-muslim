@@ -57,6 +57,10 @@ On every sky the pill is the main color with a white number. Sunrise takes dark 
 
 The shared `/muslim demo` connects a transient signal to this same feature-local starter through a demo-only setup hook. It passes no engine handle across files and writes no state. Started that way, it reports its end after its folded scene, so the next demo follows it.
 
+The `/salah demo` continuation uses these same builders and `demoStep`, with the real `listFor('afterSalah', reading)` Fajr list in a disposable reading (`pray: 'fajr'`). It shows eight readings in order: `66-istighfar` (1.2s, counts every 200ms), `66-salam` (1.2s, 400ms), `69-tasbih` (3.6s, 100ms to 33), each of `70-ikhlas`, `70-falaq`, `70-nas` (1.2s, 200ms to three), `72` (1.6s, 100ms to ten), and `73` (1.2s, 400ms). It skips the intervening long passages using the existing disposable-counts technique. Reading totals 12.4s, followed by the real `FINALE_MS` (3.2s) and a 1.2s folded done row: 16.8s total. The sky follows the current hour and uses the configured accent and desktop style; terminal uses Frame. There is no new drawing path, command or saved state.
+
+A demo-only command hook connects the `afterSalah` starter on the shared transient bus for both `/salah demo` and `/muslim demo`. Salah's start button, × or expiry closes its disposable athan and starts this continuation immediately. Athkar calls the supplied completion callback only after the folded done row, allowing salah to report its end to `/muslim demo`. A real athan waits until the continuation finishes, then returns untouched. Restarting the salah demo cancels the previous continuation. Demo input targets `athkar-demo` and cannot change the real reading, store or signals.
+
 `/athkar demo [sky|frame]` plays the real builders. Sky has eight scenes
 (33.2 seconds), with each of the six skies on a distinct reading scene:
 
@@ -100,7 +104,7 @@ Sky is desktop only; no-word playback uses the current style on desktop and
 Frame in the terminal. Another demo command restarts playback; there is no
 input handler, including for ×. It uses its own `athkar-demo` Client and a
 separate render hook even with athkar off; the real render only yields its
-place during playback. The desktop athan card keeps precedence. The demo
+place during playback. For standalone athkar previews, the desktop athan card keeps precedence. The demo
 never changes the real reading, view or timers and never writes settings,
 store or state. At the end the real band redraws normally. Scenes and timings
 are pure in `demo.ts`; marked blocks in `install.tsx` hold only the demo path.

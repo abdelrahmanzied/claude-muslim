@@ -19,11 +19,11 @@ import type { Style } from './look.ts'
 
 // DEMO BEGIN: imports and transient runner (no saved state or real view).
 import type { Accent } from '../../shared/color/index.ts'
-import { demoDuration, demoReply, demoStep, DEMO_TICK_MS } from './demo.ts'
+import { demoDuration, demoReply, demoStep, DEMO_TICK_MS, type DemoSet } from './demo.ts'
 import { connectDemo, doneDemo } from '../../shared/demo/signal.ts'
 
 // shared: started by /muslim demo, which waits for this demo's end.
-let demo: { style: Style; accent: Accent; startedAt: number; shared: boolean; timer?: { cancel: () => void } } | undefined
+let demo: { style: Style; accent: Accent; startedAt: number; shared: boolean; set: DemoSet; finished?: () => void; timer?: { cancel: () => void } } | undefined
 const demoArabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
 
 const tickDemo = async ($: EngineInterface) => {
@@ -31,23 +31,37 @@ const tickDemo = async ($: EngineInterface) => {
   if (!playing) return
   const now = await $.clock.now()
   if (demo !== playing) return
-  if (now - playing.startedAt >= demoDuration(playing.style, FINALE_MS)) {
+  if (now - playing.startedAt >= demoDuration(playing.style, FINALE_MS, playing.set)) {
     playing.timer?.cancel()
     demo = undefined
     $.ui.invalidate('ui.render')
+    playing.finished?.()
     if (playing.shared) doneDemo('athkar')
     return
   }
   $.ui.invalidate('ui.render')
 }
 
-const playDemo = async ($: EngineInterface, style: Style, accent: Accent, shared = false) => {
+const playDemo = async ($: EngineInterface, style: Style, accent: Accent, shared = false, set: DemoSet = 'daily', finished?: () => void) => {
   demo?.timer?.cancel()
-  demo = { style, accent, startedAt: await $.clock.now(), shared }
+  demo?.finished?.()
+  demo = { style, accent, startedAt: await $.clock.now(), shared, set, finished }
   demo.timer = $.clock.every(DEMO_TICK_MS, () => void tickDemo($))
   $.ui.invalidate('ui.render')
 
-  return demoReply(style, FINALE_MS)
+  return set === 'daily' ? demoReply(style, FINALE_MS) : 'Athkar after salah demo'
+}
+
+// Both commands connect this starter with this file's own engine handle.
+const connectAfterSalahDemo = ($: EngineInterface, options: Options) => {
+  connectDemo('afterSalah', async finished => playDemo($, await $.session.surface() === 'terminal' ? 'frame' : options.athkarStyle, options.color, false, 'afterSalah', finished), () => {
+    if (demo?.set !== 'afterSalah') return
+    const playing = demo
+    playing.timer?.cancel()
+    demo = undefined
+    playing.finished?.()
+    $.ui.invalidate('ui.render')
+  })
 }
 
 // DEMO END
@@ -334,7 +348,13 @@ export const install = (on: On, options: Options) => {
 
   // DEMO BEGIN: a separate drawing path, registered even with athkar off.
   on('command.run', { command: 'muslim', args: /^\s*demo\s*$/ }, ($, e, next) => {
+    connectAfterSalahDemo($, options)
     connectDemo('athkar', async () => playDemo($, await $.session.surface() === 'terminal' ? 'frame' : options.athkarStyle, options.color, true))
+    return next(e)
+  })
+
+  on('command.run', { command: 'salah', args: /^\s*demo(?:\s|$)/ }, ($, e, next) => {
+    connectAfterSalahDemo($, options)
     return next(e)
   })
 
@@ -344,10 +364,10 @@ export const install = (on: On, options: Options) => {
     const playing = demo
     if (!playing || e.props.hasSurvey || (playing.style === 'sky' && e.surface !== 'desktop')) return theirs
     const now = await $.clock.now()
-    const scene = demoStep(playing.style, playing.accent, now - playing.startedAt, FINALE_MS)
+    const scene = demoStep(playing.style, playing.accent, now - playing.startedAt, FINALE_MS, playing.set, skyAt(hourOf(new Date(now))))
     if (!scene) return theirs
     const isPicture = e.surface === 'desktop'
-    if (isPicture) {
+    if (isPicture && playing.set !== 'afterSalah') {
       const athan = await read($, athanCard)
       if (athan && athan.until > now) return theirs
     }

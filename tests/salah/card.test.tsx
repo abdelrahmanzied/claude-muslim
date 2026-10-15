@@ -7,6 +7,7 @@ import { FRAME_MS, HOLD_MS, ROWS_COUNT, TOTAL_MS } from '../../src/features/sala
 import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
 import { athanText } from '../../src/shared/pray/line.ts'
 import { salahHelp } from '../../src/features/salah/help.ts'
+import { demoDuration as afterDuration } from '../../src/features/athkar/demo.ts'
 import { DEMO_FOLDED_MS, DEMO_OPEN_MS } from '../../src/features/salah/demo.ts'
 
 const MUNICH = { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berlin; DE' }
@@ -27,12 +28,14 @@ const band = (surface: 'terminal' | 'desktop') => ({
   props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} },
 })
 
-const engineBand = (on: On) =>
-  on('ui.render', { component: 'AbovePrompt' }, async ($, e) => {
+const engineBand = (on: On, surface: 'desktop' | 'terminal' = 'desktop') => {
+  on('session.surface', async () => ({ value: surface }))
+  return on('ui.render', { component: 'AbovePrompt' }, async ($, e) => {
     const { Box } = $.ui.resolve(e)
 
     return <Box />
   })
+}
 
 const props = (photo: string, pray: 'maghrib' | 'fajr', time: string) => ({ isActive: true, isFolded: false, now: 0, pray, time, photo, width: 800, card: { ch: 8.4, lh: 20 } })
 
@@ -57,7 +60,8 @@ test('the card with the real photo (about 40 KB of base64) stays far under the S
 
 test('/salah demo works without a city', { options: { athkar: false } }, async ($, on) => {
   mock.clock(on, { now: NOW })
-  expect((await $.command.run(run('demo'))).text).toBe('**Salah demo:** athan · Fajr 05:00')
+  on('session.surface', async () => ({ value: 'desktop' }))
+  expect((await $.command.run(run('demo'))).text).toBe('**Salah demo:** athan · Fajr 05:00 · athkar after salah')
 })
 
 test('/salah athan test is an unknown word and answers with help', { options: MUNICH }, async $ => {
@@ -101,9 +105,10 @@ test('/salah demo answers without changing settings, the store or the shown-once
 
     return next(e)
   })
+  on('session.surface', async () => ({ value: 'desktop' }))
   const ran = await $.command.run(run('demo'))
 
-  expect(ran.text).toBe('**Salah demo:** athan · Fajr 05:00')
+  expect(ran.text).toBe('**Salah demo:** athan · Fajr 05:00 · athkar after salah')
   expect(written).toEqual([])
 })
 
@@ -127,18 +132,18 @@ test('on the desktop the demo shows the shared card, never the minaret; a click 
   expect(await desktop.find({ in: 'salah-athan', type: 'Svg' })).toBeDefined()
   await desktop.post({ act: 'pointer', button: 'left', x: 2, y: 1, columns: 100, rows: 5 }, { in: 'salah-athan' })
   expect(await desktop.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
-  expect(await desktop.find({ in: 'athkar', type: 'Svg' })).toBeDefined()
-  expect(await desktop.find({ type: 'Svg' })).toBeUndefined()
+  expect(await desktop.find({ in: 'athkar-demo', type: 'Svg' })).toBeDefined()
+  expect(await desktop.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
 })
 
-test('the demo hovers the shared × and preserves the saved reading', { options: MUNICH }, async ($, on) => {
+test('the demo hovers the shared × and preserves the saved reading', { options: MUNICH, timeoutMs: 15000 }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   const clock = mock.clock(on, { now: NOW })
   engineBand(on)
   on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
   const desktop = await $.ui.mount(band('desktop'))
-  await desktop.key({ key: 'return', in: 'athkar' })
+  await $.command.run({ ...run('morning'), command: 'athkar' })
   await desktop.key({ key: 'return', in: 'athkar' })
   await desktop.key({ key: 'space', in: 'athkar' })
   const before = (await desktop.find({ type: 'Client', key: 'athkar' }))?.props.props
@@ -156,12 +161,14 @@ test('the demo hovers the shared × and preserves the saved reading', { options:
   expect(await terminal.find({ text: '▐███▌' })).toBeDefined()
   await desktop.pointer({ type: 'down', x: 2, y: 1, button: 'left', in: 'salah-athan' })
   expect(await desktop.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
-  expect((await desktop.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ phase: 'reading', count: 1 })
+  expect((await desktop.find({ type: 'Client', key: 'athkar-demo' }))?.props.props).toMatchObject({ period: 'afterSalah', phase: 'reading', count: 0 })
+  await clock.advance(afterDuration('sky', 3200, 'afterSalah'))
+  expect((await desktop.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ phase: 'reading' })
   // Let the counted thikr advance before checking the expiry path as well.
   await clock.advance(1000)
   const resumed = (await desktop.find({ type: 'Client', key: 'athkar' }))?.props.props as { thikrId: string; count: number }
   await $.command.run(run('demo'))
-  await clock.advance(DEMO_OPEN_MS + DEMO_FOLDED_MS)
+  await clock.advance(DEMO_OPEN_MS + DEMO_FOLDED_MS + afterDuration('sky', 3200, 'afterSalah'))
   expect(await desktop.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
   expect((await desktop.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ thikrId: resumed.thikrId, count: resumed.count })
   await desktop.unmount()
@@ -172,7 +179,7 @@ test('on the terminal the demo plays the minaret only, no card', { options: MUNI
   mock.env(on, {})
   mock.store(on)
   mock.clock(on, { now: NOW })
-  engineBand(on)
+  engineBand(on, 'terminal')
   const terminal = await $.ui.mount(band('terminal'))
   await $.command.run(run('demo'))
 
@@ -186,7 +193,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
     mock.env(on, {})
     mock.store(on)
     const clock = mock.clock(on, { now: NOW })
-    engineBand(on)
+    engineBand(on, surface)
     on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
     await $.command.run(run('demo'))
     const mounted = await $.ui.mount(band(surface))
@@ -346,7 +353,7 @@ test('the desktop demo opens, folds after DEMO_OPEN_MS, and is gone DEMO_FOLDED_
   expect(Number((await picture())?.props.height)).toBe(REST_PX + 20)
   await clock.advance(DEMO_FOLDED_MS)
   expect(await desktop.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
-  expect(await desktop.find({ type: 'Client', key: 'athkar' })).toBeDefined()
+  expect(await desktop.find({ type: 'Client', key: 'athkar-demo' })).toBeDefined()
 })
 
 for (const ending of ['close', 'expire'] as const) {
@@ -354,7 +361,7 @@ for (const ending of ['close', 'expire'] as const) {
     mock.env(on, { TERM_PROGRAM: 'Apple_Terminal' })
     mock.store(on, { arabicTerminals: { 'Apple_Terminal': 'reversed' } })
     const clock = mock.clock(on, { now: NOW })
-    engineBand(on)
+    engineBand(on, 'terminal')
     const cleared: string[] = []
     on('state.set', async (_$, e, next) => {
       if (e.value === null) cleared.push(e.key)
@@ -427,7 +434,7 @@ test('terminal × during the rise cancels later frames and folds', { options: MU
   mock.env(on, {})
   mock.store(on)
   const clock = mock.clock(on, { now: NOW })
-  engineBand(on)
+  engineBand(on, 'terminal')
   await $.command.run(run('demo'))
   const terminal = await $.ui.mount(band('terminal'))
   await terminal.press({ key: 'salah-athan-close' })
@@ -466,7 +473,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
       mock.env(on, {})
       const clock = mock.clock(on, { now: NOW })
       on('store.get', async (_$, e) => ({ value: e.key === 'salahSetupLater' ? true : { unknown: 'plain' } }))
-      engineBand(on)
+      engineBand(on, surface)
       on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
       const realCard = { pray: 'asr', time: '15:59', isFolded: true, foldsAt: NOW - 1, until: NOW + CARD_MS }
       const realMinaret = { pray: 'asr', frame: 1, isFolded: true, startedAt: NOW - TOTAL_MS, foldsAt: NOW - 1, until: NOW + CARD_MS }
@@ -492,7 +499,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
         ? String((await ui.find({ in: 'salah-athan', type: 'Svg' }))?.props.source)
         : JSON.stringify(await ui.findAll({ type: 'Text' }))
       expect(await shown()).toContain('حان وقت صلاة العصر')
-      expect((await $.command.run(run('demo'))).text).toBe('**Salah demo:** athan · Fajr 05:00')
+      expect((await $.command.run(run('demo'))).text).toBe('**Salah demo:** athan · Fajr 05:00 · athkar after salah')
       await clock.advance(TOTAL_MS)
       expect(await shown()).toContain('حان وقت صلاة الفجر')
       if (surface === 'desktop') expect(await shown()).toContain('٠٥:٠٠')
@@ -507,6 +514,8 @@ for (const surface of ['desktop', 'terminal'] as const) {
         if (surface === 'desktop') await ui.post({ act: 'hide' }, { in: 'salah-athan' })
         else await ui.press({ key: 'salah-athan-close' })
       } else await clock.advance((surface === 'desktop' ? DEMO_OPEN_MS : TOTAL_MS) + DEMO_FOLDED_MS - TOTAL_MS)
+      expect(await ui.find({ type: 'Client', key: 'athkar-demo' })).toBeDefined()
+      await clock.advance(afterDuration('sky', 3200, 'afterSalah'))
       expect(await shown()).toContain('حان وقت صلاة العصر')
       expect(seed).toEqual({ salahCard: realCard, salahMinaret: realMinaret })
       expect(written).toEqual([])

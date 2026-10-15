@@ -11,7 +11,7 @@ import { helpHint } from '../../table.ts'
 import { salahHelp } from './help.ts'
 // DEMO BEGIN
 import { demoMoment, demoState } from './demo.ts'
-import { connectDemo, doneDemo } from '../../shared/demo/signal.ts'
+import { cancelDemo, connectDemo, doneDemo, startDemo } from '../../shared/demo/signal.ts'
 // DEMO END
 import { momentState } from './moment.ts'
 import { guessPlace, systemTimeZone } from './location.ts'
@@ -295,29 +295,39 @@ const readPhoto = async ($: EngineInterface): Promise<string | undefined> => {
 
 // DEMO BEGIN: disposable moments; never write the real card, minaret or timers.
 // shared: started by /muslim demo, which waits for this demo's end.
-let demo: (ReturnType<typeof demoState> & { timers: { cancel: () => void }[]; shared: boolean }) | undefined
-const demoCardAt = (now: number) => demo && demo.card.until > now ? demo.card : undefined
-const demoMinaretAt = (now: number) => demo && demo.minaret.until > now ? demo.minaret : undefined
+let demo: (ReturnType<typeof demoState> & { timers: { cancel: () => void }[]; shared: boolean; stage: 'athan' | 'afterSalah'; until: number }) | undefined
+const demoCardAt = (now: number) => demo?.stage === 'athan' && demo.card.until > now ? demo.card : undefined
+const demoMinaretAt = (now: number) => demo?.stage === 'athan' && demo.minaret.until > now ? demo.minaret : undefined
 
-const closeDemo = ($: EngineInterface) => {
-  const closed = demo
-  closed?.timers.forEach(timer => timer.cancel())
+const finishDemo = ($: EngineInterface, playing: NonNullable<typeof demo>) => {
+  if (demo !== playing) return
   demo = undefined
   $.ui.invalidate('ui.render')
-  if (closed?.shared) doneDemo('salah')
+  if (playing.shared) doneDemo('salah')
+}
+const closeDemo = async ($: EngineInterface) => {
+  const closed = demo
+  if (!closed || closed.stage !== 'athan') return
+  closed.timers.forEach(timer => timer.cancel())
+  closed.stage = 'afterSalah'
+  await startDemo('afterSalah', () => finishDemo($, closed))
+  $.ui.invalidate('ui.render')
 }
 const tickDemo = async ($: EngineInterface) => {
   const playing = demo
   if (!playing) return
   const now = await $.clock.now()
   if (demo !== playing) return
-  if (now >= Math.max(playing.card.until, playing.minaret.until)) closeDemo($)
+  if (now >= playing.until) await closeDemo($)
   else $.ui.invalidate('ui.render')
 }
 const playDemo = async ($: EngineInterface, shared = false) => {
   demo?.timers.forEach(timer => timer.cancel())
+  cancelDemo('afterSalah')
   const now = await $.clock.now()
-  const playing = { ...demoState(now), timers: [] as { cancel: () => void }[], shared }
+  const moment = demoState(now)
+  const until = await $.session.surface() === 'terminal' ? moment.minaret.until : moment.card.until
+  const playing = { ...moment, timers: [] as { cancel: () => void }[], shared, stage: 'athan' as const, until }
   demo = playing
   playing.timers.push($.clock.every(FRAME_MS, () => void tickDemo($)))
   // Exact stage boundaries alongside the rise's regular redraws.
@@ -457,22 +467,23 @@ export const install = (on: On, options: Options) => {
     return { text: '' }
   })
   on('ui.press', { plugin: 'muslim', element: 'salah-athan-close' }, async ($, e, next) => {
-    if (!demo || !demoMinaretAt(await $.clock.now())) return next(e)
-    closeDemo($)
+    if (!demo) return next(e)
+    await closeDemo($)
     return { element: e.element }
   })
   on('ui.message', { element: 'salah-athan' }, async ($, e, next) => {
-    if (!demo || !demoCardAt(await $.clock.now())) return next(e)
+    if (!demo) return next(e)
+    if (demo.stage !== 'athan') return {}
     const m = e.data
     if (!isCardMessage(m)) return {}
     if (m.act === 'size') athan.region = { columns: m.columns, rows: m.rows }
     const columns = m.act === 'pointer' ? (m.columns ?? athan.region.columns) : 0
     const rows = m.act === 'pointer' ? (m.rows ?? athan.region.rows) : 0
-    if (m.act === 'hide' || (m.act === 'pointer' && m.button === 'left' && athan.props !== undefined && columns > 0 && rows > 0 && isOnClose(athanFrame(athan.props, columns), m.x, m.y, columns, rows))) closeDemo($)
+    if (m.act === 'hide' || (m.act === 'pointer' && m.button === 'left' && athan.props !== undefined && columns > 0 && rows > 0 && (isOnClose(athanFrame(athan.props, columns), m.x, m.y, columns, rows) || isOnStart(athan.props, m.x, m.y, columns, rows)))) await closeDemo($)
     return {}
   })
   on('ui.focus', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (demo && demoCardAt(await $.clock.now())) return {}
+    if (demo) return {}
     return next(e)
   })
   // DEMO END
@@ -580,6 +591,7 @@ export const install = (on: On, options: Options) => {
   // The terminal rises, folds to one line, then expires with the moment.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)
+    if (demo?.stage === 'afterSalah') return theirs
     const playing = (demo && demoMinaretAt(await $.clock.now())) ?? await read($, minaret)
     if (!playing || e.props.hasSurvey || e.surface === 'desktop') return theirs
     const { Box, Button, Text } = $.ui.resolve(e)
@@ -620,6 +632,7 @@ export const install = (on: On, options: Options) => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)
     if (e.surface !== 'desktop' || e.props.hasSurvey) return theirs
+    if (demo?.stage === 'afterSalah') return theirs
     const shown = (demo && demoCardAt(await $.clock.now())) ?? await read($, card)
     if (!shown) return theirs
     const now = await $.clock.now()
@@ -628,7 +641,7 @@ export const install = (on: On, options: Options) => {
     if (!photo.base64) return theirs
     const { Box, Client } = $.ui.resolve(e)
     const theme = (await $.config.list().catch(() => [])).find(row => row.key === 'theme')
-    const props = { canStart: options.athkar && !demo, accent: options.color, isDark: isDarkTheme(theme?.value), isActive: true, isFolded: cardIsFolded(shown, now), now, pray: shown.pray, time: shown.time, photo: photo.base64, width: Math.round(e.props.bodyColumns * CELL_PX), card: { ch: CELL_PX, lh: LINE_PX } }
+    const props = { canStart: !!demo || options.athkar, accent: options.color, isDark: isDarkTheme(theme?.value), isActive: true, isFolded: cardIsFolded(shown, now), now, pray: shown.pray, time: shown.time, photo: photo.base64, width: Math.round(e.props.bodyColumns * CELL_PX), card: { ch: CELL_PX, lh: LINE_PX } }
     athan.props = props
 
     return (

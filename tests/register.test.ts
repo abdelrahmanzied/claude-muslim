@@ -31,7 +31,7 @@ test('/muslim help shows every feature\'s table; with a feature, only its own', 
   expect(all).toContain('| `/thikr speed` | How long each phrase stays |')
   expect(all).toContain('/salah city')
   expect(all).toContain('| `/muslim terminal-arabic` |')
-  expect(all).toContain('| `/muslim demo` | Play thikr, athkar and /salah demo (the athan moment) in order; thikr uses tokens and leaves a message in the transcript | — |')
+  expect(all).toContain('| `/muslim demo` | Play thikr, athkar and /salah demo (athan and athkar after salah) in order; thikr uses tokens and leaves a message in the transcript | — |')
   expect(all).toContain('| `/muslim tashkeel` | Arabic diacritics on desktop; the terminal never shows them | `on` (default) · `off` |')
   expect((await $.command.run(muslim('help terminal-arabic'))).text).toContain('| `/muslim terminal-arabic` | Choose how Arabic shows in this terminal, for every feature | — |')
   expect(salah?.split('\n')[0]).toBe('**Muslim › Salah › Help**')
