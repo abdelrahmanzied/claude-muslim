@@ -1,4 +1,5 @@
-import type { On } from 'claude-code'
+import { fixtureCatalog } from '../quran/fixtures/catalog.ts'
+import type { On, PaneOpenArgs, UiOpenResult } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 import { cardRects, ATHAN_TOP, ATHKAR_Y, CONTROLS_CY, KROW_TOP, OPEN_TOP, PANE_HEIGHT, PRAYER_Y, QURAN_Y } from '../../src/features/muslim-pane/layout.ts'
 import type { PaneModel } from '../../src/features/muslim-pane/model.ts'
@@ -8,16 +9,18 @@ const NOON = Date.parse('2026-10-10T10:00:00Z')
 
 const pane = (surface: 'desktop' | 'terminal') => ({ plugin: 'muslim', component: 'Pane' as const, requestId: 'muslim', surface, props: { title: 'Muslim', isFocused: false, bodyColumns: 50, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 40 }, view: {} } })
 // Stands for the engine's own band and mode labels beneath the plugin, so the features connect as in a session.
-const engine = (on: On, surface: 'desktop' | 'terminal') => {
+const engine = (on: On, surface: 'desktop' | 'terminal', open?: (args: PaneOpenArgs) => UiOpenResult, entries: Record<string, unknown> = {}) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, entries)
   mock.clock(on, { now: NOON })
   on('session.surface', async () => ({ value: surface }))
   on('config.list', async () => ({ value: [] }))
   on('ui.render', { component: 'AbovePrompt' }, async ($, e) => { const { Box } = $.ui.resolve(e); return <Box /> })
   on('ui.render', { component: 'SessionMode' }, async ($, e) => { const { Text } = $.ui.resolve(e); return <Text>x</Text> })
-  const opened: { id: string; title?: string }[] = []
-  on('ui.open', async (_$, e) => { opened.push({ id: e.id, title: e.title }); return { value: { isPlaced: true } } })
+  on('ui.render', { component: 'Pane', requestId: 'muslim' }, async ($, e) => { const { Box } = $.ui.resolve(e); return <Box /> })
+  on('ui.message', { element: 'muslim-pane' }, async () => ({}))
+  const opened: { id: string; title?: string; focus?: true }[] = []
+  on('ui.open', async (_$, e) => { opened.push({ id: e.id, title: e.title, ...(e.focus ? { focus: e.focus } : {}) }); return { value: open?.(e) ?? { isPlaced: true } } })
   return opened
 }
 const band = (surface: 'desktop' | 'terminal') => ({ plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'band', props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} } })
@@ -62,8 +65,9 @@ test('the athan row changes the salah setting itself', { options: { salahPlace: 
   expect(sets).toEqual([{ key: 'muslim.salahAthan', value: false }])
 })
 
-test('the player controls say so when the Quran is not ready, and Open goes to the athkar reader or its note', { options: { salahPlace: MUNICH } }, async ($, on) => {
-  engine(on, 'desktop')
+test('Open full player works before the footer or catalog has loaded; unavailable controls remain inactive', { options: { salahPlace: MUNICH } }, async ($, on) => {
+  const opened = engine(on, 'desktop')
+  on('http.fetch', async () => ({ value: { ok: false, status: 503, headers: {}, text: '' } }))
   const toasts: string[] = []
   on('ui.toast', async (_$, e) => { toasts.push(e.text); return { value: undefined } })
   const ui = await $.ui.mount(pane('desktop'))
@@ -72,19 +76,20 @@ test('the player controls say so when the Quran is not ready, and Open goes to t
     const fine = { x: 25, y: y * 40 / PANE_HEIGHT }
     await ui.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: Math.floor(fine.x), y: Math.floor(fine.y), fine })
   }
-  // Quran not connected: the toggle is not a target, the full-player button is, and tells.
+  // No footer draw or catalog: playback is inactive, navigation still works.
   await click(QURAN_Y + CONTROLS_CY)
   expect(toasts).toEqual([])
   await click(QURAN_Y + OPEN_TOP + 15)
-  expect(toasts).toEqual(['Quran is not ready yet. /quran'])
+  expect(opened).toEqual([{ id: 'quran', title: 'القرآن الكريم', focus: true }])
+  expect(toasts).toEqual([])
   // Athkar not connected: its button is not a target.
   await click(ATHKAR_Y + KROW_TOP + 18)
-  expect(toasts).toHaveLength(1)
+  expect(toasts).toHaveLength(0)
 })
 
 test('with the features drawn, Quran Open opens the Quran pane and athkar Open lights the reader', { options: { salahPlace: MUNICH } }, async ($, on) => {
-  const opened = engine(on, 'desktop')
-  on('store.get', { key: 'quran.catalog' }, async () => ({ value: undefined }))
+  const opened = engine(on, 'desktop', undefined, { 'quran.catalog': { ...fixtureCatalog, fetchedAt: NOON } })
+  on('http.fetch', { init: { method: 'HEAD' } }, async () => ({ value: { ok: true, status: 200, headers: { 'content-length': '1000000' }, text: '' } }))
   await $.ui.mount(modes('desktop'))
   await $.ui.mount(band('desktop'))
   const ui = await $.ui.mount(pane('desktop'))
@@ -162,4 +167,65 @@ test('pressing a card title folds it and unfolds it again, kept in the session',
   const r = cardRects((await model()).folds)
   await click(r.prayerY + 20, r.height)
   expect((await model()).folds.prayer).toBe(false)
+})
+
+// Desktop's dock owns all mod-pane tabs. The test observes API requests;
+// the native host's tab activation and painting still need a live check.
+for (const alreadyOpen of [false, true]) test(`Open full player requests the Quran tab in front (${alreadyOpen ? 'existing tab' : 'first open'}) with a coarse pointer`, async ($, on) => {
+  const opened = engine(on, 'desktop', undefined, { 'quran.catalog': { ...fixtureCatalog, fetchedAt: NOON } })
+  const panes = [
+    { id: 'muslim', title: 'Muslim', isPlaced: true, isShown: true, isFocused: true },
+    ...(alreadyOpen ? [{ id: 'quran', title: 'القرآن الكريم', isPlaced: true, isShown: false, isFocused: false }] : []),
+  ]
+  on('ui.panes', async () => ({ value: panes }))
+  on('http.fetch', { init: { method: 'HEAD' } }, async () => ({ value: { ok: true, status: 200, headers: { 'content-length': '1000000' }, text: '' } }))
+  const closed: string[] = []
+  on('ui.close', async (_$, e) => { closed.push(e.id); return { value: undefined } })
+  const ui = await $.ui.mount(pane('desktop'))
+  await ui.resize({ columns: 50, rows: 40, in: 'muslim-pane' })
+  const click = () => ui.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: 25, y: Math.floor((QURAN_Y + OPEN_TOP + 21) * 40 / PANE_HEIGHT) })
+  await click()
+  await click()
+  expect(opened).toEqual([
+    { id: 'quran', title: 'القرآن الكريم', focus: true },
+    { id: 'quran', title: 'القرآن الكريم', focus: true },
+  ])
+  expect(closed).toEqual([])
+  expect(panes[0]!.id).toBe('muslim')
+})
+
+test('Open full player raises the tab before queued Quran preparation finishes', async ($, on) => {
+  let raised!: () => void
+  const opened = engine(on, 'desktop', e => { if (e.focus) raised(); return { isPlaced: true } }, { 'quran.catalog': { ...fixtureCatalog, fetchedAt: NOON } })
+  let release!: () => void, started!: () => void
+  const held = new Promise<void>(resolve => { release = resolve })
+  const preparing = new Promise<void>(resolve => { started = resolve })
+  const front = new Promise<void>(resolve => { raised = resolve })
+  on('http.fetch', { init: { method: 'HEAD' } }, async () => {
+    started()
+    await held
+    return { value: { ok: true, status: 200, headers: { 'content-length': '1000000' }, text: '' } }
+  })
+  const ui = await $.ui.mount(pane('desktop'))
+  await ui.resize({ columns: 50, rows: 40, in: 'muslim-pane' })
+  const command = $.command.run({ command: 'quran', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+  await preparing
+  const click = ui.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: 25, y: Math.floor((QURAN_Y + OPEN_TOP + 21) * 40 / PANE_HEIGHT) })
+  try {
+    await front
+    expect(opened).toEqual([{ id: 'quran', title: 'القرآن الكريم' }, { id: 'quran', title: 'القرآن الكريم', focus: true }])
+  } finally { release() }
+  await command
+  await click
+  expect(opened).toHaveLength(2)
+})
+
+test('an unplaced Quran pane is reported instead of treated as a successful press', async ($, on) => {
+  engine(on, 'desktop', () => ({ isPlaced: false, reason: 'no pane surface' }))
+  const toasts: string[] = []
+  on('ui.toast', async (_$, e) => { toasts.push(e.text); return { value: undefined } })
+  const ui = await $.ui.mount(pane('desktop'))
+  await ui.resize({ columns: 50, rows: 40, in: 'muslim-pane' })
+  await ui.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: 25, y: Math.floor((QURAN_Y + OPEN_TOP + 21) * 40 / PANE_HEIGHT) })
+  expect(toasts).toEqual(['Quran is not ready yet. /quran'])
 })

@@ -428,9 +428,10 @@ function trackSelection(reciter: Reciter, surah: number) {
   const preparing = runtime.preparing?.moshafKey === reciter.key && runtime.preparing.surah === surah ? runtime.preparing : undefined
   return { segments: plan?.segments.map(segment => ({ ...segment })) ?? [], selectedSegment: runtime.selectedSegment, durationMs: plan?.durationMs ?? null, loading: preparing?.stage ?? null }
 }
-async function open($: EngineInterface): Promise<void> {
+async function open($: EngineInterface, focus = false): Promise<void> {
   const surface = await $.session.surface()
-  await $.ui.open({ id: 'quran', title: await arabic($, surface ?? 'desktop', 'القرآن الكريم') })
+  const placed = await $.ui.open({ id: 'quran', title: await arabic($, surface ?? 'desktop', 'القرآن الكريم'), ...(focus ? { focus: true as const } : {}) })
+  if (focus && !placed.isPlaced) throw new Error(placed.reason)
   $.ui.invalidate('ui.render')
 }
 // The docked pane narrows the chat column and already shows the title and time, so the footer chip shrinks to its glyph while it is open.
@@ -443,7 +444,7 @@ async function togglePane($: EngineInterface): Promise<void> {
     else { await dispatch($, { kind: 'open' }, false); $.ui.invalidate('ui.render') }
   } catch (error) { await fail($, error) }
 }
-async function action($: EngineInterface, command: Command, fromCommand: boolean): Promise<string> {
+async function action($: EngineInterface, command: Command, fromCommand: boolean, paneOpened = false): Promise<string> {
   const generation = runtime.generation
   if (command.kind === 'help' || command.kind === 'usage') return quranHelp()
   if (command.kind === 'stop') { await stop($, fromCommand ? 'command:stop' : 'pane:stop'); await $.state.set(errorRef, null); return 'Quran stopped.' }
@@ -455,7 +456,7 @@ async function action($: EngineInterface, command: Command, fromCommand: boolean
     $.ui.invalidate('ui.render')
     return `Quran repeat ${repeat === 'off' ? 'off' : repeat === 'surah' ? 'on' : 'on: current quarter'}.`
   }
-  if (command.kind === 'open' || command.kind === 'play') await open($)
+  if (command.kind === 'open' && !paneOpened || command.kind === 'play') await open($)
   const c = await catalog($)
   await $.state.set(errorRef, null)
   $.ui.invalidate('ui.render')
@@ -503,7 +504,7 @@ async function action($: EngineInterface, command: Command, fromCommand: boolean
   return `Quran playing: ${await arabic($, await $.session.surface() ?? 'desktop', c.surahs[surah - 1]!.name)}.`
 }
 // Serialize user actions; play completions check generation and controller identity.
-async function dispatch($: EngineInterface, command: Command, fromCommand = true): Promise<string> {
+async function dispatch($: EngineInterface, command: Command, fromCommand = true, paneOpened = false): Promise<string> {
   // Stop must abort now, even if a catalog refresh is holding the action queue.
   if (command.kind === 'stop') {
     ++runtime.stopEpoch
@@ -522,7 +523,7 @@ async function dispatch($: EngineInterface, command: Command, fromCommand = true
   if (requestedEpoch !== runtime.stopEpoch) return 'Quran stopped.'
   if (runtime.preparing && command.kind !== 'open' && command.kind !== 'help' && command.kind !== 'usage' && command.kind !== 'repeat' && command.kind !== 'repeat-segment' && !(command.kind === 'reciter' && !command.value)) { ++runtime.stopEpoch; await stop($, 'prepare:replace') }
   const epoch = runtime.stopEpoch
-  const task = runtime.queue.then(() => epoch === runtime.stopEpoch ? action($, command, fromCommand) : 'Quran stopped.').catch(error => fail($, error, fromCommand))
+  const task = runtime.queue.then(() => epoch === runtime.stopEpoch ? action($, command, fromCommand, paneOpened) : 'Quran stopped.').catch(error => fail($, error, fromCommand))
   runtime.queue = task
   return task
 }
@@ -563,13 +564,18 @@ async function panelQuran($: EngineInterface): Promise<PanelQuran | null> {
     canNext: model.canNext !== false,
   }
 }
-// Offers the pane's feed and actions to the Muslim pane; the hooks module that draws calls this each time, so a reload connects again.
+// Connect on footer/pane draws and again in the Muslim press's own context.
 function connectToPanel($: EngineInterface): void {
   connectQuran(() => panelQuran($))
   connectPanelAction('quran-toggle', () => togglePlayback($))
   connectPanelAction('quran-prev', () => paneAction($, { kind: 'prev' }))
   connectPanelAction('quran-next', () => paneAction($, { kind: 'next' }))
-  connectPanelAction('quran-open', async () => { await dispatch($, { kind: 'open' }, false); $.ui.invalidate('ui.render') })
+  connectPanelAction('quran-open', async () => {
+    // Navigation must not wait for playback work. Reopen the same id with a
+    // focus request so Desktop raises its existing tab in the mod-pane dock.
+    await open($, true)
+    await dispatch($, { kind: 'open' }, false, true)
+  })
 }
 
 async function mainColor($: EngineInterface, color: Accent): Promise<string> {
@@ -579,6 +585,14 @@ async function mainColor($: EngineInterface, color: Accent): Promise<string> {
 }
 
 export const install = (on: On, options: Options) => {
+  on('ui.render', { component: 'Pane', requestId: 'muslim' }, ($, e, next) => {
+    connectToPanel($)
+    return next(e)
+  })
+  on('ui.message', { element: 'muslim-pane' }, ($, e, next) => {
+    connectToPanel($)
+    return next(e)
+  })
   // Registered before salah: this outer hook prepends Quran to salah's tree.
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
     const theirs = await next(e)

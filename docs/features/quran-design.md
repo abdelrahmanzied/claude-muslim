@@ -161,3 +161,7 @@ Quran demo is deferred to a separate task and is not included in the shared sequ
 - [ ] Engine gates pass; live sound and native paint verified separately.
 
 Native Desktop validation on macOS confirmed both drag scrollbars reach the last rows and return to the first rows while the Pane remains stationary. Surah search for 18 returns Al-Kahf and hides the scrollbar. Drag input is quantized by the host cell coordinates; engine tests also cover release outside the Client, search and selection after dragging. This validates the drag control, not mouse-wheel behavior or other operating systems.
+
+## Opening from Muslim
+
+The Muslim card's Open full player raises the same `quran` tab in the host's mod-pane dock using `$.ui.open({ id: 'quran', title: 'القرآن الكريم', focus: true })`. Navigation uses the current Muslim input context and precedes the serialized player initialization, which skips its usual pane-open call. Quran connects on Muslim pane render/input even if the footer has not drawn. It never closes/recreates either tab, starts audio, or changes the picture. Desktop manages the group and focus; the installed host permits same-plugin pane focus, while the generic API documents a conditional request. Tests observe API requests and failure results, not native painting or focus delivery.

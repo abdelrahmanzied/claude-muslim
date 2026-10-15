@@ -37,3 +37,7 @@ Three cards stacked in one right-to-left column, 20px outside margin (the Quran 
 - Hover lights a control or button (a hover tint; the play button brightens). The pointer is whole cells on Desktop, so a target counts as hit when the cell overlaps it, the nearest one winning, as in the Quran pane.
 - Inactive controls (no Quran catalog yet, first or last surah, no city, athkar off) are dimmed and not hit; Open full player always works.
 - No scores or streaks: the athkar fraction is the person's own count, shown only to them.
+
+## Full-player navigation
+
+Open full player is navigation to the existing `quran` id, never a toggle or a new pane instance. Quran reconnects during the Muslim pane render and input chain; it uses the press context to request `focus: true` immediately, before its player queue, including when its tab already exists. Muslim stays open. The host renders the mod panes as sibling tabs in one dock; the API supplies no group selector. The focus request is host-controlled (not an unconditional grant); the installed Desktop allows it from another pane of the same plugin. No button geometry or visual style changes. Native grouping and activation need a live check.

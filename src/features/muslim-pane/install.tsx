@@ -108,7 +108,9 @@ export const install = (on: On, options: Options) => {
     return { text: 'Muslim pane opened (desktop only).' }
   })
 
-  on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
+  on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
+    // Let the owning features connect even when the footer has not drawn.
+    await next(e)
     ticker ??= $.clock.every(TICK_MS, async () => {
       try {
         if (!(await $.ui.panes()).some(pane => pane.id === PANE_ID)) { stopTicker(); return }
@@ -130,8 +132,10 @@ export const install = (on: On, options: Options) => {
     return <Text dimColor>Muslim pane unavailable. Use /muslim pane again.</Text>
   })
 
-  on('ui.message', { element: 'muslim-pane' }, async ($, e) => {
+  on('ui.message', { element: 'muslim-pane' }, async ($, e, next) => {
     if (e.surface !== 'desktop' || !isPaneMessage(e.data)) return {}
+    // Refresh action closures with this press's engine context, not a footer draw's.
+    await next(e)
     const message = e.data
     if (message.act === 'size') return {}
     let act: PaneAct | null
