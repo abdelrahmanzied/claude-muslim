@@ -93,8 +93,8 @@ const SKY_FX: Record<Sky, string> = {
 }
 
 // The lab page's own colors and fonts, light and dark.
-const ROOT_LIGHT = '--desk-bg: #ffffff; --desk-side: #f7f6f2; --desk-ink: #1f1f1f; --desk-dim: #8b8b85; --desk-line: #e6e4dd; --claude-soft: #f8ebe2; --claude-faint: #fcf5f0; --green-soft: #d2ece0; --green-faint: #eef8f3; --gold-soft: #f6eac8; --gold-faint: #fdf8ea; --blue-soft: #dbe6f3; --blue-faint: #f1f5fa;'
-const ROOT_DARK = '--desk-bg: #1f1e1c; --desk-side: #262522; --desk-ink: #ecebe6; --desk-dim: #8f8d86; --desk-line: #34322e; --claude-soft: #3a2a22; --claude-faint: #2b2420; --green-soft: #133328; --green-faint: #0f231c; --gold-soft: #3b3018; --gold-faint: #272114; --blue-soft: #1c2a3d; --blue-faint: #161f2b;'
+const ROOT_LIGHT = '--desk-bg: #ffffff; --desk-side: #f7f6f2; --desk-ink: #1f1f1f; --desk-dim: #8b8b85; --desk-line: #e6e4dd; --claude-soft: #f8ebe2; --claude-faint: #fcf5f0; --green-soft: #d2ece0; --green-faint: #eef8f3; --yellow-soft: #f6eac8; --yellow-faint: #fdf8ea; --blue-soft: #dbe6f3; --blue-faint: #f1f5fa;'
+const ROOT_DARK = '--desk-bg: #1f1e1c; --desk-side: #262522; --desk-ink: #ecebe6; --desk-dim: #8f8d86; --desk-line: #34322e; --claude-soft: #3a2a22; --claude-faint: #2b2420; --green-soft: #133328; --green-faint: #0f231c; --yellow-soft: #3b3018; --yellow-faint: #272114; --blue-soft: #1c2a3d; --blue-faint: #161f2b;'
 const FONTS = '--font-band: "Tajawal", sans-serif; --font-ar: "Tajawal", sans-serif; --font-cover: "Aref Ruqaa", "Tajawal", serif; --font-ui: system-ui, -apple-system, "Segoe UI", sans-serif; --font-mono: ui-monospace, Menlo, monospace;'
 
 // The open reading's vertical layout, in CSS pixels: padding above, the room

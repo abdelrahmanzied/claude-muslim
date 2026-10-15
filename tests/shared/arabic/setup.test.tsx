@@ -139,7 +139,7 @@ test('/muslim status shows the default when this terminal has no answer, and not
   expect((await $.command.run(status)).text).toContain('| Terminal Arabic | How Arabic shows in this terminal | terminal only |')
 })
 
-for (const [color, expected] of [['orange', 'claude'], ['gold', '#c99a1f']] as const) {
+for (const [color, expected] of [['orange', 'claude'], ['yellow', '#c99a1f']] as const) {
   test(`terminal survey label follows ${color} without coloring the other text`, { options: { athkar: false, color } }, async ($, on) => {
     mock.env(on, {})
     mock.store(on)

@@ -77,7 +77,7 @@ Replies are short markdown: a bold title line first (`**Muslim › Salah**`, `**
 
 ## Settings
 
-Main-color accents follow the plugin-wide `/muslim color orange | green | gold | blue` setting through `src/shared/color/`, default Claude orange. Other colors stay as they are.
+Main-color accents follow the plugin-wide `/muslim color orange | green | yellow | blue` setting through `src/shared/color/`, default Claude orange. Other colors stay as they are.
 
 Terminal Arabic: the footer line and the minaret label follow the shared per-terminal setting (`/muslim terminal-arabic`, see the [terminal guide](../terminal.md)). The desktop footer and athan card keep logical text.
 

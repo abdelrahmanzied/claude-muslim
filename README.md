@@ -84,7 +84,7 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/athkar morning reset` · `evening reset` | Read that period again from the start |
 | `/athkar style sky` · `frame` | The look on desktop: a sky that follows the time of day (default), or plain. The terminal always shows the frame |
 | `/athkar demo` · `demo sky` · `demo frame` | Play the looks in motion, for videos or to preview them (sky 33.2 s on desktop; frame 24.2 s on either surface); nothing is saved |
-| `/muslim color` · `color orange` · `green` · `gold` · `blue` | Show or change the main color of the whole mod (default: Claude orange) |
+| `/muslim color` · `color orange` · `green` · `yellow` · `blue` | Show or change the main color of the whole mod (default: Claude orange) |
 | `/salah` | Place, method and mode, then today's prayer times |
 | `/salah help` | Table of every `/salah` command |
 | `/salah city` · `city <name or lat, lng>` | Pick your city by question, or by name in any language |

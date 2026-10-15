@@ -142,10 +142,12 @@ export const register: Register = (on, options) => {
     }
     // DEMO END
     if (word === 'color') {
-      if (words.length > 2 || (feature !== '' && !isAccent(feature))) return { text: 'Usage: /muslim color orange | green | gold | blue' }
-      if (feature === '') return { text: `Color ${settings.color}. Usage: /muslim color orange | green | gold | blue` }
-      const { deny } = await $.config.set({ key: 'muslim.color', value: feature })
-      return { text: deny ? `Not changed: ${deny}` : `Color ${feature}` }
+      // "gold" is the old name of "yellow".
+      const pick = feature === 'gold' ? 'yellow' : feature
+      if (words.length > 2 || (pick !== '' && !isAccent(pick))) return { text: 'Usage: /muslim color orange | green | yellow | blue' }
+      if (pick === '') return { text: `Color ${settings.color}. Usage: /muslim color orange | green | yellow | blue` }
+      const { deny } = await $.config.set({ key: 'muslim.color', value: pick })
+      return { text: deny ? `Not changed: ${deny}` : `Color ${pick}` }
     }
     if (word === 'tashkeel') {
       const value = feature

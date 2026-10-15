@@ -11,7 +11,7 @@ const FEATURES = { thikr: THIKR_COMMANDS, athkar: ATHKAR_COMMANDS, salah: SALAH_
 export const MUSLIM_COMMANDS: readonly HelpRow[] = [
   ['/muslim', 'The version, every feature\'s state and the shared settings', ''],
   ['/muslim help', 'Every command table, or one feature\'s', '`<feature>`: thikr, athkar, salah, quran, color, tashkeel, terminal-arabic'],
-  ['/muslim color', 'The main color in every feature', '`orange` (default, Claude\'s) · `green` · `gold` · `blue`'],
+  ['/muslim color', 'The main color in every feature', '`orange` (default, Claude\'s) · `green` · `yellow` · `blue`'],
   ['/muslim tashkeel', 'Arabic diacritics on desktop; the terminal never shows them', '`on` (default) · `off`'],
   ['/muslim terminal-arabic', 'Choose how Arabic shows in this terminal, for every feature', ''],
   ['/muslim pane', 'Open the Muslim pane on desktop: today\'s prayers, the Quran player and the athkar progress, beside the Quran pane; a plain text summary in the terminal', ''],

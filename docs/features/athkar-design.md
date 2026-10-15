@@ -8,7 +8,7 @@ The athkar reader is the one feature the person sits with, so it is drawn:
 
 - **Client modules** (`src/features/athkar/reader.tsx` in the terminal, `src/features/athkar/card.tsx` on desktop) take clicks and keys and post each count to the hooks module. The desktop uses the shared card in `src/shared/card/` for its size, frame, ×, hover and lighting. The terminal reader is unchanged.
 - **Svg** (desktop only) for the Sky look: a sky that follows the time of day with slow SMIL motion, drawn behind the reader. The terminal always uses the Frame look.
-- **Hex colors** from `src/shared/color/` for the reader's plugin-wide main color (`/muslim color`, default Claude orange; orange, green, gold, blue in light/dark shades), and feature-specific colors for the skies, since a theme key cannot be blended or placed on a sky.
+- **Hex colors** from `src/shared/color/` for the reader's plugin-wide main color (`/muslim color`, default Claude orange; orange, green, yellow, blue in light/dark shades), and feature-specific colors for the skies, since a theme key cannot be blended or placed on a sky.
 
 Everything else (font, size) stays Claude's: the API sets neither, so the reader follows the app's zoom.
 
@@ -67,7 +67,7 @@ Frame keeps its six-scene morning story (24.2 seconds) on both surfaces:
 | --- | --- | --- | --- | --- |
 | Ayat al-Kursi, with its authored note | 75 | morning | 5s | orange |
 | Short thikr | 83 | morning | 4s | green |
-| Long thikr | 84 | morning | 5s | gold |
+| Long thikr | 84 | morning | 5s | yellow |
 | Last thikr, counting to ten | 98 | morning | 4s | blue |
 | Celebration: the real finale | finished | morning | `FINALE_MS` (3.2s) | orange |
 | Finished, folded to one line | finished | morning | 3s | green |

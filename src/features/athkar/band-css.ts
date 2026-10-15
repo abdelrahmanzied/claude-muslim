@@ -10,7 +10,7 @@ button:focus-visible {outline: 2px solid var(--accent); outline-offset: 2px;}
 .band.al-fade:not(.active) {filter: saturate(.3) brightness(1.03) contrast(.94);}
 .band.al-fade:not(.active):hover {filter: saturate(.75);}
 .acc-green {--ring: var(--green); --b-acc: var(--green); --b-soft: var(--green-soft); --b-faint: var(--green-faint);}
-.acc-gold {--ring: var(--gold); --b-acc: var(--gold); --b-soft: var(--gold-soft); --b-faint: var(--gold-faint);}
+.acc-yellow {--ring: var(--yellow); --b-acc: var(--yellow); --b-soft: var(--yellow-soft); --b-faint: var(--yellow-faint);}
 .acc-blue {--ring: var(--blue); --b-acc: var(--blue); --b-soft: var(--blue-soft); --b-faint: var(--blue-faint);}
 .band .text {font-family: var(--font-band, var(--font-ar)); direction: rtl; text-align: right; white-space: pre-line; color: var(--b-ink);}
 .band .hint {font-size: 11.5px; color: var(--b-dim);}

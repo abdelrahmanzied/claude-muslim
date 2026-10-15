@@ -824,13 +824,13 @@ function engineFooter(on: On) {
     return <Text>model</Text>
   })
 }
-for (const color of ['orange', 'green', 'gold', 'blue'] as const) {
+for (const color of ['orange', 'green', 'yellow', 'blue'] as const) {
   test(`Quran footer and pane use the shared ${color} main color`, { options: { color } }, async ($, on) => {
     setup(on)
     engineFooter(on)
     const mounted = await $.ui.mount(footer('desktop'))
-    const dark = { orange: '#d97757', green: '#1a9466', gold: '#e8b93c', blue: '#4a7fc0' }
-    const light = { orange: '#c8642d', green: '#0b7a50', gold: '#c99a1f', blue: '#3a6aa3' }
+    const dark = { orange: '#d97757', green: '#1a9466', yellow: '#e8b93c', blue: '#4a7fc0' }
+    const light = { orange: '#c8642d', green: '#0b7a50', yellow: '#c99a1f', blue: '#3a6aa3' }
     expect((await mounted.find({ type: 'Text', text: '۞ القرآن' }))?.props.color).toBe(color === 'orange' ? 'claude' : dark[color])
     const player = await $.ui.mount(pane('desktop'))
     const props = (await player.find({ type: 'Client', key: 'quran-card' }))?.props.props as PaneModel

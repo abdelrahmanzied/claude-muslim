@@ -108,7 +108,7 @@ export const settingsRows = (m: SettingsModel): SettingRow[] => {
       row('نهاية الرد',toggle(o,'thikrEnd'),'Terminal end-of-turn line',undefined,o.tashkeel ? 'تَمَّ بِحَمْدِ اللَّهِ' : 'تم بحمد الله'),
     ]
     case 'general': return [
-      row('اللون الرئيسي',(['orange','green','gold','blue'] as const).map(v => control(`color:${v}`,v,config('color',v),'swatch',23,o.color === v)),'Shared accent across every feature'),
+      row('اللون الرئيسي',(['orange','green','yellow','blue'] as const).map(v => control(`color:${v}`,v,config('color',v),'swatch',23,o.color === v)),'Shared accent across every feature'),
       row('التشكيل',toggle(o,'tashkeel'),'Desktop only · terminal strips diacritics'),
       { ...row('العربية في Terminal',face('terminal','/muslim terminal-arabic'),'Per terminal · run the check in your terminal. Desktop needs no Arabic setup.'), height: 114 },
     ]
@@ -165,7 +165,7 @@ export const terminalSettings = (m: SettingsModel, show: (s:string)=>string): st
   return [
     `**${show('الإعدادات')}**`,
     `**${show('عام')}**`,
-    `Color: ${o.color} · /muslim color orange | green | gold | blue`, `Tashkeel: ${on(o.tashkeel)} · /muslim tashkeel on | off`,
+    `Color: ${o.color} · /muslim color orange | green | yellow | blue`, `Tashkeel: ${on(o.tashkeel)} · /muslim tashkeel on | off`,
     `Terminal Arabic: ${m.terminalMode} · /muslim terminal-arabic`,
     `**${show('الصلاة')}**`,
     `Prayer · city: ${o.salahPlace ? show(o.salahPlace.name) : 'not set'} · /salah city [name or lat, lng]`,

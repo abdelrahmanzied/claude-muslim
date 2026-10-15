@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- The main color "gold" is now called "yellow"; the old saved value still works.
+
 - Muslim pane: unify typography on 12/14/16/20/24px (11px settings tab labels for the 240px minimum), start the heading at the picture's top edge (the Desktop adds its own space above it), and trial `☾ Muslim` and `☾ مسلم` footer buttons for the user to pick one.
 
 - Muslim pane: smaller text to match Desktop panels (baseline sizes kept in git at `126e2bd`) and balanced athkar buttons.
@@ -75,7 +77,7 @@
 - `/athkar demo [sky|frame]` shows all six desktop skies on distinct reading scenes: morning Kursi (75), short (83) and long (84) athkar, then evening short (97), long (77, evening wording) and last thikr (98, counting to ten). Sky has eight scenes in 33.2 seconds, ending with the real finale and folded done on crescent in the evening. Frame keeps its six morning scenes, colors and 24.2-second timing on either surface. Each reply reports its style's scene count and duration. Playback uses its own drawing path, restarts on demand and never changes the real reading, view, timers or saved state.
 - Share the desktop card's size, frame, ×, hover, lighting and input between the athkar band and athan card. The athan takes the band's place while it shows; closing it or expiry brings the reading back. Keep the terminal reader and minaret unchanged.
 - One shape for every settings and help reply: `/muslim`, `/thikr`, `/athkar` and `/salah` show `| Setting | Description | State |` under a line pointing to their help; every `help` shows `| Command | Description | Options |`, each option with what it does. `/thikr help` is new; `/muslim` lists each feature's main state and the shared settings.
-- Make the main color plugin-wide with `/muslim color orange | green | gold | blue` (default Claude orange), shared by athkar, salah, thikr's usage-limit line and the terminal Arabic survey label. `/athkar color` now points to `/muslim color`. Orange text keeps Claude's theme key; other colors use shared light/dark shades.
+- Make the main color plugin-wide with `/muslim color orange | green | yellow | blue` (default Claude orange), shared by athkar, salah, thikr's usage-limit line and the terminal Arabic survey label. `/athkar color` now points to `/muslim color`. Orange text keeps Claude's theme key; other colors use shared light/dark shades.
 
 - `/muslim` shows a settings table, the same on every surface: tashkeel, thikr, and terminal Arabic (this terminal's mode, or its default if not chosen yet; `terminal only` on desktop), each with the command that changes it.
 - Terminal Arabic has three per-terminal modes: `plain` strips tashkeel, `joined` also applies presentation forms in logical order, and `reversed` also reorders Arabic runs for visual RTL display. Tashkeel is always stripped on terminal because terminals draw marks poorly and partial redraws can garble them.
@@ -122,7 +124,7 @@
 - Size: one open height, 77px, for the cover, reading, finale and done row; faded, each folds to one 24px row. Text at a fixed 14px that shrinks only to fit its two-line box, with no floor. No size setting.
 - Folds by itself: 1 s after the pointer leaves, 3 s after the last key with the pointer off the band, at once when typing in the prompt, and after 90 s with no input.
 - End: on desktop stars fall and ﴿رَبَّنَا تَقَبَّلْ مِنَّا إِنَّكَ أَنتَ السَّمِيعُ الْعَلِيمُ﴾ rises centered with — البقرة ١٢٧ at 18px. Then the done row: the verse at 14px, `/athkar <period> reset → to read again`, and a ✓ on the full line's head. Folded: أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الْمَسَاءُ (or الصَّبَاحُ). The verse takes the words' color on a sky, the main color on Frame.
-- Looks: Sky (default), a sky that follows the time of day on desktop and its plain color in the terminal; Frame, a main-color frame. Main color orange, green, gold or blue.
+- Looks: Sky (default), a sky that follows the time of day on desktop and its plain color in the terminal; Frame, a main-color frame. Main color orange, green, yellow or blue.
 - Reading saved per day (05:00 to 05:00) and period; × hides the band and keeps it. `/athkar`: status, on/off, style, color, `morning|evening reset`. Settings also in `/config`.
 - Thikr line: the usage-limit thikr also shows as soon as a response reports a full usage window.
 

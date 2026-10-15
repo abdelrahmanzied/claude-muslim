@@ -217,8 +217,8 @@ const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
     content+=`<div class="settings-body" style="top:${SETTINGS_BODY_TOP}px">${body}</div>`
   }
   // Swatches use the shared light/dark accent palette, not a second palette.
-  const swatches=(['orange','green','gold','blue'] as const).map(color=>`--${color}:${accentHex(color,true)}`).join(';')
-  const light=(['orange','green','gold','blue'] as const).map(color=>`--${color}:${accentHex(color,false)}`).join(';')
+  const swatches=(['orange','green','yellow','blue'] as const).map(color=>`--${color}:${accentHex(color,true)}`).join(';')
+  const light=(['orange','green','yellow','blue'] as const).map(color=>`--${color}:${accentHex(color,false)}`).join(';')
   return `<section class="dcard settings-card" style="top:${r.settingsY}px;height:${r.settingsH}px"><style>.settings-card{${swatches}}@media(prefers-color-scheme:light){.settings-card{${light}}}.theme-light .settings-card{${light}}.theme-dark .settings-card{${swatches}}</style>${content}</section>`
 }
 

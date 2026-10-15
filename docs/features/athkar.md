@@ -27,7 +27,7 @@ Every thikr's count comes from the data file only. There is no choice of counts 
 | --- | --- | --- |
 | `athkar` | `/athkar on` · `off` | on |
 | `athkarStyle` | `/athkar style sky` · `frame` | sky |
-| `color` (shared) | `/muslim color orange` · `green` · `gold` · `blue` | orange |
+| `color` (shared) | `/muslim color orange` · `green` · `yellow` · `blue` | orange |
 
 `/athkar morning` · `/athkar evening` open that period's reader above the prompt even outside its hours (morning athkar at 22:00), and bring it back if hidden with ×. The band, its counts and its keys all follow that period. The choice holds for the session until you pick the other period or hide the band with ×; then the clock picks again (a reload also forgets it). If that period is finished today, the reply is its done row's hint, `/athkar <period> reset → to read again`. `/athkar morning reset` · `/athkar evening reset` start that period again. `/athkar` shows the status and the command table; `/athkar help` and `/muslim help athkar` show the table alone. `/muslim` lists athkar in its settings table.
 
@@ -66,7 +66,7 @@ The command reply reports the scene count and total seconds for its style.
 | --- | --- | --- | --- | --- |
 | Ayat al-Kursi, with its authored note | 75 | morning | 5s | orange |
 | Short thikr | 83 | morning | 4s | green |
-| Long thikr | 84 | morning | 5s | gold |
+| Long thikr | 84 | morning | 5s | yellow |
 | Last thikr, counting to ten | 98 | morning | 4s | blue |
 | Celebration: the real finale | finished | morning | `FINALE_MS` (3.2s) | orange |
 | Finished, folded to one line | finished | morning | 3s | green |

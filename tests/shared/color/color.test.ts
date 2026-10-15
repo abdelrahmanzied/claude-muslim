@@ -4,8 +4,14 @@ import { accentHex, accentText } from '../../../src/shared/color/index.ts'
 
 test('the shared color reads each choice and defaults to orange', () => {
   expect(readOptions({}).color).toBe('orange')
-  for (const color of ['orange', 'green', 'gold', 'blue']) expect(readOptions({ color }).color).toBe(color)
+  for (const color of ['orange', 'green', 'yellow', 'blue']) expect(readOptions({ color }).color).toBe(color)
   expect(readOptions({ color: 'invalid' }).color).toBe('orange')
+})
+test('the old saved color value reads as yellow with the same shades', () => {
+  const color = readOptions({ color: 'gold' }).color
+  expect(color).toBe('yellow')
+  expect(accentText(color, 'light')).toBe('#c99a1f')
+  expect(accentText(color, 'dark')).toBe('#e8b93c')
 })
 test('orange text stays the theme key; drawn and non-orange colors use the shared shades', () => {
   for (const theme of ['light', 'dark', 'light-ansi', 'dark-ansi', 'custom', undefined]) {

@@ -7,7 +7,7 @@ const FINALE_MS = 3200
 
 for (const style of ['sky', 'frame'] as const) {
   test(`${style}: authored scenes, periods, looks, timing and exact boundaries`, () => {
-    const scenes = demoScenes(style, 'gold', FINALE_MS)
+    const scenes = demoScenes(style, 'yellow', FINALE_MS)
     const isSky = style === 'sky'
     expect(scenes.map(s => s.kind)).toEqual([...Array(isSky ? 6 : 4).fill('reading'), 'finale', 'folded'])
     expect(scenes.map(s => s.id)).toEqual(isSky ? ['75', '83', '84', '97', '77', '98', '98', '98'] : ['75', '83', '84', '98', '98', '98'])
@@ -15,24 +15,24 @@ for (const style of ['sky', 'frame'] as const) {
     expect(scenes.map(s => s.countMs)).toEqual(isSky ? [2500, 400, 2500, 800, 2500, 300, 0, 0] : [2500, 400, 2500, 300, 0, 0])
     expect(scenes.map(s => s.sky)).toEqual(isSky ? [...DEMO_SKIES, 'crescent', 'crescent'] : DEMO_SKIES)
     expect(scenes.map(s => s.period)).toEqual(isSky ? ['morning', 'morning', 'morning', 'evening', 'evening', 'evening', 'evening', 'evening'] : Array(6).fill('morning'))
-    expect(scenes.map(s => s.accent)).toEqual(isSky ? Array(8).fill('gold') : ['orange', 'green', 'gold', 'blue', 'orange', 'green'])
+    expect(scenes.map(s => s.accent)).toEqual(isSky ? Array(8).fill('yellow') : ['orange', 'green', 'yellow', 'blue', 'orange', 'green'])
     expect(demoDuration(style, FINALE_MS)).toBe(isSky ? 33_200 : 24_200)
     expect(demoReply(style, FINALE_MS)).toBe(`**Athkar demo:** ${style} · ${isSky ? '8 scenes · 33.2s' : '6 scenes · 24.2s'}`)
     let elapsed = 0
     for (const scene of scenes) {
       expect(scene.startsAt).toBe(elapsed)
       elapsed += scene.duration
-      expect(demoStep(style, 'gold', scene.startsAt, FINALE_MS)).toMatchObject(scene)
-      expect(demoStep(style, 'gold', scene.startsAt + scene.duration - 1, FINALE_MS)).toMatchObject(scene)
-      const step = demoStep(style, 'gold', scene.startsAt, FINALE_MS)!
+      expect(demoStep(style, 'yellow', scene.startsAt, FINALE_MS)).toMatchObject(scene)
+      expect(demoStep(style, 'yellow', scene.startsAt + scene.duration - 1, FINALE_MS)).toMatchObject(scene)
+      const step = demoStep(style, 'yellow', scene.startsAt, FINALE_MS)!
       const list = listFor(step.period)
       expect(currentOf(step.period, step.reading).id).toBe(scene.id)
       expect(step.reading.index).toBe(list.findIndex(t => t.id === scene.id))
       for (const thikr of list.slice(0, step.reading.index)) expect(countOf(thikr, step.reading)).toBe(timesOf(thikr))
     }
     expect(elapsed).toBe(demoDuration(style, FINALE_MS))
-    expect(demoStep(style, 'gold', -1, FINALE_MS)).toBeUndefined()
-    expect(demoStep(style, 'gold', elapsed, FINALE_MS)).toBeUndefined()
+    expect(demoStep(style, 'yellow', -1, FINALE_MS)).toBeUndefined()
+    expect(demoStep(style, 'yellow', elapsed, FINALE_MS)).toBeUndefined()
   })
 
   test(`${style}: every reading counts and moves the glow; id 98 reaches ten`, () => {

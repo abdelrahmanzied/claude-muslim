@@ -47,7 +47,7 @@ The shared card in `src/shared/card/card.ts` also holds the leave, key-rest, idl
 
 ## 3. Color
 
-The main color is one plugin-wide setting: `/muslim color orange | green | gold | blue`, default Claude orange. Every feature takes it from `src/shared/color/`; features never define their own palette. Orange text keeps the `claude` theme key so every Claude theme stays exact. Other main colors use the shared light/dark hex shade for the current theme; drawn surfaces use the shared hex palette. Text that is not already in the main color and Claude's own text and spinner keep their colors.
+The main color is one plugin-wide setting: `/muslim color orange | green | yellow | blue`, default Claude orange. Every feature takes it from `src/shared/color/`; features never define their own palette. Orange text keeps the `claude` theme key so every Claude theme stays exact. Other main colors use the shared light/dark hex shade for the current theme; drawn surfaces use the shared hex palette. Text that is not already in the main color and Claude's own text and spinner keep their colors.
 
 | Role | Theme key | Use |
 | --- | --- | --- |
