@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Muslim pane: the prayer icon is the original flat sujood drawing again, raised to sit on the text line.
+
 - The main color "gold" is now called "yellow"; the old saved value still works.
 
 - Muslim pane: unify typography on 12/14/16/20/24px (11px settings tab labels for the 240px minimum), start the heading at the picture's top edge (the Desktop adds its own space above it), and trial `☾ Muslim` and `☾ مسلم` footer buttons for the user to pick one.
