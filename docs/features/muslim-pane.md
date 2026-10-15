@@ -10,11 +10,11 @@ The pane has no userConfig field of its own and no off switch: it is a view, and
 
 ## Footer chip
 
-On Desktop a `☾` chip at the left of the prompt footer (before the Quran chip and the prayer text) toggles the pane: it opens it when closed and closes it when open. It is always just `☾`.
+On Desktop two plain trial buttons, `☾ Muslim` and `☾ مسلم`, sit side by side at the left of the prompt footer (before the Quran chip and the prayer text); both toggle the pane open or closed. They are a temporary A/B pick for the user, with one to be removed after the choice.
 
 ## The three cards
 
-A heading row sits above the cards: the full Muslim avatar at 36px tall and approximately 38.4px wide beside «مسلم» on the right, and `/muslim` on the left, always shown, like the Quran pane's `/quran`. Both labels are vertically centered on the 36px row, whose top is 12px from the pane top; the cards begin at 56px.
+A heading row sits above the cards: the full Muslim avatar at 36px tall and approximately 38.4px wide beside «مسلم» on the right, and `/muslim` on the left, always shown, like the Quran pane's `/quran`. Both labels are vertically centered on the 36px row, which starts at the picture's top edge because the Desktop adds its own space above the picture and the API has no setting for it; the cards begin at 44px. The bottom margin stays 12px until checked against that space live.
 
 1. **الصلاة** — the city on the left of the header. A large «الصلاة القادمة» block with the next prayer's name in the main color, its time and a countdown (`in 1h 12m`, `in 12m`, `in <1m`). Today's five prays (Fajr, Dhuhr, Asr, Maghrib, Isha): past ones are done (check icon, dim), the next is highlighted in the main color, the rest upcoming (ring icon). After Isha every row is done and the next block shows tomorrow's Fajr. Under the rows an **Athan** row with a switch: pressing the row turns `salahAthan` on or off (the same setting as `/salah athan on|off`; the module reloads). No city: a note points to `/salah city`.
 2. **القرآن** — the header value is the quarter being played (`المقطع ٣ من ١٦`) when the surah is split. Reciter row, surah row, a progress bar with elapsed and total times, and the previous / play-stop / next controls (they do what the Quran pane's do, including moving between quarters), then **Open full player**, which opens and raises the «القرآن الكريم» tab beside Muslim in the same Desktop mod-pane dock, including when Quran is already open. It does not close either pane or start audio. Before the Quran catalog has been fetched once the rows show a dash, the controls are inactive and only **Open full player** works.

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Muslim pane: unify typography on 12/14/16/20/24px (11px settings tab labels for the 240px minimum), start the heading at the picture's top edge (the Desktop adds its own space above it), and trial `☾ Muslim` and `☾ مسلم` footer buttons for the user to pick one.
+
 - Muslim pane: smaller text to match Desktop panels (baseline sizes kept in git at `126e2bd`) and balanced athkar buttons.
 
 - Muslim pane settings: the color choices are small round dots with a ring on the chosen one, and the tab strip loses its empty space under the labels (60px, one-line labels).

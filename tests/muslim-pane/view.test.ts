@@ -155,8 +155,8 @@ test('settings uses the approved gear, Quran mushaf, and exact five tab labels',
 test('the heading shows the full avatar beside مسلم and /muslim at the left edge', () => {
   const svg = paneSvg(paneModel(feeds, NOW, 240, 'orange'))
   expect(svg).toContain('<div class="pane-top"><svg width="38.4" height="36"')
-  expect(svg).toContain('.pane-top{position:absolute;right:20px;top:12px;height:36px;display:flex;align-items:center;')
-  expect(svg).toContain('.pane-command{position:absolute;left:20px;top:21px;line-height:18px;')
+  expect(svg).toContain('.pane-top{position:absolute;right:20px;top:0px;height:36px;display:flex;align-items:center;')
+  expect(svg).toContain('.pane-command{position:absolute;left:20px;top:9px;line-height:18px;')
   expect(svg).toContain('image-rendering:pixelated')
   expect(svg).toContain('<span>مسلم</span>')
   expect(svg).toContain('<div class="pane-command" dir="ltr"><bdi dir="ltr">/muslim</bdi></div>')

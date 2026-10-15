@@ -124,33 +124,40 @@ test('the terminal pane body is text too', { options: { salahPlace: MUNICH } }, 
   expect(await ui.find({ text: /Munich/ })).toBeDefined()
 })
 
-test('the footer chip ☾ toggles the Muslim pane on desktop', { options: { salahPlace: MUNICH } }, async ($, on) => {
-  const opened = engine(on, 'desktop')
-  const panes: { id: string; title: string; isShown: boolean; isPlaced: boolean; isFocused: boolean }[] = []
-  const closed: string[] = []
-  on('ui.panes', async () => ({ value: panes }))
-  on('ui.close', async (_$, e) => { closed.push(e.id); panes.length = 0; return { value: undefined } })
-  const mounted = await $.ui.mount(modes('desktop'))
-  expect((await mounted.find({ type: 'Button', key: 'muslim-footer' }))?.props.label).toBe('☾')
-  await mounted.press({ key: 'muslim-footer' })
-  expect(opened).toEqual([{ id: 'muslim', title: 'Muslim' }])
-  panes.push({ id: 'muslim', title: 'Muslim', isShown: true, isPlaced: true, isFocused: false })
-  await mounted.press({ key: 'muslim-footer' })
-  expect(closed).toEqual(['muslim'])
-  expect(opened).toHaveLength(1)
-})
+for (const [key, label] of [['muslim-footer-en', '☾ Muslim'], ['muslim-footer-ar', '☾ مسلم']] as const) {
+  test(`the trial footer button ${label} toggles the Muslim pane on desktop`, { options: { salahPlace: MUNICH } }, async ($, on) => {
+    const opened = engine(on, 'desktop')
+    const panes: { id: string; title: string; isShown: boolean; isPlaced: boolean; isFocused: boolean }[] = []
+    const closed: string[] = []
+    on('ui.panes', async () => ({ value: panes }))
+    on('ui.close', async (_$, e) => { closed.push(e.id); panes.length = 0; return { value: undefined } })
+    const mounted = await $.ui.mount(modes('desktop'))
+    const button = await mounted.find({ type: 'Button', key })
+    expect(button?.props.label).toBe(label)
+    expect(button?.props.plain).toBe(true)
+    expect(await mounted.find({ text: label })).toBeDefined()
+    await mounted.press({ key })
+    expect(opened).toEqual([{ id: 'muslim', title: 'Muslim' }])
+    panes.push({ id: 'muslim', title: 'Muslim', isShown: true, isPlaced: true, isFocused: false })
+    await mounted.press({ key })
+    expect(closed).toEqual(['muslim'])
+    expect(opened).toHaveLength(1)
+  })
+}
 
-test('the footer chip sits before the engine items and is absent in the terminal, narrow or not', { options: { salahPlace: MUNICH } }, async ($, on) => {
+test('both trial footer buttons remain before the engine items at narrow widths', { options: { salahPlace: MUNICH } }, async ($, on) => {
   engine(on, 'desktop')
   const narrow = await $.ui.mount({ ...modes('desktop'), viewport: { columns: 10, rows: 30 } })
-  expect((await narrow.find({ type: 'Button', key: 'muslim-footer' }))?.props.label).toBe('☾')
+  expect((await narrow.find({ type: 'Button', key: 'muslim-footer-en' }))?.props.label).toBe('☾ Muslim')
+  expect((await narrow.find({ type: 'Button', key: 'muslim-footer-ar' }))?.props.label).toBe('☾ مسلم')
   expect(await narrow.find({ text: 'x' })).toBeDefined()
 })
 
-test('the terminal footer gets no ☾ chip', { options: { salahPlace: MUNICH } }, async ($, on) => {
+test('the terminal footer gets neither trial button', { options: { salahPlace: MUNICH } }, async ($, on) => {
   engine(on, 'terminal')
   const mounted = await $.ui.mount(modes('terminal'))
-  expect(await mounted.find({ type: 'Button', key: 'muslim-footer' })).toBeUndefined()
+  expect(await mounted.find({ type: 'Button', key: 'muslim-footer-en' })).toBeUndefined()
+  expect(await mounted.find({ type: 'Button', key: 'muslim-footer-ar' })).toBeUndefined()
 })
 
 test('pressing a card title folds it and unfolds it again, kept in the session', { options: { salahPlace: MUNICH } }, async ($, on) => {

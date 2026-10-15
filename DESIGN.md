@@ -77,6 +77,7 @@ Inside a card, small row icons that describe a row rather than a feature (a bell
 ## 4. Typography and Arabic
 
 - **Font and size:** Claude's. We cannot and do not change them.
+- **Drawn panes:** use the fixed 12/14/16/20/24px type scale, with the plugin name largest.
 - **Tashkeel:** desktop-only setting, on by default; terminal display always strips tashkeel regardless of this setting.
 - **Direction:** a line that starts with Arabic is read right to left by the surface. When Claude's own Latin text or numbers sit in the same line, keep them as a separate run (e.g. a separator `·`), and never convert Claude's numbers.
 - **Our numbers** (counts, times we compute) use Arabic-Indic digits (`١٥:٢٤`, `٢/٣`) inside Arabic lines.

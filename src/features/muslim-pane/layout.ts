@@ -15,9 +15,9 @@ export const HEAD_H = 28
 
 // The pane's own heading above the cards: the full avatar and «مسلم» at the right edge,
 // the LTR `/muslim` label at the left edge, as the Quran pane's heading.
-// The 36px avatar fills the 36px row, which starts at PAD: the avatar's top sits
-// 12px from the pane's top, the same as the bottom margin.
-export const TOP_Y = PAD
+// The Desktop adds its own space above the picture (the API has no setting for it),
+// so the heading starts at the picture's top edge. The 36px avatar fills the row.
+export const TOP_Y = 0
 export const TOP_H = 36
 export const AVATAR_H = 36
 export const CARDS_TOP = TOP_Y + TOP_H + 8

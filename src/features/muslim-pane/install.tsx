@@ -127,8 +127,10 @@ export const install = (on: On, options: Options) => {
     if (e.surface !== 'desktop') return theirs
     const { Box, Text, Button } = $.ui.resolve(e)
     // Desktop draws a Button from its label alone; the Text repeats it for a Desktop that draws the children.
+    // Temporary A/B pick for the user; one of these two labels will be removed.
     return <Box gap={1}>
-      <Button key="muslim-footer" label="☾" plain onPress={() => { void togglePane($) }}><Text>☾</Text></Button>
+      <Button key="muslim-footer-en" label="☾ Muslim" plain onPress={() => { void togglePane($) }}><Text>☾ Muslim</Text></Button>
+      <Button key="muslim-footer-ar" label="☾ مسلم" plain onPress={() => { void togglePane($) }}><Text>☾ مسلم</Text></Button>
       {theirs}
     </Box>
   })
