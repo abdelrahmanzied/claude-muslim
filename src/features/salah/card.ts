@@ -41,15 +41,18 @@ export const athanFrame = (p: Pick<AthanCardProps, 'width' | 'card' | 'isFolded'
 })
 
 export const START_LABEL = 'ابدأ أذكار بعد الصلاة'
-const START_WIDTH = 180
+// Aref Ruqaa Bold label at 15px: ~93px; the monospace space + arrow at
+// 12px: ~14.4px. Use these text metrics for both the drawn span and its target.
+const START_WIDTH = 93 + 14.4
+const START_HEIGHT = 24
+const START_LEFT = 35
 
 // Same bounds for drawing-thread hover and hooks-thread clicks, including the
 // desktop shell's extra padding and the measured Client width.
 export const startArea = (f: CardFrame) => {
   const box = frameOf(f)
-  const x1 = box.width - box.left - box.padX - (f.card ? 0 : 1) - (12 + box.addX)
-  const height = f.isFolded ? 24 : 30
-  return { x0: x1 - START_WIDTH, x1, y0: (f.height - height) / 2, y1: (f.height + height) / 2 }
+  const x0 = box.padX + (f.card ? 0 : 1) + START_LEFT + box.addX - box.left
+  return { x0, x1: x0 + START_WIDTH, y0: (f.height - START_HEIGHT) / 2, y1: (f.height + START_HEIGHT) / 2 }
 }
 export const isOnStart = (p: AthanCardProps, x: number, y: number, columns: number, rows: number) => {
   const frame = athanFrame(p, columns)
@@ -69,20 +72,20 @@ const css = (photo: string) => [
   '.athan .main { font-size: 26px; line-height: 1.5; }',
   '.athan.rest { flex-direction: row; justify-content: flex-start; align-items: center; gap: 12px; white-space: nowrap; }',
   '.athan.rest .main, .athan.rest .time { font-size: 17px; line-height: 1; }',
-  '.athan.has-start { padding-right: calc(210px + var(--ax, 0px)); }',
-  '.athan .start { position: absolute; right: calc(12px + var(--ax, 0px)); top: 50%; transform: translateY(-50%);',
-  `  width: ${START_WIDTH}px; height: 30px; display: grid; place-items: center; border-radius: 6px; border: 1px solid rgba(255,255,255,.35);`,
-  '  font: 700 17px/1 "Aref Ruqaa", serif; background: var(--start-accent); color: var(--start-ink); white-space: nowrap; }',
-  '.athan.rest .start { height: 24px; }',
-  '.athan .start.hot { filter: brightness(1.15); border-color: #fff; }',
+  `.athan .start { position: absolute; left: calc(${START_LEFT}px + var(--ax, 0px)); top: 50%; transform: translateY(-50%);`,
+  `  width: ${START_WIDTH}px; height: ${START_HEIGHT}px; display: flex; align-items: center; direction: ltr;`,
+  '  font: 700 15px/1 "Aref Ruqaa", serif; color: #fff; white-space: nowrap; cursor: pointer; text-shadow: 0 1px 3px rgba(0,0,0,.8); }',
+  '.athan .start-label { width: 93px; direction: rtl; }',
+  '.athan .start-arrow { font: 400 12px/1 monospace; white-space: pre; }',
+  '.athan .start.hot { color: var(--start-accent); filter: brightness(1.15); }',
   '.athan .time { font-size: 17px; line-height: 1.4; color: rgba(255,255,255,.85); }',
 ].join('\n')
 
 export const athanSvg = (p: AthanCardProps, view: Pick<CardView, 'hoverClose' | 'columns' | 'hoverAction'>) =>
   cardSvg(athanFrame(p, view.columns), {
-    classes: `athan active${p.isFolded ? ' rest' : ''}${p.canStart ? ' has-start' : ''}`,
-    style: `--start-accent:${accentHex(p.accent ?? 'orange', p.isDark ?? true)};--start-ink:${p.accent === 'green' || p.accent === 'blue' ? '#fff' : '#161616'}`,
-    html: `${p.canStart ? `<span class="start${view.hoverAction ? ' hot' : ''}">${START_LABEL}</span>` : ''}<div class="main">${athanText(p.pray)}</div><div class="time">${arabicDigits(p.time)}</div>`,
+    classes: `athan active${p.isFolded ? ' rest' : ''}`,
+    style: `--start-accent:${accentHex(p.accent ?? 'orange', p.isDark ?? true)}`,
+    html: `${p.canStart ? `<span class="start${view.hoverAction ? ' hot' : ''}"><span class="start-label">${START_LABEL}</span><span class="start-arrow"> ←</span></span>` : ''}<div class="main">${athanText(p.pray)}</div><div class="time">${arabicDigits(p.time)}</div>`,
     css: css(p.photo),
     hoverClose: view.hoverClose,
   })

@@ -1,8 +1,8 @@
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
-import { cardHeight, FOCUS_GRACE_MS, frameOf, IDLE_MS, KEY_REST_MS, LEAVE_MS, REST_PX } from '../../src/shared/card/card.ts'
-import { athanFrame, athanSvg, CARD_MS, FOLD_MS, isOnStart, START_LABEL } from '../../src/features/salah/card.ts'
+import { cardHeight, closeArea, FOCUS_GRACE_MS, frameOf, IDLE_MS, KEY_REST_MS, LEAVE_MS, REST_PX } from '../../src/shared/card/card.ts'
+import { athanFrame, athanSvg, CARD_MS, FOLD_MS, isOnStart, startArea, START_LABEL } from '../../src/features/salah/card.ts'
 import { FRAME_MS, HOLD_MS, ROWS_COUNT, TOTAL_MS } from '../../src/features/salah/minaret.ts'
 import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
 import { athanText } from '../../src/shared/pray/line.ts'
@@ -533,12 +533,41 @@ for (const isFolded of [false, true]) {
       expect(svg).toContain('حان وقت صلاة الفجر')
       expect(svg).toContain('٠٥:٠٠')
       expect(svg).toContain('class="start hot"')
+      expect(svg).toContain('<span class="start-arrow"> ←</span>')
+      expect(svg).toContain('left: calc(35px + var(--ax, 0px))')
+      expect(svg).toContain('font: 700 15px/1 "Aref Ruqaa", serif; color: #fff')
+      expect(svg).toContain('color: var(--start-accent); filter: brightness(1.15)')
+      expect(svg).not.toContain('has-start')
+      expect(svg).not.toContain('--start-ink')
+      expect(svg).not.toContain('background: var(--start-accent)')
+      const frame = athanFrame(p, 100)
+      const box = frameOf(frame)
+      const area = startArea(frame)
+      // CSS left is relative to the band's padded shell; pointers are relative
+      // to the slot. Reconstruct the drawn rectangle in slot coordinates.
+      const drawnLeft = box.padX + 35 + box.addX - box.left
+      const drawnTop = (box.height - 2 * box.padY - 24) / 2 + box.padY - box.top
+      expect(area).toEqual({ x0: drawnLeft, x1: drawnLeft + 107.4, y0: drawnTop, y1: drawnTop + 24 })
+      expect(svg).toContain(`width: ${area.x1 - area.x0}px; height: 24px`)
+      expect(area.x0).toBeGreaterThan(closeArea(frame).x1)
+      // Exact boundary hits, and misses just outside each side.
+      const hit = (px: number, py: number) => isOnStart(p, (px + box.left) / p.card.ch - .5, (py + box.top) / p.card.lh - .5, 100, 5)
+      const cx = (area.x0 + area.x1) / 2
+      const cy = (area.y0 + area.y1) / 2
+      expect(hit(area.x0 + .01, cy)).toBe(true)
+      expect(hit(area.x1 - .01, cy)).toBe(true)
+      expect(hit(cx, area.y0 + .01)).toBe(true)
+      expect(hit(cx, area.y1 - .01)).toBe(true)
+      expect(hit(area.x0 - .01, cy)).toBe(false)
+      expect(hit(area.x1 + .01, cy)).toBe(false)
+      expect(hit(cx, area.y0 - .01)).toBe(false)
+      expect(hit(cx, area.y1 + .01)).toBe(false)
       expect(svg).toContain(isDark ? '--start-accent:#4a7fc0' : '--start-accent:#3a6aa3')
       expect(svg.length).toBeLessThan(131072)
-      expect(isOnStart(p, 90, isFolded ? 1 : 2, 100, isFolded ? 2 : 5)).toBe(true)
+      expect(isOnStart(p, 10, isFolded ? 1 : 2, 100, isFolded ? 2 : 5)).toBe(true)
       expect(isOnStart(p, 2, 1, 100, 5)).toBe(false)
       expect(isOnStart(p, 50, 1, 100, 5)).toBe(false)
-      expect(isOnStart({ ...p, canStart: false }, 90, 1, 100, 5)).toBe(false)
+      expect(isOnStart({ ...p, canStart: false }, 10, 1, 100, 5)).toBe(false)
     })
   }
 }

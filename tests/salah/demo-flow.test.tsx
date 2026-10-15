@@ -47,7 +47,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
         expect(source).toContain(START_LABEL) // Also visible with athkar off.
         if (ending !== 'expire') {
           await ui.resize({ columns: 100, rows: 5, in: 'salah-athan' })
-          await ui.pointer({ type: 'down', button: 'left', x: ending === 'start' ? 90 : 2, y: ending === 'start' ? 2 : 1, in: 'salah-athan' })
+          await ui.pointer({ type: 'down', button: 'left', x: ending === 'start' ? 10 : 2, y: ending === 'start' ? 2 : 1, in: 'salah-athan' })
         }
       } else if (ending === 'close') await ui.press({ key: 'salah-athan-close' })
       if (ending === 'expire') {
