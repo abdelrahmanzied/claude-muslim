@@ -3,7 +3,7 @@
 // (hit testing) and the Client (drawing) agree without measuring anything.
 // Pure: no $.
 
-import { CLOSED_SETTINGS, DEFAULT_SETTINGS, categoryRows, settingsBody, settingsHeight, type SettingsAct, type SettingsModel, type SettingsState } from './settings.ts'
+import { CLOSED_SETTINGS, DEFAULT_SETTINGS, SETTINGS_BODY_TOP, categoryTabs, settingsBody, settingsHeight, type SettingsAct, type SettingsModel, type SettingsState } from './settings.ts'
 import { pointerPixels, pointerSlack } from '../../shared/card/pointer.ts'
 
 export const PAD = 12
@@ -83,10 +83,11 @@ const circles = (width: number, f: Folds): Circle[] => {
 }
 type Box = { act: PaneAct; x0: number; x1: number; y0: number; y1: number }
 const boxes = (width: number, f: Folds, settings: SettingsModel): Box[] => {
-  const r = cardRects(f)
+  const r = cardRects(f, settings.state)
   const title = (act: PaneAct, y: number): Box => ({ act, x0: PAD, x1: width - PAD, y0: y, y1: y + TITLE_HIT_H })
   return [
     ...settingsBoxes(width, f, settings),
+    title('settings:fold', r.settingsY),
     title('fold-prayer', r.prayerY), title('fold-quran', r.quranY), title('fold-athkar', r.athkarY),
     ...(f.prayer ? [] : [{ act: 'athan' as const, x0: PAD + SIDE - 8, x1: width - PAD - SIDE + 8, y0: r.prayerY + ATHAN_TOP, y1: r.prayerY + ATHAN_TOP + ATHAN_H }]),
     ...(f.quran ? [] : [{ act: 'quran-open' as const, x0: PAD + SIDE, x1: width - PAD - SIDE, y0: r.quranY + OPEN_TOP, y1: r.quranY + OPEN_TOP + OPEN_H }]),
@@ -99,13 +100,11 @@ const boxes = (width: number, f: Folds, settings: SettingsModel): Box[] => {
 // Settings share the existing nearest-edge/slack arbitration with daily cards.
 export const settingsBoxes = (width: number, folds: Folds, m: SettingsModel): Box[] => {
   const y = cardRects(folds, m.state).settingsY
-  const out: Box[] = [{ act: 'settings:fold', x0: PAD, x1: width-PAD, y0:y, y1:y+TITLE_HIT_H }]
-  if (!m.state.open) return out
-  for (const c of categoryRows(m.state)) {
-    out.push({ act:`settings:category:${c.category}`,x0:PAD+SIDE,x1:width-PAD-SIDE,y0:y+c.y,y1:y+c.bodyY })
-    if (m.state.category === c.category) for (const b of settingsBody(width,m).targets) out.push({...b,y0:y+c.bodyY+b.y0,y1:y+c.bodyY+b.y1})
-  }
-  return out
+  if (!m.state.open) return []
+  return [
+    ...categoryTabs(width).map(c => ({ act:`settings:tab:${c.category}` as const, x0:c.x0, x1:c.x1, y0:y+c.y0, y1:y+c.y1 })),
+    ...settingsBody(width,m).targets.map(b => ({ ...b, y0:y+SETTINGS_BODY_TOP+b.y0, y1:y+SETTINGS_BODY_TOP+b.y1 })),
+  ]
 }
 
 const isEnabled = (act: PaneAct, on: Enabled): boolean =>

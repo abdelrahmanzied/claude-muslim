@@ -9,7 +9,7 @@ import {
   ATHAN_H, ATHAN_TOP, BAR_TOP, CONTROLS_CY, FIELD_H, HEAD_H, HEAD_TOP, KBTN_W, KROW_H, KROW_TOP, KFINISH_W, KROW_GAP, NX_H, NX_TOP, OPEN_H, OPEN_TOP,
   PAD, RECITER_TOP, ROWS_TOP, ROW_H, SIDE, SURAH_TOP, TIMES_TOP, cardRects, type PaneAct,
 } from './layout.ts'
-import { categoryRows, settingsBody, type SettingsTarget } from './settings.ts'
+import { SETTINGS_TOP, SETTINGS_BODY_TOP, TABS_H, TAB_INSET, categoryTabs, settingsBody, type SettingsTarget } from './settings.ts'
 import type { PaneModel } from './model.ts'
 
 const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -17,16 +17,22 @@ const ltr = (text: string) => `<bdi dir="ltr">${escape(text)}</bdi>`
 
 // Colors live here only: dark by default, light under the app's color scheme (the same mechanism as the Quran pane; Claude Code's own theme row is not read, it can differ from the Desktop's).
 const VARS = {
-  dark: '--line:#3a3834;--line-soft:#2b2a27;--text:#ecebe6;--text-2:#c6c3bb;--muted:#8f8c83;--dim:#625f58;--raised:#2a2926;--raised-2:#34322e;--hover:#23221f;--on:#ffffff',
-  light: '--line:#d9d6cc;--line-soft:#e7e4db;--text:#1f1e1b;--text-2:#46443e;--muted:#77746a;--dim:#a5a298;--raised:#ecebe4;--raised-2:#e2e0d8;--hover:#f3f1ec;--on:#ffffff',
+  dark: '--card:#232220;--line:#3a3834;--line-soft:#2b2a27;--text:#ecebe6;--text-2:#c6c3bb;--muted:#8f8c83;--dim:#625f58;--raised:#2a2926;--raised-2:#34322e;--hover:#23221f;--on:#ffffff',
+  light: '--card:#fffdf8;--line:#d9d6cc;--line-soft:#e7e4db;--text:#1f1e1b;--text-2:#46443e;--muted:#77746a;--dim:#a5a298;--raised:#ecebe4;--raised-2:#e2e0d8;--hover:#f3f1ec;--on:#ffffff',
 }
 export const paletteCss = (root: string, color: PaneModel['color']): string => {
   const dark = `${VARS.dark};--accent:${accentHex(color, true)}`, light = `${VARS.light};--accent:${accentHex(color, false)}`
   return `${root}{${dark}}@media (prefers-color-scheme: light){${root}{${light}}}${root}.theme-light{${light}}${root}.theme-dark{${dark}}`
 }
 
+// Approved icons-avatars catalog fragments are kept verbatim.
 const PATHS = {
-  gear: '<path d="M9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1z"/><circle cx="12" cy="12" r="3"/>',
+  sliders: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
+  sujoodreal: '<circle cx="5.2" cy="17.8" r="1.9"/><path d="M7 15.8C9.5 11.5 12.5 9.5 15.5 9.5c2 0 3 1.5 3 4v5H21M9.5 14.2l1.5 3.6-3 2.2M2.5 20.2h19"/>',
+  qpane: '<path d="M12 5v15M12 5C8.72 2.54 5.44 3 2.98 4v16c3.28-2 6.56-1 9.02 1 2.46-2 5.74-3 9.02-1V4c-2.46-1-5.74-2-9.02 1Z"/>',
+  horizon: '<path d="M3 19h18M6.5 19a5.5 5.5 0 0111 0M12 7v3M4.6 11.6l1.5 1.5M19.4 11.6l-1.5 1.5M9.8 5.2L12 3l2.2 2.2"/>',
+  spinbeads: '<circle cx="12" cy="3.8" r="2"/><circle cx="17.8" cy="6.2" r="1.75"/><circle cx="20.2" cy="12" r="1.5"/><circle cx="17.8" cy="17.8" r="1.25"/><circle cx="12" cy="20.2" r="1"/><circle cx="6.2" cy="17.8" r=".8"/><circle cx="3.8" cy="12" r=".6"/>',
+  gearteeth: '<path d="M10.3 3h3.4l.5 2.3 1.6.7 2-1.3 2.4 2.4-1.3 2 .7 1.6 2.3.5v3.4l-2.3.5-.7 1.6 1.3 2-2.4 2.4-2-1.3-1.6.7-.5 2.3h-3.4l-.5-2.3-1.6-.7-2 1.3-2.4-2.4 1.3-2-.7-1.6L3 13.7v-3.4l2.3-.5.7-1.6-1.3-2 2.4-2.4 2 1.3 1.6-.7z"/><circle cx="12" cy="12" r="3"/>',
   chev: '<path d="M6 9l6 6 6-6"/>',
   chevl: '<path d="M15 6l-6 6 6 6"/>',
   moon: '<path d="M20 14.5A8.2 8.2 0 019.5 4a8.2 8.2 0 1010.5 10.5z"/>',
@@ -125,13 +131,13 @@ const prayerCard = (m: PaneModel, hover: PaneAct | null): string => {
 
 const quranCard = (m: PaneModel, hover: PaneAct | null): string => {
   const q = m.quran, r = cardRects(m.folds)
-  if (m.folds.quran) return `<section class="dcard" style="top:${r.quranY}px;height:${r.quranH}px">${header('book', 'القرآن', q.isAvailable ? escape(q.part) : '', true, hover === 'fold-quran')}</section>`
+  if (m.folds.quran) return `<section class="dcard" style="top:${r.quranY}px;height:${r.quranH}px">${header('qpane', 'القرآن', q.isAvailable ? escape(q.part) : '', true, hover === 'fold-quran')}</section>`
   const ok = q.isAvailable
   const on = ok && q.isPlaying
   const cls = (act: PaneAct, extra = '', off = false) => `${extra}${hover === act ? ' hot' : ''}${off ? ' off' : ''}`
   const circle = (act: 'quran-prev' | 'quran-toggle' | 'quran-next', r: number, dx: number, name: keyof typeof PATHS, label: string, off: boolean) =>
     `<div class="cb ${cls(act, act === 'quran-toggle' ? 'pl' : '', off)}" role="button" aria-label="${label}" style="width:${r * 2}px;height:${r * 2}px;top:${CONTROLS_CY - r}px;left:calc(50% + ${dx - r}px)">${icon(name)}</div>`
-  return `<section class="dcard" style="top:${r.quranY}px;height:${r.quranH}px">${header('book', 'القرآن', ok ? escape(q.part) : '', false, hover === 'fold-quran')}`
+  return `<section class="dcard" style="top:${r.quranY}px;height:${r.quranH}px">${header('qpane', 'القرآن', ok ? escape(q.part) : '', false, hover === 'fold-quran')}`
     + `<div class="in drow" style="top:${RECITER_TOP}px">${icon('mic')}<span class="ar who${ok ? '' : ' off'}">${ok ? escape(q.reciter) : '—'}</span></div>`
     + `<div class="in drow" style="top:${SURAH_TOP}px">${icon('book')}<span class="ar who${ok ? '' : ' off'}">${ok ? escape(q.surah) : '—'}</span></div>`
     + `<div class="bar" style="top:${BAR_TOP}px"><div class="pbar"><i style="width:${ok ? Math.round(q.progress * 1000) / 10 : 0}%"></i></div></div>`
@@ -156,11 +162,14 @@ const athkarCard = (m: PaneModel, hover: PaneAct | null): string => {
 
 
 const SETTINGS_CSS = `
-.setting-category{position:absolute;left:16px;right:16px;height:46px;display:flex;align-items:center;gap:9px;border-top:1px solid var(--line-soft);font-size:14px}
-.setting-category .ic{width:16px;height:16px;color:var(--muted)}.setting-category .last{margin-inline-start:auto}.setting-category[aria-expanded=true]{color:var(--accent)}.setting-category.hot{background:var(--hover)}
+.settings-tabs{position:absolute;left:${TAB_INSET}px;right:${TAB_INSET}px;top:${SETTINGS_TOP}px;height:${TABS_H}px;border:1px solid var(--line);border-radius:15px;padding:4px;background:var(--raised);overflow:hidden}
+.setting-tab{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:5px 2px;min-width:0;border-radius:11px;color:var(--muted)}
+.setting-tab .ic{width:24px;height:24px}.setting-tab span{font-size:11px;line-height:14px;text-align:center;overflow-wrap:anywhere;min-width:0;max-width:100%;height:28px}
+.setting-tab.hot{background:var(--raised-2)}.setting-tab[aria-selected=true]{background:var(--card);color:var(--accent);box-shadow:0 0 0 1px var(--line)}
 .settings-body{position:absolute;left:0;right:0}
 .settings-head{position:absolute;top:0;left:16px;right:16px;height:24px;display:flex;justify-content:space-between;border-bottom:1px solid var(--line-soft);color:var(--muted);font-size:11px}
 .settings-head small{font-size:10px;direction:ltr}.setting-label{position:absolute;right:16px;max-width:calc(100% - 32px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+.spinner-note{left:16px;font-size:11px;line-height:14px}
 .setting-hint{position:absolute;left:16px;right:16px;text-align:right;direction:ltr;line-height:13px;font-size:10px;color:var(--muted)}
 .setting-extra{position:absolute;right:16px;max-width:calc(100% - 142px);font-size:11px;line-height:14px;color:var(--muted)}
 .setting-sample{position:absolute;right:16px;font-size:14px;color:var(--text-2)}
@@ -185,15 +194,13 @@ const settingControl = (t: SettingsTarget, hover: PaneAct | null): string => {
 }
 const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
   const model=m.settings, s=model.state, r=cardRects(m.folds,s), b=settingsBody(m.width,model)
-  let content=header('gear','الإعدادات','٥ أقسام',!s.open,hover==='settings:fold')
-  if (s.open) for (const c of categoryRows(s)) {
-    const expanded=s.category===c.category
-    content+=`<div class="setting-category${hover===`settings:category:${c.category}`?' hot':''}" style="top:${c.y}px" role="button" aria-expanded="${expanded}">${icon(c.icon)}<span>${c.label}</span>${icon(expanded?'chev':'chevl','last')}</div>`
-    if (!expanded) continue
+  let content=header('gearteeth','الإعدادات','٥ أقسام',!s.open,hover==='settings:fold')
+  if (s.open) {
+    content+=`<div class="settings-tabs" role="tablist" aria-label="الإعدادات">${categoryTabs(m.width).map(c=>`<div class="setting-tab${hover===`settings:tab:${c.category}`?' hot':''}" style="left:${c.x0-PAD-TAB_INSET-1}px;top:${c.y0-SETTINGS_TOP-1}px;width:${c.x1-c.x0}px;height:${c.y1-c.y0}px" role="tab" aria-selected="${s.category===c.category}" aria-label="${c.label}">${icon(c.icon)}<span>${c.label}</span></div>`).join('')}</div>`
     let body=''
     if (s.face==='main') {
       body=`<div class="settings-head"><span>الإعدادات</span><small>Applies immediately</small></div>`
-      if (s.category==='thikr') body+='<span class="setting-extra" style="top:28px;max-width:none;color:var(--accent)">الذكر أثناء العمل</span>'
+      if (s.category==='thikr') body+='<span class="setting-extra spinner-note" style="top:28px;max-width:none;color:var(--accent)">يتحكّم في الذكر المعروض في <bdi dir="ltr">Spinner</bdi> (سطر العمل) في <bdi dir="ltr">Claude Code</bdi></span>'
       body+=b.rows.map(({row,y})=>`<span class="setting-label" style="top:${y+4}px;max-width:calc(100% - ${m.width<360?32:Math.max(160,row.controls.reduce((n,c)=>n+c.width+4,0)+50)}px)">${escape(row.label)}</span><span class="setting-hint" style="top:${y+(row.extra?96:row.sample?88:58)}px">${escape(row.hint)}</span>${row.extra?`<span class="setting-extra" style="top:${y+68}px">${escape(row.extra.label)}</span>`:''}${row.sample?`<span class="setting-sample" style="top:${y+64}px">${escape(row.sample)}</span>`:''}`).join('')
       if (s.category==='athkar') body+=`<div class="settings-sky ${model.options.athkarStyle}" style="top:204px">${icon('sun')}<span>أذكار الصباح</span></div>`
     } else {
@@ -210,7 +217,7 @@ const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
       } else body+=`<div class="command-sheet"><p>${s.face==='terminal'?'Run this in the terminal you want to configure. The three-choice check remembers that terminal’s mode. Desktop needs no Arabic setup.':'The city question opens in Claude. Enter a city in any language, or latitude and longitude. You can also run this command.'}</p><code>${s.face==='terminal'?'/muslim terminal-arabic':'/salah city'}</code></div>`
     }
     body+=b.controls.filter(t=>!t.act.startsWith('settings:pick:')).map(t=>settingControl(t,hover)).join('')
-    content+=`<div class="settings-body" style="top:${c.bodyY}px">${body}</div>`
+    content+=`<div class="settings-body" style="top:${SETTINGS_BODY_TOP}px">${body}</div>`
   }
   // Swatches use the shared light/dark accent palette, not a second palette.
   const swatches=(['orange','green','gold','blue'] as const).map(color=>`--${color}:${accentHex(color,true)}`).join(';')

@@ -4,7 +4,7 @@ import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, typ
 import { readAthkar, readQuran, readQuranSettings, readSalah, runPanelAction } from '../../shared/panel/signal.ts'
 import { NO_FOLDS, hitOfCells, isFolds, isPaneMessage, keyAct, type Enabled, type Folds, type PaneAct } from './layout.ts'
 import { paneModel, textLines, widthOf, type PaneModel } from './model.ts'
-import { CATEGORIES, CLOSED_SETTINGS, EMPTY_QURAN_SETTINGS, changeCategory, isSettings, settingsBody, settingsOptions, type SettingsState } from './settings.ts'
+import { CATEGORIES, EMPTY_QURAN_SETTINGS, changeCategory, loadSettings, settingsBody, settingsOptions, type SettingsState } from './settings.ts'
 import { skipPaneScroll } from './scroll.ts'
 
 const playingRef = { plugin: 'muslim', key: 'quranPlaying' } as const
@@ -19,7 +19,7 @@ async function readFolds($: EngineInterface): Promise<Folds> {
 const settingsRef = { plugin: 'muslim', key: 'paneSettings' } as const
 async function readSettings($: EngineInterface): Promise<SettingsState> {
   const saved = (await $.state.get(settingsRef)).value
-  return isSettings(saved) ? saved : CLOSED_SETTINGS
+  return loadSettings(saved)
 }
 const TICK_MS = 1000
 
@@ -82,9 +82,10 @@ async function settingsPress($: EngineInterface, options: Options, act: PaneAct)
   const s = model.settings.state
   if (act === 'settings:fold') {
     await $.state.set(settingsRef, { ...s, open: !s.open })
-  } else if (act.startsWith('settings:category:')) {
-    const category = CATEGORIES.find(c => act === `settings:category:${c[0]}`)?.[0]
-    if (category && s.open) await $.state.set(settingsRef, changeCategory(s, category))
+  } else if (act.startsWith('settings:tab:')) {
+    const category = CATEGORIES.find(c => act === `settings:tab:${c[0]}`)?.[0]
+    if (!category || !s.open || s.category === category) return
+    await $.state.set(settingsRef, changeCategory(s, category))
   } else {
     const effect = settingsBody(model.width, model.settings).targets.find(t => t.act === act)?.effect
     if (!effect) return

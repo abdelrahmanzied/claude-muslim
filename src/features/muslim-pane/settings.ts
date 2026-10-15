@@ -7,14 +7,25 @@ import { arabicDigits } from '../../shared/pray/line.ts'
 
 export type SettingsState = PaneSettings
 export const CATEGORIES = [
-  ['prayer', 'الصلاة', 'minaret'], ['quran', 'القرآن', 'book'], ['athkar', 'الأذكار', 'sun'], ['thikr', 'الذكر', 'sun'], ['general', 'عام', 'gear'],
+  ['general', 'عام', 'sliders'], ['prayer', 'الصلاة', 'sujoodreal'], ['quran', 'القرآن', 'qpane'], ['athkar', 'الأذكار', 'horizon'], ['thikr', 'الذكر', 'spinbeads'],
 ] as const
-export const CLOSED_SETTINGS: SettingsState = { open: false, category: null, face: 'main', page: 0 }
+export const CLOSED_SETTINGS: SettingsState = { open: false, category: 'general', face: 'main', page: 0 }
 export const isSettings = (v: unknown): v is SettingsState => {
   if (!v || typeof v !== 'object') return false
   const s = v as Record<string, unknown>
   const validFace = s.face === 'main' || s.category === 'prayer' && ['methods', 'adjust', 'city'].includes(String(s.face)) || s.category === 'quran' && s.face === 'reciters' || s.category === 'general' && s.face === 'terminal'
-  return typeof s.open === 'boolean' && (s.category === null || CATEGORIES.some(c => c[0] === s.category)) && validFace && Number.isSafeInteger(s.page) && Number(s.page) >= 0
+  return typeof s.open === 'boolean' && CATEGORIES.some(c => c[0] === s.category) && validFace && Number.isSafeInteger(s.page) && Number(s.page) >= 0
+}
+// Older accordion state could have no open category. Normalize on read, never
+// write during render; the next input saves the normalized state naturally.
+export const loadSettings = (saved: unknown): SettingsState => {
+  if (isSettings(saved)) return saved
+  if (saved && typeof saved === 'object') {
+    const s = saved as Record<string, unknown>
+    const migrated = { ...s, category: 'general' }
+    if (s.category === null && s.face === 'main' && isSettings(migrated)) return { ...migrated, page: 0 }
+  }
+  return CLOSED_SETTINGS
 }
 export type SettingsOptions = Omit<Options, 'salahPlace'> & { salahPlace: NonNullable<Options['salahPlace']> | null }
 export const settingsOptions = (o: Options): SettingsOptions => ({ ...o, salahPlace: o.salahPlace ?? null })
@@ -31,8 +42,12 @@ export type Effect =
   | { kind: 'copy'; command: string }
 export type SettingControl = { id: SettingsAct; label: string; width: number; style: 'pill' | 'switch' | 'value' | 'step' | 'swatch'; selected?: boolean; disabled?: boolean; effect: Effect }
 export type SettingRow = { label: string; hint: string; height: number; controls: SettingControl[]; extra?: { label: string; controls: SettingControl[] }; sample?: string }
-export const CATEGORY_H = 46
 export const SETTINGS_TOP = 56
+export const TABS_H = 76
+export const TAB_INSET = 16
+export const TAB_PAD = 5 // 1px border + 4px padding, matching the drawing.
+export const TAB_GAP = 4
+export const SETTINGS_BODY_TOP = SETTINGS_TOP + TABS_H + 12
 export const BODY_TOP = 28
 export const LIST_SIZE = 6
 export const LIST_ROW_H = 52
@@ -40,17 +55,18 @@ export const LIST_ROW_H = 52
 export const LIST_H = 440
 export const MAIN_HEIGHTS = { prayer: 478, quran: 196, athkar: 274, thikr: 448, general: 310 } as const
 export const FACE_HEIGHTS = { methods: LIST_H, reciters: LIST_H, adjust: 436, city: 292, terminal: 292 } as const
-export const settingsBodyHeight = (s: SettingsState): number => !s.open || !s.category ? 0 : s.face === 'main' ? MAIN_HEIGHTS[s.category] : FACE_HEIGHTS[s.face]
-export const settingsHeight = (s: SettingsState): number => SETTINGS_TOP + (s.open ? CATEGORIES.length * CATEGORY_H + settingsBodyHeight(s) + 12 : 0)
-export const categoryRows = (s: SettingsState) => {
-  let y = SETTINGS_TOP
-  return CATEGORIES.map(([category, label, icon]) => {
-    const row = { category, label, icon, y, bodyY: y + CATEGORY_H }
-    y += CATEGORY_H + (s.category === category ? settingsBodyHeight(s) : 0)
-    return row
+export const settingsBodyHeight = (s: SettingsState): number => !s.open ? 0 : s.face === 'main' ? MAIN_HEIGHTS[s.category] : FACE_HEIGHTS[s.face]
+export const settingsHeight = (s: SettingsState): number => s.open ? SETTINGS_BODY_TOP + settingsBodyHeight(s) + 12 : SETTINGS_TOP
+// width is the whole pane; rectangles are pane-relative in x, card-relative in y.
+export const categoryTabs = (width: number) => {
+  const left = 12 + TAB_INSET + TAB_PAD
+  const tabWidth = (width - 2 * left - (CATEGORIES.length - 1) * TAB_GAP) / CATEGORIES.length
+  return CATEGORIES.map(([category, label, icon], i) => {
+    const x1 = width - left - i * (tabWidth + TAB_GAP)
+    return { category, label, icon, x0: x1 - tabWidth, x1, y0: SETTINGS_TOP + TAB_PAD, y1: SETTINGS_TOP + TABS_H - TAB_PAD }
   })
 }
-export const changeCategory = (s: SettingsState, category: SettingsState['category']): SettingsState => ({ ...s, category: s.category === category ? null : category, face: 'main', page: 0 })
+export const changeCategory = (s: SettingsState, category: SettingsState['category']): SettingsState => s.category === category ? s : ({ ...s, category, face: 'main', page: 0 })
 
 // The manifest order and the approved Arabic names; auto must stay first.
 export const METHOD_CHOICES = [
@@ -84,7 +100,7 @@ export const settingsRows = (m: SettingsModel): SettingRow[] => {
     ]
     case 'athkar': return [row('أذكار الصباح والمساء',toggle(o,'athkar'),'Show the reader above the prompt'),row('المظهر',pills('athkarStyle',o.athkarStyle,[['sky','سماء'],['frame','إطار']]),'Sky on desktop · terminal always frame')]
     case 'thikr': return [
-      row('الذكر',toggle(o,'thikr'),'Phrases in Claude’s working line'),
+      row('الذكر',toggle(o,'thikr'),'Phrases in Claude Code’s Spinner (working line)'),
       row('المحتوى',pills('thikrMode',o.thikrMode,[['all','الكل'],['salawat','الصلاة على النبي']]),'All groups or one salawat per turn'),
       row('السرعة',pills('thikrSpeed',o.thikrSpeed === 'auto' ? 'auto' : '3',[['auto','تلقائي'],['3','ثوانٍ']]).map(c => c.label === 'ثوانٍ' ? {...c,effect:config('thikrSpeed',String(o.thikrSpeed === 'auto' ? 3 : o.thikrSpeed))} : c),'Auto: 1s + 0.5s per word',{label:o.thikrSpeed === 'auto' ? '' : 'ثوانٍ لكل عبارة',controls:o.thikrSpeed === 'auto' ? [] : step('thikrSpeed',o.thikrSpeed,1,60,n => config('thikrSpeed',String(n)))}),
       row('نهاية الرد',toggle(o,'thikrEnd'),'Terminal end-of-turn line',undefined,o.tashkeel ? 'تَمَّ بِحَمْدِ اللَّهِ' : 'تم بحمد الله'),
@@ -108,7 +124,7 @@ export const settingsBody = (width: number, m: SettingsModel): SettingsBody => {
     out.controls.push(target)
     if (!c.disabled) out.targets.push(target)
   }
-  if (!s.open || !s.category) return out
+  if (!s.open) return out
   if (s.face !== 'main') add(control('back','رجوع',{kind:'face',face:'main'},'value',65),left,0)
   if (s.face === 'methods' || s.face === 'reciters') {
     const choices = s.face === 'methods' ? METHOD_CHOICES.map(([key,label,note]) => ({key,label,note})) : q.reciters.map(r => ({key:r.key,label:r.label,note:r.note}))
@@ -131,7 +147,7 @@ export const settingsBody = (width: number, m: SettingsModel): SettingsBody => {
     const command = s.face === 'city' ? '/salah city' : '/muslim terminal-arabic'
     add(control('copy','نسخ الأمر',{kind:'copy',command},'value',right-left),left,238,right-left,36)
   } else {
-    let y = BODY_TOP + (s.category === 'thikr' ? 24 : 0)
+    let y = BODY_TOP + (s.category === 'thikr' ? 32 : 0)
     for (const r of settingsRows(m)) {
       out.rows.push({row:r,y})
       let x = left
@@ -146,17 +162,23 @@ export const terminalSettings = (m: SettingsModel, show: (s:string)=>string): st
   const o=m.options, q=m.quran, on=(v:boolean)=>v?'on':'off'
   return [
     `**${show('الإعدادات')}**`,
+    `**${show('عام')}**`,
+    `Color: ${o.color} · /muslim color orange | green | gold | blue`, `Tashkeel: ${on(o.tashkeel)} · /muslim tashkeel on | off`,
+    `Terminal Arabic: ${m.terminalMode} · /muslim terminal-arabic`,
+    `**${show('الصلاة')}**`,
     `Prayer · city: ${o.salahPlace ? show(o.salahPlace.name) : 'not set'} · /salah city [name or lat, lng]`,
     `Prayer · show: ${o.salahShow} · /salah show always | <minutes> | off`,
     `Prayer · athan: ${on(o.salahAthan)} · /salah athan on | off`,
     `Prayer · method: ${o.salahMethod} · /salah method <auto or name>`,
     `Prayer · adjust: ${writeAdjust(o.salahAdjust)} · /salah adjust <pray> <±min>`,
+    `**${show('القرآن')}**`,
     `Quran · reciter: ${show(q.reciters.find(r=>r.key===q.selected)?.label ?? '—')} · /quran reciter <number or name>`,
     `Quran · repeat: ${q.repeat} · /quran repeat [segment] (session only)`,
+    `**${show('الأذكار')}**`,
     `Athkar: ${on(o.athkar)} · /athkar on | off`, `Athkar · style: ${o.athkarStyle} · /athkar style sky | frame`,
+    `**${show('الذكر')}**`,
+    show('يتحكّم في الذكر المعروض في Spinner (سطر العمل) في Claude Code'),
     `Thikr: ${on(o.thikr)} · /thikr on | off`, `Thikr · mode: ${o.thikrMode} · /thikr mode all | salawat`,
     `Thikr · speed: ${o.thikrSpeed} · /thikr speed auto | <1–60>`, `End of turn: ${on(o.thikrEnd)} · /thikr end on | off`,
-    `Color: ${o.color} · /muslim color orange | green | gold | blue`, `Tashkeel: ${on(o.tashkeel)} · /muslim tashkeel on | off`,
-    `Terminal Arabic: ${m.terminalMode} · /muslim terminal-arabic`,
   ]
 }

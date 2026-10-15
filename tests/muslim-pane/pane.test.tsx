@@ -1,6 +1,6 @@
 import { fixtureCatalog } from '../quran/fixtures/catalog.ts'
 import type { Mounted } from 'claude-code/testing'
-import { settingsBoxes, paneHeight } from '../../src/features/muslim-pane/layout.ts'
+import { settingsBoxes, TITLE_HIT_H, paneHeight } from '../../src/features/muslim-pane/layout.ts'
 import { CLOSED_SETTINGS, type SettingsState } from '../../src/features/muslim-pane/settings.ts'
 import type { On, PaneOpenArgs, UiOpenResult } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
@@ -268,7 +268,8 @@ for (const style of ['sky', 'frame'] as const) {
 async function settingsClick(ui: Mounted<'desktop' | 'terminal', 'Pane'>, act: string) {
   await ui.resize({ columns:50, rows:100, in:'muslim-pane' })
   const model=(await ui.find({type:'Client',key:'muslim-pane'}))!.props.props as PaneModel
-  const t=settingsBoxes(420,model.folds,model.settings).find(t=>t.act===act)
+  const y=cardRects(model.folds,model.settings.state).settingsY
+  const t=act==='settings:fold'?{x0:12,x1:408,y0:y,y1:y+TITLE_HIT_H}:settingsBoxes(420,model.folds,model.settings).find(t=>t.act===act)
   if(!t) throw new Error(`Missing settings target ${act}`)
   const height=paneHeight(model.folds,model.settings.state)
   const fine={x:(t.x0+t.x1)/2*50/420,y:(t.y0+t.y1)/2*100/height}
@@ -318,23 +319,40 @@ test('settings config deny shows a toast and leaves the category open',async($,o
   expect(state().category).toBe('athkar')
 })
 
-test('settings starts folded; accordion, sub-face back, and reopens survive redraws',async($,on)=>{
+test('settings starts on general; tabs, sub-face back, and reopens survive redraws',async($,on)=>{
   engine(on,'desktop')
   const state=settingsState(on,CLOSED_SETTINGS)
   const ui=await $.ui.mount(pane('desktop'))
   await settingsClick(ui,'settings:fold')
   expect(state()).toEqual({...CLOSED_SETTINGS,open:true})
-  await settingsClick(ui,'settings:category:prayer')
+  await settingsClick(ui,'settings:tab:prayer')
   await settingsClick(ui,'settings:methods')
+  expect(state().face).toBe('methods')
+  await settingsClick(ui,'settings:tab:prayer')
   expect(state().face).toBe('methods')
   await settingsClick(ui,'settings:back')
   expect(state().face).toBe('main')
-  await settingsClick(ui,'settings:category:general')
+  await settingsClick(ui,'settings:tab:general')
   expect(state().category).toBe('general')
+  await settingsClick(ui,'settings:tab:general')
+  expect(state()).toEqual({...CLOSED_SETTINGS,open:true})
   await settingsClick(ui,'settings:fold')
   expect(state().open).toBe(false)
   await settingsClick(ui,'settings:fold')
   expect(state().category).toBe('general')
+})
+
+test('legacy open accordion state renders general and saves normalized state on input',async($,on)=>{
+  engine(on,'desktop')
+  // Deliberately inject the pre-tabs persisted shape at the engine boundary.
+  const legacy={open:true,category:null,face:'main',page:0} as unknown as SettingsState
+  const state=settingsState(on,legacy)
+  const ui=await $.ui.mount(pane('desktop'))
+  const model=(await ui.find({type:'Client',key:'muslim-pane'}))!.props.props as PaneModel
+  expect(model.settings.state).toEqual({...CLOSED_SETTINGS,open:true})
+  expect(state()).toBe(legacy) // Reading/rendering does not write state.
+  await settingsClick(ui,'settings:tab:prayer')
+  expect(state()).toEqual({open:true,category:'prayer',face:'main',page:0})
 })
 
 test('reciter press reaches the Quran connector and its command selection path, without userConfig',async($,on)=>{

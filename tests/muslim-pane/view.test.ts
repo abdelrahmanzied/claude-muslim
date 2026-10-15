@@ -1,6 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import { PANE_HEIGHT } from '../../src/features/muslim-pane/layout.ts'
 import { paneModel } from '../../src/features/muslim-pane/model.ts'
+import { CLOSED_SETTINGS, CATEGORIES } from '../../src/features/muslim-pane/settings.ts'
 import { paneAlt, paneSvg, paletteCss } from '../../src/features/muslim-pane/view.ts'
 
 const NOW = 1_700_000_000_000
@@ -80,8 +81,8 @@ test('light and dark use their own consistent token sets and every element reads
   // Dark: light text, dark hairlines. Light: dark text, soft hairlines, light raised buttons.
   for (const token of ['--text:#ecebe6', '--muted:#8f8c83', '--line:#3a3834', '--raised:#2a2926']) expect(dark).toContain(token)
   for (const token of ['--text:#1f1e1b', '--muted:#77746a', '--line:#d9d6cc', '--raised:#ecebe4']) expect(light).toContain(token)
-  expect(paneSvg(paneModel(feeds, NOW, 360, 'orange', 'light'))).toContain('.dp.theme-light{--line:#d9d6cc')
-  expect(paneSvg(paneModel(feeds, NOW, 360, 'orange', 'dark'))).toContain('.dp.theme-dark{--line:#3a3834')
+  expect(paneSvg(paneModel(feeds, NOW, 360, 'orange', 'light'))).toContain('.dp.theme-light{--card:#fffdf8;--line:#d9d6cc')
+  expect(paneSvg(paneModel(feeds, NOW, 360, 'orange', 'dark'))).toContain('.dp.theme-dark{--card:#232220;--line:#3a3834')
   // No pane theme is forced when none is given: the app's color scheme decides, as in the Quran pane.
   expect(svg).toContain('class="dp"')
   // Elements take colors only from tokens: titles (.dh, text), big time (.nx-t), rows (.drow), borders, buttons (.dbtn).
@@ -97,4 +98,33 @@ test('the prayer card header uses the minaret icon, not the crescent', () => {
   const svg = paneSvg(paneModel(feeds, NOW, 360, 'orange'))
   expect(svg).toContain('M9.5 10v11M14.5 10v11')
   expect(svg).not.toContain('M20 14.5A8.2 8.2 0 019.5 4')
+})
+
+test('settings uses the approved gear, Quran mushaf, and exact five tab labels',()=>{
+  const model=paneModel(feeds,NOW,240,'orange')
+  model.settings={...model.settings,state:{...CLOSED_SETTINGS,open:true,category:'thikr'}}
+  const svg=paneSvg(model)
+  const settings=svg.slice(svg.indexOf('<section class="dcard settings-card"'))
+  const header=settings.slice(0,settings.indexOf('<div class="settings-tabs"'))
+  expect(header).toContain('M10.3 3h3.4l.5 2.3')
+  expect(header).not.toContain('M4 7h9M17 7h3')
+  for(const folded of [false,true]){
+    const picture=paneSvg({...model,folds:{...model.folds,quran:folded}})
+    const quranHeader=picture.match(/<div class="in dh"[^>]*>.*?<\/div>/g)!.find(head=>head.includes('<span class="ar">القرآن</span>'))!
+    expect(quranHeader).toContain('M12 5v15M12 5C8.72 2.54 5.44 3')
+    expect(quranHeader).not.toContain('M12 6c-2-1.5-5-2-8-2')
+  }
+  const tabs=settings.slice(settings.indexOf('<div class="settings-tabs"'),settings.indexOf('<div class="settings-body"'))
+  expect(tabs.match(/role="tab"/g)).toHaveLength(5)
+  let last=-1
+  for(const [,label] of CATEGORIES){
+    const pos=tabs.indexOf(`aria-label="${label}"`)
+    expect(pos).toBeGreaterThan(last);last=pos
+  }
+  expect(tabs).toContain('aria-label="الذكر"')
+  expect(tabs).toContain('<span>الذكر</span>')
+  expect(settings).toContain('Spinner</bdi> (سطر العمل)')
+  expect(svg).toContain('width:24px;height:24px')
+  expect(svg).toContain('font-size:11px;line-height:14px')
+  expect(svg).not.toContain('setting-category')
 })
