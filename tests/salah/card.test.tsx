@@ -533,7 +533,7 @@ for (const isFolded of [false, true]) {
       expect(svg).toContain('حان وقت صلاة الفجر')
       expect(svg).toContain('٠٥:٠٠')
       expect(svg).toContain('class="start hot"')
-      expect(svg).toContain('<span class="start-arrow"> ←</span>')
+      expect(svg).toContain('<span class="start-arrow">← </span><span class="start-label">')
       expect(svg).toContain('left: calc(35px + var(--ax, 0px))')
       expect(svg).toContain('font: 700 15px/1 "Aref Ruqaa", serif; color: #fff')
       expect(svg).toContain('color: var(--start-accent); filter: brightness(1.15)')

@@ -85,7 +85,7 @@ export const athanSvg = (p: AthanCardProps, view: Pick<CardView, 'hoverClose' | 
   cardSvg(athanFrame(p, view.columns), {
     classes: `athan active${p.isFolded ? ' rest' : ''}`,
     style: `--start-accent:${accentHex(p.accent ?? 'orange', p.isDark ?? true)}`,
-    html: `${p.canStart ? `<span class="start${view.hoverAction ? ' hot' : ''}"><span class="start-label">${START_LABEL}</span><span class="start-arrow"> ←</span></span>` : ''}<div class="main">${athanText(p.pray)}</div><div class="time">${arabicDigits(p.time)}</div>`,
+    html: `${p.canStart ? `<span class="start${view.hoverAction ? ' hot' : ''}"><span class="start-arrow">← </span><span class="start-label">${START_LABEL}</span></span>` : ''}<div class="main">${athanText(p.pray)}</div><div class="time">${arabicDigits(p.time)}</div>`,
     css: css(p.photo),
     hoverClose: view.hoverClose,
   })
