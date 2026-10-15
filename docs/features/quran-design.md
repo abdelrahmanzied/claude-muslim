@@ -165,3 +165,8 @@ Native Desktop validation on macOS confirmed both drag scrollbars reach the last
 ## Opening from Muslim
 
 The Muslim card's Open full player raises the same `quran` tab in the host's mod-pane dock using `$.ui.open({ id: 'quran', title: 'القرآن الكريم', focus: true })`. Navigation uses the current Muslim input context and precedes the serialized player initialization, which skips its usual pane-open call. Quran connects on Muslim pane render/input even if the footer has not drawn. It never closes/recreates either tab, starts audio, or changes the picture. Desktop manages the group and focus; the installed host permits same-plugin pane focus, while the generic API documents a conditional request. Tests observe API requests and failure results, not native painting or focus delivery.
+
+
+### Muslim pane settings connector
+
+Quran also connects a read-only recording/selection/repeat feed, a catalog-load action, a recording-key selection action and an explicit session-repeat action. The pane routes through the existing Quran selection and repeat logic; reciter remains in `quran.reciter` and repeat in session state.

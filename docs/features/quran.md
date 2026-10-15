@@ -139,3 +139,8 @@ Native Desktop validation on macOS confirmed both drag scrollbars reach the last
 The [Muslim pane](muslim-pane.md) shows this feature on its own card. This feature connects what that card shows (and what its buttons ask of it) through `src/shared/panel/signal.ts`; see the pane spec for the table.
 
 Open full player in Muslim opens `quran` with its authored title and `focus: true` before queued catalog or recording inspection, whether or not it is already open. Quran connects on Muslim pane draws and input as well as the footer, so navigation works before the footer/catalog is ready and after a module reload. Initialization uses the existing silent open path without a second pane open; existing playback/selection is retained. Desktop owns the shared mod-pane dock and focus grant; native tab activation remains a live verification step.
+
+
+### Muslim pane settings connector
+
+Quran also connects a read-only recording/selection/repeat feed, a catalog-load action, a recording-key selection action and an explicit session-repeat action. The pane routes through the existing Quran selection and repeat logic; reciter remains in `quran.reciter` and repeat in session state.

@@ -36,20 +36,24 @@ export type PanelAthkar = {
   isDone: boolean
 }
 
-export type PanelAction = 'quran-toggle' | 'quran-prev' | 'quran-next' | 'quran-open' | 'athkar-open' | 'athkar-finish'
+export type PanelQuranSettings = { reciters: { key: string; label: string; note: string }[]; selected: string; repeat: 'off' | 'surah' | 'segment'; split: boolean }
+
+export type PanelAction = 'quran-reciter' | 'quran-repeat' | 'quran-catalog' | 'salah-city' | 'quran-toggle' | 'quran-prev' | 'quran-next' | 'quran-open' | 'athkar-open' | 'athkar-finish'
 
 const feeds: {
+  quranSettings?: () => Promise<PanelQuranSettings | null>
   salah?: (now: number) => PanelSalah | null
   quran?: () => Promise<PanelQuran | null>
   athkar?: () => Promise<PanelAthkar | null>
 } = {}
-const actions = new Map<PanelAction, () => Promise<void>>()
+const actions = new Map<PanelAction, (value?: string) => Promise<void>>()
 
 // Each feature captures its own hook's $; this module never receives $.
 export const connectSalah = (read: (now: number) => PanelSalah | null) => { feeds.salah = read }
+export const connectQuranSettings = (read: () => Promise<PanelQuranSettings | null>) => { feeds.quranSettings = read }
 export const connectQuran = (read: () => Promise<PanelQuran | null>) => { feeds.quran = read }
 export const connectAthkar = (read: () => Promise<PanelAthkar | null>) => { feeds.athkar = read }
-export const connectPanelAction = (action: PanelAction, run: () => Promise<void>) => { actions.set(action, run) }
+export const connectPanelAction = (action: PanelAction, run: (value?: string) => Promise<void>) => { actions.set(action, run) }
 
 // A feature that is off, or not drawn yet, reads as null; one failing read never breaks the pane.
 export const readSalah = (now: number): PanelSalah | null => {
@@ -61,10 +65,14 @@ export const readQuran = async (): Promise<PanelQuran | null> => {
 export const readAthkar = async (): Promise<PanelAthkar | null> => {
   try { return (await feeds.athkar?.()) ?? null } catch { return null }
 }
-// Resolves whether the feature took the action.
-export const runPanelAction = async (action: PanelAction): Promise<boolean> => {
+// Read-only Quran settings; the owning feature supplies the catalog.
+export const readQuranSettings = async (): Promise<PanelQuranSettings | null> => {
+  try { return (await feeds.quranSettings?.()) ?? null } catch { return null }
+}
+// Resolves whether the feature took the action. Values are validated by its owner.
+export const runPanelAction = async (action: PanelAction, value?: string): Promise<boolean> => {
   const run = actions.get(action)
   if (!run) return false
-  try { await run(); return true } catch { return false }
+  try { await run(value); return true } catch { return false }
 }
-export const resetPanel = () => { delete feeds.salah; delete feeds.quran; delete feeds.athkar; actions.clear() }
+export const resetPanel = () => { delete feeds.quranSettings; delete feeds.salah; delete feeds.quran; delete feeds.athkar; actions.clear() }

@@ -143,3 +143,8 @@ Terminal checklist (each reply opens with its title, tables render):
 ## Muslim pane
 
 The [Muslim pane](muslim-pane.md) shows this feature on its own card. This feature connects what that card shows (and what its buttons ask of it) through `src/shared/panel/signal.ts`; see the pane spec for the table.
+
+
+### Muslim pane settings connector
+
+Salah connects `salah-city` during Muslim pane input. It runs the same `askCity`, resolution, `savePlace` and review path as `/salah city`, using the current press context; config denials show a toast.

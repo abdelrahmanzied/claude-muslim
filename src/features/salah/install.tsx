@@ -24,7 +24,7 @@ import { nudge, reviewRows } from './review.ts'
 import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, isOnClose, KEY_REST_MS, LEAVE_MS, LINE_PX } from '../../shared/card/card.ts'
 import { athanFrame, cardIsFolded } from './card.ts'
 import { clockText, lastPray, nextSalah, type Adjust } from './times.ts'
-import { connectSalah } from '../../shared/panel/signal.ts'
+import { connectSalah, connectPanelAction } from '../../shared/panel/signal.ts'
 import { panelSalah } from './panel.ts'
 import { lineAt, methodOf, settingsTable, showText, timesTable } from './today.ts'
 
@@ -194,6 +194,14 @@ const savePlace = async ($: EngineInterface, city: City, options: Options): Prom
   if (deny) await update($, review, () => null)
 
   return deny ? `Not changed: ${deny}` : `**City:** ${city.name} · ${METHODS[methodOf(options, city)].name}\nCheck today's times above the prompt.`
+}
+
+// A pane press uses the same city question, resolution and save/review path
+// as /salah city. Connect from input so the question has that press's context.
+async function panelCity($: EngineInterface, options: Options, guess: Place | undefined): Promise<void> {
+  const city = await askCity($, guess)
+  const result = typeof city === 'string' ? city : await savePlace($, city, options)
+  if (typeof city === 'string' || result.startsWith('Not changed:')) $.ui.toast(result)
 }
 
 // Keeps the pray line's row in step; writes only on a change.
@@ -369,6 +377,10 @@ export const install = (on: On, options: Options) => {
   connectSalah(now => panelSalah(options, now))
   const arabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
   const guess = guessPlace(systemTimeZone())
+  on('ui.message', { element: 'muslim-pane' }, ($, e, next) => {
+    connectPanelAction('salah-city', () => panelCity($, options, guess))
+    return next(e)
+  })
   // The pray line's timer, started once per module load by whichever of the
   // prompt band or the footer is drawn first (a reload, e.g. after any setting
   // change, starts it again; register also asks for a redraw at session.start).

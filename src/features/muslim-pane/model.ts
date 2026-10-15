@@ -2,6 +2,7 @@
 // The three cards read what the features connect (src/shared/panel); a feature
 // that is off or not drawn yet leaves its card with a quiet note instead.
 
+import { DEFAULT_SETTINGS, terminalSettings, type SettingsModel } from './settings.ts'
 import { NO_FOLDS, type Folds } from './layout.ts'
 import type { Accent } from '../../shared/color/index.ts'
 import { ARABIC } from '../../shared/pray/names.ts'
@@ -25,6 +26,7 @@ export type AthkarCard = { isAvailable: false } | { isAvailable: true; isEvening
 
 export type PaneModel = {
   width: number
+  settings: SettingsModel
   color: Accent
   theme?: 'light' | 'dark'
   folds: Folds
@@ -78,8 +80,9 @@ export const athkarCard = (athkar: PanelAthkar | null): AthkarCard => athkar ===
 
 export const quranCard = (quran: PanelQuran | null): QuranCard => quran === null ? { isAvailable: false } : { ...quran, isAvailable: true, progress: Math.max(0, Math.min(1, quran.progress)) }
 
-export const paneModel = (feeds: { salah: PanelSalah | null; quran: PanelQuran | null; athkar: PanelAthkar | null }, now: number, width: number, color: Accent, theme?: 'light' | 'dark', folds: Folds = NO_FOLDS): PaneModel => ({
+export const paneModel = (feeds: { salah: PanelSalah | null; quran: PanelQuran | null; athkar: PanelAthkar | null }, now: number, width: number, color: Accent, theme?: 'light' | 'dark', folds: Folds = NO_FOLDS, settings: SettingsModel = DEFAULT_SETTINGS): PaneModel => ({
   width,
+  settings,
   folds,
   color,
   ...(theme ? { theme } : {}),
@@ -110,5 +113,6 @@ export const textLines = (model: PaneModel, show: (text: string) => string): str
   const k = model.athkar
   if (!k.isAvailable) lines.push('Athkar are off. /athkar on')
   else lines.push(`${show(k.title)} ${show(k.fraction)}`)
+  lines.push('', ...terminalSettings(model.settings, show))
   return lines
 }

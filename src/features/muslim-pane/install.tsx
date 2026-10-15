@@ -1,9 +1,10 @@
 import type { EngineInterface, On } from 'claude-code'
 import type { Options } from '../../config.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
-import { readAthkar, readQuran, readSalah, runPanelAction } from '../../shared/panel/signal.ts'
+import { readAthkar, readQuran, readQuranSettings, readSalah, runPanelAction } from '../../shared/panel/signal.ts'
 import { NO_FOLDS, hitOfCells, isFolds, isPaneMessage, keyAct, type Enabled, type Folds, type PaneAct } from './layout.ts'
 import { paneModel, textLines, widthOf, type PaneModel } from './model.ts'
+import { CATEGORIES, CLOSED_SETTINGS, EMPTY_QURAN_SETTINGS, changeCategory, isSettings, settingsBody, settingsOptions, type SettingsState } from './settings.ts'
 import { skipPaneScroll } from './scroll.ts'
 
 const playingRef = { plugin: 'muslim', key: 'quranPlaying' } as const
@@ -14,6 +15,11 @@ const foldsRef = { plugin: 'muslim', key: 'paneFolds' } as const
 async function readFolds($: EngineInterface): Promise<Folds> {
   const saved = (await $.state.get(foldsRef)).value
   return isFolds(saved) ? saved : NO_FOLDS
+}
+const settingsRef = { plugin: 'muslim', key: 'paneSettings' } as const
+async function readSettings($: EngineInterface): Promise<SettingsState> {
+  const saved = (await $.state.get(settingsRef)).value
+  return isSettings(saved) ? saved : CLOSED_SETTINGS
 }
 const TICK_MS = 1000
 
@@ -40,7 +46,7 @@ async function arabicMode($: EngineInterface, surface: string): Promise<ArabicMo
 // What the three cards show right now: whatever the features have connected.
 async function modelNow($: EngineInterface, options: Options, columns: unknown): Promise<PaneModel> {
   const now = await $.clock.now()
-  return paneModel({ salah: readSalah(now), quran: await readQuran(), athkar: await readAthkar() }, now, widthOf(columns), options.color, undefined, await readFolds($))
+  return paneModel({ salah: readSalah(now), quran: await readQuran(), athkar: await readAthkar() }, now, widthOf(columns), options.color, undefined, await readFolds($), { state: await readSettings($), options: settingsOptions(options), quran: await readQuranSettings() ?? EMPTY_QURAN_SETTINGS, terminalMode: 'per-terminal setup' })
 }
 
 const enabledOf = (m: PaneModel): Enabled => ({
@@ -54,6 +60,7 @@ const enabledOf = (m: PaneModel): Enabled => ({
 
 // The athan toggle changes the salah setting itself (the module reloads); every other press is the owning feature's own action.
 async function press($: EngineInterface, options: Options, act: PaneAct): Promise<void> {
+  if (act.startsWith('settings:')) { await settingsPress($, options, act); return }
   if (act === 'fold-prayer' || act === 'fold-quran' || act === 'fold-athkar') {
     const key = act === 'fold-prayer' ? 'prayer' : act === 'fold-quran' ? 'quran' : 'athkar'
     const folds = await readFolds($)
@@ -68,6 +75,37 @@ async function press($: EngineInterface, options: Options, act: PaneAct): Promis
   }
   const took = await runPanelAction(act === 'quran-toggle' ? 'quran-toggle' : act === 'quran-prev' ? 'quran-prev' : act === 'quran-next' ? 'quran-next' : act === 'quran-open' ? 'quran-open' : act === 'athkar-finish' ? 'athkar-finish' : 'athkar-open')
   if (!took) $.ui.toast((act === 'athkar-open' || act === 'athkar-finish') ? 'Athkar are off. /athkar on' : 'Quran is not ready yet. /quran')
+}
+
+async function settingsPress($: EngineInterface, options: Options, act: PaneAct): Promise<void> {
+  const model = await modelNow($, options, 50)
+  const s = model.settings.state
+  if (act === 'settings:fold') {
+    await $.state.set(settingsRef, { ...s, open: !s.open })
+  } else if (act.startsWith('settings:category:')) {
+    const category = CATEGORIES.find(c => act === `settings:category:${c[0]}`)?.[0]
+    if (category && s.open) await $.state.set(settingsRef, changeCategory(s, category))
+  } else {
+    const effect = settingsBody(model.width, model.settings).targets.find(t => t.act === act)?.effect
+    if (!effect) return
+    if (effect.kind === 'config') {
+      const { deny } = await $.config.set({ key: `muslim.${effect.field}`, value: effect.value })
+      if (deny) $.ui.toast(`Not changed: ${deny}`)
+      else if (s.face === 'methods') await $.state.set(settingsRef, { ...s, face: 'main', page: 0 })
+    } else if (effect.kind === 'face') {
+      await $.state.set(settingsRef, { ...s, face: effect.face, page: 0 })
+      if (effect.face === 'city' && !(await runPanelAction('salah-city'))) $.ui.toast('Choose a city with /salah city.')
+      if (effect.face === 'reciters' && !(await runPanelAction('quran-catalog'))) $.ui.toast('Quran catalog unavailable. Use /quran reciter.')
+    } else if (effect.kind === 'page') await $.state.set(settingsRef, { ...s, page: effect.page })
+    else if (effect.kind === 'copy') {
+      if (!(await $.ui.copy({ text: effect.command, surface: 'desktop' })).isCopied) $.ui.toast(effect.command)
+    } else {
+      const took = effect.kind === 'reciter' ? await runPanelAction('quran-reciter', effect.key) : await runPanelAction('quran-repeat', effect.value)
+      if (!took) $.ui.toast('Quran is not ready yet. /quran')
+      else if (effect.kind === 'reciter') await $.state.set(settingsRef, { ...s, face: 'main', page: 0 })
+    }
+  }
+  $.ui.invalidate('ui.render')
 }
 
 // The footer chip toggles the pane: it opens it when closed and closes it when open.
@@ -103,11 +141,15 @@ export const install = (on: On, options: Options) => {
   let desktopPane = false
   let paneOffset = 0
 
-  on('command.run', { command: 'muslim', args: /^\s*pane\s*$/ }, async $ => {
+  on('command.run', { command: 'muslim', args: /^\s*pane\s*$/ }, async ($, e, next) => {
+    // Refresh read-only feature feeds for terminal command output too.
+    try { await next(e) } catch { /* no command handler beneath */ }
     const surface = await $.session.surface() ?? 'desktop'
     if (surface !== 'desktop') {
       const mode = await arabicMode($, surface)
-      return { text: textLines(await modelNow($, options, 0), text => terminalArabic(surface, mode, text)).join('\n') }
+      const model = await modelNow($, options, 0)
+      model.settings.terminalMode = mode
+      return { text: textLines(model, text => terminalArabic(surface, mode, text)).join('\n') }
     }
     await $.ui.open({ id: PANE_ID, title: 'Muslim' })
     $.ui.invalidate('ui.render')
@@ -132,6 +174,7 @@ export const install = (on: On, options: Options) => {
     const model = await modelNow($, options, e.props.bodyColumns)
     if (e.surface !== 'desktop') {
       const mode = await arabicMode($, e.surface)
+      model.settings.terminalMode = mode
       return <Box flexDirection="column">{textLines(model, text => terminalArabic(e.surface, mode, text)).map((line, i) => <Text key={`m${i}`} dimColor={line === ''}>{line}</Text>)}</Box>
     }
     const { Client } = $.ui.resolve(e)
@@ -150,7 +193,7 @@ export const install = (on: On, options: Options) => {
     if (message.act === 'pointer') {
       if (message.button !== 'left') return {}
       const model = await modelNow($, options, message.columns)
-      act = hitOfCells(message.width, message.x, message.y, message.columns, message.rows, message.coarse, enabledOf(model), model.folds)
+      act = hitOfCells(message.width, message.x, message.y, message.columns, message.rows, message.coarse, enabledOf(model), model.folds, model.settings)
     } else act = keyAct(message.key)
     if (act) await press($, options, act)
     return {}

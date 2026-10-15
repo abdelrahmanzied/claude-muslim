@@ -36,6 +36,8 @@ export type SalahCard = { pray: SalahWindow['pray']; time: string; foldsAt: numb
 export type QuranRepeat = 'off' | 'surah' | 'segment'
 export type QuranPlaying = { moshafKey: string; surah: number; startedAt: number; durationMs: number | null; segmentIndex?: number; segmentCount?: number }
 
+export type PaneSettings = { open: boolean; category: 'prayer' | 'quran' | 'athkar' | 'thikr' | 'general' | null; face: 'main' | 'methods' | 'reciters' | 'adjust' | 'city' | 'terminal'; page: number }
+
 declare module 'claude-code' {
   interface PluginState {
     muslim: {
@@ -45,7 +47,9 @@ declare module 'claude-code' {
       quranCommandError: string | null
       quranSurah: number
 
-      // Which Muslim pane cards are folded to their title row.
+      // Settings hub, one open category and its detail/page, kept across reloads.
+      paneSettings: PaneSettings | null
+      // Which daily cards are folded to their title row.
       paneFolds: { prayer: boolean; quran: boolean; athkar: boolean } | null
 
       // Terminal whose picker was opened by /muslim terminal-arabic.

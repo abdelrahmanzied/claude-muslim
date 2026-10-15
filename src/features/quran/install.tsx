@@ -12,7 +12,7 @@ import { formatTime, nextPlaybackItem, parseCommand, repeatMode, toggleRepeat, t
 import { isAvailable, nearestAvailable, nextAvailable, UNAVAILABLE_ERROR } from './availability.ts'
 import { quranHelp } from './help.ts'
 import { isCardMessage, pointerPixels, pointerSlack } from './card.ts'
-import { connectPanelAction, connectQuran, type PanelQuran } from '../../shared/panel/signal.ts'
+import { connectPanelAction, connectQuran, connectQuranSettings, type PanelQuran, type PanelQuranSettings } from '../../shared/panel/signal.ts'
 import { PANE_HEIGHT, arabicDigits, columnsWidth, isPickMessage, isPickerMessage, pickerWheelDelta, paneHit, paneModel, pickerInitial, paneHeight, type PickerMessage } from './pane.ts'
 
 const QURAN_DEBUG = false
@@ -564,9 +564,39 @@ async function panelQuran($: EngineInterface): Promise<PanelQuran | null> {
     canNext: model.canNext !== false,
   }
 }
+// Read-only catalog feed: rendering never fetches or writes player state.
+async function panelSettings($: EngineInterface): Promise<PanelQuranSettings> {
+  const raw = await $.store.get('quran.catalog')
+  const reciter = isCatalog(raw) ? await chosen($, raw) : null
+  return {
+    reciters: isCatalog(raw) ? raw.reciters.map(r => ({ key: r.key, label: r.name, note: r.label })) : [],
+    selected: reciter?.key ?? '',
+    repeat: repeatMode((await $.state.get(repeatRef)).value),
+    split: reciter ? trackSelection(reciter, (await $.state.get(surahRef)).value ?? 1).segments.length > 0 : false,
+  }
+}
+async function panelReciter($: EngineInterface, key?: string): Promise<void> {
+  const c = await catalog($)
+  const index = c.reciters.findIndex(r => r.key === key)
+  if (index < 0) throw new Error('Unknown reciter')
+  await paneAction($, { kind: 'reciter', value: String(index + 1) })
+}
+async function panelRepeat($: EngineInterface, value?: string): Promise<void> {
+  if (value !== 'off' && value !== 'surah' && value !== 'segment') throw new Error('Unknown repeat mode')
+  const current = repeatMode((await $.state.get(repeatRef)).value)
+  if (current === value) return
+  // The existing commands own validation, toggling and redraws. Off toggles
+  // the active mode; another choice toggles that target on.
+  const target = value === 'off' ? current : value
+  await paneAction($, { kind: target === 'segment' ? 'repeat-segment' : 'repeat' })
+}
 // Connect on footer/pane draws and again in the Muslim press's own context.
 function connectToPanel($: EngineInterface): void {
   connectQuran(() => panelQuran($))
+  connectQuranSettings(() => panelSettings($))
+  connectPanelAction('quran-reciter', value => panelReciter($, value))
+  connectPanelAction('quran-repeat', value => panelRepeat($, value))
+  connectPanelAction('quran-catalog', async () => { await catalog($) })
   connectPanelAction('quran-toggle', () => togglePlayback($))
   connectPanelAction('quran-prev', () => paneAction($, { kind: 'prev' }))
   connectPanelAction('quran-next', () => paneAction($, { kind: 'next' }))
@@ -585,6 +615,10 @@ async function mainColor($: EngineInterface, color: Accent): Promise<string> {
 }
 
 export const install = (on: On, options: Options) => {
+  on('command.run', { command: 'muslim', args: /^\s*pane\s*$/ }, ($, e, next) => {
+    connectToPanel($)
+    return next(e)
+  })
   on('ui.render', { component: 'Pane', requestId: 'muslim' }, ($, e, next) => {
     connectToPanel($)
     return next(e)

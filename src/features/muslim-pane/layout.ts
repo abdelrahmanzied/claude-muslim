@@ -3,6 +3,7 @@
 // (hit testing) and the Client (drawing) agree without measuring anything.
 // Pure: no $.
 
+import { CLOSED_SETTINGS, DEFAULT_SETTINGS, categoryRows, settingsBody, settingsHeight, type SettingsAct, type SettingsModel, type SettingsState } from './settings.ts'
 import { pointerPixels, pointerSlack } from '../../shared/card/pointer.ts'
 
 export const PAD = 12
@@ -51,12 +52,13 @@ export const NO_FOLDS: Folds = { prayer: false, quran: false, athkar: false }
 export const isFolds = (value: unknown): value is Folds => !!value && typeof value === 'object' && (['prayer', 'quran', 'athkar'] as const).every(k => typeof (value as Record<string, unknown>)[k] === 'boolean')
 
 // Where each card sits and how tall it is, and the whole pane's height, for the folded cards.
-export const cardRects = (f: Folds) => {
+export const cardRects = (f: Folds, settings: SettingsState = CLOSED_SETTINGS) => {
   const prayerH = f.prayer ? FOLDED_H : PRAYER_H, quranH = f.quran ? FOLDED_H : QURAN_H, athkarH = f.athkar ? FOLDED_H : ATHKAR_H
   const prayerY = PAD, quranY = prayerY + prayerH + GAP, athkarY = quranY + quranH + GAP
-  return { prayerY, prayerH, quranY, quranH, athkarY, athkarH, height: athkarY + athkarH + PAD }
+  const settingsY = athkarY + athkarH + GAP, settingsH = settingsHeight(settings)
+  return { prayerY, prayerH, quranY, quranH, athkarY, athkarH, settingsY, settingsH, height: settingsY + settingsH + PAD }
 }
-export const paneHeight = (f: Folds): number => cardRects(f).height
+export const paneHeight = (f: Folds, settings: SettingsState = CLOSED_SETTINGS): number => cardRects(f, settings).height
 
 // The unfolded pane.
 export const PRAYER_Y = PAD
@@ -64,7 +66,7 @@ export const QURAN_Y = PRAYER_Y + PRAYER_H + GAP
 export const ATHKAR_Y = QURAN_Y + QURAN_H + GAP
 export const PANE_HEIGHT = paneHeight(NO_FOLDS)
 
-export type PaneAct = 'fold-prayer' | 'fold-quran' | 'fold-athkar' | 'athan' | 'quran-prev' | 'quran-toggle' | 'quran-next' | 'quran-open' | 'athkar-open' | 'athkar-finish'
+export type PaneAct = SettingsAct | 'fold-prayer' | 'fold-quran' | 'fold-athkar' | 'athan' | 'quran-prev' | 'quran-toggle' | 'quran-next' | 'quran-open' | 'athkar-open' | 'athkar-finish'
 
 // What can be pressed now: the Quran controls need a connected Quran, the athkar button a connected athkar, the athan row a place.
 export type Enabled = { athan: boolean; quran: boolean; canPrev: boolean; canNext: boolean; athkar: boolean; athkarFinish?: boolean }
@@ -80,10 +82,11 @@ const circles = (width: number, f: Folds): Circle[] => {
   ]
 }
 type Box = { act: PaneAct; x0: number; x1: number; y0: number; y1: number }
-const boxes = (width: number, f: Folds): Box[] => {
+const boxes = (width: number, f: Folds, settings: SettingsModel): Box[] => {
   const r = cardRects(f)
   const title = (act: PaneAct, y: number): Box => ({ act, x0: PAD, x1: width - PAD, y0: y, y1: y + TITLE_HIT_H })
   return [
+    ...settingsBoxes(width, f, settings),
     title('fold-prayer', r.prayerY), title('fold-quran', r.quranY), title('fold-athkar', r.athkarY),
     ...(f.prayer ? [] : [{ act: 'athan' as const, x0: PAD + SIDE - 8, x1: width - PAD - SIDE + 8, y0: r.prayerY + ATHAN_TOP, y1: r.prayerY + ATHAN_TOP + ATHAN_H }]),
     ...(f.quran ? [] : [{ act: 'quran-open' as const, x0: PAD + SIDE, x1: width - PAD - SIDE, y0: r.quranY + OPEN_TOP, y1: r.quranY + OPEN_TOP + OPEN_H }]),
@@ -93,8 +96,20 @@ const boxes = (width: number, f: Folds): Box[] => {
   ]
 }
 
+// Settings share the existing nearest-edge/slack arbitration with daily cards.
+export const settingsBoxes = (width: number, folds: Folds, m: SettingsModel): Box[] => {
+  const y = cardRects(folds, m.state).settingsY
+  const out: Box[] = [{ act: 'settings:fold', x0: PAD, x1: width-PAD, y0:y, y1:y+TITLE_HIT_H }]
+  if (!m.state.open) return out
+  for (const c of categoryRows(m.state)) {
+    out.push({ act:`settings:category:${c.category}`,x0:PAD+SIDE,x1:width-PAD-SIDE,y0:y+c.y,y1:y+c.bodyY })
+    if (m.state.category === c.category) for (const b of settingsBody(width,m).targets) out.push({...b,y0:y+c.bodyY+b.y0,y1:y+c.bodyY+b.y1})
+  }
+  return out
+}
+
 const isEnabled = (act: PaneAct, on: Enabled): boolean =>
-  act === 'fold-prayer' || act === 'fold-quran' || act === 'fold-athkar' ? true : act === 'athan' ? on.athan : act === 'quran-open' ? true : act === 'athkar-finish' ? !!on.athkarFinish : act === 'athkar-open' ? on.athkar
+  act.startsWith('settings:') ? true : act === 'fold-prayer' || act === 'fold-quran' || act === 'fold-athkar' ? true : act === 'athan' ? on.athan : act === 'quran-open' ? true : act === 'athkar-finish' ? !!on.athkarFinish : act === 'athkar-open' ? on.athkar
     : act === 'quran-prev' ? on.quran && on.canPrev : act === 'quran-next' ? on.quran && on.canNext : on.quran
 
 const gap = (v: number, lo: number, hi: number) => (v < lo ? lo - v : v > hi ? v - hi : 0)
@@ -102,7 +117,7 @@ const gap = (v: number, lo: number, hi: number) => (v < lo ? lo - v : v > hi ? v
 // `sx`/`sy` are the half-extent of the pointer's cell (see pointerSlack): a pointer
 // known only as a whole cell may sit anywhere in it, so a target is hit when the cell
 // overlaps it, the one nearest the pointer (its edge, not its center) winning.
-export const hitAt = (width: number, x: number, y: number, on: Enabled, sx = 0, sy = 0, folds: Folds = NO_FOLDS): PaneAct | null => {
+export const hitAt = (width: number, x: number, y: number, on: Enabled, sx = 0, sy = 0, folds: Folds = NO_FOLDS, settings: SettingsModel = DEFAULT_SETTINGS): PaneAct | null => {
   if (![width, x, y, sx, sy].every(Number.isFinite) || width < 1) return null
   let best: PaneAct | null = null, bestDistance = Infinity
   for (const c of circles(width, folds)) {
@@ -112,7 +127,7 @@ export const hitAt = (width: number, x: number, y: number, on: Enabled, sx = 0, 
     const d = Math.max(0, Math.hypot(x - c.x, y - c.y) - c.r)
     if (d < bestDistance) { best = c.act; bestDistance = d }
   }
-  for (const b of boxes(width, folds)) {
+  for (const b of boxes(width, folds, settings)) {
     if (!isEnabled(b.act, on)) continue
     if (gap(x, b.x0, b.x1) > sx || gap(y, b.y0, b.y1) > sy) continue
     const d = Math.hypot(gap(x, b.x0, b.x1), gap(y, b.y0, b.y1))
@@ -122,12 +137,12 @@ export const hitAt = (width: number, x: number, y: number, on: Enabled, sx = 0, 
 }
 
 // A click in region cells, to its act.
-export const hitOfCells = (width: number, x: number, y: number, columns: number, rows: number, isCoarse: boolean, on: Enabled, folds: Folds = NO_FOLDS): PaneAct | null => {
+export const hitOfCells = (width: number, x: number, y: number, columns: number, rows: number, isCoarse: boolean, on: Enabled, folds: Folds = NO_FOLDS, settings: SettingsModel = DEFAULT_SETTINGS): PaneAct | null => {
   if (!(columns > 0) || !(rows > 0)) return null
-  const height = paneHeight(folds)
+  const height = paneHeight(folds, settings.state)
   const p = pointerPixels(width, x, y, columns, rows, height)
   const s = pointerSlack(width, columns, rows, height, isCoarse)
-  return hitAt(width, p.x, p.y, on, s.x, s.y, folds)
+  return hitAt(width, p.x, p.y, on, s.x, s.y, folds, settings)
 }
 
 // What the Client posts: a click with its region and the width it drew at, or a key.

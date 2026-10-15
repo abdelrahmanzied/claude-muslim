@@ -26,7 +26,7 @@ On Desktop the footer's SessionMode row gets a small `☾` Button owned by this 
 
 ## Layout
 
-Three cards stacked in one right-to-left column, 20px outside margin (the Quran pane's side margin) and 12px between cards, 19px corner radius, 1px line border, 16px side padding, 28px header. Every height is a constant (the pane is 20 + prayer + 12 + Quran + 12 + athkar + 20 tall, see `layout.ts`), so the hooks module hit-tests clicks against the same numbers the Client draws with, whatever the data.
+Three daily cards and one settings card stacked in one right-to-left column, 20px outside margin (the Quran pane's side margin) and 12px between cards, 19px corner radius, 1px line border, 16px side padding, 28px header. Every height is a constant (the pane is PAD + prayer + GAP + Quran + GAP + athkar + GAP + settings + PAD tall, see `layout.ts`), so the hooks module hit-tests clicks against the same numbers the Client draws with, whatever the data.
 
 Scrolling moves the host's body window over this fixed picture only when there is actual overflow. A person-origin Desktop `ui.scroll` whose clamped offset equals the last rendered offset is consumed without drawing, including wheel/trackpad input over the passive reciter and surah labels and ticks at either edge. `UiScrollInput` has no surface field, so the hook remembers the pane's surface and offset from `ui.render`; it does not infer them from the session. Plugin-origin requests and the terminal text body pass through. The Client has no size polling: `ClientSurface` already calls it on resize, and polling a flickering measured row count only caused redundant `setState` picture swaps for size messages nobody used. Fixed SVG/card heights and the existing pointer mapping stay the same.
 
@@ -43,3 +43,15 @@ Scrolling moves the host's body window over this fixed picture only when there i
 ## Full-player navigation
 
 Open full player is navigation to the existing `quran` id, never a toggle or a new pane instance. Quran reconnects during the Muslim pane render and input chain; it uses the press context to request `focus: true` immediately, before its player queue, including when its tab already exists. Muslim stays open. The host renders the mod panes as sibling tabs in one dock; the API supplies no group selector. The focus request is host-controlled (not an unconditional grant); the installed Desktop allows it from another pane of the same plugin. No button geometry or visual style changes. Native grouping and activation need a live check.
+
+## Settings — approved option B
+
+One folded «الإعدادات» card follows athkar. Its 56px header uses the existing card shell, Tajawal, a gear in the shared accent, the muted «٥ أقسام» count and fold chevron. Open it to reveal five 46px category rows: الصلاة، القرآن، الأذكار، الذكر، عام. Category rows carry the prototype's icons and one accordion body at most. State is separate from the three daily folds.
+
+The approved category rows use switches, selected pills, signed minute / bounded seconds steppers, four shared color swatches, value buttons and the same hints as the prototype. Arabic labels are UI chrome. Religious samples are the existing authored closing phrase and athkar title; display follows tashkeel. Demo-only notes and demo controls are omitted. Main rows reserve fixed extra space for optional Before-minutes and Seconds controls, so changing those modes never needs measurement. At widths below 360px controls sit below labels; heights remain identical.
+
+`settings.ts` owns the category/body constants, pure row data, control effects and control rectangles; both SVG drawing and layout hit testing consume them. Main body heights: prayer 478px, Quran 196px, athkar 274px, thikr 448px, general 310px. Detail heights: methods and reciters 440px, adjustments 436px, city and terminal command sheets 292px. The open card is `56 + 5×46 + open-body + 12`; folded it is 56. Body-only targets disappear when folded or another category opens. The surrounding host scrolls the resulting fixed picture with the existing no-movement redraw suppression unchanged.
+
+Long lists are paged, six 52px slots per page, retaining all 20 methods and every Quran-owned recording. The last page keeps the same six slots and body height; paging controls are disabled at the ends. No inner HTML scroll and no measured list height. Lists and steppers have a «رجوع» subheader. City invokes the existing Salah question directly from the press context and keeps a command sheet with Copy; terminal Arabic only opens its command sheet with Copy. Values come from current normalized options and Quran's read-only settings feed, without a competing store.
+
+The terminal gets all settings and their commands through the existing Arabic `show` path. Native Desktop painting and scroll feel still require a live host check; engine tests prove geometry, input routing, state and API calls.

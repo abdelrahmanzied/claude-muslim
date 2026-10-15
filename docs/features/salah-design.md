@@ -78,3 +78,8 @@ What the user chose:
 - [ ] The moment plays once and clears itself (see DESIGN.md, Time-based behavior).
 
 The main color is the shared `/muslim color` setting, default Claude orange. It changes only existing main-color accents; Claude's spinner keeps its own color.
+
+
+### Muslim pane settings connector
+
+Salah connects `salah-city` during Muslim pane input. It runs the same `askCity`, resolution, `savePlace` and review path as `/salah city`, using the current press context; config denials show a toast.

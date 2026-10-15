@@ -4,11 +4,11 @@ import { FOLDED_H, GAP, NO_FOLDS, TITLE_HIT_H, cardRects, paneHeight, ATHAN_TOP,
 const ALL: Enabled = { athan: true, quran: true, canPrev: true, canNext: true, athkar: true }
 const W = 360
 
-test('the cards stack in order and the pane height ends under the athkar card', () => {
+test('the cards stack in order and the pane height ends under the folded settings card', () => {
   expect(PRAYER_Y).toBe(PAD)
   expect(QURAN_Y).toBeGreaterThan(PRAYER_Y)
   expect(ATHKAR_Y).toBeGreaterThan(QURAN_Y)
-  expect(PANE_HEIGHT).toBe(ATHKAR_Y + ATHKAR_H + PAD)
+  expect(PANE_HEIGHT).toBe(ATHKAR_Y + ATHKAR_H + GAP + FOLDED_H + PAD)
 })
 
 test('each control is hit at its center', () => {
@@ -69,7 +69,7 @@ test('folded cards shrink to their title row and the cards below move up', () =>
   expect(r.prayerH).toBe(FOLDED_H)
   expect(r.quranY).toBe(PAD + FOLDED_H + GAP)
   expect(r.height).toBe(PANE_HEIGHT - (r.athkarY === ATHKAR_Y ? 0 : ATHKAR_Y - r.athkarY))
-  expect(paneHeight({ prayer: true, quran: true, athkar: true })).toBe(PAD * 2 + 3 * FOLDED_H + 2 * GAP)
+  expect(paneHeight({ prayer: true, quran: true, athkar: true })).toBe(PAD * 2 + 4 * FOLDED_H + 3 * GAP)
   expect(TITLE_HIT_H).toBeLessThanOrEqual(FOLDED_H)
 })
 

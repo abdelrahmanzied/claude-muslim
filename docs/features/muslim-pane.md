@@ -4,9 +4,9 @@ A docked pane titled «Muslim» on Claude Desktop that gathers the three things 
 
 ## Command
 
-- `/muslim pane` opens the pane (desktop). In the terminal it replies with the same three cards as plain text, Arabic through `src/shared/arabic`.
+- `/muslim pane` opens the pane (desktop). In the terminal it replies with the daily cards and settings as plain text, Arabic through `src/shared/arabic`.
 
-The pane has no setting of its own and no off switch: it is a view, and each card follows its feature (a card whose feature is off or not set up says so quietly).
+The pane has no userConfig field of its own and no off switch: it is a view, and each card follows its feature (a card whose feature is off or not set up says so quietly).
 
 ## Footer chip
 
@@ -46,3 +46,32 @@ The Client uses its current region size on render and pointer input; the API alr
 - Prayer times are calculated locally, no network.
 
 Desktop owns tab grouping and focus. This build exposes no group/placement argument or unconditional activation method. The installed Desktop renders the session's mod panes in one dock and permits a focus request from another pane of the same plugin. Engine tests verify first/repeated opens, coarse input, missing catalog/footer, pending preparation and unplaced results; native activation/paint still needs a live Desktop check.
+
+## Settings card (option B)
+
+After the three daily cards, one **الإعدادات** card starts folded to its 56px title row (gear, title, five-section count, chevron). Opening it shows **الصلاة، القرآن، الأذكار، الذكر، عام**. Only one category is open at a time; pressing its row again closes it. Category changes reset the detail face and page. The open card, category, face and page live in session state `muslim.paneSettings`, guarded by `isSettings`, and survive reloads. Daily-card folds remain independent in `paneFolds`.
+
+| Category | Setting | Control / command |
+| --- | --- | --- |
+| الصلاة | `salahShow` | Always / Before / Off; Before has a 1–720 minute stepper. `/salah show` |
+| الصلاة | `salahAthan` | Switch; the same value as the daily Athan row. `/salah athan` |
+| الصلاة | `salahPlace` | City row opens Salah's existing question, city resolution, config save and review flow. `/salah city` |
+| الصلاة | `salahMethod` | All 20 manifest options, auto first. `/salah method` |
+| الصلاة | `salahAdjust` | Six signed whole-minute steppers, including sunrise. Uses the shared `readAdjust` / `writeAdjust` format in `src/config.ts`. `/salah adjust` |
+| القرآن | Reciter | Full Quran-owned complete Hafs catalog; `quran-reciter` passes the selected recording key to Quran, which validates it and uses its command selection path. Saved in `quran.reciter`, never userConfig. `/quran reciter` |
+| القرآن | Repeat | Off / Surah / Segment; `quran-repeat` uses Quran's repeat logic and session state. Segment is disabled for an unsplit selection. `/quran repeat [segment]` |
+| الأذكار | `athkar` | Reader switch. `/athkar on` or `off` |
+| الأذكار | `athkarStyle` | Sky / Frame pills and a quiet sample. `/athkar style` |
+| الذكر | `thikr` | Switch. `/thikr on` or `off` |
+| الذكر | `thikrMode` | All / Salawat pills. `/thikr mode` |
+| الذكر | `thikrSpeed` | Auto / Seconds, then a 1–60 second stepper. `/thikr speed` |
+| الذكر | `thikrEnd` | Terminal end-of-turn switch and the authored closing phrase. `/thikr end` |
+| عام | `color` | Four shared accent swatches. `/muslim color` |
+| عام | `tashkeel` | Desktop display switch. `/muslim tashkeel` |
+| عام | Terminal Arabic | A command sheet with Copy; run `/muslim terminal-arabic` in the terminal being configured. No desktop switch. |
+
+All 13 userConfig fields write through `$.config.set({ key: 'muslim.<field>', value })`, including the city owned by Salah. Denials show a toast; module reload after a successful write is expected. The pane never imports another feature. Quran connects a read-only catalog/selection/repeat feed; opening its reciter list can fetch the catalog through `quran-catalog` in input context. A missing catalog leaves a command hint, not invented reciters. Salah connects `salah-city` in the current pane input context, so `$.ui.ask` runs the same flow as its slash command. The city detail face also retains `/salah city` and Copy as a handoff reference.
+
+Methods, reciters, adjustments and command sheets have a **رجوع** row returning to the category's main rows. Method and reciter selections return there too. Long lists use **six 52px slots per page**, with fixed Previous / Next controls, page count and a fixed 440px body even on the last page. Every reciter remains reachable; no catalog-size cap or nested scrolling is used. All other category and detail heights are constants in `settings.ts`; the Client never measures. Folded card bodies, closed categories and disabled controls have no hit targets. Settings share the daily cards' nearest-edge / half-cell slack rules and host body scrolling.
+
+Both `/muslim pane` and a terminal Pane append a settings section with each current value and its slash command, including reciter, repeat and the current terminal Arabic mode. Arabic values and the settings heading pass through the existing `show` callback; desktop chrome is left logical and unshaped.

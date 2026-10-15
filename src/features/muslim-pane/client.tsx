@@ -29,14 +29,14 @@ const client: ClientModule<PaneModel, Local> = (props, surface) => {
     const x = e.fine?.x ?? e.x + 0.5, y = e.fine?.y ?? e.y + 0.5
     // Without `fine` the pointer is a whole cell snapped to its center.
     const coarse = e.fine === undefined
-    const hit = e.type === 'leave' ? null : hitOfCells(model.width, x, y, surface.columns, surface.rows, coarse, enabledOf(model), model.folds)
+    const hit = e.type === 'leave' ? null : hitOfCells(model.width, x, y, surface.columns, surface.rows, coarse, enabledOf(model), model.folds, model.settings)
     if (hit !== current.hover) surface.setState({ ...current, hover: hit })
     if (e.type !== 'down' || (e.button ?? 'left') !== 'left' || !hit) return
     surface.post({ act: 'pointer', x, y, columns: surface.columns, rows: surface.rows, width: model.width, button: 'left', coarse })
   })
   surface.onKey(e => { surface.post({ act: 'key', key: e.key }) })
 
-  const svg: SvgProps = { source: paneSvg(model, local.hover), width: model.width, height: paneHeight(model.folds), alt: paneAlt(model) }
+  const svg: SvgProps = { source: paneSvg(model, local.hover), width: model.width, height: paneHeight(model.folds, model.settings.state), alt: paneAlt(model) }
   return <Box width="100%">{h('Svg', svg)}</Box>
 }
 export default client

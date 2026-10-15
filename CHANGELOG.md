@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add the Muslim pane’s folded «الإعدادات» accordion with all 13 plugin settings, Quran reciter and session repeat controls, paged lists, city handoff and terminal command summary.
+
 - Add explicit athkar completion for people who count off-screen: next past the last thikr asks «أتممتَ الأذكار؟» when any counts are incomplete, with confirm/resume choices in Sky, Frame and the terminal. Confirm fills every period count and plays the existing finale; resume finds the first incomplete item. Add the same ✓ «أتممتُها» action beside Open in the Muslim pane so its fraction/bar agree with the band. Keep the question transient, guard counting-key repeat, normalize older completed readings and cover completion, input, persistence and pane synchronization with regression tests.
 
 - Fix Muslim pane Open full player: reconnect Quran without waiting for the footer and open/raise its existing `quran` tab with a focus request in the shared Desktop mod-pane dock before queued catalog/recording work. Keep Muslim open and avoid a second initialization open; handle unplaced results. Add regression coverage for first/repeated opens, coarse pointers, missing catalog/footer and pending preparation.
