@@ -13,13 +13,13 @@ export const SIDE = 16
 export const HEAD_TOP = 14
 export const HEAD_H = 28
 
-// The pane's own heading above the cards: the avatar head and «مسلم» at the right edge,
+// The pane's own heading above the cards: the full avatar and «مسلم» at the right edge,
 // the LTR `/muslim` label at the left edge, as the Quran pane's heading.
-// The 24px avatar sits centered in the 36px row, so the row starts 6px above PAD: the
-// avatar's top then sits PAD from the pane's top, the same as the bottom margin.
-export const TOP_Y = PAD - 6
+// The 36px avatar fills the 36px row, which starts at PAD: the avatar's top sits
+// 12px from the pane's top, the same as the bottom margin.
+export const TOP_Y = PAD
 export const TOP_H = 36
-export const AVATAR_SIZE = 24
+export const AVATAR_H = 36
 export const CARDS_TOP = TOP_Y + TOP_H + 8
 
 // Prayer card, from its top.

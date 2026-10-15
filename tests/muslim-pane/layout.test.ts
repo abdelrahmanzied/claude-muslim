@@ -1,12 +1,16 @@
 import { expect, test } from 'claude-code/testing'
-import { CARDS_TOP, FOLDED_H, GAP, TOP_H, TOP_Y, NO_FOLDS, TITLE_HIT_H, cardRects, paneHeight, ATHAN_TOP, ATHKAR_H, ATHKAR_Y, CONTROLS_CY, KROW_TOP, OPEN_TOP, PAD, PANE_HEIGHT, PRAYER_Y, QURAN_Y, hitAt, hitOfCells, isPaneMessage, keyAct, type Enabled } from '../../src/features/muslim-pane/layout.ts'
+import { AVATAR_H, CARDS_TOP, FOLDED_H, GAP, TOP_H, TOP_Y, NO_FOLDS, TITLE_HIT_H, cardRects, paneHeight, ATHAN_TOP, ATHKAR_H, ATHKAR_Y, CONTROLS_CY, KROW_TOP, OPEN_TOP, PAD, PANE_HEIGHT, PRAYER_Y, QURAN_Y, hitAt, hitOfCells, isPaneMessage, keyAct, type Enabled } from '../../src/features/muslim-pane/layout.ts'
 
 const ALL: Enabled = { athan: true, quran: true, canPrev: true, canNext: true, athkar: true }
 const W = 360
 
 test('the cards stack in order and the pane height ends under the folded settings card', () => {
   expect(PRAYER_Y).toBe(CARDS_TOP)
-  expect(CARDS_TOP).toBeGreaterThan(TOP_Y + TOP_H)
+  expect(TOP_Y).toBe(12)
+  expect(TOP_H).toBe(36)
+  expect(AVATAR_H).toBe(TOP_H)
+  expect(CARDS_TOP).toBe(56)
+  expect(CARDS_TOP - TOP_Y - TOP_H).toBe(8)
   expect(hitAt(W, W / 2, TOP_Y + TOP_H / 2, ALL)).toBeNull()
   expect(QURAN_Y).toBeGreaterThan(PRAYER_Y)
   expect(ATHKAR_Y).toBeGreaterThan(QURAN_Y)
