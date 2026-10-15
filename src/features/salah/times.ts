@@ -2,6 +2,7 @@
 // computed by the vendored athan library; and which pray comes next.
 
 import { CalculationParameters, Coordinates, HighLatitudeRule, PolarCircleResolution, PrayerTimes } from './athan/Athan.ts'
+import type { SalahLast } from '../../../types'
 import { hijriMonth, localTime } from './clock.ts'
 import { METHODS, PRAYS, type MethodId, type Pray } from './methods.ts'
 
@@ -76,4 +77,11 @@ export const clockText = (at: number, timeZone: string): string => {
   const { hour, minute } = localTime(at, timeZone)
 
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+}
+
+// Today's last obligatory prayer only: before Fajr there is no last prayer today.
+export const lastSalahToday = (place: Where, method: MethodId, adjust: Adjust, at: number): SalahLast | null => {
+  const times = timesOn(place, method, adjust, at)
+  const pray = [...PRAYS].reverse().find(name => name !== 'sunrise' && times[name] <= at)
+  return pray && pray !== 'sunrise' ? { pray, at: times[pray] } : null
 }

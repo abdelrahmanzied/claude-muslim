@@ -14,7 +14,7 @@ test('/muslim shows each setting with its state and how to change it', { options
   expect(ran.text?.split('\n')[1]).toContain('To change a setting or see every option: `/muslim help`')
   expect(ran.text).toContain('### Features\n\n| Feature | Description | State |')
   expect(ran.text).toContain('| Thikr | Tasbih in Claude\'s working line | on |')
-  expect(ran.text).toContain('| Athkar | Morning and evening athkar above the prompt | on |')
+  expect(ran.text).toContain('| Athkar | Morning, evening and after-salah athkar above the prompt | on |')
   expect(ran.text).toContain('| Salah | Pray times and the next pray under the prompt | not set up |')
   expect(ran.text).toContain('### Shared\n\n| Setting | Description | State |')
   expect(ran.text).toContain('| Tashkeel | Arabic diacritics on desktop; the terminal never shows them | off |')
@@ -46,6 +46,7 @@ test('/muslim help shows every feature\'s table; with a feature, only its own', 
   expect((await $.command.run(muslim('help quran'))).text).toContain('| `/quran play` |')
   expect(all).toContain('/quran reciter')
   expect((await $.command.run(muslim('help unknown'))).text).toContain('Features: thikr, athkar, salah, quran, color, tashkeel, terminal-arabic')
+  expect(all).toContain('| `/athkar after-salah` | Open Athkar after salah; offered automatically for an hour after each prayer when prayer times are set | `reset`: read it again from the start |')
   expect(all).toContain('| `/athkar morning` · `evening` | Open that period\'s reader above the prompt, even outside its hours | `reset`: read it again from the start |')
   expect((await $.command.run(muslim('help athkar'))).text?.split('\n')[0]).toBe('**Muslim › Athkar › Help**')
   const quran = (await $.command.run(muslim('help quran'))).text

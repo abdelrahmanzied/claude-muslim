@@ -1,10 +1,21 @@
-# Morning and evening athkar
+# Morning, evening and after-salah athkar
 
 A reader above the prompt for the morning athkar (05:00 to 17:00) and the evening athkar (17:00 to 05:00), from Hisn al-Muslim 75 to 98 (`src/features/athkar/data.ts`). 93 is the same words as 92, so they are one thikr.
 
+## Athkar after salah
+
+The third set, **Athkar after salah** (أَذْكَارُ بَعْدَ الصَّلَاةِ), is said after the salam of an obligatory prayer. Its authored data is in `src/features/athkar/after-salah.ts`, from Hisn al-Muslim chapter 25, [hisn:66–73](https://sunnah.com/hisn:66) (through [hisn:73](https://sunnah.com/hisn:73)). Arabic wording is kept exactly as authored.
+
+- `/athkar after-salah` opens the same reader anytime, unhides it and holds the manual choice until ×, another set choice or reload. `/athkar after-salah reset` starts it again at the cover. A finished set replies with its shared reset hint.
+- Salah alone publishes `salahLast`: today's last obligatory prayer and its timestamp in the configured place, excluding sunrise and yesterday's Isha. With salah off, no place or before today's Fajr, it is null. Athkar only reads the atom; there are no imports between features.
+- With a known prayer, use that prayer's list even after the offer window. Fajr and Maghrib have the three Quls three times each and hisn:72 ten times; Fajr also has hisn:73. With no known prayer use the general list: items without `only`, at their base counts.
+- The day contains **one** `afterSalah` reading slot, with `pray` and `at` (`null` for a general reading). A new prayer timestamp replaces it with a fresh, visible reading. There is no history or per-prayer completion ledger. Losing prayer times selects a fresh general slot. The existing 05:00 athkar day boundary resets all three slots; older saved days missing the third slot load it empty.
+- Without a manual set choice, offer after-salah for `AFTER_SALAH_MINUTES = 60` minutes from each prayer time, including the start and excluding the end. Done or × immediately returns to the clock's morning/evening set. A later prayer starts a new offer. Without prayer times there is no automatic offer. Explicit morning/evening choices retain their existing session hold.
+- Counting, undo, navigation, progress, hide, reset, done hint and status use the same paths for all three sets. The sky follows the current hour. The desktop athan card keeps precedence.
+
 ## Reading
 
-- **Cover:** the title (أَذْكَارُ الصَّبَاحِ or أَذْكَارُ الْمَسَاءِ) and the keys. The first click only opens it; the next starts the reading; neither counts.
+- **Cover:** the title (أَذْكَارُ الصَّبَاحِ, أَذْكَارُ الْمَسَاءِ or أَذْكَارُ بَعْدَ الصَّلَاةِ) and the keys. The first click only opens it; the next starts the reading; neither counts.
 - **Count:** click, Space or Enter adds one. Right click or Backspace takes one back, or goes to the thikr before at 0. ← next, → previous (Arabic reads right to left). Esc gives the prompt back.
 - **Moves on** by itself 650 ms after a thikr's last count.
 - **Passage name:** Quran items show their name beside the set position: آية الكرسي and the three short surahs (الإخلاص، الفلق، الناس). Duas have none.

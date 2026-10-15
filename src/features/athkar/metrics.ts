@@ -44,3 +44,19 @@ export const END_VERSE_CHAR = 3.99
 export const END_CITE_CHAR = 6.47
 export const END_CITE_EM = 0.7
 export const HINT_CHAR = 0.602
+
+// After-salah widths: reuse the identical Quran passages above. New duas
+// measured with CoreText at 16px using the embedded Tajawal Regular font,
+// with the authored tashkeel and punctuation retained.
+TEXT_WIDTH['66-istighfar'] = { m: [77] }
+TEXT_WIDTH['66-salam'] = { m: [376] }
+TEXT_WIDTH['67'] = { m: [938] }
+TEXT_WIDTH['68'] = { m: [1354] }
+TEXT_WIDTH['69-tasbih'] = { m: [212] }
+TEXT_WIDTH['69-tahlil'] = { m: [468] }
+TEXT_WIDTH['70-ikhlas'] = TEXT_WIDTH['76-ikhlas']!
+TEXT_WIDTH['70-falaq'] = TEXT_WIDTH['76-falaq']!
+TEXT_WIDTH['70-nas'] = TEXT_WIDTH['76-nas']!
+TEXT_WIDTH['71'] = TEXT_WIDTH['75']!
+TEXT_WIDTH['72'] = { m: [552] }
+TEXT_WIDTH['73'] = { m: [335] }

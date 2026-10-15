@@ -2,7 +2,7 @@ import { accentText, type Accent } from '../../shared/color/index.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
-import type { SalahCard, SalahMinaret, SalahWindow } from '../../../types'
+import type { SalahCard, SalahMinaret, SalahWindow, SalahLast } from '../../../types'
 
 import { countdownMinutes, isMethod, parseShow, SHOW_MAX, SHOW_MIN, writeAdjust } from '../../config.ts'
 import type { Options } from '../../config.ts'
@@ -23,7 +23,7 @@ import { ACCENT_ROWS, FRAME_MS, isDue, LABEL_ROW, minaretRows, minaretStage, ROW
 import { nudge, reviewRows } from './review.ts'
 import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, isOnClose, KEY_REST_MS, LEAVE_MS, LINE_PX } from '../../shared/card/card.ts'
 import { athanFrame, cardIsFolded } from './card.ts'
-import { clockText, lastPray, nextSalah, type Adjust } from './times.ts'
+import { clockText, lastPray, lastSalahToday, nextSalah, type Adjust } from './times.ts'
 import { lineAt, methodOf, settingsTable, showText, timesTable } from './today.ts'
 
 // The engine follows $ only into same-file top-level functions, so the
@@ -77,6 +77,9 @@ const SETUP_LATER_KEY = 'salahSetupLater'
 // The review form's minutes while it is open; null when closed. Kept in
 // $.state so it survives the reload that saving the place causes.
 const review = atom({ plugin: 'muslim', key: 'salahReview' } as const, null as Adjust | null)
+// Today's last obligatory prayer, for the athkar reader to consume.
+const lastSalah = atom({ plugin: 'muslim', key: 'salahLast' } as const, null as SalahLast | null)
+
 // The pray whose countdown window we are in, for the thikr line to read.
 const inWindow = atom({ plugin: 'muslim', key: 'salahWindow' } as const, null as SalahWindow | null)
 
@@ -207,6 +210,7 @@ const tick = async ($: EngineInterface, options: Options, place: Place, timer: T
   const method = methodOf(options, place)
   const next = nextSalah(place, method, options.salahAdjust, now)
   const last = lastPray(place, method, options.salahAdjust, now)
+  await publishLast($, lastSalahToday(place, method, options.salahAdjust, now), true)
   await setLine($, lineAt(options, place, now))
   if (options.salahShow !== 'off' && options.salahAthan && isDue(last.at, now, await read($, athanShown))) {
     await update($, athanShown, () => last.at)
@@ -332,6 +336,13 @@ const publishWindow = async ($: EngineInterface, moment: SalahWindow | null) => 
   await update($, inWindow, () => moment)
 }
 
+// Athkar consumes this independently of the footer countdown and athan setting.
+const publishLast = async ($: EngineInterface, moment: SalahLast | null, initialize = false) => {
+  const { value } = await $.state.get({ plugin: 'muslim', key: 'salahLast' })
+  if ((!initialize || value !== undefined) && value?.pray === moment?.pray && value?.at === moment?.at) return
+  await update($, lastSalah, () => moment)
+}
+
 // One tick, then the timer runs every second in the window and every 30 s outside it.
 const run = async ($: EngineInterface, options: Options, place: Place, timer: Timer) => {
   const isWindow = await tick($, options, place, timer)
@@ -353,6 +364,7 @@ const clearLine = ($: EngineInterface) => {
   $.clock.after(0, async () => {
     await setLine($, undefined)
     await publishWindow($, null)
+    await publishLast($, null)
   })
 }
 

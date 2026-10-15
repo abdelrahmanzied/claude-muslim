@@ -1,4 +1,4 @@
-# Morning and evening athkar — design
+# Morning, evening and after-salah athkar — design
 
 The athkar reader's own design. It adds to the shared base in [DESIGN.md](../../DESIGN.md) and never contradicts it. What the feature does is in [athkar.md](athkar.md). Change a rule here first, then the code and its tests.
 
@@ -12,7 +12,7 @@ The athkar reader is the one feature the person sits with, so it is drawn:
 
 Everything else (font, size) stays Claude's: the API sets neither, so the reader follows the app's zoom.
 
-**Why:** reading two dozen athkar with counts needs a place to sit, click and see progress; a text row cannot hold it. The terminal gets the same reader as text in the Frame look.
+**Why:** reading a set of athkar with counts needs a place to sit, click and see progress; a text row cannot hold it. The terminal gets the same reader as text in the Frame look.
 
 ## Scope
 
@@ -28,11 +28,19 @@ Everything else (font, size) stays Claude's: the API sets neither, so the reader
 
 ## Reading
 
-- **Cover:** the title (أَذْكَارُ الصَّبَاحِ or أَذْكَارُ الْمَسَاءِ) and the keys. Faded, it folds to one slim row (24px, the reading's folded height): the title on the right, a muted one-line hint (`click to start`, or `click to continue`) at the left, the × at the left edge and the thin progress line. The first click only opens it (full cover with the keys); the next starts the reading; neither counts.
+- **Cover:** the title (أَذْكَارُ الصَّبَاحِ, أَذْكَارُ الْمَسَاءِ or أَذْكَارُ بَعْدَ الصَّلَاةِ) and the keys. Faded, it folds to one slim row (24px, the reading's folded height): the title on the right, a muted one-line hint (`click to start`, or `click to continue`) at the left, the × at the left edge and the thin progress line. The first click only opens it (full cover with the keys); the next starts the reading; neither counts.
 - **Count:** click, Space or Enter adds one. Right click or Backspace takes one back, or goes to the thikr before at 0. ← next, → previous (Arabic reads right to left). Esc gives the prompt back. The band folds by itself once the person stops ([rules](#when-it-folds-collapse-rules)).
 - **Passage name:** Quran items show their name beside the set position on desktop and in the terminal: آية الكرسي and the three short surahs (الإخلاص، الفلق، الناس). Duas have no passage name.
 - **Count on the line:** no circles. The progress line along the bottom shows the whole set; a small pill on its glowing head shows the repetitions left on this thikr in Arabic-Indic digits (٣ then ٢, ١, ٠; ١ for a thikr said once), easing along with the head and kept clear of both ends of the line. The set position (e.g. ١٦ مِنْ ٢٢) sits small and muted at the line's left end. In the terminal the head is `` ٢ `` on the main color.
 - **Progress:** Horizon glow, a soft line along the bottom filled from the right, its head pulsing slowly and easing forward on each count. The share per thikr is in [athkar.md](athkar.md#reading).
+
+## Third set: after salah
+
+The title is أَذْكَارُ بَعْدَ الصَّلَاةِ; the command is `/athkar after-salah`. This uses the same cover, counts, passage labels, progress, undo, ×, reset and two fixed heights as morning/evening. The sky follows the current hour, including manual readings. The folded done note is `أَتْمَمْتَ وِرْدَكَ ✓`, with no promise of a next time; the open done row and finale keep the shared end verse and the hint `/athkar after-salah reset → to read again`.
+
+One slot holds the current prayer's reading (`pray`, `at`), or the general reading with both null. A different prayer time clears counts, done and hidden state and starts on the cover. There is no history. The 05:00 day boundary also clears it; old days missing the slot are tolerated. The list is authored in Hisn al-Muslim chapter 25 ([hisn:66](https://sunnah.com/hisn:66)–[73](https://sunnah.com/hisn:73)); general readings use base counts, while Fajr/Maghrib carry their specified extras.
+
+When prayer times exist, offer this reader for 60 minutes after each obligatory prayer. Once done, hidden or outside the window, return to morning/evening. Manual set selection holds until ×, another choice or reload. No prayer times means no automatic offer; manual access remains available. The desktop athan card still takes this band's place while showing. No new setting, layout or demo scene is introduced.
 
 ## Looks
 
@@ -110,7 +118,7 @@ are pure in `demo.ts`; marked blocks in `install.tsx` hold only the demo path.
 - On the cover, the next click opens the reading; it does not count either. After that, clicks count.
 - The cover lists no Esc key: the mod never receives Esc (see rule 4).
 - Click, Space or Enter counts. Right click or Backspace takes one back. ← next, → previous.
-- × hides the band for this period and keeps the reading. `/athkar` brings it back. `/athkar morning` · `evening` shows that period by the same cover and reading even outside its hours; the choice ends at ×.
+- × hides the band for this set (for the current prayer with after-salah) and keeps the reading. `/athkar` brings it back. `/athkar morning` · `evening` shows that period by the same cover and reading even outside its hours; the choice ends at ×.
 
 ## When it folds (collapse rules)
 

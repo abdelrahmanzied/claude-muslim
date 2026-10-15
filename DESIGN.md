@@ -7,7 +7,7 @@ The shared base every feature follows, and the index to each feature's own desig
 | Feature | Command | Spec | Design |
 | --- | --- | --- | --- |
 | Thikr line | `/thikr` | [thikr.md](docs/features/thikr.md) | [thikr-design.md](docs/features/thikr-design.md): text only |
-| Morning and evening athkar | `/athkar` | [athkar.md](docs/features/athkar.md) | [athkar-design.md](docs/features/athkar-design.md): a drawn reader (Client module, desktop Svg sky) |
+| Morning, evening and after-salah athkar | `/athkar` | [athkar.md](docs/features/athkar.md) | [athkar-design.md](docs/features/athkar-design.md): a drawn reader (Client module, desktop Svg sky) |
 | Salah | `/salah` | [salah.md](docs/features/salah.md) | [salah-design.md](docs/features/salah-design.md): text, richer athan moment |
 | Terminal Arabic check ([shared guide](docs/terminal.md)) | `/muslim terminal-arabic` | [arabic-fix.md](docs/features/arabic-fix.md) | [arabic-fix-design.md](docs/features/arabic-fix-design.md) |
 | Quran | `/quran` | [quran.md](docs/features/quran.md) | [quran-design.md](docs/features/quran-design.md): desktop footer chip and a full Client-drawn pane with searchable dropdowns |

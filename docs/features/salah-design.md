@@ -78,3 +78,5 @@ What the user chose:
 - [ ] The moment plays once and clears itself (see DESIGN.md, Time-based behavior).
 
 The main color is the shared `/muslim color` setting, default Claude orange. It changes only existing main-color accents; Claude's spinner keeps its own color.
+
+The nonvisual `salahLast` signal shares the real prayer ticker: today's most recent obligatory prayer, excluding sunrise, or null before Fajr, with no place or with salah off. It is independent of athan visibility and drives athkar's 60-minute offer without adding a new salah surface.

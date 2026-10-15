@@ -139,3 +139,7 @@ Terminal checklist (each reply opens with its title, tables render):
 | `/salah method auto` | `**Method:** auto (…)` |
 | `/salah city <name>` | `**City:** …` and today's times above the prompt |
 | `/salah reminder` (old word) | the help table |
+
+## Last prayer signal for athkar
+
+Alongside `salahWindow`, salah publishes `salahLast: { pray: Fard; at: number } | null` through `$.state`, declared in `types/index.d.ts`. Its regular tick writes only when the value changes. It names the latest obligatory prayer at or before now **today in the configured place's timezone**, excluding sunrise and yesterday's Isha. Before Fajr, with no place or with `salahShow` off, the atom is null; `salahAthan` off does not disable it. Athkar reads it to offer its after-salah set for 60 minutes and replace its one reading slot when the prayer time changes. Demos do not publish this signal.

@@ -3,7 +3,7 @@ import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, typ
 import { atom, read } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 
-import type { Day, SalahCard } from '../../../types'
+import type { Day, SalahCard, SalahLast } from '../../../types'
 import type { Options } from '../../config.ts'
 import { withTashkeel } from '../../shared/arabic/visual.ts'
 import { helpHint, statusTable } from '../../table.ts'
@@ -11,8 +11,8 @@ import { athkarHelp } from './help.ts'
 import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, KEY_REST_MS, LEAVE_MS, LINE_PX, REST_PX } from '../../shared/card/card.ts'
 import { bandHeight, closeArea, pixelOf } from './band.ts'
 import type { BandModel } from './band.ts'
-import type { Period } from './data.ts'
-import { ADVANCE_MS, countOf, currentOf, dayOf, emptyReading, END, listFor, overall, periodAt, readDay, shouldAdvance, skyAt, step, textOf, timesOf, TITLE } from './logic.ts'
+import type { AthkarSet } from './logic.ts'
+import { AFTER_SALAH_MINUTES, ADVANCE_MS, countOf, currentOf, dayOf, emptyReading, END, listFor, overall, setAt, syncAfterSalah, readDay, shouldAdvance, skyAt, step, textOf, timesOf, TITLE } from './logic.ts'
 import type { Act } from './logic.ts'
 import { lookFor, plain, readerProps, resetHint } from './look.ts'
 import type { Style } from './look.ts'
@@ -101,9 +101,12 @@ const arabicModeOf = async ($: EngineInterface, surface: string, cache: { curren
 // shows, it takes the band's place, and the band comes back when it closes.
 const athanCard = atom({ plugin: 'muslim', key: 'salahCard' } as const, null as SalahCard | null)
 
+// On reload, wait for salah's first tick before replacing a saved prayer slot.
+let hasPrayerTimes = false
+
 const dayRef = atom({ plugin: 'muslim', key: 'athkar' } as const, null as Day | null)
 
-// Kept across sessions; today's reading for both periods.
+// Kept across sessions; today's reading for all three sets.
 const STORE_KEY = 'athkar'
 
 const STYLES: readonly Style[] = ['sky', 'frame']
@@ -123,11 +126,11 @@ const glowAtTime = (from: number, to: number, ms: number) => {
 }
 
 const isStyle = (value: string): value is Style => (STYLES as readonly string[]).includes(value)
-const isPeriod = (value: string): value is Period => value === 'morning' || value === 'evening'
+const setNamed = (value: string): AthkarSet | undefined => value === 'after-salah' ? 'afterSalah' : value === 'morning' || value === 'evening' ? value : undefined
+const setLabel = (set: AthkarSet) => set === 'afterSalah' ? 'Athkar after salah' : `${set} athkar`
 
-// The period the band shows: the one picked by `/athkar morning` or
-// `/athkar evening` while it holds, else the clock's.
-const periodOf = (now: Date): Period => view.chosen ?? periodAt(now.getHours())
+// Manual choices hold; otherwise offer after-salah in its window, then the clock's period.
+const periodOf = (now: Date, day: Day, last: SalahLast | null): AthkarSet => setAt(now, day, last, view.chosen)
 
 const localNow = async ($: EngineInterface) => new Date(await $.clock.now())
 
@@ -139,7 +142,12 @@ const today = async ($: EngineInterface) => {
   const now = await localNow($)
   const { value } = await $.state.get({ plugin: 'muslim', key: 'athkar' })
 
-  return { now, day: readDay(value ?? (await $.store.get(STORE_KEY)), dayOf(now)) }
+  const stored = readDay(value ?? (await $.store.get(STORE_KEY)), dayOf(now))
+  const signal = (await $.state.get({ plugin: 'muslim', key: 'salahLast' })).value
+  const last = hasPrayerTimes ? signal ?? null : null
+  const day = signal === undefined && hasPrayerTimes ? stored : syncAfterSalah(stored, last)
+  if (day !== stored) await save($, day)
+  return { now, day, last }
 }
 
 const save = async ($: EngineInterface, day: Day) => {
@@ -147,9 +155,9 @@ const save = async ($: EngineInterface, day: Day) => {
   await $.store.set(STORE_KEY, day)
 }
 
-const statusOf = (day: Day, period: Period) => {
+const statusOf = (day: Day, period: AthkarSet) => {
   const reading = day[period]
-  const list = listFor(period)
+  const list = listFor(period, reading)
   if (reading.isDone) return 'done ✓'
   const begun = list.filter(thikr => countOf(thikr, reading) > 0).length
 
@@ -157,25 +165,25 @@ const statusOf = (day: Day, period: Period) => {
 }
 
 // Moves on after a thikr's last count, unless the reader moved meanwhile.
-const advance = async ($: EngineInterface, period: Period, index: number) => {
+const advance = async ($: EngineInterface, period: AthkarSet, index: number, at?: number | null) => {
   const { day } = await today($)
   const reading = day[period]
   const thikr = currentOf(period, reading)
-  if (reading.index !== index || reading.isDone || countOf(thikr, reading) < timesOf(thikr)) return
+  if ((period === 'afterSalah' && reading.at !== at) || reading.index !== index || reading.isDone || countOf(thikr, reading) < timesOf(thikr)) return
   await save($, { ...day, [period]: step(period, reading, { act: 'next' }) })
 }
 
 // One step of today's reading, saved; after a count that ends a thikr, the
 // next one shows by itself.
 const apply = async ($: EngineInterface, act: Act) => {
-  const { now, day } = await today($)
-  const period = periodOf(now)
+  const { now, day, last } = await today($)
+  const period = periodOf(now, day, last)
   const before = day[period]
   const after = step(period, before, act)
   await save($, { ...day, [period]: after })
   if (act.act === 'hide') view.chosen = undefined
   if (act.act === 'count' && shouldAdvance(period, before, after)) {
-    $.clock.after(ADVANCE_MS, () => void advance($, period, after.index))
+    $.clock.after(ADVANCE_MS, () => void advance($, period, after.index, after.at))
   }
 }
 
@@ -198,9 +206,9 @@ const view = {
   // The pointer is over the band.
   isInside: false,
   pressedAt: 0,
-  // Picked by `/athkar morning` · `evening`: holds for this session until the
+  // Picked by a set command: holds for this session until the
   // other period is picked or the band is hidden with ×.
-  chosen: undefined as Period | undefined,
+  chosen: undefined as AthkarSet | undefined,
 }
 
 // Lights the band, and fades it again after a while with no input.
@@ -224,6 +232,10 @@ const rest = ($: EngineInterface) => {
 }
 
 export const install = (on: On, options: Options) => {
+  hasPrayerTimes = options.salahShow !== 'off' && !!options.salahPlace
+  let shownSlot: { key: string; period: AthkarSet } | undefined
+  let offerAt: number | null = null
+  let offerTimer: { cancel: () => void } | undefined
   // The sky follows the clock, and the period and the day turn on it.
   let clock: { cancel: () => void } | undefined
   // The glow eases from where it last stood.
@@ -245,6 +257,7 @@ export const install = (on: On, options: Options) => {
 
   on('command.run', { command: 'athkar' }, async ($, e) => {
     const [word = '', value = ''] = e.args.trim().split(/\s+/)
+    const selected = setNamed(word)
     const set = async (field: string, to: boolean | string, said: string) => {
       const { deny } = await $.config.set({ key: `muslim.${field}`, value: to })
 
@@ -262,8 +275,8 @@ export const install = (on: On, options: Options) => {
     }
     // DEMO END
     if (word === '') {
-      const { now, day } = await today($)
-      const period = periodOf(now)
+      const { now, day, last } = await today($)
+      const period = periodOf(now, day, last)
       if (day[period].isHidden) await save($, { ...day, [period]: { ...day[period], isHidden: false } })
 
       return {
@@ -272,10 +285,11 @@ export const install = (on: On, options: Options) => {
           helpHint('/athkar'),
           '',
           statusTable([
-            ['Athkar', 'Morning and evening athkar above the prompt', options.athkar ? 'on' : 'off'],
+            ['Athkar', 'Morning, evening and after-salah athkar above the prompt', options.athkar ? 'on' : 'off'],
             ['Style', 'The look; sky is desktop only', await $.session.surface() === 'terminal' ? 'frame (terminal)' : options.athkarStyle],
             ['Morning', 'Today\'s morning athkar', statusOf(day, 'morning')],
             ['Evening', 'Today\'s evening athkar', statusOf(day, 'evening')],
+            ['Athkar after salah', 'The current prayer or general reading', statusOf(day, 'afterSalah')],
           ]),
         ].join('\n'),
       }
@@ -285,24 +299,25 @@ export const install = (on: On, options: Options) => {
     if (word === 'style' && await $.session.surface() === 'terminal') return { text: 'The terminal always shows the frame; sky is desktop only. Change the style from the desktop app.' }
     if (word === 'style' && isStyle(value)) return set('athkarStyle', value, `style ${value}`)
     if (word === 'color') return { text: 'Color is now /muslim color.' }
-    if (isPeriod(word) && value === 'reset') {
+    if (selected && value === 'reset') {
       const { day } = await today($)
-      await save($, { ...day, [word]: emptyReading() })
+      await save($, { ...day, [selected]: { ...day[selected], ...emptyReading() } })
+      if (selected === 'afterSalah') view.chosen = selected
       view.isOpen = false
       // Back at the cover, folded: the person has moved on to the prompt.
       rest($)
 
-      return { text: `${word} athkar start again from the first` }
+      return { text: `${setLabel(selected)} start again from the first` }
     }
-    if (isPeriod(word) && value === '') {
+    if (selected && value === '') {
       const { day } = await today($)
-      const reading = day[word]
-      if (view.chosen !== word) view.isOpen = false
-      view.chosen = word
-      if (reading.isHidden) await save($, { ...day, [word]: { ...reading, isHidden: false } })
+      const reading = day[selected]
+      if (view.chosen !== selected) view.isOpen = false
+      view.chosen = selected
+      if (reading.isHidden) await save($, { ...day, [selected]: { ...reading, isHidden: false } })
       wake($)
 
-      return { text: reading.isDone ? `${word} athkar are done today: ${resetHint(word)}` : `${word} athkar open above the prompt` }
+      return { text: reading.isDone ? `${setLabel(selected)} are done today: ${resetHint(selected)}` : `${setLabel(selected)} open above the prompt` }
     }
 
     return { text: athkarHelp() }
@@ -424,8 +439,8 @@ export const install = (on: On, options: Options) => {
         return {}
       }
     }
-    const { now, day } = await today($)
-    const reading = day[periodOf(now)]
+    const { now, day, last } = await today($)
+    const reading = day[periodOf(now, day, last)]
     const isBack = m.act === 'pointer' ? m.button === 'right' : m.key === 'backspace'
     const isCount = m.act === 'pointer' ? m.button === 'left' : m.key === ' ' || m.key === 'space' || m.key === 'return'
     if (reading.isDone) {
@@ -491,8 +506,27 @@ export const install = (on: On, options: Options) => {
     const held = (await read($, dayRef)) ?? (await $.store.get(STORE_KEY))
     clock ??= $.clock.every(60_000, () => $.ui.invalidate('ui.render'))
     const now = await localNow($)
-    const period = periodOf(now)
-    const reading = readDay(held, dayOf(now))[period]
+    const signal = (await $.state.get({ plugin: 'muslim', key: 'salahLast' })).value
+    const last = hasPrayerTimes ? signal ?? null : null
+    const deadline = last ? last.at + AFTER_SALAH_MINUTES * 60_000 : null
+    if (offerAt !== deadline) {
+      offerTimer?.cancel()
+      offerAt = deadline
+      if (deadline !== null && deadline > now.getTime()) {
+        offerTimer = $.clock.after(deadline - now.getTime(), () => $.ui.invalidate('ui.render'))
+      }
+    }
+    const stored = readDay(held, dayOf(now))
+    const day = signal === undefined && hasPrayerTimes ? stored : syncAfterSalah(stored, last)
+    if (day !== stored) $.clock.after(0, () => void today($))
+    const period = periodOf(now, day, last)
+    const reading = day[period]
+    const slotKey = `${day.day}:${period}:${period === 'afterSalah' ? day.afterSalah.at : ''}`
+    if (shownSlot !== undefined && shownSlot.key !== slotKey && (shownSlot.period === 'afterSalah' || period === 'afterSalah')) {
+      view.isOpen = false
+      lastPhase = undefined
+    }
+    shownSlot = { key: slotKey, period }
     if (reading.isHidden) return theirs
 
     // Light themes take the deeper main colors.

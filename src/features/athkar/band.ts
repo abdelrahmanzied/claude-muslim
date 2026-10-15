@@ -1,6 +1,6 @@
 import { ACCENTS, accentHex, type Accent } from '../../shared/color/index.ts'
 import { BAND_CSS } from './band-css.ts'
-import type { Period } from './data.ts'
+import type { AthkarSet } from './logic.ts'
 import { AREF_RUQAA_BOLD, TAJAWAL_BOLD, TAJAWAL_REGULAR } from './fonts.ts'
 import type { Sky } from './logic.ts'
 import type { Style } from './look.ts'
@@ -18,7 +18,7 @@ export type BandModel = {
   // The text's size in pixels; SIZE_DEFAULT when absent.
   textSize?: number
   phase: Phase
-  period: Period
+  period: AthkarSet
   sky: Sky
   style: Style
   accent: Accent
