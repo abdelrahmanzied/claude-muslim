@@ -24,12 +24,8 @@ type StoryScene = { kind: 'reading' | 'finale' | 'folded'; id: string; duration:
 export const demoScenes = (style: Style, accent: Accent, finaleMs: number, set: DemoSet = 'daily', sky: Sky = 'dawn') => {
   const story: StoryScene[] = set === 'afterSalah' ? [
     { kind: 'reading', id: '66-istighfar', duration: 1200, countMs: 200 },
-    { kind: 'reading', id: '66-salam', duration: 1200, countMs: 400 },
     { kind: 'reading', id: '69-tasbih', duration: 3600, countMs: 100 },
     { kind: 'reading', id: '70-ikhlas', duration: 1200, countMs: 200 },
-    { kind: 'reading', id: '70-falaq', duration: 1200, countMs: 200 },
-    { kind: 'reading', id: '70-nas', duration: 1200, countMs: 200 },
-    { kind: 'reading', id: '72', duration: 1600, countMs: 100 },
     { kind: 'reading', id: '73', duration: 1200, countMs: 400 },
     { kind: 'finale', id: '73', duration: finaleMs, countMs: 0 },
     { kind: 'folded', id: '73', duration: 1200, countMs: 0 },

@@ -97,8 +97,8 @@ for (const style of ['sky', 'frame'] as const) {
   test(`${style}: after-salah scenes use the real Fajr list, fast counts, finale and folded done`, () => {
     const before = JSON.stringify(listFor('afterSalah', { index: 0, counts: {}, isDone: false, isHidden: false, pray: 'fajr' }))
     const scenes = demoScenes(style, 'gold', FINALE_MS, 'afterSalah', 'rose')
-    expect(scenes.map(s => s.id)).toEqual(['66-istighfar', '66-salam', '69-tasbih', '70-ikhlas', '70-falaq', '70-nas', '72', '73', '73', '73'])
-    expect(scenes.map(s => s.duration)).toEqual([1200, 1200, 3600, 1200, 1200, 1200, 1600, 1200, FINALE_MS, 1200])
+    expect(scenes.map(s => s.id)).toEqual(['66-istighfar', '69-tasbih', '70-ikhlas', '73', '73', '73'])
+    expect(scenes.map(s => s.duration)).toEqual([1200, 3600, 1200, 1200, FINALE_MS, 1200])
     expect(scenes.every(s => s.period === 'afterSalah' && s.sky === 'rose' && s.accent === 'gold')).toBe(true)
     let elapsed = 0
     for (const scene of scenes) {
@@ -118,14 +118,13 @@ for (const style of ['sky', 'frame'] as const) {
         expect(next.from).toBe(first.progress)
         expect(countOf(current, end.reading)).toBe(current.times)
         if (scene.id.startsWith('70-')) expect(current.times).toBe(3)
-        if (scene.id === '72') expect(current.times).toBe(10)
       } else {
         expect(first).toMatchObject({ progress: 1, isActive: scene.kind === 'finale', reading: { isDone: true } })
         expect(first.finaleMs).toBe(scene.kind === 'finale' ? 0 : undefined)
       }
       elapsed += scene.duration
     }
-    expect(elapsed).toBe(16800)
+    expect(elapsed).toBe(11600)
     expect(demoDuration(style, FINALE_MS, 'afterSalah')).toBe(elapsed)
     expect(demoStep(style, 'gold', -1, FINALE_MS, 'afterSalah')).toBeUndefined()
     expect(demoStep(style, 'gold', elapsed, FINALE_MS, 'afterSalah')).toBeUndefined()
