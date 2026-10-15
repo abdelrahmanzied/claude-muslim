@@ -22,6 +22,8 @@ Each card's title row folds and unfolds the card (press anywhere on the row); th
 
 Keys with the pane focused: space or enter plays and stops, left and right move previous and next.
 
+Wheel and trackpad scrolling belongs to the pane body. The reciter and surah rows are passive labels, not dropdowns. When the cards fit, or the body is already at the requested edge, scrolling leaves the picture still without a redraw. In a shorter window the host scrolls the overflowing cards normally; the terminal's text body and plugin-origin scroll requests retain the host's behavior.
+
 ## How the pane gets its data and performs actions
 
 The pane never imports another feature. `src/shared/panel/signal.ts` holds transient module values (no saved state, no `$.state`): each feature connects, from its own hooks, a reader for what the pane shows and a starter for what the pane may ask of it, and the pane calls them.
@@ -35,6 +37,8 @@ The pane never imports another feature. `src/shared/panel/signal.ts` holds trans
 A reload clears the connections; each feature connects again on its next draw (the module asks for a redraw at start). The Muslim render and input hooks continue the hook chain first, so Quran can connect without a footer draw and refresh its closures with the current input context. Quran navigation happens before queued catalog/recording work; initialization skips a redundant pane-open call. An unplaced/refused open shows the existing short unavailable toast. Other presses whose feature is not connected show a short toast.
 
 While the pane is open a clock redraws it every second while the Quran plays and once a minute otherwise (the countdown); the clock stops when the pane closes.
+
+The Client uses its current region size on render and pointer input; the API already redraws it on resize. It has no size polling timer or size messages. The pane's `ui.scroll` hook consumes person-origin Desktop requests whose clamped offset equals the last rendered offset, without `next` or invalidation (the API's way to leave a window undrawn). Real movement is passed through. `scroll.ts` holds the pure decision; unit and engine tests cover both Quran rows, wheel directions, missing pointer coordinates, overflow, edges, and flickering Client row measurements.
 
 ## Notes
 

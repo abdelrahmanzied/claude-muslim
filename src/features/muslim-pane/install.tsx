@@ -4,6 +4,7 @@ import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, typ
 import { readAthkar, readQuran, readSalah, runPanelAction } from '../../shared/panel/signal.ts'
 import { NO_FOLDS, hitOfCells, isFolds, isPaneMessage, keyAct, type Enabled, type Folds, type PaneAct } from './layout.ts'
 import { paneModel, textLines, widthOf, type PaneModel } from './model.ts'
+import { skipPaneScroll } from './scroll.ts'
 
 const playingRef = { plugin: 'muslim', key: 'quranPlaying' } as const
 const PANE_ID = 'muslim'
@@ -96,6 +97,10 @@ export const install = (on: On, options: Options) => {
   let ticker: { cancel: () => void } | undefined
   let lastMinute = -1
   const stopTicker = () => { ticker?.cancel(); ticker = undefined }
+  // ui.scroll has no surface field: remember the surface and offset of the
+  // pane's latest render, rather than assuming the session is its drawing.
+  let desktopPane = false
+  let paneOffset = 0
 
   on('command.run', { command: 'muslim', args: /^\s*pane\s*$/ }, async $ => {
     const surface = await $.session.surface() ?? 'desktop'
@@ -109,8 +114,11 @@ export const install = (on: On, options: Options) => {
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
-    // Let the owning features connect even when the footer has not drawn.
-    await next(e)
+    // Let the owning features connect even when the footer has not drawn;
+    // nothing beneath may answer this pane, which is fine.
+    try { await next(e) } catch { /* no hook beneath */ }
+    desktopPane = e.surface === 'desktop'
+    paneOffset = e.props.scroll?.offset ?? 0
     ticker ??= $.clock.every(TICK_MS, async () => {
       try {
         if (!(await $.ui.panes()).some(pane => pane.id === PANE_ID)) { stopTicker(); return }
@@ -135,9 +143,8 @@ export const install = (on: On, options: Options) => {
   on('ui.message', { element: 'muslim-pane' }, async ($, e, next) => {
     if (e.surface !== 'desktop' || !isPaneMessage(e.data)) return {}
     // Refresh action closures with this press's engine context, not a footer draw's.
-    await next(e)
+    try { await next(e) } catch { /* no hook beneath */ }
     const message = e.data
-    if (message.act === 'size') return {}
     let act: PaneAct | null
     if (message.act === 'pointer') {
       if (message.button !== 'left') return {}
@@ -148,8 +155,15 @@ export const install = (on: On, options: Options) => {
     return {}
   })
 
+  on('ui.scroll', { component: 'Pane', requestId: PANE_ID }, ($, e, next) => {
+    if (skipPaneScroll(desktopPane, paneOffset, e)) return {}
+    return next(e)
+  })
+
   on('ui.close', { id: PANE_ID }, async ($, e, next) => {
     stopTicker()
+    desktopPane = false
+    paneOffset = 0
     return next(e)
   })
 }

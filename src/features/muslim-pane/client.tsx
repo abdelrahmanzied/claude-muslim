@@ -6,7 +6,7 @@ import { paneAlt, paneSvg } from './view.ts'
 // The Muslim pane's Client: draws the picture, lights what the pointer is over,
 // and posts every click and key to the hooks module, which decides what each
 // does. It runs on the drawing thread.
-type Local = { hover: PaneAct | null; size: string }
+type Local = { hover: PaneAct | null }
 
 const enabledOf = (m: PaneModel): Enabled => ({
   athan: m.prayer.isSet,
@@ -19,18 +19,10 @@ const enabledOf = (m: PaneModel): Enabled => ({
 const client: ClientModule<PaneModel, Local> = (props, surface) => {
   const { Box } = surface.elements
   if (surface.state === undefined) {
-    surface.setState({ hover: null, size: '' })
-    surface.every(200, () => {
-      const size = `${surface.columns}x${surface.rows}`
-      const local = surface.state
-      if (local && size !== local.size && surface.columns > 0 && surface.rows > 0) {
-        surface.post({ act: 'size', columns: surface.columns, rows: surface.rows })
-        surface.setState({ ...local, size })
-      }
-    })
+    surface.setState({ hover: null })
   }
   const model: PaneModel = { ...props, width: surface.columns > 0 ? widthOf(surface.columns, props.width) : props.width }
-  const local: Local = surface.state ?? { hover: null, size: '' }
+  const local: Local = surface.state ?? { hover: null }
   surface.onPointer(e => {
     const current = surface.state ?? local
     const x = e.fine?.x ?? e.x + 0.5, y = e.fine?.y ?? e.y + 0.5

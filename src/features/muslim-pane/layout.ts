@@ -127,17 +127,15 @@ export const hitOfCells = (width: number, x: number, y: number, columns: number,
   return hitAt(width, p.x, p.y, on, s.x, s.y, folds)
 }
 
-// What the Client posts: a click with its region and the width it drew at, a key, the region's size.
+// What the Client posts: a click with its region and the width it drew at, or a key.
 export type PaneMessage =
   | { act: 'pointer'; x: number; y: number; columns: number; rows: number; width: number; button: string; coarse: boolean }
   | { act: 'key'; key: string }
-  | { act: 'size'; columns: number; rows: number }
 
 export const isPaneMessage = (value: unknown): value is PaneMessage => {
   if (!value || typeof value !== 'object') return false
   const m = value as Record<string, unknown>
   if (m.act === 'key') return typeof m.key === 'string'
-  if (m.act === 'size') return typeof m.columns === 'number' && typeof m.rows === 'number'
   return m.act === 'pointer' && ['x', 'y', 'columns', 'rows', 'width'].every(k => typeof m[k] === 'number' && Number.isFinite(m[k])) && (m.columns as number) > 0 && (m.rows as number) > 0 && typeof m.button === 'string' && typeof m.coarse === 'boolean'
 }
 
