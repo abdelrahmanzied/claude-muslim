@@ -430,7 +430,9 @@ function trackSelection(reciter: Reciter, surah: number) {
 }
 async function open($: EngineInterface, focus = false): Promise<void> {
   const surface = await $.session.surface()
-  const placed = await $.ui.open({ id: 'quran', title: await arabic($, surface ?? 'desktop', 'القرآن الكريم'), ...(focus ? { focus: true as const } : {}) })
+  const title = await arabic($, surface ?? 'desktop', 'القرآن الكريم')
+  // Desktop's tab strip takes title text only; ۞ stands in for an icon beside Muslim's. Terminals keep the plain words.
+  const placed = await $.ui.open({ id: 'quran', title: (surface ?? 'desktop') === 'desktop' ? `۞ ${title}` : title, ...(focus ? { focus: true as const } : {}) })
   if (focus && !placed.isPlaced) throw new Error(placed.reason)
   $.ui.invalidate('ui.render')
 }

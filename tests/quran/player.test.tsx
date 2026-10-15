@@ -853,7 +853,7 @@ test('desktop footer chip uses the shared main color and toggles the pane withou
   expect(await mounted.find({ type: 'Svg' })).toBeUndefined()
   expect((await mounted.find({ type: 'Text', text: '۞ القرآن' }))?.props.color).toBe('claude')
   await mounted.press({ key: 'quran-footer' })
-  expect(clock.opened).toEqual([{ id: 'quran', title: 'القرآن الكريم' }])
+  expect(clock.opened).toEqual([{ id: 'quran', title: '۞ القرآن الكريم' }])
   panes.push({ id: 'quran', title: 'القرآن الكريم', isShown: true, isPlaced: true, isFocused: false })
   await $.command.run(run('play 18')); await clock.settle()
   await clock.advance(1000)

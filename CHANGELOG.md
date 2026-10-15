@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Quran pane tab reads «۞ القرآن الكريم» on desktop, matching its footer chip and sitting beside the Muslim tab's moon.
+
 - Add the Muslim pane’s folded «الإعدادات» accordion with all 13 plugin settings, Quran reciter and session repeat controls, paged lists, city handoff and terminal command summary.
 
 - Add explicit athkar completion for people who count off-screen: next past the last thikr asks «أتممتَ الأذكار؟» when any counts are incomplete, with confirm/resume choices in Sky, Frame and the terminal. Confirm fills every period count and plays the existing finale; resume finds the first incomplete item. Add the same ✓ «أتممتُها» action beside Open in the Muslim pane so its fraction/bar agree with the band. Keep the question transient, guard counting-key repeat, normalize older completed readings and cover completion, input, persistence and pane synchronization with regression tests.

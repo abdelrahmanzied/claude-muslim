@@ -86,7 +86,7 @@ test('Open full player works before the footer or catalog has loaded; unavailabl
   await click(QURAN_Y + CONTROLS_CY)
   expect(toasts).toEqual([])
   await click(QURAN_Y + OPEN_TOP + 15)
-  expect(opened).toEqual([{ id: 'quran', title: 'القرآن الكريم', focus: true }])
+  expect(opened).toEqual([{ id: 'quran', title: '۞ القرآن الكريم', focus: true }])
   expect(toasts).toEqual([])
   // Athkar not connected: its button is not a target.
   await click(ATHKAR_Y + KROW_TOP + 18)
@@ -193,8 +193,8 @@ for (const alreadyOpen of [false, true]) test(`Open full player requests the Qur
   await click()
   await click()
   expect(opened).toEqual([
-    { id: 'quran', title: 'القرآن الكريم', focus: true },
-    { id: 'quran', title: 'القرآن الكريم', focus: true },
+    { id: 'quran', title: '۞ القرآن الكريم', focus: true },
+    { id: 'quran', title: '۞ القرآن الكريم', focus: true },
   ])
   expect(closed).toEqual([])
   expect(panes[0]!.id).toBe('muslim')
@@ -219,7 +219,7 @@ test('Open full player raises the tab before queued Quran preparation finishes',
   const click = ui.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: 25, y: Math.floor((QURAN_Y + OPEN_TOP + 21) * 40 / PANE_HEIGHT) })
   try {
     await front
-    expect(opened).toEqual([{ id: 'quran', title: 'القرآن الكريم' }, { id: 'quran', title: 'القرآن الكريم', focus: true }])
+    expect(opened).toEqual([{ id: 'quran', title: '۞ القرآن الكريم' }, { id: 'quran', title: '۞ القرآن الكريم', focus: true }])
   } finally { release() }
   await command
   await click
