@@ -92,3 +92,9 @@ test('light and dark use their own consistent token sets and every element reads
   expect(rules).toMatch(/\.dbtn\{[^}]*background:var\(--raised\);color:var\(--text\)/)
   expect(rules).toMatch(/\.pbar\{[^}]*background:var\(--line\)/)
 })
+
+test('the prayer card header uses the minaret icon, not the crescent', () => {
+  const svg = paneSvg(paneModel(feeds, NOW, 360, 'orange'))
+  expect(svg).toContain('M9.5 10v11M14.5 10v11')
+  expect(svg).not.toContain('M20 14.5A8.2 8.2 0 019.5 4')
+})

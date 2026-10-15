@@ -7,7 +7,7 @@ import { arabicDigits } from '../../shared/pray/line.ts'
 
 export type SettingsState = PaneSettings
 export const CATEGORIES = [
-  ['prayer', 'الصلاة', 'moon'], ['quran', 'القرآن', 'book'], ['athkar', 'الأذكار', 'sun'], ['thikr', 'الذكر', 'sun'], ['general', 'عام', 'gear'],
+  ['prayer', 'الصلاة', 'minaret'], ['quran', 'القرآن', 'book'], ['athkar', 'الأذكار', 'sun'], ['thikr', 'الذكر', 'sun'], ['general', 'عام', 'gear'],
 ] as const
 export const CLOSED_SETTINGS: SettingsState = { open: false, category: null, face: 'main', page: 0 }
 export const isSettings = (v: unknown): v is SettingsState => {

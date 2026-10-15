@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Muslim pane: the prayer card and the «الصلاة» settings row use a minaret line icon; the crescent stays the symbol of Muslim as a whole.
+
 - Muslim pane settings say «العربية في Terminal»: the word Terminal stays in English.
 
 - Quran pane tab reads «۞ القرآن الكريم» on desktop, matching its footer chip and sitting beside the Muslim tab's moon.

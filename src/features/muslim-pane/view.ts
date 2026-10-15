@@ -30,6 +30,7 @@ const PATHS = {
   chev: '<path d="M6 9l6 6 6-6"/>',
   chevl: '<path d="M15 6l-6 6 6 6"/>',
   moon: '<path d="M20 14.5A8.2 8.2 0 019.5 4a8.2 8.2 0 1010.5 10.5z"/>',
+  minaret: '<path d="M13.2 1.4a1.7 1.7 0 11-1.7 2.8 1.3 1.3 0 001.7-2.8zM9.5 8c0-2 1.2-3.2 2.5-3.9 1.3.7 2.5 1.9 2.5 3.9M8 8h8v2H8zM9.5 10v11M14.5 10v11M7 21h10"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
   check: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.2l2.5 2.5 4.5-5"/>',
   ring: '<circle cx="12" cy="12" r="8.5"/>',
@@ -110,7 +111,7 @@ const header = (name: keyof typeof PATHS, title: string, value: string, isFolded
 
 const prayerCard = (m: PaneModel, hover: PaneAct | null): string => {
   const p = m.prayer, r = cardRects(m.folds)
-  if (m.folds.prayer) return `<section class="dcard" style="top:${r.prayerY}px;height:${r.prayerH}px">${header('moon', 'الصلاة', p.isSet ? escape(p.city) : '', true, hover === 'fold-prayer', true)}</section>`
+  if (m.folds.prayer) return `<section class="dcard" style="top:${r.prayerY}px;height:${r.prayerH}px">${header('minaret', 'الصلاة', p.isSet ? escape(p.city) : '', true, hover === 'fold-prayer', true)}</section>`
   let body: string
   if (!p.isSet) {
     body = `<div class="note" style="top:${NX_TOP}px;height:${NX_H + 5 * ROW_H + 10}px">Choose a city first: /salah city</div>`
@@ -119,7 +120,7 @@ const prayerCard = (m: PaneModel, hover: PaneAct | null): string => {
     body = `<div class="in nx" style="top:${NX_TOP}px"><div><div class="nx-k ar">الصلاة القادمة</div><div class="nx-n ar">${escape(p.nextName)}</div></div><div class="nx-r"><div class="nx-t ar">${ltr(p.nextTime)}</div><div class="nx-in">${escape(p.until)}</div></div></div>${rows}`
   }
   const athan = `<div class="in athan${hover === 'athan' ? ' hot' : ''}${p.isSet ? '' : ' off'}" style="top:${ATHAN_TOP}px" role="switch" aria-checked="${p.isAthan}" aria-label="Athan">${icon('bell')}<span dir="ltr">Athan</span><span class="tog${p.isAthan ? ' on' : ''}"><i></i></span></div>`
-  return `<section class="dcard" style="top:${r.prayerY}px;height:${r.prayerH}px">${header('moon', 'الصلاة', p.isSet ? escape(p.city) : '', false, hover === 'fold-prayer', true)}${body}${athan}</section>`
+  return `<section class="dcard" style="top:${r.prayerY}px;height:${r.prayerH}px">${header('minaret', 'الصلاة', p.isSet ? escape(p.city) : '', false, hover === 'fold-prayer', true)}${body}${athan}</section>`
 }
 
 const quranCard = (m: PaneModel, hover: PaneAct | null): string => {
