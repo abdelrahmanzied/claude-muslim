@@ -159,8 +159,8 @@ const athkarCard = (m: PaneModel, hover: PaneAct | null): string => {
 
 const SETTINGS_CSS = `
 .settings-tabs{position:absolute;left:${TAB_INSET}px;right:${TAB_INSET}px;top:${SETTINGS_TOP}px;height:${TABS_H}px;border:1px solid var(--line);border-radius:15px;padding:4px;background:var(--raised);overflow:hidden}
-.setting-tab{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:5px 2px;min-width:0;border-radius:11px;color:var(--muted)}
-.setting-tab .ic{width:24px;height:24px}.setting-tab span{font-size:11px;line-height:14px;text-align:center;overflow-wrap:anywhere;min-width:0;max-width:100%;height:28px}
+.setting-tab{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:4px 2px;min-width:0;border-radius:11px;color:var(--muted)}
+.setting-tab .ic{width:24px;height:24px}.setting-tab span{font-size:11px;line-height:14px;text-align:center;white-space:nowrap;overflow:visible;height:14px}
 .setting-tab.hot{background:var(--raised-2)}.setting-tab[aria-selected=true]{background:var(--card);color:var(--accent);box-shadow:0 0 0 1px var(--line)}
 .settings-body{position:absolute;left:0;right:0}
 .settings-head{position:absolute;top:0;left:16px;right:16px;height:24px;display:flex;justify-content:space-between;border-bottom:1px solid var(--line-soft);color:var(--muted);font-size:11px}
@@ -172,7 +172,7 @@ const SETTINGS_CSS = `
 .sc{position:absolute;display:flex;align-items:center;justify-content:center;gap:4px;border-radius:7px;font-size:12px;color:var(--text-2);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .sc.pill,.sc.value{background:var(--raised);padding:3px 6px}.sc.pill.on{color:var(--accent);box-shadow:inset 0 0 0 1px var(--line)}
 .sc.hot{background:var(--raised-2)}.sc.disabled{opacity:.38}.sc.step{border:1px solid var(--line);direction:ltr;border-radius:4px}.sc.step.output{opacity:1;color:var(--text);font-size:12px}.sc.step:not(.output){font-size:19px}
-.sc .value-text{min-width:0;overflow:hidden;text-overflow:ellipsis}.sc .ic{width:12px;height:12px;flex:none}.sc.switch{overflow:visible}.sc .tog{margin:0}.sc.swatch{border-radius:50%;color:var(--on)}.sc.swatch.on{outline:1px solid var(--text-2);outline-offset:3px}
+.sc .value-text{min-width:0;overflow:hidden;text-overflow:ellipsis}.sc .ic{width:12px;height:12px;flex:none}.sc.switch{overflow:visible}.sc .tog{margin:0}.sc.swatch{overflow:visible}.sc.swatch::before{content:'';width:16px;height:16px;border-radius:50%;background:var(--sw)}.sc.swatch.on::before{box-shadow:0 0 0 2px var(--card),0 0 0 3.5px var(--text-2)}
 .list-choice{position:absolute;left:16px;right:16px;padding:6px 10px;border-radius:8px;height:48px;font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:6px}
 .list-choice small{display:block;font-size:10px;color:var(--muted);line-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.list-choice>span{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.list-choice.on{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}.list-choice.hot{background:var(--raised-2)}
 .settings-subtitle{position:absolute;right:16px;top:4px;font-size:14px}.settings-page{position:absolute;top:368px;left:94px;right:94px;text-align:center;font-size:12px;color:var(--muted)}
@@ -184,8 +184,8 @@ const settingControl = (t: SettingsTarget, hover: PaneAct | null): string => {
   const c = t.control, output = c.style === 'step' && c.id.endsWith(':value')
   const selected = c.selected ? ' on' : '', hot = hover === t.act ? ' hot' : ''
   const attr = c.style === 'switch' ? `role="switch" aria-checked="${!!c.selected}"` : output ? 'role="status"' : `role="button" aria-pressed="${!!c.selected}"`
-  const swatch = c.style === 'swatch' ? `background:var(--${c.label});` : ''
-  const content = c.style === 'switch' ? `<span class="tog${selected}"><i></i></span>` : c.style === 'swatch' ? (c.selected ? icon('check') : '') : `<span class="value-text">${escape(c.label)}</span>${c.style === 'value' && c.effect.kind === 'face' && c.effect.face !== 'main' ? icon('chevl') : ''}`
+  const swatch = c.style === 'swatch' ? `--sw:var(--${c.label});` : ''
+  const content = c.style === 'switch' ? `<span class="tog${selected}"><i></i></span>` : c.style === 'swatch' ? '' : `<span class="value-text">${escape(c.label)}</span>${c.style === 'value' && c.effect.kind === 'face' && c.effect.face !== 'main' ? icon('chevl') : ''}`
   return `<div class="sc ${c.style}${selected}${hot}${c.disabled ? ' disabled' : ''}${output ? ' output' : ''}" ${attr} aria-disabled="${!!c.disabled}" aria-label="${escape(c.label)}" style="left:${t.x0-PAD}px;top:${t.y0}px;width:${t.x1-t.x0}px;height:${t.y1-t.y0}px;${swatch}">${content}</div>`
 }
 const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {

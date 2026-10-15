@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Muslim pane settings: the color choices are small round dots with a ring on the chosen one, and the tab strip loses its empty space under the labels (60px, one-line labels).
+
 - Muslim pane: show the full avatar at 36px tall (approximately 38.4px wide), with both heading labels vertically centered; the row starts at 12px and cards at 56px.
 
 - Muslim pane: the sujood and sunrise-sunset icons are redrawn to fill their box and read clearly; card header icons are 20px and sit on the same line as the title and its value.

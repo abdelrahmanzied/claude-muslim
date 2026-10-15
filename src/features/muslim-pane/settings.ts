@@ -44,7 +44,8 @@ export type Effect =
 export type SettingControl = { id: SettingsAct; label: string; width: number; style: 'pill' | 'switch' | 'value' | 'step' | 'swatch'; selected?: boolean; disabled?: boolean; effect: Effect }
 export type SettingRow = { label: string; hint: string; height: number; controls: SettingControl[]; extra?: { label: string; controls: SettingControl[] }; sample?: string }
 export const SETTINGS_TOP = 56
-export const TABS_H = 76
+// One-line labels: 4px padding, 24px icon, 4px gap, 14px label, 4px padding, inside the 5px border+padding.
+export const TABS_H = 60
 export const TAB_INSET = 16
 export const TAB_PAD = 5 // 1px border + 4px padding, matching the drawing.
 export const TAB_GAP = 4
