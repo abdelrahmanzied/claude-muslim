@@ -7,10 +7,11 @@ import { TAJAWAL_FAMILY, tajawalFontFaceCss } from '../../shared/font/index.ts'
 import { accentHex } from '../../shared/color/index.ts'
 import {
   ATHAN_H, ATHAN_TOP, BAR_TOP, CONTROLS_CY, FIELD_H, HEAD_H, HEAD_TOP, KBTN_W, KROW_H, KROW_TOP, KFINISH_W, KROW_GAP, NX_H, NX_TOP, OPEN_H, OPEN_TOP,
-  PAD, RECITER_TOP, ROWS_TOP, ROW_H, SIDE, SURAH_TOP, TIMES_TOP, cardRects, type PaneAct,
+  AVATAR_SIZE, PAD, RECITER_TOP, TOP_H, TOP_Y, ROWS_TOP, ROW_H, SIDE, SURAH_TOP, TIMES_TOP, cardRects, type PaneAct,
 } from './layout.ts'
 import { SETTINGS_TOP, SETTINGS_BODY_TOP, TABS_H, TAB_INSET, categoryTabs, settingsBody, type SettingsTarget } from './settings.ts'
 import type { PaneModel } from './model.ts'
+import { avatarHead } from './avatar.ts'
 
 const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 const ltr = (text: string) => `<bdi dir="ltr">${escape(text)}</bdi>`
@@ -56,6 +57,7 @@ const CSS = `
 *{box-sizing:border-box;margin:0;padding:0}
 .dp{position:relative;width:100%;height:100%;background:transparent;font-family:${TAJAWAL_FAMILY};font-size:14px;line-height:1.35;font-weight:400;color:var(--text);direction:rtl;user-select:none;-webkit-user-select:none;overflow:hidden}
 .ic{width:1.3em;height:1.3em;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.pane-top{position:absolute;right:${PAD+8}px;top:${TOP_Y}px;height:${TOP_H}px;display:flex;align-items:center;gap:10px;color:var(--text);font-size:20px;font-weight:700}.pane-top span{line-height:1;transform:translateY(.12em)}.pane-top svg{flex-shrink:0;image-rendering:pixelated}.pane-command{position:absolute;left:${PAD+8}px;top:${TOP_Y+9}px;line-height:18px;font-size:12px;white-space:nowrap;color:var(--dim)}
 .dcard{position:absolute;left:${PAD}px;right:${PAD}px;border-radius:19px;background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
 .in{position:absolute;left:${SIDE}px;right:${SIDE}px}
 .dh{display:flex;align-items:center;gap:8px;height:${HEAD_H}px;font-size:15.4px;font-weight:500;line-height:1.25;white-space:nowrap}
@@ -225,11 +227,14 @@ const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
   return `<section class="dcard settings-card" style="top:${r.settingsY}px;height:${r.settingsH}px"><style>.settings-card{${swatches}}@media(prefers-color-scheme:light){.settings-card{${light}}}.theme-light .settings-card{${light}}.theme-dark .settings-card{${swatches}}</style>${content}</section>`
 }
 
+// The pane's heading: the avatar head and «مسلم» at the right edge, `/muslim` at the left edge, never hidden.
+const paneTop = `<div class="pane-top">${avatarHead(AVATAR_SIZE)}<span>مسلم</span></div><div class="pane-command" dir="ltr">${ltr('/muslim')}</div>`
+
 export const paneSvg = (m: PaneModel, hover: PaneAct | null = null): string => {
   const width = m.width, height = cardRects(m.folds, m.settings.state).height
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" class="dp${m.theme ? ` theme-${m.theme}` : ''}" dir="rtl"><style>${tajawalFontFaceCss()}${paletteCss('.dp', m.color)}${CSS}${SETTINGS_CSS}</style>${prayerCard(m, hover)}${quranCard(m, hover)}${athkarCard(m, hover)}${settingsCard(m, hover)}</div></foreignObject></svg>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" class="dp${m.theme ? ` theme-${m.theme}` : ''}" dir="rtl"><style>${tajawalFontFaceCss()}${paletteCss('.dp', m.color)}${CSS}${SETTINGS_CSS}</style>${paneTop}${prayerCard(m, hover)}${quranCard(m, hover)}${athkarCard(m, hover)}${settingsCard(m, hover)}</div></foreignObject></svg>`
 }
 
 export const paneAlt = (m: PaneModel): string =>
-  `الصلاة${m.prayer.isSet ? ` · ${m.prayer.nextName} ${m.prayer.nextTime} · ${m.prayer.until}` : ''} · القرآن${m.quran.isAvailable ? ` · ${m.quran.surah} · ${m.quran.elapsed} / ${m.quran.total}` : ''} · ${m.athkar.isAvailable ? `${m.athkar.title} ${m.athkar.fraction}` : 'أذكار'} · الإعدادات`
+  `مسلم · الصلاة${m.prayer.isSet ? ` · ${m.prayer.nextName} ${m.prayer.nextTime} · ${m.prayer.until}` : ''} · القرآن${m.quran.isAvailable ? ` · ${m.quran.surah} · ${m.quran.elapsed} / ${m.quran.total}` : ''} · ${m.athkar.isAvailable ? `${m.athkar.title} ${m.athkar.fraction}` : 'أذكار'} · الإعدادات`
 

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Muslim pane: a heading row above the cards with the Muslim avatar's head at 24px beside «مسلم», spaced like the Quran pane's title, and `/muslim` always shown at the left edge.
+
 - Muslim pane: replace settings category accordion rows with one fixed, non-scrolling RTL tab strip, عام first, using the approved sliders, realistic sujood, Quran mushaf, horizon and Spinner-bead icons. Use the toothed gear for the settings header and the same mushaf for the Quran card; retain all settings/detail controls and migrate old null-category state safely. Terminal settings follow the same order and «الذكر» label.
 
 - Fix the athan card not appearing at prayer time on desktop when the timer ticked late (a reload, a busy turn): the moment is now due for the same 15 minutes the footer keeps «حان وقت», ends 15 minutes after the prayer's time, and the footer's draw asks for a tick when it shows the call but the card never started. Never replays (`athanShown`).

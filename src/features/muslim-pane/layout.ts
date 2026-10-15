@@ -13,6 +13,13 @@ export const SIDE = 16
 export const HEAD_TOP = 14
 export const HEAD_H = 28
 
+// The pane's own heading above the cards: the avatar head and «مسلم» at the right edge,
+// the LTR `/muslim` label at the left edge, as the Quran pane's heading.
+export const TOP_Y = 12
+export const TOP_H = 36
+export const AVATAR_SIZE = 24
+export const CARDS_TOP = TOP_Y + TOP_H + 8
+
 // Prayer card, from its top.
 export const NX_TOP = 48
 export const NX_H = 64
@@ -54,14 +61,14 @@ export const isFolds = (value: unknown): value is Folds => !!value && typeof val
 // Where each card sits and how tall it is, and the whole pane's height, for the folded cards.
 export const cardRects = (f: Folds, settings: SettingsState = CLOSED_SETTINGS) => {
   const prayerH = f.prayer ? FOLDED_H : PRAYER_H, quranH = f.quran ? FOLDED_H : QURAN_H, athkarH = f.athkar ? FOLDED_H : ATHKAR_H
-  const prayerY = PAD, quranY = prayerY + prayerH + GAP, athkarY = quranY + quranH + GAP
+  const prayerY = CARDS_TOP, quranY = prayerY + prayerH + GAP, athkarY = quranY + quranH + GAP
   const settingsY = athkarY + athkarH + GAP, settingsH = settingsHeight(settings)
   return { prayerY, prayerH, quranY, quranH, athkarY, athkarH, settingsY, settingsH, height: settingsY + settingsH + PAD }
 }
 export const paneHeight = (f: Folds, settings: SettingsState = CLOSED_SETTINGS): number => cardRects(f, settings).height
 
 // The unfolded pane.
-export const PRAYER_Y = PAD
+export const PRAYER_Y = CARDS_TOP
 export const QURAN_Y = PRAYER_Y + PRAYER_H + GAP
 export const ATHKAR_Y = QURAN_Y + QURAN_H + GAP
 export const PANE_HEIGHT = paneHeight(NO_FOLDS)

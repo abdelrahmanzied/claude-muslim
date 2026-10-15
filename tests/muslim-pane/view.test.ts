@@ -128,3 +128,11 @@ test('settings uses the approved gear, Quran mushaf, and exact five tab labels',
   expect(svg).toContain('font-size:11px;line-height:14px')
   expect(svg).not.toContain('setting-category')
 })
+
+test('the heading shows the avatar head beside مسلم and /muslim at the left edge', () => {
+  const svg = paneSvg(paneModel(feeds, NOW, 240, 'orange'))
+  expect(svg).toContain('<div class="pane-top"><svg width="24" height="24"')
+  expect(svg).toContain('<span>مسلم</span>')
+  expect(svg).toContain('<div class="pane-command" dir="ltr"><bdi dir="ltr">/muslim</bdi></div>')
+  expect(svg).toContain('<svg width="24" height="24" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"')
+})
