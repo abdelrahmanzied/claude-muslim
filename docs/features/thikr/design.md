@@ -1,6 +1,6 @@
 # Thikr line — design
 
-The thikr line's own design. It adds to the shared base in [DESIGN.md](../../DESIGN.md) and never contradicts it. What the feature does is in [thikr.md](thikr.md).
+The thikr line's own design. It adds to the shared base in [DESIGN.md](../../../DESIGN.md) and never contradicts it. What the feature does is in [thikr spec](spec.md).
 
 ## Visual means: text only
 
@@ -32,9 +32,9 @@ The shared `/muslim demo` connects a transient signal to this same feature-local
 
 ## Text
 
-- Terminal rendering and tashkeel behavior follow the shared [terminal Arabic guide](../terminal.md). The shared [Arabic check](arabic-fix-design.md) is terminal-only and hidden during surveys.
+- Terminal rendering and tashkeel behavior follow the shared [terminal Arabic guide](../../terminal.md). The shared [Arabic check](../arabic-fix/design.md) is terminal-only and hidden during surveys.
 
-- Phrases are authored with tashkeel in `src/features/thikr/phrases.ts`; the desktop-only [`/muslim tashkeel` setting](../terminal.md#tashkeel) controls desktop display.
+- Phrases are authored with tashkeel in `src/features/thikr/phrases.ts`; the desktop-only [`/muslim tashkeel` setting](../../terminal.md#tashkeel) controls desktop display.
 - Every phrase fits one line at 80 columns next to Claude's own text.
 - Claude's text and ours are separate runs joined by ` · `, so each keeps its own direction.
 - Claude's own numbers (timer, tokens) are never converted.

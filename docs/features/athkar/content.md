@@ -1,8 +1,8 @@
-# Religious content
+# Athkar content
 
-Every athkar, thikr and verse the plugin shows, with its count and source. The code is the source of truth for what is displayed; this file must stay identical to it (see the rule in CLAUDE.md). Arabic is authored with tashkeel and is never generated or reworded. Hadith references are the ones listed on sunnah.com for each Hisn al-Muslim number.
+The religious text shown by the athkar feature: 24 morning and evening athkar, 12 athkar after salah, and the fixed titles, closing verse and done rows, each with its count and source. The code is the source of truth for what is displayed; this file must stay identical to it (see the rule in CLAUDE.md). Arabic is authored with tashkeel and is never generated or reworded. Hadith references are the ones listed on sunnah.com for each Hisn al-Muslim number.
 
-Sources in the code: `src/features/athkar/data.ts`, `src/features/athkar/after-salah.ts`, `src/features/thikr/phrases.ts`, `src/features/athkar/logic.ts`, `src/shared/pray/line.ts`.
+Sources in the code: `src/features/athkar/data.ts`, `src/features/athkar/after-salah.ts`, `src/features/athkar/logic.ts`.
 
 ## أذكار الصباح والمساء — Morning and evening athkar
 
@@ -374,129 +374,9 @@ Hisn al-Muslim chapter 25 (`src/features/athkar/after-salah.ts`, `AFTER_SALAH`).
 
 > اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا، وَرِزْقًا طَيِّبًا، وَعَمَلًا مُتَقَبَّلًا
 
-## الذكر في سطر العمل — Thikr line phrases
+## نصوص ثابتة — Fixed text
 
-`src/features/thikr/phrases.ts`. Each group is played in the order listed, one phrase at a time; the code records no counts or hadith references for them.
-
-### STARTING: opens a turn
-
-1. Source: not recorded in the code
-
-> بِسْمِ اللَّهِ
-
-2. Source: not recorded in the code
-
-> تَوَكَّلْتُ عَلَى اللَّهِ
-
-3. Quran, Taha 20:25-26 (to verify)
-
-> رَبِّ اشْرَحْ لِي صَدْرِي وَيَسِّرْ لِي أَمْرِي
-
-4. Source: not recorded in the code
-
-> رَبِّ يَسِّرْ وَلَا تُعَسِّرْ
-
-### THINKING: plays through thinking and tools
-
-1. Source: not recorded in the code
-
-> سُبْحَانَ اللَّهِ
-
-2. Source: not recorded in the code
-
-> الْحَمْدُ لِلَّهِ
-
-3. Source: not recorded in the code
-
-> لَا إِلَٰهَ إِلَّا اللَّهُ
-
-4. Source: not recorded in the code
-
-> اللَّهُ أَكْبَرُ
-
-5. Source: not recorded in the code
-
-> لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ الْعَلِيِّ الْعَظِيمِ
-
-6. Source: not recorded in the code
-
-> سُبْحَانَ اللَّهِ وَبِحَمْدِهِ سُبْحَانَ اللَّهِ الْعَظِيمِ
-
-7. Source: not recorded in the code
-
-> أَسْتَغْفِرُ اللَّهَ
-
-8. Source: not recorded in the code
-
-> اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ
-
-### WRITING: while Claude writes the answer
-
-1. Quran, Taha 20:114 (to verify)
-
-> رَبِّ زِدْنِي عِلْمًا
-
-2. Source: not recorded in the code
-
-> اللَّهُمَّ عَلِّمْنَا مَا يَنْفَعُنَا
-
-### LONG: while Claude waits on something long (a long tool run, a subagent, compacting)
-
-1. Quran, Al-Anbiya 21:87 (to verify)
-
-> لَا إِلَٰهَ إِلَّا أَنْتَ سُبْحَانَكَ إِنِّي كُنْتُ مِنَ الظَّالِمِينَ
-
-2. Source: not recorded in the code
-
-> اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنَّا
-
-3. Quran, Al-Baqarah 2:201 (to verify)
-
-> رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ
-
-4. Source: not recorded in the code
-
-> يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ
-
-### SALAWAT: salawat mode: one of these for a whole turn, the next one each turn
-
-1. Source: not recorded in the code
-
-> اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ
-
-2. Source: not recorded in the code
-
-> اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَىٰ نَبِيِّنَا مُحَمَّدٍ
-
-3. Source: not recorded in the code
-
-> اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ وَعَلَىٰ آلِ مُحَمَّدٍ
-
-4. Source: not recorded in the code
-
-> اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ عَبْدِكَ وَرَسُولِكَ
-
-5. Source: not recorded in the code
-
-> اللَّهُمَّ صَلِّ وَسَلِّمْ وَبَارِكْ عَلَىٰ سَيِّدِنَا مُحَمَّدٍ
-
-### Single phrases
-
-- CALL_TO_PRAY: opens the thikr turn inside a pray's countdown window, then the pray and the minutes left. Source: not recorded in the code
-
-> حَيَّ عَلَى الصَّلَاةِ
-
-- END_OF_TURN: in place of Claude's word at the end of a turn. Source: not recorded in the code
-
-> تَمَّ بِحَمْدِ اللَّهِ
-
-- USAGE_LIMIT: shown when a usage limit is hit. Quran, Al Imran 3:173 (to verify)
-
-> حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ
-
-## نصوص ثابتة — Other fixed religious text
-
-Other Arabic religious text shown by the plugin (UI labels, city and method names are not listed).
+Other Arabic religious text shown by the athkar reader (UI labels are not listed).
 
 ### Athkar titles (`TITLE`, `src/features/athkar/logic.ts`)
 
@@ -531,17 +411,3 @@ Shown at the end of a reading. Quran, Al-Baqarah 2:127 (as cited in the text its
 - evening:
 
 > أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الصَّبَاحُ
-
-### Athan call (`athanText`, `src/shared/pray/line.ts`)
-
-"The time of the prayer of X has come", shown when a prayer comes in, with X the Arabic prayer name. Source: not recorded in the code.
-
-> حان وقت صلاة الفجر
-
-> حان وقت صلاة الظهر
-
-> حان وقت صلاة العصر
-
-> حان وقت صلاة المغرب
-
-> حان وقت صلاة العشاء

@@ -90,4 +90,4 @@ The athkar reader always draws the Frame look in the terminal. The Sky look is d
 - The first-run check survives module reloads because no answer is stored until the user chooses.
 - A changing Arabic line can still be partially repainted incorrectly by Apple Terminal. The plugin API cannot force a complete terminal redraw. Reversed-mode text copied from a terminal is in visual order.
 
-The per-terminal survey UI is specified in [the Arabic check design](features/arabic-fix-design.md). The thikr feature's use is described in [thikr docs](features/thikr.md).
+The per-terminal survey UI is specified in [the Arabic check design](features/arabic-fix/design.md). The thikr feature's use is described in [thikr docs](features/thikr/spec.md).

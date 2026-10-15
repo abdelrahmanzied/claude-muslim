@@ -1,16 +1,16 @@
 # Design system — muslim mod
 
-The shared base every feature follows, and the index to each feature's own design. Each feature owns its design: its spec is `docs/features/<feature>.md` and its design (surfaces, visual means, requirements) is `docs/features/<feature>-design.md`. Read this before designing a new feature, then the docs of the features you touch.
+The shared base every feature follows, and the index to each feature's own design. Each feature owns its design: its folder `docs/features/<feature>/` holds its spec (`spec.md`), its design (`design.md`: surfaces, visual means, requirements) and, when it shows religious text, that text (`content.md`). Read this before designing a new feature, then the docs of the features you touch.
 
 ## Feature index
 
-| Feature | Command | Spec | Design |
-| --- | --- | --- | --- |
-| Thikr line | `/thikr` | [thikr.md](docs/features/thikr.md) | [thikr-design.md](docs/features/thikr-design.md): text only |
-| Morning, evening and after-salah athkar | `/athkar` | [athkar.md](docs/features/athkar.md) | [athkar-design.md](docs/features/athkar-design.md): a drawn reader (Client module, desktop Svg sky) |
-| Salah | `/salah` | [salah.md](docs/features/salah.md) | [salah-design.md](docs/features/salah-design.md): text, richer athan moment |
-| Terminal Arabic check ([shared guide](docs/terminal.md)) | `/muslim terminal-arabic` | [arabic-fix.md](docs/features/arabic-fix.md) | [arabic-fix-design.md](docs/features/arabic-fix-design.md) |
-| Quran | `/quran` | [quran.md](docs/features/quran.md) | [quran-design.md](docs/features/quran-design.md): desktop footer chip and a full Client-drawn pane with searchable dropdowns |
+| Feature | Command | Spec | Design | Content |
+| --- | --- | --- | --- | --- |
+| Thikr line | `/thikr` | [thikr spec](docs/features/thikr/spec.md) | [thikr design](docs/features/thikr/design.md): text only | [thikr content](docs/features/thikr/content.md) |
+| Morning, evening and after-salah athkar | `/athkar` | [athkar spec](docs/features/athkar/spec.md) | [athkar design](docs/features/athkar/design.md): a drawn reader (Client module, desktop Svg sky) | [athkar content](docs/features/athkar/content.md) |
+| Salah | `/salah` | [salah spec](docs/features/salah/spec.md) | [salah design](docs/features/salah/design.md): text, richer athan moment | [salah content](docs/features/salah/content.md) |
+| Terminal Arabic check ([shared guide](docs/terminal.md)) | `/muslim terminal-arabic` | [arabic-fix spec](docs/features/arabic-fix/spec.md) | [arabic-fix design](docs/features/arabic-fix/design.md) | none |
+| Quran | `/quran` | [quran spec](docs/features/quran/spec.md) | [quran design](docs/features/quran/design.md): desktop footer chip and a full Client-drawn pane with searchable dropdowns | none |
 
 Everything below is shared by every feature. A feature's doc may add to it, never contradict it.
 
@@ -102,8 +102,9 @@ src/features/<feature>/
   phrases.ts      authored text (or data.ts)
   *.ts            pure logic, no $
 tests/<feature>/  unit tests for pure logic + engine tests on terminal and desktop
-docs/features/<feature>.md          the feature's spec
-docs/features/<feature>-design.md   the feature's design
+docs/features/<feature>/spec.md     the feature's spec
+docs/features/<feature>/design.md   the feature's design
+docs/features/<feature>/content.md  the religious text it shows, if any
 ```
 
 Wire it in `hooks/register.tsx` (`install<Feature>(on, settings)`), register its command there, add its fields to `plugin.json` `userConfig` and `src/config.ts`, declare any `$.state` values in `types/index.d.ts`.
@@ -111,9 +112,9 @@ Wire it in `hooks/register.tsx` (`install<Feature>(on, settings)`), register its
 ## 10. New feature checklist
 
 - [ ] Fits the shared base above; uses the lightest surface that does the job.
-- [ ] `docs/features/<feature>-design.md` written: surfaces, visual means, why, and the fallback where a surface is desktop-only; linked from the index above and from the spec's Design section.
-- [ ] Spec added to `docs/features/<feature>.md` (moments, phrases with sources, settings).
-- [ ] Phrases reviewed by a person; sources noted.
+- [ ] `docs/features/<feature>/design.md` written: surfaces, visual means, why, and the fallback where a surface is desktop-only; linked from the index above and from the spec's Design section.
+- [ ] Spec added to `docs/features/<feature>/spec.md` (moments, phrases with sources, settings).
+- [ ] Phrases reviewed by a person; sources noted. Religious text shown is listed in `docs/features/<feature>/content.md` with count and source.
 - [ ] Off switch in `/config` and the command; off leaves Claude untouched.
 - [ ] Main color via the shared module, other colors via theme keys; desktop tashkeel setting respected and terminal tashkeel stripped.
 - [ ] Tests on `terminal` and `desktop`; `claude plugin validate`, `claude plugin test`, `tsc` pass.

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Docs: each feature now has its own folder `docs/features/<feature>/` (`spec.md`, `design.md`, and `content.md` for the religious text it shows); `docs/content.md` is split into per-feature content files.
+
 - Extend `/salah demo` from the athan moment into a fast Fajr after-salah reading using the real reader: 12.4 s of counts, the full 3.2 s finale and 1.2 s folded done. The demo card shows its start button; start, × and expiry all continue to athkar. `/muslim demo` waits for the whole flow, with no saved-state changes.
 
 - Add Athkar after salah to the shared reader, with prayer-specific counts, one current reading slot, manual commands and an automatic offer from prayer time plus the shared athan card duration (currently 15 minutes) when a place is saved, including with `/salah show off`. The desktop athan button «ابدأ أذكار بعد الصلاة» closes the card and starts that prayer's reading immediately; × waits for the original deadline. The offer stays until done, hidden or the next prayer, with no expiry timer. Prayer tracking continues without the footer, countdown or athan.

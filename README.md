@@ -21,15 +21,15 @@ A thikr phrase joins Claude's working line (the spinner). Claude's step, timer a
 
 ### Morning and evening athkar (`/athkar`)
 
-A reader above the prompt for the morning athkar (05:00–17:00) and the evening athkar (17:00–05:00), from Hisn al-Muslim. Click, Space or Enter to count; right click or Backspace to take one back; ← → to move. It moves on by itself after each thikr, and your reading is saved for the day. On desktop it sits on a sky that follows the time of day. Details: [docs/features/athkar.md](docs/features/athkar.md).
+A reader above the prompt for the morning athkar (05:00–17:00) and the evening athkar (17:00–05:00), from Hisn al-Muslim. Click, Space or Enter to count; right click or Backspace to take one back; ← → to move. It moves on by itself after each thikr, and your reading is saved for the day. On desktop it sits on a sky that follows the time of day. Details: [docs/features/athkar/spec.md](docs/features/athkar/spec.md).
 
 ### Prayer times (`/salah`)
 
-The next prayer under the prompt (`☾ العصر ١٥:٥٩`) all day, or only the minutes before it (20 by default), with a live mm:ss countdown (`☾ العصر ١٩:٤٢`) and, when it comes in, a small minaret that rises above the prompt for about 3 seconds, then folds to one line with a × (on the desktop app, a photo card that folds to a slim row after a minute); it closes by itself after 15 minutes, and the footer shows `حان وقت صلاة …` (no toast, no OS notification). Calculated on your machine; on first use the mod offers the city of your time zone, or any city you type in any language, then shows today's times so you can match them to your mosque. While Claude works inside that window, the thikr turn opens with `حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د`. Details: [docs/features/salah.md](docs/features/salah.md).
+The next prayer under the prompt (`☾ العصر ١٥:٥٩`) all day, or only the minutes before it (20 by default), with a live mm:ss countdown (`☾ العصر ١٩:٤٢`) and, when it comes in, a small minaret that rises above the prompt for about 3 seconds, then folds to one line with a × (on the desktop app, a photo card that folds to a slim row after a minute); it closes by itself after 15 minutes, and the footer shows `حان وقت صلاة …` (no toast, no OS notification). Calculated on your machine; on first use the mod offers the city of your time zone, or any city you type in any language, then shows today's times so you can match them to your mosque. While Claude works inside that window, the thikr turn opens with `حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د`. Details: [docs/features/salah/spec.md](docs/features/salah/spec.md).
 
 ### Quran recitation (`/quran`)
 
-A desktop pane player with searchable Hafs recordings, available surahs and quarters for large recordings. Playback is explicit, with stop, previous/next and mutually exclusive surah or quarter repeat. The footer button toggles the pane; your recording choice is remembered. Details: [docs/features/quran.md](docs/features/quran.md).
+A desktop pane player with searchable Hafs recordings, available surahs and quarters for large recordings. Playback is explicit, with stop, previous/next and mutually exclusive surah or quarter repeat. The footer button toggles the pane; your recording choice is remembered. Details: [docs/features/quran/spec.md](docs/features/quran/spec.md).
 
 ## Install
 
@@ -289,7 +289,7 @@ src/
 types/
   index.d.ts         $.state contract
 tests/               *.test.ts, run by `claude plugin test .`
-docs/features/       one spec per feature
+docs/features/       one folder per feature: spec, design, content
 ```
 
 ## License

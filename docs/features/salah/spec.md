@@ -1,7 +1,7 @@
 # Salah — prayer times
 
 Prayer times for the user's city, calculated on their machine with
-[athan library](../../src/features/salah/athan/VENDOR.md) (from [adhan-js](https://github.com/batoulapps/adhan-js)). No location service and no prayer-times API.
+[athan library](../../../src/features/salah/athan/VENDOR.md) (from [adhan-js](https://github.com/batoulapps/adhan-js)). No location service and no prayer-times API.
 
 ## Flow
 
@@ -34,7 +34,7 @@ Prayer times for the user's city, calculated on their machine with
    - The prayer line redraws every 30 seconds, and every second only while inside the countdown window (the live countdown); it goes back to 30 seconds when the window ends. A timer set for the exact moment the window opens starts the countdown on time, not on the next 30 s tick. The timer starts on every module load (the first draw of the footer or the band, and a redraw asked at session start), and runs whenever a place is saved. With `/salah show off`, it stays at 30 seconds to track `salahLast`; restoring the footer re-arms the countdown window.
    - The footer works out the line from the clock and the settings each time it is drawn, so a setting change shows at once; the timer only asks for redraws.
    - Sunrise is in today's times only: no countdown for it.
-   - While inside the window, salah also publishes it for the [thikr line](thikr.md#before-a-prayer), which opens its turns with حَيَّ عَلَى الصَّلَاةِ.
+   - While inside the window, salah also publishes it for the [thikr line](../thikr/spec.md#moments-and-phrases), which opens its turns with حَيَّ عَلَى الصَّلَاةِ.
    - No toast when the window starts: the footer line is the only notice. No OS notification.
 
 ## Calculation
@@ -79,7 +79,7 @@ Replies are short markdown: a bold title line first (`**Muslim › Salah**`, `**
 
 Main-color accents follow the plugin-wide `/muslim color orange | green | gold | blue` setting through `src/shared/color/`, default Claude orange. Other colors stay as they are.
 
-Terminal Arabic: the footer line and the minaret label follow the shared per-terminal setting (`/muslim terminal-arabic`, see the [terminal guide](../terminal.md)). The desktop footer and athan card keep logical text.
+Terminal Arabic: the footer line and the minaret label follow the shared per-terminal setting (`/muslim terminal-arabic`, see the [terminal guide](../../terminal.md)). The desktop footer and athan card keep logical text.
 
 | Field | Command | Default |
 | --- | --- | --- |
@@ -91,7 +91,7 @@ Terminal Arabic: the footer line and the minaret label follow the shared per-ter
 
 ## Design
 
-Surfaces, the athan moment's look and what salah never does: [salah-design.md](salah-design.md).
+Surfaces, the athan moment's look and what salah never does: [salah design](design.md).
 
 ## Files
 
@@ -143,3 +143,5 @@ Terminal checklist (each reply opens with its title, tables render):
 ## Last prayer signal for athkar
 
 Alongside `salahWindow`, salah publishes `salahLast: { pray: Fard; at: number } | null` through `$.state`, declared in `types/index.d.ts`. Its regular tick writes only when the value changes. It names the latest obligatory prayer at or before now **today in the configured place's timezone**, excluding sunrise and yesterday's Isha. Before Fajr or with no place, the atom is null. Tracking runs whenever a place is saved, independently of `salahShow` and `salahAthan`. With `/salah show off`, the ticker stays at 30 seconds and only `salahLast` keeps publishing: no prayer line, countdown window signal or new athan minaret/card. Athkar reads it to replace its one reading slot when the prayer time changes and offer after-salah from `at + IN_MS`, with no offer expiry. The desktop start action writes `salahAfterSalahStart: { pray: Fard; at: number } | null`, also declared in `types/index.d.ts`. It closes both card and minaret before writing; athkar accepts only the current prayer's identity and opens that reading immediately. Salah never imports athkar. The real button is absent with athkar off; the demo always shows it but uses transient signals only. Demos publish neither real prayer signal.
+
+The after-salah flow is specified in [athkar spec](../athkar/spec.md#athkar-after-salah).
