@@ -46,8 +46,8 @@ export const QURAN_H = OPEN_TOP + OPEN_H + 14
 // Athkar card, from its top.
 export const KROW_TOP = 48
 export const KROW_H = 36
-export const KBTN_W = 72
-export const KFINISH_W = 64
+export const KBTN_W = 56
+export const KFINISH_W = 84
 export const KROW_GAP = 8
 export const ATHKAR_H = KROW_TOP + KROW_H + 14
 

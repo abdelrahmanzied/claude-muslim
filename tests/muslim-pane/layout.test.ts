@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { AVATAR_H, CARDS_TOP, FOLDED_H, GAP, TOP_H, TOP_Y, NO_FOLDS, TITLE_HIT_H, cardRects, paneHeight, ATHAN_TOP, ATHKAR_H, ATHKAR_Y, CONTROLS_CY, KROW_TOP, OPEN_TOP, PAD, PANE_HEIGHT, PRAYER_Y, QURAN_Y, hitAt, hitOfCells, isPaneMessage, keyAct, type Enabled } from '../../src/features/muslim-pane/layout.ts'
+import { AVATAR_H, CARDS_TOP, FOLDED_H, GAP, TOP_H, TOP_Y, NO_FOLDS, TITLE_HIT_H, cardRects, paneHeight, ATHAN_TOP, ATHKAR_H, ATHKAR_Y, CONTROLS_CY, KBTN_W, KFINISH_W, KROW_GAP, KROW_TOP, OPEN_TOP, PAD, SIDE, PANE_HEIGHT, PRAYER_Y, QURAN_Y, hitAt, hitOfCells, isPaneMessage, keyAct, type Enabled } from '../../src/features/muslim-pane/layout.ts'
 
 const ALL: Enabled = { athan: true, quran: true, canPrev: true, canNext: true, athkar: true }
 const W = 360
@@ -24,7 +24,7 @@ test('each control is hit at its center', () => {
   expect(hitAt(W, W / 2 + 62, y, ALL)).toBe('quran-next')
   expect(hitAt(W, W / 2, QURAN_Y + OPEN_TOP + 10, ALL)).toBe('quran-open')
   expect(hitAt(W, W / 2, PRAYER_Y + ATHAN_TOP + 10, ALL)).toBe('athan')
-  expect(hitAt(W, PAD + 16 + 30, ATHKAR_Y + KROW_TOP + 18, ALL)).toBe('athkar-open')
+  expect(hitAt(W, PAD + SIDE + KBTN_W / 2, ATHKAR_Y + KROW_TOP + 18, ALL)).toBe('athkar-open')
 })
 
 test('empty space and the right side of the athkar row hit nothing', () => {
@@ -37,7 +37,7 @@ test('disabled targets are not hit; the full-player button always is', () => {
   const none: Enabled = { athan: false, quran: false, canPrev: false, canNext: false, athkar: false }
   const y = QURAN_Y + CONTROLS_CY
   expect(hitAt(W, W / 2, y, none)).toBeNull()
-  expect(hitAt(W, PAD + 16 + 30, ATHKAR_Y + KROW_TOP + 18, none)).toBeNull()
+  expect(hitAt(W, PAD + SIDE + KBTN_W / 2, ATHKAR_Y + KROW_TOP + 18, none)).toBeNull()
   expect(hitAt(W, W / 2, PRAYER_Y + ATHAN_TOP + 10, none)).toBeNull()
   expect(hitAt(W, W / 2, QURAN_Y + OPEN_TOP + 10, none)).toBe('quran-open')
   expect(hitAt(W, W / 2 - 62, y, { ...ALL, canPrev: false })).toBeNull()
@@ -94,7 +94,7 @@ test('the whole title row folds, even by a whole-cell pointer, and folded cards 
 })
 
 test('athkar finish sits beside Open and is inactive when done, off or folded', () => {
-  const y = ATHKAR_Y + KROW_TOP + 18, x = PAD + 16 + 72 + 12 + 36
+  const y = ATHKAR_Y + KROW_TOP + 18, x = PAD + SIDE + KBTN_W + KROW_GAP + KFINISH_W / 2
   expect(hitAt(W, x, y, { ...ALL, athkarFinish: true })).toBe('athkar-finish')
   expect(hitAt(W, x, y, { ...ALL, athkarFinish: false })).toBeNull()
   expect(hitAt(W, x, y, { ...ALL, athkarFinish: true }, 0, 0, { ...NO_FOLDS, athkar: true })).toBeNull()

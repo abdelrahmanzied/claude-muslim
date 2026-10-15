@@ -49,12 +49,12 @@ const icon = (name: keyof typeof PATHS, cls = '') => `<svg xmlns="http://www.w3.
 
 const CSS = `
 *{box-sizing:border-box;margin:0;padding:0}
-.dp{position:relative;width:100%;height:100%;background:transparent;font-family:${TAJAWAL_FAMILY};font-size:14px;line-height:1.35;font-weight:400;color:var(--text);direction:rtl;user-select:none;-webkit-user-select:none;overflow:hidden}
+.dp{position:relative;width:100%;height:100%;background:transparent;font-family:${TAJAWAL_FAMILY};font-size:13px;line-height:1.35;font-weight:400;color:var(--text);direction:rtl;user-select:none;-webkit-user-select:none;overflow:hidden}
 .ic{width:1.3em;height:1.3em;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
-.pane-top{position:absolute;right:${PAD+8}px;top:${TOP_Y}px;height:${TOP_H}px;display:flex;align-items:center;gap:10px;color:var(--text);font-size:20px;font-weight:700}.pane-top span{line-height:1;transform:translateY(.12em)}.pane-top svg{flex-shrink:0;image-rendering:pixelated}.pane-command{position:absolute;left:${PAD+8}px;top:${TOP_Y+(TOP_H-18)/2}px;line-height:18px;font-size:12px;white-space:nowrap;color:var(--dim)}
+.pane-top{position:absolute;right:${PAD+8}px;top:${TOP_Y}px;height:${TOP_H}px;display:flex;align-items:center;gap:10px;color:var(--text);font-size:18px;font-weight:700}.pane-top span{line-height:1;transform:translateY(.12em)}.pane-top svg{flex-shrink:0;image-rendering:pixelated}.pane-command{position:absolute;left:${PAD+8}px;top:${TOP_Y+(TOP_H-18)/2}px;line-height:18px;font-size:12px;white-space:nowrap;color:var(--dim)}
 .dcard{position:absolute;left:${PAD}px;right:${PAD}px;border-radius:19px;background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
 .in{position:absolute;left:${SIDE}px;right:${SIDE}px}
-.dh{display:flex;align-items:center;gap:8px;height:${HEAD_H}px;font-size:15.4px;font-weight:500;line-height:1.25;white-space:nowrap}
+.dh{display:flex;align-items:center;gap:8px;height:${HEAD_H}px;font-size:14px;font-weight:500;line-height:1.25;white-space:nowrap}
 .dh .hi{width:20px;height:20px;color:var(--accent)}
 .dh>span:not(.fold){line-height:1;transform:translateY(.12em)}
 .dh .fold{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:var(--muted);flex:none;margin-inline-end:-6px}
@@ -63,12 +63,12 @@ const CSS = `
 .dh .dv{margin-inline-start:auto;font-size:12px;font-weight:400;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis}
 .ar{font-size:1.1em}
 .nx{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;height:${NX_H}px;padding-bottom:8px;border-bottom:1px solid var(--line-soft)}
-.nx-k{color:var(--muted);font-size:12.6px}
-.nx-n{font-size:28px;font-weight:700;color:var(--accent);line-height:1.2}
+.nx-k{color:var(--muted);font-size:12px}
+.nx-n{font-size:24px;font-weight:700;color:var(--accent);line-height:1.2}
 .nx-r{direction:ltr;text-align:left}
-.nx-t{font-size:28px;font-weight:500;line-height:1.2;font-variant-numeric:tabular-nums}
-.nx-in{color:var(--muted);font-size:12.6px;font-variant-numeric:tabular-nums}
-.pr{position:absolute;left:${SIDE - 8}px;right:${SIDE - 8}px;height:${ROW_H}px;display:flex;align-items:center;gap:11px;padding-inline:8px;border-radius:11px}
+.nx-t{font-size:24px;font-weight:500;line-height:1.2;font-variant-numeric:tabular-nums}
+.nx-in{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.pr{position:absolute;left:${SIDE - 8}px;right:${SIDE - 8}px;height:${ROW_H}px;font-size:12.5px;display:flex;align-items:center;gap:11px;padding-inline:8px;border-radius:11px}
 .pr .ic{width:16px;height:16px;color:var(--muted)}
 .pr .t{margin-inline-start:auto;font-variant-numeric:tabular-nums}
 .pr.done{color:var(--dim)}.pr.done .ic{color:var(--dim)}
@@ -76,7 +76,7 @@ const CSS = `
 .note{position:absolute;left:${SIDE}px;right:${SIDE}px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);font-size:13px;direction:ltr}
 .drow{display:flex;align-items:center;gap:12px;height:${FIELD_H}px;white-space:nowrap}
 .drow .ic{color:var(--text-2);width:18px;height:18px}
-.drow .who{min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:15.4px}
+.drow .who{min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:14px}
 .drow .who.off{color:var(--dim)}
 .athan{display:flex;align-items:center;gap:12px;height:${ATHAN_H}px;border-top:1px solid var(--line-soft);border-radius:0 0 11px 11px;padding-top:2px}
 .athan .ic{color:var(--text-2);width:18px;height:18px}
@@ -101,10 +101,10 @@ const CSS = `
 .dbtn.hot{background:var(--raised-2)}
 .dbtn.off{opacity:.45}
 .wide{position:absolute;left:${SIDE}px;right:${SIDE}px;height:${OPEN_H}px}
-.krow{display:flex;align-items:center;gap:${KROW_GAP}px;height:${KROW_H}px}
+.krow{display:flex;align-items:center;gap:${KROW_GAP}px;height:${KROW_H}px;font-size:12.5px}
 .krow .ic{color:var(--text-2);width:18px;height:18px}
-.krow .dbtn{width:${KBTN_W}px;height:${KROW_H - 4}px;flex:none}
-.krow .dbtn.finish{width:${KFINISH_W}px;font-size:13px}
+.krow .dbtn{width:${KBTN_W}px;height:${KROW_H - 4}px;flex:none;padding-inline:10px;font-size:13px}
+.krow .dbtn.finish{width:${KFINISH_W}px}
 .krow .none{flex:1;color:var(--muted);font-size:13px;direction:ltr}
 `
 
@@ -158,6 +158,7 @@ const athkarCard = (m: PaneModel, hover: PaneAct | null): string => {
 
 
 const SETTINGS_CSS = `
+.settings-card{font-size:14px}.settings-card .dh{font-size:15.4px}
 .settings-tabs{position:absolute;left:${TAB_INSET}px;right:${TAB_INSET}px;top:${SETTINGS_TOP}px;height:${TABS_H}px;border:1px solid var(--line);border-radius:15px;padding:4px;background:var(--raised);overflow:hidden}
 .setting-tab{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:4px 2px;min-width:0;border-radius:11px;color:var(--muted)}
 .setting-tab .ic{width:24px;height:24px}.setting-tab span{font-size:11px;line-height:14px;text-align:center;white-space:nowrap;overflow:visible;height:14px}
