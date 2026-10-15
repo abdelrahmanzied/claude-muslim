@@ -40,7 +40,7 @@ The title is أَذْكَارُ بَعْدَ الصَّلَاةِ; the command i
 
 One slot holds the current prayer's reading (`pray`, `at`), or the general reading with both null. A different prayer time clears counts, done and hidden state and starts on the cover. There is no history. The 05:00 day boundary also clears it; old days missing the slot are tolerated. The list is authored in Hisn al-Muslim chapter 25 ([hisn:66](https://sunnah.com/hisn:66)–[73](https://sunnah.com/hisn:73)); general readings use base counts, while Fajr/Maghrib carry their specified extras.
 
-When prayer times exist, offer this reader for 60 minutes after each obligatory prayer. Once done, hidden or outside the window, return to morning/evening. Manual set selection holds until ×, another choice or reload. No prayer times means no automatic offer; manual access remains available. The desktop athan card still takes this band's place while showing. No new setting, layout or demo scene is introduced.
+Prayer tracking depends on a saved place, independently of footer visibility (`/salah show off`). When prayer times exist, offer this reader for 60 minutes after each obligatory prayer. Once done, hidden or outside the window, return to morning/evening. Manual set selection holds until ×, another choice or reload. No prayer times means no automatic offer; manual access remains available. The desktop athan card still takes this band's place while showing. No new setting, layout or demo scene is introduced.
 
 ## Looks
 

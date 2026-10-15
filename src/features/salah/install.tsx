@@ -377,7 +377,7 @@ const begin = async ($: EngineInterface, options: Options, place: Place, timer: 
 export const install = (on: On, options: Options) => {
   const arabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
   const guess = guessPlace(systemTimeZone())
-  // The pray line's timer, started once per module load by whichever of the
+  // The prayer tracking timer, started once per module load by whichever of the
   // prompt band or the footer is drawn first (a reload, e.g. after any setting
   // change, starts it again; register also asks for a redraw at session.start).
   let hasTicker = false
@@ -488,14 +488,14 @@ export const install = (on: On, options: Options) => {
     return next(e)
   })
 
-  // Starts the pray line's timer (or clears the line when off) on the first draw of the band or the footer.
+  // A saved place starts tracking independently of footer visibility; no place clears the signals.
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
     const place = options.salahPlace
-    if (options.salahShow !== 'off' && place && !hasTicker) {
+    if (place && !hasTicker) {
       hasTicker = true
       await begin($, options, place, timer)
     }
-    if (!(options.salahShow !== 'off' && place) && !isLineCleared) {
+    if (!place && !isLineCleared) {
       isLineCleared = true
       clearLine($)
     }
@@ -505,11 +505,11 @@ export const install = (on: On, options: Options) => {
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const place = options.salahPlace
-    if (options.salahShow !== 'off' && place && !hasTicker) {
+    if (place && !hasTicker) {
       hasTicker = true
       await begin($, options, place, timer)
     }
-    if (!(options.salahShow !== 'off' && place) && !isLineCleared) {
+    if (!place && !isLineCleared) {
       isLineCleared = true
       clearLine($)
     }

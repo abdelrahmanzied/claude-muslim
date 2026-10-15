@@ -162,3 +162,26 @@ test('a reload keeps the saved prayer reading until salah publishes its initial 
   expect(kept.day.afterSalah.counts['66-istighfar']).toBe(2)
   await ui.unmount()
 })
+
+for (const surface of ['terminal', 'desktop'] as const) {
+  test(`${surface}: a saved place offers after-salah with show off using the real prayer ticker`, { options: { ...MUNICH, salahShow: 'off', salahAthan: true } }, async ($, on) => {
+    const place = { latitude: 48.1372, longitude: 11.5755, timeZone: 'Europe/Berlin' }
+    const at = timesOn(place, 'mwl', NO_ADJUST, NOW).dhuhr
+    const clock = mock.clock(on, { now: at + 60_000 })
+    mock.store(on)
+    engine(on, surface)
+    let published: SalahLast | null | undefined
+    on('state.set', { plugin: 'muslim', key: 'salahLast' }, async (_$, e, next) => {
+      published = e.value as SalahLast | null
+      return next(e)
+    })
+    const ui = await $.ui.mount(band(surface))
+    await clock.advance(0)
+    expect(published).toEqual({ pray: 'dhuhr', at })
+    if (surface === 'desktop') expect(String((await ui.find({ in: 'athkar', type: 'Svg' }))?.props.source)).toContain(TITLE.afterSalah)
+    else expect(await ui.find({ in: 'athkar', text: stripTashkeel(TITLE.afterSalah) })).toBeDefined()
+    expect(await ui.find({ key: 'salah-minaret-0' })).toBeUndefined()
+    expect(await ui.find({ key: 'salah-athan' })).toBeUndefined()
+    await ui.unmount()
+  })
+}

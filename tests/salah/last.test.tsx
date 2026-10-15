@@ -34,22 +34,69 @@ test('the real salah ticker publishes salahLast even with athan off and advances
   await ui.unmount()
 })
 
-for (const options of [{}, { ...MUNICH, salahShow: 'off' }]) {
-  test('no place or salah off clears an old published prayer', { options }, async ($, on) => {
-    const clock = mock.clock(on, { now: NOW })
+test('no place clears an old published prayer', async ($, on) => {
+  const clock = mock.clock(on, { now: NOW })
+  mock.store(on)
+  mock.env(on, {})
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e) => { const { Box } = $.ui.resolve(e); return <Box /> })
+  let seeded = true
+  let published: unknown
+  on('state.get', { plugin: 'muslim', key: 'salahLast' }, async (_$, e, next) => {
+    const actual = await next(e)
+    return seeded ? { value: { value: { pray: 'fajr', at: NOW - 1000 }, version: actual.value?.version ?? 0 } } : actual
+  })
+  on('state.set', { plugin: 'muslim', key: 'salahLast' }, async (_$, e, next) => { seeded = false; published = e.value; return next(e) })
+  const ui = await $.ui.mount(band)
+  await clock.advance(0)
+  expect(published).toBe(null)
+  await ui.unmount()
+})
+
+for (const surface of ['terminal', 'desktop'] as const) {
+  test(`${surface}: show off tracks prayers every 30 seconds without a line, window or athan`, { options: { ...MUNICH, athkar: false, salahShow: 'off', salahAthan: true } }, async ($, on) => {
+    const times = timesOn(PLACE, 'mwl', NO_ADJUST, NOW)
+    const clock = mock.clock(on, { now: times.dhuhr - 1000 })
     mock.store(on)
     mock.env(on, {})
     on('ui.render', { component: 'AbovePrompt' }, async ($, e) => { const { Box } = $.ui.resolve(e); return <Box /> })
-    let seeded = true
-    let published: unknown
-    on('state.get', { plugin: 'muslim', key: 'salahLast' }, async (_$, e, next) => {
+    on('ui.render', { component: 'SessionMode' }, async ($, e) => { const { Box } = $.ui.resolve(e); return <Box /> })
+    // A reload may leave a line and countdown signal; the first tick clears both.
+    const seed: Record<string, unknown> = {
+      salahLine: 'old prayer line',
+      salahWindow: { pray: 'dhuhr', at: times.dhuhr },
+    }
+    const published: Record<string, unknown> = {}
+    const athanWrites: string[] = []
+    on('state.get', async (_$, e, next) => {
       const actual = await next(e)
-      return seeded ? { value: { value: { pray: 'fajr', at: NOW - 1000 }, version: actual.value?.version ?? 0 } } : actual
+      return e.key in seed ? { value: { value: seed[e.key], version: actual.value?.version ?? 0 } } : actual
     })
-    on('state.set', { plugin: 'muslim', key: 'salahLast' }, async (_$, e, next) => { seeded = false; published = e.value; return next(e) })
-    const ui = await $.ui.mount(band)
+    on('state.set', async (_$, e, next) => {
+      delete seed[e.key]
+      published[e.key] = e.value
+      if (['salahCard', 'salahMinaret', 'salahAthanShown'].includes(e.key)) athanWrites.push(e.key)
+      return next(e)
+    })
+    const footer = { plugin: 'muslim', surface, component: 'SessionMode' as const, requestId: 'last-footer', props: { modes: [] as readonly string[] } }
+    // Exercise both ticker entry points: terminal band first, desktop footer first.
+    const first = await $.ui.mount(surface === 'terminal' ? { ...band, surface } : footer)
     await clock.advance(0)
-    expect(published).toBe(null)
-    await ui.unmount()
+    const second = await $.ui.mount(surface === 'terminal' ? footer : { ...band, surface })
+    expect(published.salahLast).toEqual({ pray: 'fajr', at: times.fajr })
+    expect(published.salahLine).toBe(null)
+    expect(published.salahWindow).toBe(null)
+    await clock.advance(29_999)
+    expect(published.salahLast).toEqual({ pray: 'fajr', at: times.fajr })
+    await clock.advance(1)
+    expect(published.salahLast).toEqual({ pray: 'dhuhr', at: times.dhuhr })
+    expect(athanWrites).toEqual([])
+    for (const ui of [first, second]) {
+      expect(await ui.find({ key: 'salah-line' })).toBeUndefined()
+      expect(await ui.find({ key: 'salah-athan-row' })).toBeUndefined()
+      expect(await ui.find({ key: 'salah-minaret-0' })).toBeUndefined()
+      expect(await ui.find({ key: 'salah-athan' })).toBeUndefined()
+    }
+    await first.unmount()
+    await second.unmount()
   })
 }

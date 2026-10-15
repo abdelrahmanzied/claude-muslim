@@ -232,7 +232,7 @@ const rest = ($: EngineInterface) => {
 }
 
 export const install = (on: On, options: Options) => {
-  hasPrayerTimes = options.salahShow !== 'off' && !!options.salahPlace
+  hasPrayerTimes = !!options.salahPlace
   let shownSlot: { key: string; period: AthkarSet } | undefined
   let offerAt: number | null = null
   let offerTimer: { cancel: () => void } | undefined

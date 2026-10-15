@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Add Athkar after salah to the shared reader, with prayer-specific counts, one current reading slot, manual commands and an automatic one-hour offer after each obligatory prayer when prayer times are set.
+- Add Athkar after salah to the shared reader, with prayer-specific counts, one current reading slot, manual commands and an automatic one-hour offer after each obligatory prayer when a place is saved, including with `/salah show off` (prayer tracking continues without the footer, countdown or athan).
 
 - `/athkar morning` · `evening` opens that period's reader above the prompt even outside its hours, un-hides it, and counts to it; the choice holds for the session until the other period is picked or × hides the band. A finished period replies with its reset hint. `reset` is unchanged and the help row says both.
 
