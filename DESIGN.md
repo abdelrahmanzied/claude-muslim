@@ -1,6 +1,6 @@
 # Design system — muslim mod
 
-The shared base every feature follows, and the index to each feature's own design. Each feature owns its design: its spec is `docs/features/<feature>.md` and its design (surfaces, visual means, requirements) is `docs/features/<feature>-design.md`. Read this before designing a new feature, then the docs of the features you touch.
+The shared base every feature follows, and the index to each feature's own design. Each feature owns its design: its spec is `docs/features/<feature>.md` and its design (surfaces, visual means, requirements) is `docs/features/<feature>-design.md`. Read this before designing a new feature, then the docs of the features you touch. Drawn desktop panes also follow [docs/desktop/pane-design.md](docs/desktop/pane-design.md).
 
 ## Feature index
 
@@ -39,7 +39,7 @@ Pick the lightest surface that does the job. Each comes from the mod API (`/plug
 | Notification | `$.ui.notify` | Not used: OS banners show in meetings and screen shares; use a band row or a toast | — |
 | Command reply | `command.run` → `{ text }` | Status, help, changing settings | `/thikr` |
 
-Richer surfaces (Pane, Image, Svg, Raster, Client modules) are chosen per feature in its design doc, not here. Passive content does not get a Pane.
+Richer surfaces (Pane, Image, Svg, Raster, Client modules) are chosen per feature in its design doc, not here. Passive content does not get a Pane. Every drawn pane follows the [desktop pane design](docs/desktop/pane-design.md): what the Desktop owns, the fixed picture, look, cards, words, settings rows.
 
 Desktop cards above the prompt use `src/shared/card/` for their size, frame, ×, hover, lighting and input. Each feature supplies its content. Only one of these cards shows at a time: the athan card takes the athkar band's place until it closes or expires. Terminal surfaces are unchanged.
 
@@ -86,7 +86,7 @@ Inside a card, small row icons that describe a row rather than a feature (a bell
 
 ## 5. Voice
 
-- Arabic for religious content; English for UI chrome (commands, help, settings) until languages land (issue #1).
+- Arabic for religious content; English for UI chrome (commands, help, settings) until languages land (issue #1). Drawn desktop panes are the exception: their labels, descriptions and buttons are Arabic ([pane design §5](docs/desktop/pane-design.md#5-words)).
 - Commands answer in one short line: what changed (`speed 3s`), or why not (`Speed is auto, or a whole number of seconds from 1 to 60.`).
 - No exclamation marks, emoji or praise in UI text.
 
@@ -134,6 +134,7 @@ Wire it in `hooks/register.tsx` (`install<Feature>(on, settings)`), register its
 - [ ] Phrases reviewed by a person; sources noted.
 - [ ] Off switch in `/config` and the command; off leaves Claude untouched.
 - [ ] One icon from the standard set (§3 Icons), the same on every drawn surface.
+- [ ] A drawn desktop pane follows [docs/desktop/pane-design.md](docs/desktop/pane-design.md) and its checks.
 - [ ] Main color via the shared module, other colors via theme keys; desktop tashkeel setting respected and terminal tashkeel stripped.
 - [ ] Tests on `terminal` and `desktop`; `claude plugin validate`, `claude plugin test`, `tsc` pass.
 - [ ] Demo subcommand and pure `demo.ts` for the feature's real UI; no settings, store or saved-state changes.
