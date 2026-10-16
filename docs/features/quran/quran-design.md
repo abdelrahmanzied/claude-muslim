@@ -1,6 +1,6 @@
 # Quran — design
 
-The Quran feature's visual means, design principles and surface scope, following [DESIGN.md](../../DESIGN.md). Behavior is in [quran.md](quran.md).
+The Quran feature's visual means, design principles and surface scope, following [DESIGN.md](../../../DESIGN.md). Behavior is in [quran spec](quran.md).
 
 The [recording catalog design](quran-catalog.md) covers developer audits and the shipped support catalog. The pane hides unavailable surahs and shows one dim unavailable-count note.
 

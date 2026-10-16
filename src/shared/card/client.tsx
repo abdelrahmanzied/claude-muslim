@@ -22,13 +22,15 @@ export type CardView = {
   isLit: boolean
   // The pointer is over the ×.
   hoverClose: boolean
+  // The pointer is over the feature's optional action target.
+  hoverAction?: boolean
   // Milliseconds since the hooks module drew: clocks move on by this.
   gone: number
   // The region's width in cells, 0 before it is known.
   columns: number
 }
 
-export type CardPicture = { svg: string; alt: string; frame: CardFrame }
+export type CardPicture = { svg: string; alt: string; frame: CardFrame; action?: { x0: number; x1: number; y0: number; y1: number } }
 
 type Local = {
   // The region's size last reported to the hooks module.
@@ -36,6 +38,7 @@ type Local = {
   // When a press lit the card here, ahead of the hooks module's answer.
   litAt?: number
   hoverClose?: boolean
+  hoverAction?: boolean
 }
 
 const TICK_MS = 100
@@ -44,7 +47,7 @@ const LIT_MS = 3000
 
 export const cardClient = <P extends CardProps>(build: (props: P, view: CardView) => CardPicture): ClientModule<P, Local> => {
   // The last picture's frame, for the pointer.
-  let shown: CardFrame | undefined
+  let shown: CardPicture | undefined
   // When the hooks module's picture last changed (its own clock reading, and ours then).
   const seen = { now: -1, at: 0 }
 
@@ -64,16 +67,19 @@ export const cardClient = <P extends CardProps>(build: (props: P, view: CardView
     }
 
     surface.onPointer(event => {
-      // Over the ×: it lights, drawn here at once; only a change redraws.
+      // Hover controls light here at once; only a change redraws.
       if (event.type === 'move' || event.type === 'enter' || event.type === 'leave') {
         const s = surface.state ?? local
         let hover = false
+        let hoverAction = false
         if (shown && event.type !== 'leave' && surface.columns > 0) {
-          const { px, py } = pixelOf(shown, event.x, event.y, surface.columns, surface.rows)
-          const a = closeArea(shown)
+          const { px, py } = pixelOf(shown.frame, event.x, event.y, surface.columns, surface.rows)
+          const a = closeArea(shown.frame)
           hover = px >= a.x0 && px <= a.x1 && py >= a.y0 && py <= a.y1
+          const action = shown.action
+          hoverAction = !!action && px >= action.x0 && px <= action.x1 && py >= action.y0 && py <= action.y1
         }
-        if (hover !== !!s.hoverClose) surface.setState({ ...s, hoverClose: hover })
+        if (hover !== !!s.hoverClose || hoverAction !== !!s.hoverAction) surface.setState({ ...s, hoverClose: hover, hoverAction })
       }
       if (event.type === 'enter' || event.type === 'leave') surface.post({ act: event.type })
       if (event.type !== 'down') return
@@ -95,10 +101,11 @@ export const cardClient = <P extends CardProps>(build: (props: P, view: CardView
     const picture = build(props, {
       isLit: props.isActive || (local.litAt !== undefined && Date.now() - local.litAt < LIT_MS),
       hoverClose: !!local.hoverClose,
+      hoverAction: !!local.hoverAction,
       gone: Date.now() - seen.at,
       columns: surface.columns,
     })
-    shown = picture.frame
+    shown = picture
     const { width, height } = frameOf(picture.frame)
     // Svg is not in the region's element table, so it is named by its tag.
     const svg: SvgProps = { source: picture.svg, alt: picture.alt, width, height }

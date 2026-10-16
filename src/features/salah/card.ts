@@ -3,10 +3,11 @@
 // its time. Pure: install.tsx reads the photo and draws it; athan-card.tsx
 // builds the picture on the drawing thread.
 
-import { cardHeight, cardSvg, drawWidthOf, fontFace, REST_PX, type CardFrame } from '../../shared/card/card.ts'
+import { cardHeight, cardSvg, drawWidthOf, fontFace, frameOf, pixelOf, REST_PX, type CardFrame } from '../../shared/card/card.ts'
 import type { CardProps, CardView } from '../../shared/card/client.tsx'
 import { arabicDigits, athanText, IN_MS } from '../../shared/pray/line.ts'
 import type { Pray } from '../../shared/pray/names.ts'
+import { accentHex, type Accent } from '../../shared/color/index.ts'
 import { ARUQAA_BOLD } from './card-font.ts'
 
 // How long the card stays when nobody closes it: the call's window.
@@ -18,6 +19,9 @@ export const cardIsFolded = (moment: { isFolded: boolean; foldsAt: number }, now
 
 export type AthanCardProps = CardProps & {
   isFolded: boolean
+  canStart?: boolean
+  accent?: Accent
+  isDark?: boolean
   pray: Pray
   // The clock text, e.g. `15:59`.
   time: string
@@ -36,6 +40,27 @@ export const athanFrame = (p: Pick<AthanCardProps, 'width' | 'card' | 'isFolded'
   drawWidth: drawWidthOf(p.card, columns),
 })
 
+export const START_LABEL = 'ابدأ أذكار بعد الصلاة'
+// Aref Ruqaa Bold label at 15px: ~93px; the monospace space + arrow at
+// 12px: ~14.4px. Use these text metrics for both the drawn span and its target.
+const START_WIDTH = 93 + 14.4
+const START_HEIGHT = 24
+const START_LEFT = 35
+
+// Same bounds for drawing-thread hover and hooks-thread clicks, including the
+// desktop shell's extra padding and the measured Client width.
+export const startArea = (f: CardFrame) => {
+  const box = frameOf(f)
+  const x0 = box.padX + (f.card ? 0 : 1) + START_LEFT + box.addX - box.left
+  return { x0, x1: x0 + START_WIDTH, y0: (f.height - START_HEIGHT) / 2, y1: (f.height + START_HEIGHT) / 2 }
+}
+export const isOnStart = (p: AthanCardProps, x: number, y: number, columns: number, rows: number) => {
+  const frame = athanFrame(p, columns)
+  const { px, py } = pixelOf(frame, x, y, columns, rows)
+  const a = startArea(frame)
+  return !!p.canStart && px >= a.x0 && px <= a.x1 && py >= a.y0 && py <= a.y1
+}
+
 // The photo is a 640 by 80 strip cut from the original, a little above its
 // middle; `cover` fits it to the card's width. The words are white on it, and so is the ×.
 const css = (photo: string) => [
@@ -47,14 +72,20 @@ const css = (photo: string) => [
   '.athan .main { font-size: 26px; line-height: 1.5; }',
   '.athan.rest { flex-direction: row; justify-content: flex-start; align-items: center; gap: 12px; white-space: nowrap; }',
   '.athan.rest .main, .athan.rest .time { font-size: 17px; line-height: 1; }',
+  `.athan .start { position: absolute; left: calc(${START_LEFT}px + var(--ax, 0px)); top: 50%; transform: translateY(-50%);`,
+  `  width: ${START_WIDTH}px; height: ${START_HEIGHT}px; display: flex; align-items: center; direction: ltr;`,
+  '  font: 700 15px/1 "Aref Ruqaa", serif; color: #fff; white-space: nowrap; cursor: pointer; text-shadow: 0 1px 3px rgba(0,0,0,.8); }',
+  '.athan .start-label { width: 93px; direction: rtl; }',
+  '.athan .start-arrow { font: 400 12px/1 monospace; white-space: pre; }',
+  '.athan .start.hot { color: var(--start-accent); filter: brightness(1.15); }',
   '.athan .time { font-size: 17px; line-height: 1.4; color: rgba(255,255,255,.85); }',
 ].join('\n')
 
-export const athanSvg = (p: AthanCardProps, view: Pick<CardView, 'hoverClose' | 'columns'>) =>
+export const athanSvg = (p: AthanCardProps, view: Pick<CardView, 'hoverClose' | 'columns' | 'hoverAction'>) =>
   cardSvg(athanFrame(p, view.columns), {
     classes: `athan active${p.isFolded ? ' rest' : ''}`,
-    style: '',
-    html: `<div class="main">${athanText(p.pray)}</div><div class="time">${arabicDigits(p.time)}</div>`,
+    style: `--start-accent:${accentHex(p.accent ?? 'orange', p.isDark ?? true)}`,
+    html: `${p.canStart ? `<span class="start${view.hoverAction ? ' hot' : ''}"><span class="start-arrow">← </span><span class="start-label">${START_LABEL}</span></span>` : ''}<div class="main">${athanText(p.pray)}</div><div class="time">${arabicDigits(p.time)}</div>`,
     css: css(p.photo),
     hoverClose: view.hoverClose,
   })

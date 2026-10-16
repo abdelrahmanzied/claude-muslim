@@ -63,7 +63,7 @@ const complete = ($: Engine, turnId: string, reason: 'answer' | 'aborted' | 'err
   $.turn.complete({ answer: 'Thikr demo done.', durationMs: 30_000, isAborted: reason === 'aborted', reason, turnId, ...(agentId ? { agentId } : {}) })
 
 for (const [surface, style] of [['desktop', 'sky'], ['terminal', 'sky'], ['desktop', 'frame']] as const) {
-  test(`${surface} ${style}: thikr, then athkar, then salah; no demo bands overlap`, { options: { ...OPTIONS, athkarStyle: style } }, async ($, on) => {
+  test(`${surface} ${style}: thikr, then athkar, then salah; no demo bands overlap`, { options: { ...OPTIONS, athkarStyle: style }, timeoutMs: 15000 }, async ($, on) => {
     const { clock, submitted, written } = fixture(on, surface)
     const ui = await $.ui.mount(band(surface))
     const limit = () => ui.find({ type: 'Text', text: surface === 'terminal' ? stripTashkeel(USAGE_LIMIT) : USAGE_LIMIT })
@@ -122,8 +122,15 @@ for (const [surface, style] of [['desktop', 'sky'], ['terminal', 'sky'], ['deskt
     await clock.advance(1)
     expect(await salah()).toBeUndefined()
     expect(written).toEqual([])
-    // The salah demo ends with its card's deadline on both surfaces; the runner waits for that report.
-    await clock.advance(DEMO_OPEN_MS + DEMO_FOLDED_MS - timing.salahMs)
+    expect(await ui.find({ key: 'athkar-demo' })).toBeDefined()
+    expect((await $.command.run(run())).text).toBe('**Muslim demo:** already playing.')
+    const afterMs = athkarDuration('frame', 3200, 'afterSalah')
+    await clock.advance(afterMs - 100)
+    expect(await ui.find({ key: 'athkar-demo' })).toBeDefined()
+    expect((await $.command.run(run())).text).toBe('**Muslim demo:** already playing.')
+    await clock.advance(100)
+    expect(await ui.find({ key: 'athkar-demo' })).toBeUndefined()
+    expect(written).toEqual([])
     expect((await $.command.run(run())).text).toBe(demoReply())
     await ui.unmount()
   })
@@ -145,6 +152,8 @@ test('a repeat while queued, working, holding, reading or showing salah says alr
   await clock.advance(timing.athkarMs + DEMO_GAP_MS)
   await repeat()
   await clock.advance(timing.salahMs)
+  await repeat()
+  await clock.advance(athkarDuration('sky', 3200, 'afterSalah'))
   expect((await $.command.run(run())).text).toBe(demoReply())
 })
 

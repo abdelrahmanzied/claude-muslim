@@ -2,7 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import { hijriMonth, localTime } from '../../src/features/salah/clock.ts'
 import { PRAYS } from '../../src/features/salah/methods.ts'
-import { clockText, lastPray, NO_ADJUST, nextPray, timesOn } from '../../src/features/salah/times.ts'
+import { athkarTimes, clockText, lastPray, NO_ADJUST, nextPray, timesOn } from '../../src/features/salah/times.ts'
 
 const MUNICH = { latitude: 48.1372, longitude: 11.5755, timeZone: 'Europe/Berlin' }
 const CAIRO = { latitude: 30.05, longitude: 31.25, timeZone: 'Africa/Cairo' }
@@ -82,4 +82,30 @@ describe('clock', () => {
     expect(hijriMonth(Date.parse('2027-02-20T10:00:00Z'), 'Asia/Riyadh')).toBe(9)
     expect(hijriMonth(OCT_10, 'Asia/Riyadh')).not.toBe(9)
   })
+})
+
+
+test('athkar bounds share adjusted prayer times and calendar dates through DST', () => {
+  for (const at of [OCT_10, Date.parse('2026-10-25T00:30:00Z'), Date.parse('2026-03-29T00:30:00Z')]) {
+    const adjust = { ...NO_ADJUST, fajr: 7, sunrise: 4, maghrib: -3, isha: -8 }
+    const bounds = athkarTimes(MUNICH, 'mwl', adjust, at)
+    const today = timesOn(MUNICH, 'mwl', adjust, at)
+    expect(bounds.fajr).toBe(today.fajr)
+    expect(bounds.sunrise).toBe(today.sunrise)
+    expect(bounds.isha).toBe(today.isha)
+    expect(bounds.maghrib).toBe(today.maghrib)
+    expect(bounds.nextFajr).toBe(timesOn(MUNICH, 'mwl', adjust, at + 27 * 3600_000).fajr)
+  }
+  const bounds = athkarTimes(MUNICH, 'mwl', NO_ADJUST, Date.parse('2026-01-01T00:30:00Z'))
+  expect(bounds.day).toBe('2026-01-01')
+  expect(bounds.previousDay).toBe('2025-12-31')
+})
+
+test('athkar bounds refresh at place midnight before the Fajr day changes', () => {
+  const first = athkarTimes(MUNICH, 'mwl', NO_ADJUST, Date.parse('2026-10-10T21:59:59Z'))
+  const second = athkarTimes(MUNICH, 'mwl', NO_ADJUST, Date.parse('2026-10-10T22:00:01Z'))
+  expect(first.day).toBe('2026-10-10')
+  expect(second.day).toBe('2026-10-11')
+  expect(second.previousDay).toBe(first.day)
+  expect(second.fajr).toBe(first.nextFajr)
 })

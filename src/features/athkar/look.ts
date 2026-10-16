@@ -1,5 +1,5 @@
 import { accentHex, type Accent } from '../../shared/color/index.ts'
-import type { Period } from './data.ts'
+import type { AthkarSet } from './logic.ts'
 import { arabicDigits, countOf, currentOf, END, END_NOTE, hasBegun, listFor, overall, textOf, timesOf, TITLE } from './logic.ts'
 import type { Reading, Sky } from './logic.ts'
 
@@ -85,7 +85,7 @@ export const lookFor = (style: Style, accent: Accent, sky: Sky, isDark: boolean,
 }
 
 export type ReaderProps = {
-  period: Period
+  period: AthkarSet
   phase: 'cover' | 'reading' | 'done'
   // Lit by a click; faded again when idle.
   isActive: boolean
@@ -108,19 +108,19 @@ export type ReaderProps = {
 }
 
 // The done row's hint, and the reply to a finished period's command.
-export const resetHint = (period: Period): string => `/athkar ${period} reset → to read again`
+export const resetHint = (period: AthkarSet): string => `/athkar ${period === 'afterSalah' ? 'after-salah' : period} reset → to read again`
 
 // A Client's props are plain data: no undefined anywhere.
 export const plain = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 
 export const readerProps = (
-  period: Period,
+  period: AthkarSet,
   reading: Reading,
   look: Look,
   display: (text: string) => string,
   view: { isOpen: boolean; isActive: boolean; isPicture: boolean },
 ): ReaderProps => {
-  const list = listFor(period)
+  const list = listFor(period, reading)
   const thikr = currentOf(period, reading)
   const n = countOf(thikr, reading)
   const times = timesOf(thikr)

@@ -3,6 +3,8 @@
 
 export type Pray = 'fajr' | 'sunrise' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'
 
+export type Fard = Exclude<Pray, 'sunrise'>
+
 export const ENGLISH: Readonly<Record<Pray, string>> = {
   fajr: 'Fajr',
   sunrise: 'Sunrise',

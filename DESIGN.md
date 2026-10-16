@@ -1,16 +1,17 @@
 # Design system — muslim mod
 
-The shared base every feature follows, and the index to each feature's own design. Each feature owns its design: its spec is `docs/features/<feature>.md` and its design (surfaces, visual means, requirements) is `docs/features/<feature>-design.md`. Read this before designing a new feature, then the docs of the features you touch.
+The shared base every feature follows, and the index to each feature's own design. Each feature owns its design: its folder `docs/features/<feature>/` holds its spec (`<feature>.md`), its design (`<feature>-design.md`: surfaces, visual means, requirements) and, when it shows religious text, that text (`<feature>-content.md`). Read this before designing a new feature, then the docs of the features you touch.
 
 ## Feature index
 
-| Feature | Command | Spec | Design |
-| --- | --- | --- | --- |
-| Thikr line | `/thikr` | [thikr.md](docs/features/thikr.md) | [thikr-design.md](docs/features/thikr-design.md): text only |
-| Morning and evening athkar | `/athkar` | [athkar.md](docs/features/athkar.md) | [athkar-design.md](docs/features/athkar-design.md): a drawn reader (Client module, desktop Svg sky) |
-| Salah | `/salah` | [salah.md](docs/features/salah.md) | [salah-design.md](docs/features/salah-design.md): text, richer athan moment |
-| Terminal Arabic check ([shared guide](docs/terminal.md)) | `/muslim terminal-arabic` | [arabic-fix.md](docs/features/arabic-fix.md) | [arabic-fix-design.md](docs/features/arabic-fix-design.md) |
-| Quran | `/quran` | [quran.md](docs/features/quran.md) | [quran-design.md](docs/features/quran-design.md): desktop footer chip and a full Client-drawn pane with searchable dropdowns |
+| Feature | Command | Spec | Design | Content |
+| --- | --- | --- | --- | --- |
+| Thikr line | `/thikr` | [thikr spec](docs/features/thikr/thikr.md) | [thikr design](docs/features/thikr/thikr-design.md): text only | [thikr content](docs/features/thikr/thikr-content.md) |
+| Morning, evening and after-salah athkar | `/athkar` | [athkar spec](docs/features/athkar/athkar.md) | [athkar design](docs/features/athkar/athkar-design.md): a drawn reader (Client module, desktop Svg sky) | [athkar content](docs/features/athkar/athkar-content.md) |
+| Salah | `/salah` | [salah spec](docs/features/salah/salah.md) | [salah design](docs/features/salah/salah-design.md): text, richer athan moment | [salah content](docs/features/salah/salah-content.md) |
+| Quran | `/quran` | [quran spec](docs/features/quran/quran.md) | [quran design](docs/features/quran/quran-design.md): desktop footer chip and a full Client-drawn pane with searchable dropdowns | none |
+
+Platform docs that are not features live in `docs/<platform>/`: terminal Arabic (the shared guide and the `/muslim terminal-arabic` check) is [docs/terminal/terminal-arabic.md](docs/terminal/terminal-arabic.md).
 
 Everything below is shared by every feature. A feature's doc may add to it, never contradict it.
 
@@ -64,7 +65,7 @@ Never use `error` or `warning` for religious text.
 - **Direction:** a line that starts with Arabic is read right to left by the surface. When Claude's own Latin text or numbers sit in the same line, keep them as a separate run (e.g. a separator `·`), and never convert Claude's numbers.
 - **Our numbers** (counts, times we compute) use Arabic-Indic digits (`١٥:٢٤`, `٢/٣`) inside Arabic lines.
 - **Length:** spinner and band phrases fit one line at 80 columns. Longer texts (athkar) live only in the reader, never truncated.
-- **Terminal Arabic:** every feature's Arabic on a terminal goes through `src/shared/arabic`; see the [terminal guide](docs/terminal.md) for modes, persistence, survey, and limits.
+- **Terminal Arabic:** every feature's Arabic on a terminal goes through `src/shared/arabic`; see the [terminal guide](docs/terminal/terminal-arabic.md) for modes, persistence, survey, and limits.
 
 ## 5. Voice
 
@@ -92,7 +93,7 @@ Never use `error` or `warning` for religious text.
 
 Quran's demo is deferred to a separate task and is not part of the current shared sequence. Each other feature has its own demo subcommand and `src/features/<feature>/demo.ts` for pure scenes and timing (no `$`, plain unit tests). Its small engine runner stays in `install.ts(x)` with its atoms. A demo plays the real UI on demand and only drives drawing: no settings, store or saved-state changes. Salah uses `/salah demo`; thikr uses `/thikr demo`, which starts a real turn of its own because the Spinner draws only while Claude works.
 
-`/muslim demo` plays the thikr demo, the no-argument athkar demo, then `/salah demo` (the athan moment). Its command passes through demo-only setup hooks, which connect transient signals to each feature's own starter and engine handle. Later clock callbacks send those signals; no self-command is dispatched (`$.command.run` skips the caller in this build). `/muslim demo` only knows the order. It never holds, copies or hard-codes a demo's length or values: each demo works on its own, and when `/muslim demo` started it, it reports its own end through the signal (thikr after its usage-limit hold, athkar after its folded scene, salah after its moment). The next demo starts 0.1 s after that report. Started this way, the thikr prompt says `/muslim demo` instead of `/thikr demo`. Athkar uses its default look (sky on desktop, frame in the terminal; a configured desktop frame is respected). No city is needed. Nothing from one demo overlaps the next, and no demo writes real session atoms, settings or saved state. Salah selects its disposable moment through one guard in each existing render path; when it ends a real athan returns untouched. The reply names the sequence and says thikr uses tokens and leaves a transcript message. A repeat while playing says `Muslim demo: already playing.`; a later request plays again. The order, the start delay and the gap: `src/demo.ts`; transient signals: `src/shared/demo/signal.ts`; the runner and module-local lifetime: marked `DEMO` blocks in `hooks/register.tsx` and each feature's `install.tsx`. Removing demo blocks and the two salah render selectors removes no core behavior.
+`/muslim demo` plays the thikr demo, the no-argument athkar demo, then `/salah demo` (the athan moment followed by athkar after salah). Its command passes through demo-only setup hooks, which connect transient signals to each feature's own starter and engine handle. Later clock callbacks send those signals; no self-command is dispatched (`$.command.run` skips the caller in this build). `/muslim demo` only knows the order. It never holds, copies or hard-codes a demo's length or values: each demo works on its own, and when `/muslim demo` started it, it reports its own end through the signal (thikr after its usage-limit hold, athkar after its folded scene, salah after its after-salah folded done row). The next demo starts 0.1 s after that report. Started this way, the thikr prompt says `/muslim demo` instead of `/thikr demo`. Athkar uses its default look (sky on desktop, frame in the terminal; a configured desktop frame is respected). No city is needed. Nothing from one demo overlaps the next, and no demo writes real session atoms, settings or saved state. Salah selects its disposable moment through one guard in each existing render path. Closing or expiring it starts the Fajr after-salah scenes through a transient signal to athkar; its real reader builders draw those scenes. The completion callback returns to salah only after the folded done row, then any real athan returns untouched. The reply names the sequence and says thikr uses tokens and leaves a transcript message. A repeat while playing says `Muslim demo: already playing.`; a later request plays again. The order, the start delay and the gap: `src/demo.ts`; transient signals: `src/shared/demo/signal.ts`; the runner and module-local lifetime: marked `DEMO` blocks in `hooks/register.tsx` and each feature's `install.tsx`. Removing demo blocks and the two salah render selectors removes no core behavior.
 
 ## 9. Code shape for a new feature
 
@@ -102,8 +103,9 @@ src/features/<feature>/
   phrases.ts      authored text (or data.ts)
   *.ts            pure logic, no $
 tests/<feature>/  unit tests for pure logic + engine tests on terminal and desktop
-docs/features/<feature>.md          the feature's spec
-docs/features/<feature>-design.md   the feature's design
+docs/features/<feature>/<feature>.md          the feature's spec
+docs/features/<feature>/<feature>-design.md   the feature's design
+docs/features/<feature>/<feature>-content.md  the religious text it shows, if any
 ```
 
 Wire it in `hooks/register.tsx` (`install<Feature>(on, settings)`), register its command there, add its fields to `plugin.json` `userConfig` and `src/config.ts`, declare any `$.state` values in `types/index.d.ts`.
@@ -111,9 +113,9 @@ Wire it in `hooks/register.tsx` (`install<Feature>(on, settings)`), register its
 ## 10. New feature checklist
 
 - [ ] Fits the shared base above; uses the lightest surface that does the job.
-- [ ] `docs/features/<feature>-design.md` written: surfaces, visual means, why, and the fallback where a surface is desktop-only; linked from the index above and from the spec's Design section.
-- [ ] Spec added to `docs/features/<feature>.md` (moments, phrases with sources, settings).
-- [ ] Phrases reviewed by a person; sources noted.
+- [ ] `docs/features/<feature>/<feature>-design.md` written: surfaces, visual means, why, and the fallback where a surface is desktop-only; linked from the index above and from the spec's Design section.
+- [ ] Spec added to `docs/features/<feature>/<feature>.md` (moments, phrases with sources, settings).
+- [ ] Phrases reviewed by a person; sources noted. Religious text shown is listed in `docs/features/<feature>/<feature>-content.md` with count and source.
 - [ ] Off switch in `/config` and the command; off leaves Claude untouched.
 - [ ] Main color via the shared module, other colors via theme keys; desktop tashkeel setting respected and terminal tashkeel stripped.
 - [ ] Tests on `terminal` and `desktop`; `claude plugin validate`, `claude plugin test`, `tsc` pass.

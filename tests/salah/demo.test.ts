@@ -6,7 +6,7 @@ import { TOTAL_MS } from '../../src/features/salah/minaret.ts'
 const NOW = Date.parse('2026-10-10T10:00:00Z')
 
 test('the demo always shows Fajr at 05:00 without a city or calculation', () => {
-  expect(demoMoment()).toEqual({ pray: 'fajr', time: clockText(Date.UTC(2000, 0, 1, 5), 'UTC'), text: `**Salah demo:** athan · Fajr ${clockText(Date.UTC(2000, 0, 1, 5), 'UTC')}` })
+  expect(demoMoment()).toEqual({ pray: 'fajr', time: clockText(Date.UTC(2000, 0, 1, 5), 'UTC'), text: `**Salah demo:** athan · Fajr ${clockText(Date.UTC(2000, 0, 1, 5), 'UTC')} · athkar after salah` })
   expect(demoMoment().time).toBe('05:00')
 })
 
