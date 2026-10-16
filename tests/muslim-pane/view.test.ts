@@ -28,7 +28,7 @@ test('the picture draws the three cards at the fixed pane height', () => {
   expect(svg).toContain(`height="${PANE_HEIGHT}"`)
   expect(svg).toContain('الصلاة القادمة')
   expect(svg).toContain('العصر')
-  expect(svg).toContain('in 1h 12m')
+  expect(svg).toContain('<div class="nx-in ar" dir="rtl">بعد ١ س ١٢ د</div>')
   expect(svg).toContain('Munich')
   expect(svg).toContain('افتح المصحف');expect(svg).not.toContain('Open full player')
   expect(svg).toContain('أَذْكَارُ الْمَسَاءِ')

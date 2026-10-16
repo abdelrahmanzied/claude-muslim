@@ -42,12 +42,12 @@ export const CELL_PX = 8.4
 export const widthOf = (columns: unknown, fallback = 360): number =>
   typeof columns === 'number' && Number.isFinite(columns) && columns > 0 ? Math.max(PANE_MIN_WIDTH, Math.min(PANE_MAX_WIDTH, Math.round(columns * CELL_PX))) : fallback
 
-// `in 1h 12m`, `in 12m`, `in <1m`: English chrome beside the Arabic time, as designed.
+// `بعد ١ س ١٢ د`, `بعد ١٢ د`, `بعد أقل من دقيقة`: Arabic, with Arabic digits, like the time beside it.
 export const untilText = (ms: number): string => {
-  if (!Number.isFinite(ms) || ms < 60_000) return 'in <1m'
+  if (!Number.isFinite(ms) || ms < 60_000) return 'بعد أقل من دقيقة'
   const minutes = Math.floor(ms / 60_000)
   const hours = Math.floor(minutes / 60)
-  return hours > 0 ? `in ${hours}h ${minutes % 60}m` : `in ${minutes}m`
+  return arabicDigits(hours > 0 ? `بعد ${hours} س ${minutes % 60} د` : `بعد ${minutes} د`)
 }
 
 // Done before now; next is the one the salah feature says is next, if it is among today's;

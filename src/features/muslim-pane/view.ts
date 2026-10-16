@@ -125,7 +125,7 @@ const prayerCard = (m: PaneModel, hover: PaneAct | null): string => {
     body = `<div class="note" style="top:${NX_TOP}px;height:${NX_H + 5 * ROW_H + 10}px">Choose a city first: /salah city</div>`
   } else {
     const rows = p.rows.map((r, i) => `<div class="pr ${r.state === 'upcoming' ? '' : r.state}" style="top:${ROWS_TOP + i * ROW_H}px">${icon(r.state === 'done' ? 'check' : r.state === 'next' ? 'now' : 'ring')}<span class="ar">${escape(r.name)}</span><span class="t ar">${ltr(r.time)}</span></div>`).join('')
-    body = `<div class="in nx" style="top:${NX_TOP}px"><div><div class="nx-k ar">الصلاة القادمة</div><div class="nx-n ar">${escape(p.nextName)}</div></div><div class="nx-r"><div class="nx-t ar">${ltr(p.nextTime)}</div><div class="nx-in">${escape(p.until)}</div></div></div>${rows}`
+    body = `<div class="in nx" style="top:${NX_TOP}px"><div><div class="nx-k ar">الصلاة القادمة</div><div class="nx-n ar">${escape(p.nextName)}</div></div><div class="nx-r"><div class="nx-t ar">${ltr(p.nextTime)}</div><div class="nx-in ar" dir="rtl">${escape(p.until)}</div></div></div>${rows}`
   }
   const athan = `<div class="in athan${hover === 'athan' ? ' hot' : ''}${p.isSet ? '' : ' off'}" style="top:${ATHAN_TOP}px" role="switch" aria-checked="${p.isAthan}" aria-label="الأذان">${icon('bell')}<span>الأذان</span><span class="tog${p.isAthan ? ' on' : ''}"><i></i></span></div>`
   const city = p.isSet ? `<div class="prayer-city">مواقيت <bdi>${escape(p.city)}</bdi></div>` : ''

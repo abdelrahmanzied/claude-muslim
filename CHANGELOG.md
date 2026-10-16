@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Muslim pane: the next-prayer countdown is Arabic with Arabic digits, like the time above it (`بعد ٦ س ٥٥ د`, `بعد ١٢ د`, `بعد أقل من دقيقة`), instead of `in 6h 55m`.
+
 - Quran pane: the reciter, surah and quarter boxes and the list search box are transparent with a thin hairline, matching the Muslim pane; the dropdown keeps its shadow, and its dark background now matches the host surface (`#1f1e1d`) instead of a lighter grey slab; the orange row highlights stay.
 
 - Muslim pane: apply the approved light/dark system with transparent hairline buttons and copy chips, text-only Open, previous/next circles with a light ring, neutral underline tabs and text-color hover/selection overlays; keep geometry and typography.

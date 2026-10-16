@@ -20,12 +20,12 @@ const salah = (now: number): PanelSalah => {
   }
 }
 
-test('the countdown reads in hours and minutes, English chrome', () => {
-  expect(untilText(72 * MIN)).toBe('in 1h 12m')
-  expect(untilText(12 * MIN)).toBe('in 12m')
-  expect(untilText(60 * MIN)).toBe('in 1h 0m')
-  expect(untilText(59_000)).toBe('in <1m')
-  expect(untilText(Number.NaN)).toBe('in <1m')
+test('the countdown reads in hours and minutes, in Arabic with Arabic digits', () => {
+  expect(untilText(72 * MIN)).toBe('بعد ١ س ١٢ د')
+  expect(untilText(12 * MIN)).toBe('بعد ١٢ د')
+  expect(untilText(60 * MIN)).toBe('بعد ١ س ٠ د')
+  expect(untilText(59_000)).toBe('بعد أقل من دقيقة')
+  expect(untilText(Number.NaN)).toBe('بعد أقل من دقيقة')
 })
 
 test('past prays are done, the next is marked, the rest are upcoming', () => {
@@ -43,12 +43,12 @@ test('after Isha every row is done and the next is tomorrow, not a row', () => {
   expect(rows.every(r => r.state === 'done')).toBe(true)
   const card = prayerCard({ ...late, next: tomorrow }, now)
   expect(card.nextName).toBe('الفجر')
-  expect(card.until).toBe('in 7h 0m')
+  expect(card.until).toBe('بعد ٧ س ٠ د')
 })
 
 test('the prayer card names the city and the next prayer in the main values', () => {
   const card = prayerCard(salah(DAY), DAY)
-  expect(card).toMatchObject({ isSet: true, city: 'Munich', nextName: 'العصر', nextTime: '١٥:٤٢', until: 'in 1h 12m', isAthan: true })
+  expect(card).toMatchObject({ isSet: true, city: 'Munich', nextName: 'العصر', nextTime: '١٥:٤٢', until: 'بعد ١ س ١٢ د', isAthan: true })
   expect(prayerCard(null, DAY)).toMatchObject({ isSet: false, rows: [] })
 })
 
