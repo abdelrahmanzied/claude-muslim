@@ -1,6 +1,6 @@
 import type { UiScrollInput } from 'claude-code'
 
-// Pure: ui.scroll also fires at the edges. Calling next there redraws the
+// Pure, shared by the drawn panes (Muslim, Quran): ui.scroll also fires at the edges. Calling next there redraws the
 // whole Client picture even though the window cannot move. Keep those ticks
 // undrawn; let the host own real overflow, other surfaces and plugin requests.
 export const skipPaneScroll = (desktop: boolean, currentOffset: number, e: UiScrollInput): boolean => {

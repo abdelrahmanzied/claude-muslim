@@ -11,6 +11,7 @@ import { isAvailable, nearestAvailable, nextAvailable, UNAVAILABLE_ERROR } from 
 import { quranHelp } from './help.ts'
 import { isCardMessage, pointerPixels, pointerSlack } from './card.ts'
 import { connectPanelAction, connectQuran, type PanelQuran } from '../../shared/panel/signal.ts'
+import { skipPaneScroll } from '../../shared/scroll/index.ts'
 import { PANE_HEIGHT, arabicDigits, columnsWidth, isPickMessage, isPickerMessage, pickerWheelDelta, paneHit, paneModel, pickerInitial, paneHeight, type PickerMessage } from './pane.ts'
 
 const QURAN_DEBUG = false
@@ -26,7 +27,8 @@ const surahRef = { plugin: 'muslim', key: 'quranSurah' } as const
 // Handles cannot survive reload; only these ephemeral resources stay here.
 const runtime: { controller?: AbortController; prefetch?: PrefetchTarget & { controller: AbortController; source: Promise<PreparedSegment> }; plan?: RecordingPlan; preparing?: Preparing; selectedSegment: number; reads?: unknown; timer?: { cancel(): void }; catalog?: Promise<Catalog>; queue: Promise<unknown>; probe: number; generation: number; stopEpoch: number; debugQueue: Promise<unknown>; cacheQueue: Promise<unknown>; clip?: { generation: number; surah: number } } = { selectedSegment: 0, queue: Promise.resolve(), probe: 0, generation: 0, stopEpoch: 0, debugQueue: Promise.resolve(), cacheQueue: Promise.resolve() }
 
-const view: { focusRevision: number; picker: PickerMessage | null; wheel: number; offset: number; wheelAt: number } = { focusRevision: 0, picker: null, wheel: 0, offset: 0, wheelAt: -Infinity }
+// ui.scroll has no surface field: `desktop` and `offset` are the pane's latest render.
+const view: { focusRevision: number; picker: PickerMessage | null; wheel: number; offset: number; wheelAt: number; desktop: boolean } = { focusRevision: 0, picker: null, wheel: 0, offset: 0, wheelAt: -Infinity, desktop: false }
 
 async function writeDebug($: EngineInterface, message: string): Promise<void> {
   try {
@@ -655,7 +657,9 @@ export const install = (on: On, options: Options) => {
   })
   on('ui.scroll', { component: 'Pane', requestId: 'quran' }, async ($, e, next) => {
     const delta = pickerWheelDelta(view.picker, e, view.focusRevision, view.offset)
-    if (!delta) return next(e)
+    // A wheel tick that cannot move the window (content fits, or at an edge) would
+    // redraw the whole picture for nothing: that redraw is the shaking. Keep it undrawn.
+    if (!delta) return skipPaneScroll(view.desktop, view.offset, e) ? {} : next(e)
     const now = await $.clock.now()
     if (now - view.wheelAt < 120) return {}
     view.wheelAt = now
@@ -665,6 +669,7 @@ export const install = (on: On, options: Options) => {
   })
   on('ui.render', { component: 'Pane', requestId: 'quran' }, async ($, e) => {
     const { Box, Text } = $.ui.resolve(e)
+    view.desktop = e.surface === 'desktop'
     if (e.surface !== 'desktop') return <Text dimColor>{await arabic($, e.surface, 'مشغّل القرآن متاح على تطبيق Claude للديسكتوب')}</Text>
     const { Client } = $.ui.resolve(e)
     view.offset = e.props.scroll?.offset ?? 0

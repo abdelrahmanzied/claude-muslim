@@ -2,22 +2,26 @@ import type { ClientModule, SvgProps } from 'claude-code'
 import { pointerPixels, pointerSlack, type CardAction } from './card.ts'
 import { PANE_HEIGHT, columnsWidth, dragCell, safeWidth, paneHeight, beginPickerDrag, dragPicker, moveHighlight, openPicker, options, paneHit, paneSvg, pickerInitial, scrollPicker, typeQuery, type PaneModel, type PickerState, type PickerDrag } from './pane.ts'
 
-type Local = { picker: PickerState; hover: CardAction | null; size: string; wheel: number; overList: boolean; drag: PickerDrag | null }
+type Local = { picker: PickerState; hover: CardAction | null; wheel: number; overList: boolean; drag: PickerDrag | null }
 const client: ClientModule<PaneModel, Local> = (props, surface) => {
   const { Box } = surface.elements
   if (surface.state === undefined) {
-    surface.setState({ picker: pickerInitial(props), hover: null, size: '', wheel: props.wheel, overList: false, drag: null })
+    surface.setState({ picker: pickerInitial(props), hover: null, wheel: props.wheel, overList: false, drag: null })
+    // Report the size for wheel routing, kept in this closure, never in state:
+    // a setState redraws the whole picture, and Desktop's measured rows flicker,
+    // so a size in state made the pane shake.
+    let size = ''
     surface.every(200, () => {
-      const size = `${surface.columns}x${surface.rows}`
+      const next = `${surface.columns}x${surface.rows}`
       const local = surface.state
-      if (local && size !== local.size && surface.columns > 0 && surface.rows > 0) {
+      if (local && next !== size && surface.columns > 0 && surface.rows > 0) {
+        size = next
         surface.post({ act: 'picker', list: local.picker.open, width: columnsWidth(surface.columns), columns: surface.columns, rows: surface.rows, height: paneHeight(model), focusRevision: local.picker.focusRevision, overList: local.overList })
-        surface.setState({ ...local, size })
       }
     })
   }
   const model = { ...props, width: surface.columns > 0 ? columnsWidth(surface.columns, safeWidth(props.width)) : safeWidth(props.width) }
-  let local = surface.state ?? { picker: pickerInitial(model), hover: null, size: '', wheel: props.wheel, overList: false, drag: null }
+  let local = surface.state ?? { picker: pickerInitial(model), hover: null, wheel: props.wheel, overList: false, drag: null }
   let resetPicker = false
   if (local.picker.focusRevision !== model.focusRevision || local.picker.wasFocused && !model.isFocused) {
     resetPicker = true

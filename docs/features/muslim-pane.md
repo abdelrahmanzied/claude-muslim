@@ -40,7 +40,7 @@ A reload clears the connections; each feature connects again on its next draw (t
 
 While the pane is open a clock redraws it every second while the Quran plays and once a minute otherwise (the countdown); the clock stops when the pane closes.
 
-The Client uses its current region size on render and pointer input; the API already redraws it on resize. It has no size polling timer or size messages. The pane's `ui.scroll` hook consumes person-origin Desktop requests whose clamped offset equals the last rendered offset, without `next` or invalidation (the API's way to leave a window undrawn). Real movement is passed through. `scroll.ts` holds the pure decision; unit and engine tests cover both Quran rows, wheel directions, missing pointer coordinates, overflow, edges, and flickering Client row measurements.
+The Client uses its current region size on render and pointer input; the API already redraws it on resize. It has no size polling timer or size messages. The pane's `ui.scroll` hook consumes person-origin Desktop requests whose clamped offset equals the last rendered offset, without `next` or invalidation (the API's way to leave a window undrawn). Real movement is passed through. `src/shared/scroll/` holds the pure decision (`skipPaneScroll`, shared with the Quran pane); unit and engine tests cover both Quran rows, wheel directions, missing pointer coordinates, overflow, edges, and flickering Client row measurements.
 
 ## Notes
 

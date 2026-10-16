@@ -1,6 +1,6 @@
 import type { UiScrollInput } from 'claude-code'
 import { expect, test } from 'claude-code/testing'
-import { skipPaneScroll } from '../../src/features/muslim-pane/scroll.ts'
+import { skipPaneScroll } from '../../../src/shared/scroll/index.ts'
 
 const event: UiScrollInput = { component: 'Pane', requestId: 'muslim', by: 1, offset: 0, bodyRows: 40, contentRows: 40, origin: { kind: 'person' } }
 

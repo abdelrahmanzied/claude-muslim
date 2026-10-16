@@ -6,7 +6,7 @@ import { readAthkar, readQuran, readSalah, runPanelAction } from '../../shared/p
 import { NO_FOLDS, hitOfCells, isFolds, isPaneMessage, keyAct, type Enabled, type Folds, type PaneAct } from './layout.ts'
 import { paneModel, textLines, widthOf, type PaneModel } from './model.ts'
 import { CATEGORIES, COPIED_MS, changeCategory, copiedAt, isSwitchField, loadSettings, optimisticOptions, settingsBody, type SettingsState } from './settings.ts'
-import { skipPaneScroll } from './scroll.ts'
+import { skipPaneScroll } from '../../shared/scroll/index.ts'
 
 const playingRef = { plugin: 'muslim', key: 'quranPlaying' } as const
 const PANE_ID = 'muslim'
