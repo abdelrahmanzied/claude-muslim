@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Muslim pane: apply the approved light/dark system with transparent hairline buttons and copy chips, text-only Open, previous/next circles with a light ring, neutral underline tabs and text-color hover/selection overlays; keep geometry and typography.
+
 - Muslim pane: the Athan row reads «الأذان».
 
 - Muslim pane: the heading reads «مُسلِم» with tashkeel (damma on the mim, kasra on the lam).

@@ -10,7 +10,7 @@ import {
   ATHAN_H, ATHAN_TOP, BAR_TOP, CITY_H, CITY_TOP, CONTROLS_CY, FIELD_H, HEAD_H, HEAD_TOP, KBTN_W, KROW_H, KROW_TOP, KFINISH_W, KROW_GAP, NX_H, NX_TOP, OPEN_H, OPEN_TOP,
   AVATAR_H, PAD, RECITER_TOP, TOP_H, TOP_Y, ROWS_TOP, ROW_H, SIDE, SURAH_TOP, TIMES_TOP, cardRects, type PaneAct,
 } from './layout.ts'
-import { SETTINGS_TOP, SETTINGS_BODY_TOP, TABS_H, TAB_INSET, LIST_CHOICE_H, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, EXTRA_TOP, ADJUST_NOTE_TOP, categoryTabs, settingsBody, type SettingRow, type SettingsTarget } from './settings.ts'
+import { SETTINGS_TOP, SETTINGS_BODY_TOP, TABS_H, TAB_INSET, TAB_PAD, LIST_CHOICE_H, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, EXTRA_TOP, ADJUST_NOTE_TOP, categoryTabs, settingsBody, type SettingRow, type SettingsTarget } from './settings.ts'
 import type { PaneModel } from './model.ts'
 import { avatar } from './avatar.ts'
 
@@ -19,8 +19,8 @@ const ltr = (text: string) => `<bdi dir="ltr">${escape(text)}</bdi>`
 
 // Colors live here only: dark by default, light under the app's color scheme (the same mechanism as the Quran pane; Claude Code's own theme row is not read, it can differ from the Desktop's).
 const VARS = {
-  dark: '--card:#232220;--line:#3a3834;--line-soft:#2b2a27;--text:#ecebe6;--text-2:#c6c3bb;--muted:#8f8c83;--dim:#625f58;--raised:#2a2926;--raised-2:#34322e;--hover:#23221f;--on:#ffffff',
-  light: '--card:#fffdf8;--line:#d9d6cc;--line-soft:#e7e4db;--text:#1f1e1b;--text-2:#46443e;--muted:#77746a;--dim:#a5a298;--raised:#ecebe4;--raised-2:#e2e0d8;--hover:#f3f1ec;--on:#ffffff',
+  dark: '--line:rgba(238,237,232,.13);--line-soft:rgba(238,237,232,.07);--text:#eeede8;--text-2:#c6c3bb;--muted:#a6a299;--dim:#969289;--hover:rgba(238,237,232,.04);--active:rgba(238,237,232,.07);--on:#faf9f5;--on-accent:#1f1e1d',
+  light: '--line:rgba(41,40,36,.14);--line-soft:rgba(41,40,36,.07);--text:#292824;--text-2:#514e47;--muted:#736f66;--dim:#817c72;--hover:rgba(41,40,36,.04);--active:rgba(41,40,36,.07);--on:#ffffff;--on-accent:#ffffff',
 }
 export const paletteCss = (root: string, color: PaneModel['color']): string => {
   const dark = `${VARS.dark};--accent:${accentHex(color, true)}`, light = `${VARS.light};--accent:${accentHex(color, false)}`
@@ -74,7 +74,7 @@ const CSS = `
 .pr>span{line-height:1;transform:translateY(.12em)}
 .pr .t{margin-inline-start:auto;font-variant-numeric:tabular-nums}
 .pr.done{color:var(--dim)}.pr.done .ic{color:var(--dim)}
-.pr.next{background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent);font-weight:500}.pr.next .ic{color:var(--accent)}
+.pr.next{background:var(--hover);color:var(--accent);font-weight:500}.pr.next .ic{color:var(--accent)}
 .note{position:absolute;left:${SIDE}px;right:${SIDE}px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);font-size:12px;direction:ltr}
 .drow{display:flex;align-items:center;gap:12px;height:${FIELD_H}px;white-space:nowrap}
 .drow .ic{color:var(--text-2);width:18px;height:18px}
@@ -94,15 +94,16 @@ const CSS = `
 .pbar i{display:block;height:100%;background:var(--accent);border-radius:inherit}
 .bar{position:absolute;left:${SIDE}px;right:${SIDE}px;direction:ltr}
 .tm{position:absolute;left:${SIDE}px;right:${SIDE}px;display:flex;justify-content:space-between;direction:ltr;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
-.cb{position:absolute;border-radius:50%;box-shadow:inset 0 0 0 1px var(--line);display:grid;place-items:center;color:var(--text-2)}
+.cb{position:absolute;border-radius:50%;background:transparent;box-shadow:inset 0 0 0 1px var(--line);display:grid;place-items:center;color:var(--text-2)}
 .cb .ic{width:18px;height:18px}
 .cb.hot{background:var(--hover)}
-.cb.pl{background:var(--accent);box-shadow:none;color:var(--on)}
+.cb.pl{background:var(--accent);box-shadow:none;color:var(--on-accent)}
 .cb.pl.hot{filter:brightness(1.08)}
 .cb.pl .ic{width:22px;height:22px}
 .cb.off{opacity:.35}
-.dbtn{display:flex;align-items:center;justify-content:center;background:var(--raised);color:var(--text);border-radius:10px;font-weight:500;text-align:center;white-space:nowrap}
-.dbtn.hot{background:var(--raised-2)}
+.dbtn{display:flex;align-items:center;justify-content:center;background:transparent;box-shadow:inset 0 0 0 1px var(--line);color:var(--text);border-radius:10px;font-weight:500;text-align:center;white-space:nowrap}
+.dbtn.tertiary{box-shadow:none;color:var(--text-2)}
+.dbtn.hot{background:var(--hover);color:var(--text)}
 .dbtn.off{opacity:.45}
 .wide{position:absolute;left:${SIDE}px;right:${SIDE}px;height:${OPEN_H}px}
 .krow{display:flex;align-items:center;gap:${KROW_GAP}px;height:${KROW_H}px;font-size:14px}
@@ -158,31 +159,32 @@ const athkarCard = (m: PaneModel, hover: PaneAct | null): string => {
     ? `${icon('horizon')}<div class="pbar"><i style="width:${Math.round(k.progress * 1000) / 10}%"></i></div>`
     : `${icon('horizon')}<span class="none">Athkar are off: /athkar on</span>`
   return `<section class="dcard" style="top:${r.athkarY}px;height:${r.athkarH}px">${head(false)}`
-    + `<div class="in krow" style="top:${KROW_TOP}px">${row}${k.isAvailable && !k.isDone ? `<span class="dbtn finish${hover === 'athkar-finish' ? ' hot' : ''}" role="button">✓ أتممتُها</span>` : ''}<span class="dbtn${hover === 'athkar-open' ? ' hot' : ''}${k.isAvailable ? '' : ' off'}" role="button">Open</span></div></section>`
+    + `<div class="in krow" style="top:${KROW_TOP}px">${row}${k.isAvailable && !k.isDone ? `<span class="dbtn finish${hover === 'athkar-finish' ? ' hot' : ''}" role="button">✓ أتممتُها</span>` : ''}<span class="dbtn tertiary${hover === 'athkar-open' ? ' hot' : ''}${k.isAvailable ? '' : ' off'}" role="button">Open</span></div></section>`
 }
 
 
 // Only tab labels stay at 11px: at 240px, «الأذكار» needs 28.572px at 12px,
 // but a 31.6px tab has 27.6px after its horizontal padding.
 const SETTINGS_CSS = `
-.settings-tabs{position:absolute;left:${TAB_INSET}px;right:${TAB_INSET}px;top:${SETTINGS_TOP}px;height:${TABS_H}px;border:1px solid var(--line);border-radius:15px;padding:4px;background:var(--raised);overflow:hidden}
-.setting-tab{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:4px 2px;min-width:0;border-radius:11px;color:var(--muted)}
+.settings-tabs{position:absolute;left:${TAB_INSET}px;right:${TAB_INSET}px;top:${SETTINGS_TOP}px;height:${TABS_H}px;border:1px solid transparent;border-bottom-color:var(--line);padding:4px;background:transparent;overflow:visible}
+.setting-tab{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:4px 2px;min-width:0;border-radius:8px 8px 0 0;background:transparent;color:var(--muted)}
 .setting-tab .ic{width:20px;height:20px}.setting-tab span{font-size:11px;line-height:14px;text-align:center;white-space:nowrap;overflow:visible;height:14px}
-.setting-tab.hot{background:var(--raised-2)}.setting-tab[aria-selected=true]{background:var(--card);color:var(--accent);box-shadow:0 0 0 1px var(--line)}
+.setting-tab.hot{background:var(--hover);color:var(--text)}.setting-tab[aria-selected=true]{color:var(--text);font-weight:700}
+.setting-tab[aria-selected=true]::after{content:'';position:absolute;left:10px;right:10px;bottom:-${TAB_PAD}px;height:2px;border-radius:2px;background:var(--text)}
 .settings-body{position:absolute;left:0;right:0}
 .setting-label{position:absolute;right:16px;max-width:calc(100% - 32px);height:${LABEL_H}px;display:flex;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
 .setting-label span{line-height:1;transform:translateY(.12em)}
 .setting-hint{position:absolute;left:16px;right:16px;text-align:right;direction:rtl;line-height:${HINT_H}px;font-size:12px;color:var(--muted)}
 .setting-extra{position:absolute;right:16px;max-width:calc(100% - 142px);font-size:12px;line-height:14px;color:var(--muted)}
 .sc{position:absolute;display:flex;align-items:center;justify-content:center;gap:4px;border-radius:7px;font-size:14px;color:var(--text-2);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.sc.pill,.sc.value{background:var(--raised);padding:3px 6px}.sc.pill.on{color:var(--accent);box-shadow:inset 0 0 0 1px var(--line)}
-.sc.hot{background:var(--raised-2)}.sc.disabled{opacity:.38}.sc.step{border:1px solid var(--line);direction:ltr;border-radius:4px}.sc.step.output{opacity:1;color:var(--text);font-size:14px}.sc.step:not(.output){font-size:20px;line-height:1}
+.sc.pill,.sc.value{background:transparent;box-shadow:inset 0 0 0 1px var(--line);padding:3px 6px}
+.sc.hot{background:var(--hover);color:var(--text)}.sc.pill.on{background:var(--active);color:var(--text)}.sc.disabled{opacity:.38}.sc.step{border:1px solid var(--line);direction:ltr;border-radius:4px}.sc.step.output{opacity:1;color:var(--text);font-size:14px}.sc.step:not(.output){font-size:20px;line-height:1}
 .sc.pill .value-text,.sc.value .value-text{line-height:1;transform:translateY(.12em)}
-.sc.copied{color:var(--accent)}.sc.command{direction:ltr}.sc.command .value-text{transform:none}.sc .value-text{min-width:0;overflow:hidden;text-overflow:ellipsis}.sc .ic{width:12px;height:12px;flex:none}.sc.switch{overflow:visible}.sc .tog{margin:0}.sc.swatch{overflow:visible}.sc.swatch::before{content:'';width:16px;height:16px;border-radius:50%;background:var(--sw)}.sc.swatch.on::before{box-shadow:0 0 0 2px var(--card),0 0 0 3.5px var(--text-2)}
+.sc.copied{color:var(--text)}.sc.command{direction:ltr}.sc.command .value-text{transform:none}.sc .value-text{min-width:0;overflow:hidden;text-overflow:ellipsis}.sc .ic{width:12px;height:12px;flex:none}.sc.switch{overflow:visible}.sc .tog{margin:0}.sc.swatch{overflow:visible}.sc.swatch::before{content:'';width:16px;height:16px;border-radius:50%;background:var(--sw)}.sc.swatch.on::before{outline:1.5px solid var(--text-2);outline-offset:3px}
 .list-choice{position:absolute;left:16px;right:16px;padding:6px 10px;border-radius:8px;height:${LIST_CHOICE_H}px;font-size:14px;display:flex;align-items:center;justify-content:space-between;gap:6px}
-.list-choice small{display:block;margin-top:4px;font-size:12px;color:var(--muted);line-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.list-choice>span{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.list-choice.on{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}.list-choice.hot{background:var(--raised-2)}
+.list-choice small{display:block;margin-top:4px;font-size:12px;color:var(--muted);line-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.list-choice>span{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.list-choice.hot{background:var(--hover)}.list-choice.on{color:var(--text);background:var(--active)}
 .settings-subtitle{position:absolute;right:16px;top:4px;font-size:14px}.settings-page{position:absolute;top:476px;left:94px;right:94px;text-align:center;font-size:12px;color:var(--muted)}
-.command-sheet{position:absolute;left:16px;right:16px;top:46px;font-size:12px;color:var(--muted)}.command-sheet p{direction:rtl;text-align:right;line-height:18px;height:126px;margin-bottom:16px}.command-sheet code{display:block;direction:ltr;text-align:left;font:12px/18px monospace;padding:12px;background:var(--raised);border-radius:9px;overflow-wrap:anywhere}
+.command-sheet{position:absolute;left:16px;right:16px;top:46px;font-size:12px;color:var(--muted)}.command-sheet p{direction:rtl;text-align:right;line-height:18px;height:126px;margin-bottom:16px}.command-sheet code{display:block;direction:ltr;text-align:left;font:12px/18px monospace;padding:12px;background:transparent;box-shadow:inset 0 0 0 1px var(--line);border-radius:9px;overflow-wrap:anywhere}
 
 `
 const settingControl = (t: SettingsTarget, hover: PaneAct | null): string => {

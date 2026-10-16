@@ -123,21 +123,49 @@ test('light and dark use their own consistent token sets and every element reads
   const css = paletteCss('.dp', 'orange')
   const dark = css.slice(0, css.indexOf('@media'))
   const light = css.slice(css.indexOf('@media'), css.indexOf('.dp.theme-light'))
-  // Dark: light text, dark hairlines. Light: dark text, soft hairlines, light raised buttons.
-  for (const token of ['--text:#ecebe6', '--muted:#8f8c83', '--line:#3a3834', '--raised:#2a2926']) expect(dark).toContain(token)
-  for (const token of ['--text:#1f1e1b', '--muted:#77746a', '--line:#d9d6cc', '--raised:#ecebe4']) expect(light).toContain(token)
-  expect(paneSvg(paneModel(feeds, NOW, 360, 'orange', 'light'))).toContain('.dp.theme-light{--card:#fffdf8;--line:#d9d6cc')
-  expect(paneSvg(paneModel(feeds, NOW, 360, 'orange', 'dark'))).toContain('.dp.theme-dark{--card:#232220;--line:#3a3834')
+  // Boundaries and interaction overlays use the mode's text RGB, with alpha.
+  for (const token of ['--text:#eeede8', '--text-2:#c6c3bb', '--muted:#a6a299', '--dim:#969289', '--line:rgba(238,237,232,.13)', '--line-soft:rgba(238,237,232,.07)', '--hover:rgba(238,237,232,.04)', '--active:rgba(238,237,232,.07)']) expect(dark).toContain(token)
+  for (const token of ['--text:#292824', '--text-2:#514e47', '--muted:#736f66', '--dim:#817c72', '--line:rgba(41,40,36,.14)', '--line-soft:rgba(41,40,36,.07)', '--hover:rgba(41,40,36,.04)', '--active:rgba(41,40,36,.07)']) expect(light).toContain(token)
+  expect(svg).toContain('.dp.theme-light{--line:rgba(41,40,36,.14)')
+  expect(svg).toContain('.dp.theme-dark{--line:rgba(238,237,232,.13)')
   // No pane theme is forced when none is given: the app's color scheme decides, as in the Quran pane.
   expect(svg).toContain('class="dp"')
   // Elements take colors only from tokens: titles (.dh, text), big time (.nx-t), rows (.drow), borders, buttons (.dbtn).
   const rules = svg.slice(svg.indexOf('*{box-sizing'), svg.indexOf('</style>'))
   expect(rules).not.toMatch(/#[0-9a-fA-F]{3,6}\b/)
+  expect(rules).not.toMatch(/rgba?\(|color-mix\(/)
   expect(rules).toMatch(/\.dp\{[^}]*color:var\(--text\)/)
   expect(rules).toMatch(/\.dcard\{[^}]*inset 0 0 0 1px var\(--line\)/)
-  expect(rules).toMatch(/\.dbtn\{[^}]*background:var\(--raised\);color:var\(--text\)/)
+  expect(rules).toMatch(/\.dbtn\{[^}]*background:transparent;box-shadow:inset 0 0 0 1px var\(--line\);color:var\(--text\);border-radius:10px/)
   expect(rules).toMatch(/\.pbar\{[^}]*background:var\(--line\)/)
 })
+
+for (const theme of ['light', 'dark'] as const) {
+  for (const width of [240, 360]) {
+    test(`${theme} at ${width}px uses transparent buttons, tabs and copy chip with neutral selection`, () => {
+      const model = paneModel(feeds, NOW, width, 'orange', theme)
+      model.settings = { ...model.settings, state: { ...CLOSED_SETTINGS, open: true } }
+      const svg = paneSvg(model, 'settings:terminal')
+      expect(svg).not.toContain('--raised')
+      expect(svg).not.toContain('--card')
+      expect(svg).toContain('class="dbtn tertiary" role="button">Open')
+      expect(svg).toContain('.dbtn.tertiary{box-shadow:none;color:var(--text-2)}')
+      expect(svg).toContain('.dbtn.hot{background:var(--hover);color:var(--text)}')
+      expect(svg).toMatch(/\.sc\.pill,\.sc\.value\{background:transparent;box-shadow:inset 0 0 0 1px var\(--line\)/)
+      expect(svg).toContain('class="sc value command hot"')
+      expect(svg).toContain('<span class="value-text">/muslim terminal-arabic</span>')
+      expect(svg).toMatch(/\.settings-tabs\{[^}]*border:1px solid transparent;border-bottom-color:var\(--line\);[^}]*background:transparent;overflow:visible/)
+      expect(svg).toMatch(/\.setting-tab\{[^}]*background:transparent;color:var\(--muted\)/)
+      expect(svg).toContain('.setting-tab[aria-selected=true]{color:var(--text);font-weight:700}')
+      expect(svg).toMatch(/\.setting-tab\[aria-selected=true\]::after\{[^}]*height:2px;[^}]*background:var\(--text\)/)
+      expect(svg.match(/role="tab" aria-selected="true"/g)).toHaveLength(1)
+      expect(svg).toContain('.pr.next{background:var(--hover);color:var(--accent)')
+      expect(svg).toContain('.sc.pill.on{background:var(--active);color:var(--text)')
+      expect(svg).toContain('.list-choice.on{color:var(--text);background:var(--active)')
+      expect(svg).toContain('.sc.copied{color:var(--text)}')
+    })
+  }
+}
 
 for (const folded of [false, true]) {
   test(`daily card headers use their settings tab fragments when ${folded ? 'folded' : 'open'}`, () => {

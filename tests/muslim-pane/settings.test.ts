@@ -269,7 +269,7 @@ test('copy buttons confirm with «تم النسخ ✓» (no glyph) while their c
   expect(paneSvg(model)).not.toContain('تم النسخ')
   model.settings=done
   const svg=paneSvg(model), cell=svg.match(/<div class="sc value[^"]* copied[^>]*>.*?<\/div>/s)![0]
-  expect(cell).toContain('تم النسخ ✓');expect(cell).not.toContain('<svg');expect(svg).toContain('.sc.copied{color:var(--accent)}')
+  expect(cell).toContain('تم النسخ ✓');expect(cell).not.toContain('<svg');expect(svg).toContain('.sc.copied{color:var(--text)}')
   // The city page's button confirms the same way.
   const city=make('prayer','city')
   expect(settingsBody(360,city).targets.find(t=>t.act==='settings:copy')!.control.label).toBe('نسخ الأمر')
