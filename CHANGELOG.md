@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Athkar after salah: the order now follows Sheikh Ibn Baz's fatwa (https://binbaz.org.sa/fatwas/9879): istighfar, salam, 67, 68, the ten tahlils after Fajr and Maghrib, tasbih and tahlil, Ayat al-Kursi, then the three Quls, then Fajr's du'a. Text and counts are unchanged.
+
 - Add Hisn al-Muslim 96, «أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ» 100 times, to the morning athkar only (the book says 100 times during the day), after 95 and before 97.
 
 - `/athkar help`: morning, evening and after-salah share one row, `/athkar morning` · `evening` · `after-salah`, each with what it opens.

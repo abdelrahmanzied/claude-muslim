@@ -25,6 +25,11 @@ test('general, Dhuhr, Fajr and Maghrib use the authored items and counts', () =>
   expect(listFor('afterSalah')).toEqual(general)
 })
 
+test('the order follows the Ibn Baz fatwa', () => {
+  expect(afterSalah('fajr').map(t => t.id)).toEqual(['66-istighfar', '66-salam', '67', '68', '72', '69-tasbih', '69-tahlil', '71', '70-ikhlas', '70-falaq', '70-nas', '73'])
+  expect(afterSalah('dhuhr').map(t => t.id)).toEqual(['66-istighfar', '66-salam', '67', '68', '69-tasbih', '69-tahlil', '71', '70-ikhlas', '70-falaq', '70-nas'])
+})
+
 test('old stored days load an empty third slot, valid slots survive, malformed metadata and new days reset', () => {
   const old = { day: '2026-10-10', morning: { ...emptyReading(), index: 2 }, evening: emptyReading() }
   expect(readDay(old, old.day).afterSalah).toEqual(emptyAfterSalah())
@@ -64,7 +69,7 @@ test('the offer starts after the shared card duration, stays without expiry, and
 
 test('the shared count, advance, progress, undo, last-item completion and reset hint use the prayer list', () => {
   const day = syncAfterSalah(fresh(), { pray: 'fajr', at: NOW })
-  const reading = { ...day.afterSalah, index: 6 }
+  const reading = { ...day.afterSalah, index: 8 }
   expect(currentOf('afterSalah', reading).times).toBe(3)
   const before = { ...reading, counts: { '70-ikhlas': 2 } }
   const after = step('afterSalah', before, { act: 'count' })

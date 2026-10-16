@@ -4,7 +4,7 @@ A reader above the prompt for the morning athkar (Fajr to Maghrib) and the eveni
 
 ## Athkar after salah
 
-The third set, **Athkar after salah** (أَذْكَارُ بَعْدَ الصَّلَاةِ), is said after the salam of an obligatory prayer. Its authored data is in `src/features/athkar/after-salah.ts`, from Hisn al-Muslim chapter 25, [hisn:66–73](https://sunnah.com/hisn:66) (through [hisn:73](https://sunnah.com/hisn:73)). Arabic wording is kept exactly as authored.
+The third set, **Athkar after salah** (أَذْكَارُ بَعْدَ الصَّلَاةِ), is said after the salam of an obligatory prayer. Its authored data is in `src/features/athkar/after-salah.ts`, from Hisn al-Muslim chapter 25, [hisn:66–73](https://sunnah.com/hisn:66) (through [hisn:73](https://sunnah.com/hisn:73)). The order follows Sheikh Ibn Baz's fatwa ([binbaz.org.sa/fatwas/9879](https://binbaz.org.sa/fatwas/9879)): `66-istighfar`, `66-salam`, `67`, `68`, `72` (Fajr and Maghrib), `69-tasbih`, `69-tahlil`, `71`, the three Quls (`70-*`), `73` (Fajr). Arabic wording is kept exactly as authored.
 
 - `/athkar after-salah` opens the same reader anytime, unhides it and holds the manual choice until ×, another set choice, the next prayer or reload. `/athkar after-salah reset` starts it again at the cover. A finished set replies with its shared reset hint.
 - Salah alone publishes `salahLast`: today's last obligatory prayer and its timestamp in the configured place, excluding sunrise and yesterday's Isha. With no place or before today's Fajr, it is null. A saved place keeps tracking even with `/salah show off`, so hiding the footer does not disable the automatic after-salah offer. Athkar only reads the atom; there are no imports between features.

@@ -1,6 +1,8 @@
-// The athkar said after the salam of each obligatory prayer, transcribed from
-// Hisn al-Muslim, chapter 25 (https://sunnah.com/hisn:66 to hisn:73). Authored
-// text with tashkeel: display may strip the marks, never change the words.
+// The athkar said after the salam of each obligatory prayer. The text is
+// transcribed from Hisn al-Muslim, chapter 25 (https://sunnah.com/hisn:66 to
+// hisn:73); the order follows Sheikh Ibn Baz's fatwa
+// (https://binbaz.org.sa/fatwas/9879). Authored text with tashkeel: display may
+// strip the marks, never change the words.
 
 import type { Fard } from '../../shared/pray/names.ts'
 export type { Fard } from '../../shared/pray/names.ts'
@@ -35,13 +37,13 @@ export const AFTER_SALAH: readonly AfterSalahThikr[] = [
   { id: "66-salam", times: 1, text: "اللَّهُمَّ أَنْتَ السَّلَامُ، وَمِنْكَ السَّلَامُ، تَبَارَكْتَ يَا ذَا الْجَلَالِ وَالْإِكْرَامِ" },
   { id: "67", times: 1, text: "لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ، اللَّهُمَّ لَا مَانِعَ لِمَا أَعْطَيْتَ، وَلَا مُعْطِيَ لِمَا مَنَعْتَ، وَلَا يَنْفَعُ ذَا الْجَدِّ مِنْكَ الْجَدُّ" },
   { id: "68", times: 1, text: "لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ، لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ، لَا إِلَهَ إِلَّا اللَّهُ، وَلَا نَعْبُدُ إِلَّا إِيَّاهُ، لَهُ النِّعْمَةُ وَلَهُ الْفَضْلُ وَلَهُ الثَّنَاءُ الْحَسَنُ، لَا إِلَهَ إِلَّا اللَّهُ مُخْلِصِينَ لَهُ الدِّينَ وَلَوْ كَرِهَ الْكَافِرُونَ" },
+  { id: "72", times: 10, only: ['fajr', 'maghrib'], text: "لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، يُحْيِي وَيُمِيتُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ" },
   { id: "69-tasbih", times: 33, text: "سُبْحَانَ اللَّهِ، وَالْحَمْدُ لِلَّهِ، وَاللَّهُ أَكْبَرُ" },
   { id: "69-tahlil", times: 1, text: "لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ" },
+  { id: "71", times: 1, ...same("75") },
   { id: "70-ikhlas", times: 1, timesAfter: QULS_THRICE, ...same("76-ikhlas") },
   { id: "70-falaq", times: 1, timesAfter: QULS_THRICE, ...same("76-falaq") },
   { id: "70-nas", times: 1, timesAfter: QULS_THRICE, ...same("76-nas") },
-  { id: "71", times: 1, ...same("75") },
-  { id: "72", times: 10, only: ['fajr', 'maghrib'], text: "لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، يُحْيِي وَيُمِيتُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ" },
   { id: "73", times: 1, only: ['fajr'], text: "اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا، وَرِزْقًا طَيِّبًا، وَعَمَلًا مُتَقَبَّلًا" },
 ]
 

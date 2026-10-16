@@ -18,7 +18,7 @@ const fixture = (on: On, surface: 'desktop' | 'terminal') => {
   const clock = mock.clock(on, { now: NOW })
   mock.env(on, {})
   const day = emptyDay(dayOf(new Date(NOW)))
-  day.afterSalah = { ...day.afterSalah, pray: 'maghrib', at: NOW - 3600_000, index: 6, counts: { '70-ikhlas': 2 }, isHidden: true }
+  day.afterSalah = { ...day.afterSalah, pray: 'maghrib', at: NOW - 3600_000, index: 8, counts: { '70-ikhlas': 2 }, isHidden: true }
   const saved = JSON.stringify(day)
   const writes: string[] = []
   on('session.surface', async () => ({ value: surface }))

@@ -59,7 +59,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
     expect(saved.afterSalah.pray).toBe(null)
     // Finish using the shared path on its last item.
     const list = listFor('afterSalah')
-    kept.day = { ...saved, afterSalah: { ...saved.afterSalah, index: list.length - 1, counts: { '71': 1 } } }
+    kept.day = { ...saved, afterSalah: { ...saved.afterSalah, index: list.length - 1, counts: { [list[list.length - 1]!.id]: 1 } } }
     await ui.post({ act: 'key', key: 'left' })
     expect((await $.command.run(run('after-salah'))).text).toContain(resetHint('afterSalah'))
     expect((await $.command.run(run('after-salah reset'))).text).toBe('Athkar after salah start again from the first')

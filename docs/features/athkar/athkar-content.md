@@ -279,7 +279,7 @@ Hisn al-Muslim chapter 27 (`src/features/athkar/data.ts`, `ATHKAR`). 25 items.
 
 ## أذكار بعد الصلاة — Athkar after salah
 
-Hisn al-Muslim chapter 25 (`src/features/athkar/after-salah.ts`, `AFTER_SALAH`). 12 items. Ayat al-Kursi and the three Quls reuse the text of the morning and evening athkar above.
+Hisn al-Muslim chapter 25 (`src/features/athkar/after-salah.ts`, `AFTER_SALAH`). 12 items. The order follows Sheikh Ibn Baz's fatwa, [binbaz.org.sa/fatwas/9879](https://binbaz.org.sa/fatwas/9879); the text stays from Hisn al-Muslim chapter 25. Ayat al-Kursi and the three Quls reuse the text of the morning and evening athkar above.
 
 ### 1. 66-istighfar
 
@@ -313,7 +313,15 @@ Hisn al-Muslim chapter 25 (`src/features/athkar/after-salah.ts`, `AFTER_SALAH`).
 
 > لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ، لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ، لَا إِلَهَ إِلَّا اللَّهُ، وَلَا نَعْبُدُ إِلَّا إِيَّاهُ، لَهُ النِّعْمَةُ وَلَهُ الْفَضْلُ وَلَهُ الثَّنَاءُ الْحَسَنُ، لَا إِلَهَ إِلَّا اللَّهُ مُخْلِصِينَ لَهُ الدِّينَ وَلَوْ كَرِهَ الْكَافِرُونَ
 
-### 5. 69-tasbih
+### 5. 72
+
+- Count: 10 times, only after Fajr and Maghrib
+- Hisn al-Muslim: [Hisn al-Muslim 72](https://sunnah.com/hisn:72)
+- Reference: At-Tirmidhi 5/515, Ahmad 4/227; Zad al-Ma'ad 1/300
+
+> لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، يُحْيِي وَيُمِيتُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ
+
+### 6. 69-tasbih
 
 - Count: 33 times after every prayer
 - Hisn al-Muslim: [Hisn al-Muslim 69](https://sunnah.com/hisn:69)
@@ -321,7 +329,7 @@ Hisn al-Muslim chapter 25 (`src/features/athkar/after-salah.ts`, `AFTER_SALAH`).
 
 > سُبْحَانَ اللَّهِ، وَالْحَمْدُ لِلَّهِ، وَاللَّهُ أَكْبَرُ
 
-### 6. 69-tahlil
+### 7. 69-tahlil
 
 - Count: once after every prayer
 - Hisn al-Muslim: [Hisn al-Muslim 69](https://sunnah.com/hisn:69)
@@ -329,7 +337,16 @@ Hisn al-Muslim chapter 25 (`src/features/athkar/after-salah.ts`, `AFTER_SALAH`).
 
 > لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ
 
-### 7. 70-ikhlas
+### 8. 71
+
+- Count: once after every prayer
+- Hisn al-Muslim: [Hisn al-Muslim 71](https://sunnah.com/hisn:71)
+- Reference: An-Nasa'i, 'Amalul-Yawm wal-Laylah no. 100; Ibn As-Sunni no. 121; Al-Albani, Sahihul-Jami' 5/339, As-Sahihah 2/697 (no. 972)
+- Quran: آية الكرسي · البقرة ٢٥٥
+
+> اللَّهُ لَا إِلَهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ لَهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ مَنْ ذَا الَّذِي يَشْفَعُ عِنْدَهُ إِلَّا بِإِذْنِهِ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ وَلَا يُحِيطُونَ بِشَيْءٍ مِنْ عِلْمِهِ إِلَّا بِمَا شَاءَ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ وَلَا يَؤُودُهُ حِفْظُهُمَا وَهُوَ الْعَلِيُّ الْعَظِيمُ (٢٥٥)
+
+### 9. 70-ikhlas
 
 - Count: once after Dhuhr, Asr, Isha; 3 times after Fajr, 3 times after Maghrib
 - Hisn al-Muslim: [Hisn al-Muslim 70](https://sunnah.com/hisn:70)
@@ -339,7 +356,7 @@ Hisn al-Muslim chapter 25 (`src/features/athkar/after-salah.ts`, `AFTER_SALAH`).
 > بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ  
 > قُلْ هُوَ اللَّهُ أَحَدٌ (١) اللَّهُ الصَّمَدُ (٢) لَمْ يَلِدْ وَلَمْ يُولَدْ (٣) وَلَمْ يَكُنْ لَهُ كُفُوًا أَحَدٌ (٤)
 
-### 8. 70-falaq
+### 10. 70-falaq
 
 - Count: once after Dhuhr, Asr, Isha; 3 times after Fajr, 3 times after Maghrib
 - Hisn al-Muslim: [Hisn al-Muslim 70](https://sunnah.com/hisn:70)
@@ -349,7 +366,7 @@ Hisn al-Muslim chapter 25 (`src/features/athkar/after-salah.ts`, `AFTER_SALAH`).
 > بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ  
 > قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ (١) مِنْ شَرِّ مَا خَلَقَ (٢) وَمِنْ شَرِّ غَاسِقٍ إِذَا وَقَبَ (٣) وَمِنْ شَرِّ النَّفَّاثَاتِ فِي الْعُقَدِ (٤) وَمِنْ شَرِّ حَاسِدٍ إِذَا حَسَدَ (٥)
 
-### 9. 70-nas
+### 11. 70-nas
 
 - Count: once after Dhuhr, Asr, Isha; 3 times after Fajr, 3 times after Maghrib
 - Hisn al-Muslim: [Hisn al-Muslim 70](https://sunnah.com/hisn:70)
@@ -358,23 +375,6 @@ Hisn al-Muslim chapter 25 (`src/features/athkar/after-salah.ts`, `AFTER_SALAH`).
 
 > بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ  
 > قُلْ أَعُوذُ بِرَبِّ النَّاسِ (١) مَلِكِ النَّاسِ (٢) إِلَهِ النَّاسِ (٣) مِنْ شَرِّ الْوَسْوَاسِ الْخَنَّاسِ (٤) الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ (٥) مِنَ الْجِنَّةِ وَالنَّاسِ (٦)
-
-### 10. 71
-
-- Count: once after every prayer
-- Hisn al-Muslim: [Hisn al-Muslim 71](https://sunnah.com/hisn:71)
-- Reference: An-Nasa'i, 'Amalul-Yawm wal-Laylah no. 100; Ibn As-Sunni no. 121; Al-Albani, Sahihul-Jami' 5/339, As-Sahihah 2/697 (no. 972)
-- Quran: آية الكرسي · البقرة ٢٥٥
-
-> اللَّهُ لَا إِلَهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ لَهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ مَنْ ذَا الَّذِي يَشْفَعُ عِنْدَهُ إِلَّا بِإِذْنِهِ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ وَلَا يُحِيطُونَ بِشَيْءٍ مِنْ عِلْمِهِ إِلَّا بِمَا شَاءَ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ وَلَا يَؤُودُهُ حِفْظُهُمَا وَهُوَ الْعَلِيُّ الْعَظِيمُ (٢٥٥)
-
-### 11. 72
-
-- Count: 10 times, only after Fajr and Maghrib
-- Hisn al-Muslim: [Hisn al-Muslim 72](https://sunnah.com/hisn:72)
-- Reference: At-Tirmidhi 5/515, Ahmad 4/227; Zad al-Ma'ad 1/300
-
-> لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، يُحْيِي وَيُمِيتُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ
 
 ### 12. 73
 
