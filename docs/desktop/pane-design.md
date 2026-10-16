@@ -5,7 +5,7 @@ The design principles for every drawn desktop pane in this mod (today the Muslim
 ## 1. What the Desktop owns, and what we own
 
 - **The frame is the Desktop's.** `$.ui.open` takes `id`, `title`, `focus`, `closeOnEscape` and `holdToasts`, nothing else: no width, height, padding or position. The Desktop adds its own space above the picture and sets the pane's width. We own only the picture inside.
-- **The first card starts at the picture's top edge**, with no heading of our own: the Desktop's tab already shows the title and adds its own space above the picture. The picture ends 12px (`PAD`) under the last card.
+- **The heading starts at the picture's top edge** (`TOP_Y = 0`), since the Desktop's own top space is already there. The picture ends 12px (`PAD`) under the last card.
 - **The footer is one shared slot.** On Desktop a plugin reaches the prompt footer only through `SessionMode`: one slot for every plugin, placed and sized by the Desktop, with no size or position prop. Each plugin adds its items next to what `next(e)` returns, so they share one width and long items are cut with `…`. Keep ours to one short plain Button, `☾ Muslim`. Only text and Buttons (string or emoji labels) draw there; Svg and custom fonts do not.
 
 ## 2. A fixed picture
@@ -18,7 +18,7 @@ The design principles for every drawn desktop pane in this mod (today the Muslim
 
 - **Transparent**, like the Quran pane: no panel fill. It follows the app's light or dark scheme, and every color is a token (`--text`, `--muted`, `--line`, `--raised`, `--accent`); the accent is the plugin-wide main color from `src/shared/color/`.
 - **Tajawal** throughout, embedded from `src/shared/font/`.
-- **Type scale:** 20px the big fact (next prayer), 16px card titles, 14px body and buttons, 12px meta and descriptions. Settings tab labels are 11px so the tabs fit at 240px.
+- **Type scale:** 24px the plugin name «مسلم», 20px the big fact (next prayer), 16px card titles, 14px body and buttons, 12px meta and descriptions. Settings tab labels are 11px so the tabs fit at 240px.
 - **Tajawal sits high.** Text beside an icon or a switch gets `line-height:1; transform:translateY(.12em)` so icon, text and control share one center line. Check every icon + text row for this.
 - **Icons:** each feature has one standard icon (DESIGN.md §3 Icons, `src/shared/icon/`), 20px in the main color on its card header and 20px on its settings tab. Small row icons (bell, check ring) stay free.
 

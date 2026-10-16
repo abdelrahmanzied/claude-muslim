@@ -26,7 +26,7 @@ On Desktop the footer's SessionMode row gets one plain Button, `☾ Muslim`, own
 
 ## Layout
 
-No heading row: the Desktop's tab already reads «☾ Muslim» and adds its own space above the picture, so the avatar, «مسلم» and `/muslim` row was removed and the first card starts at the picture's top edge (`CARDS_TOP` 0). Three daily cards and one settings card stack in one right-to-left column, with 12px outside margin (`PAD` in `layout.ts`) and 12px between cards, 19px corner radius, 1px line border, 16px side padding, 28px header. Every height is a constant (the pane is CARDS_TOP + prayer + GAP + Quran + GAP + athkar + GAP + settings + PAD tall, see `layout.ts`), so the hooks module hit-tests clicks against the same numbers the Client draws with, whatever the data.
+A heading row, then three daily cards and one settings card stacked in one right-to-left column. The heading (`TOP_Y` 0, `TOP_H` 36px; the full avatar fills its height. The Desktop adds its own space above the picture and the API has no setting for it, so the heading starts at the picture's top edge; the 12px bottom margin is tuned against that space live): the full Muslim avatar, 36px tall and approximately 38.4px wide (`avatar.ts`, the base sprite with nothing in its hands, pixelated, no background) and «مسلم» at 24px bold with a 10px gap at the right edge, 20px in; the LTR `/muslim` label at 12px dim at the left edge, 20px in, never hidden. Both «مسلم» and `/muslim` are vertically centered on the avatar row. It has no hit target. The cards start at `CARDS_TOP` (44px), 12px outside margin (`PAD` in `layout.ts`) and 12px between cards, 19px corner radius, 1px line border, 16px side padding, 28px header. Every height is a constant (the pane is CARDS_TOP + prayer + GAP + Quran + GAP + athkar + GAP + settings + PAD tall, see `layout.ts`), so the hooks module hit-tests clicks against the same numbers the Client draws with, whatever the data.
 
 Scrolling moves the host's body window over this fixed picture only when there is actual overflow. A person-origin Desktop `ui.scroll` whose clamped offset equals the last rendered offset is consumed without drawing, including wheel/trackpad input over the passive reciter and surah labels and ticks at either edge. `UiScrollInput` has no surface field, so the hook remembers the pane's surface and offset from `ui.render`; it does not infer them from the session. Plugin-origin requests and the terminal text body pass through. The Client has no size polling: `ClientSurface` already calls it on resize, and polling a flickering measured row count only caused redundant `setState` picture swaps for size messages nobody used. Fixed SVG/card heights and the existing pointer mapping stay the same.
 
@@ -38,6 +38,7 @@ Scrolling moves the host's body window over this fixed picture only when there i
 
 | Size | Role |
 | --- | --- |
+| 24px | Plugin heading «مسلم», the largest text in the pane |
 | 20px | Next prayer name and time; stepper glyphs |
 | 16px | All daily and settings card titles |
 | 14px | Body rows, Athan, buttons, settings labels and values |

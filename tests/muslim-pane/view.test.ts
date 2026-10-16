@@ -191,10 +191,13 @@ test('settings uses the approved gear and exact four tab labels',()=>{
   expect(svg).not.toContain('setting-category')
 })
 
-test('the pane has no heading: no avatar, no «مسلم», no /muslim label; the first card is at the top', () => {
+test('the heading shows the full avatar beside مسلم and /muslim at the left edge', () => {
   const svg = paneSvg(paneModel(feeds, NOW, 240, 'orange'))
-  expect(svg).not.toContain('pane-top')
-  expect(svg).not.toContain('pane-command')
-  expect(svg).not.toContain('<span>مسلم</span>')
-  expect(svg).not.toContain('image-rendering:pixelated')
+  expect(svg).toContain('<div class="pane-top"><svg width="38.4" height="36"')
+  expect(svg).toContain('.pane-top{position:absolute;right:20px;top:0px;height:36px;display:flex;align-items:center;')
+  expect(svg).toContain('.pane-command{position:absolute;left:20px;top:9px;line-height:18px;')
+  expect(svg).toContain('image-rendering:pixelated')
+  expect(svg).toContain('<span>مسلم</span>')
+  expect(svg).toContain('<div class="pane-command" dir="ltr"><bdi dir="ltr">/muslim</bdi></div>')
+  expect(svg).toContain('<svg width="38.4" height="36" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 30" shape-rendering="crispEdges">')
 })
