@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Muslim pane: the Athan row reads «الأذان».
+
+- Muslim pane: the heading reads «مُسلِم» with tashkeel (damma on the mim, kasra on the lam).
+
 - Light mode: the Muslim pane and Quran pixel-art avatars get a soft drop shadow (`drop-shadow(0 1px 1.5px rgba(31,30,29,.35))`) so they stand out on the light card; dark mode is unchanged.
 
 - Quran pickers are the in-card dropdown again, with no wheel scrolling: the plugin never holds the pane to scroll a list, so the pane no longer shakes. The list moves by search, ↑ ↓ and the scrollbar; its one-line footer says “Use ↑ ↓ for scrolling”. The pointer and the arrows share one highlight, tinted lightly with the main color; the chosen row is tinted more strongly.
