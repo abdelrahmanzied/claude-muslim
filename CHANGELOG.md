@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `/athkar help`: morning, evening and after-salah share one row, `/athkar morning` · `evening` · `after-salah`, each with what it opens.
+
 - Rule: every typed command, subcommand and option is in its feature's help table in the same commit, and a name is the same in the command, the code and the docs.
 
 - Docs: athkar design has one table of the whole day: period, sky and after-salah offer, with prayer times and without.

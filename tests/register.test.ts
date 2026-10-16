@@ -46,8 +46,7 @@ test('/muslim help shows every feature\'s table; with a feature, only its own', 
   expect((await $.command.run(muslim('help quran'))).text).toContain('| `/quran play` |')
   expect(all).toContain('/quran reciter')
   expect((await $.command.run(muslim('help unknown'))).text).toContain('Features: thikr, athkar, salah, quran, color, tashkeel, terminal-arabic')
-  expect(all).toContain('| `/athkar after-salah` | Open Athkar after salah; offered automatically after the athan card duration when prayer times are set; the desktop athan button starts it immediately | `reset`: read it again from the start |')
-  expect(all).toContain('| `/athkar morning` · `evening` | Open that period\'s reader above the prompt, even outside its hours | `reset`: read it again from the start |')
+  expect(all).toContain('| `/athkar morning` · `evening` · `after-salah` | Open that reader above the prompt. `morning` · `evening`: that period\'s athkar, even outside its hours. `after-salah`: the athkar after salah, also offered by itself after the athan card when prayer times are set; the desktop athan button opens it at once | `reset`: read it again from the start |')
   expect((await $.command.run(muslim('help athkar'))).text?.split('\n')[0]).toBe('**Muslim › Athkar › Help**')
   const quran = (await $.command.run(muslim('help quran'))).text
   expect(quran?.split('\n')[0]).toBe('**Muslim › Quran › Help**')

@@ -65,7 +65,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
     expect((await $.command.run(run('after-salah reset'))).text).toBe('Athkar after salah start again from the first')
     expect(kept.day.afterSalah).toEqual(emptyDay(day.day).afterSalah)
     expect((await $.command.run(run(''))).text).toContain('| Athkar after salah |')
-    expect((await $.command.run(run('help'))).text).toContain('offered automatically after the athan card duration')
+    expect((await $.command.run(run('help'))).text).toContain('offered by itself after the athan card')
     await ui.unmount()
   })
 
