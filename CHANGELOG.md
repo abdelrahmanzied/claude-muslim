@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- Athkar after salah: the order now follows Sheikh Ibn Baz's fatwa (https://binbaz.org.sa/fatwas/9879): istighfar, salam, 67, 68, the ten tahlils after Fajr and Maghrib, tasbih and tahlil, Ayat al-Kursi, then the three Quls, then Fajr's du'a. Text and counts are unchanged.
+- Athkar after salah: remove Hisn al-Muslim 73, «اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا…», from the Fajr list (the morning athkar keep their own copy). Fajr now has 11 items; the `/salah demo` after-salah story drops its `73` scene and ends on the last real item, so it is 10.4 s (6.0 s readings, 3.2 s finale, 1.2 s folded).
+
+- Athkar after salah: the order now follows Sheikh Ibn Baz's fatwa (https://binbaz.org.sa/fatwas/9879): istighfar, salam, 67, 68, the ten tahlils after Fajr and Maghrib, tasbih and tahlil, Ayat al-Kursi, then the three Quls. Text and counts are unchanged.
 
 - Add Hisn al-Muslim 96, «أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ» 100 times, to the morning athkar only (the book says 100 times during the day), after 95 and before 97.
 
@@ -20,7 +22,7 @@
 
 - Docs: each feature now has its own folder `docs/features/<feature>/` (`<feature>.md`, `<feature>-design.md`, and `<feature>-content.md` for the religious text it shows); `docs/content.md` is split into per-feature content files. Terminal Arabic (the shared guide and the `/muslim terminal-arabic` check) is one file, `docs/terminal/terminal-arabic.md`, since it is a platform doc and not a feature.
 
-- Extend `/salah demo` from the athan moment into a fast Fajr after-salah reading using the real reader: 7.2 s of counts, the full 3.2 s finale and 1.2 s folded done. The demo card shows its start button; start, × and expiry all continue to athkar. `/muslim demo` waits for the whole flow, with no saved-state changes.
+- Extend `/salah demo` from the athan moment into a fast Fajr after-salah reading using the real reader: 6.0 s of counts, the full 3.2 s finale and 1.2 s folded done. The demo card shows its start button; start, × and expiry all continue to athkar. `/muslim demo` waits for the whole flow, with no saved-state changes.
 
 - Add Athkar after salah to the shared reader, with prayer-specific counts, one current reading slot, manual commands and an automatic offer from prayer time plus the shared athan card duration (currently 15 minutes) when a place is saved, including with `/salah show off`. The desktop athan text action «ابدأ أذكار بعد الصلاة ←», white beside × on the left and accented on hover, closes the card and starts that prayer's reading immediately; × waits for the original deadline. The offer stays until done, hidden or the next prayer, with no expiry timer. Prayer tracking continues without the footer, countdown or athan.
 

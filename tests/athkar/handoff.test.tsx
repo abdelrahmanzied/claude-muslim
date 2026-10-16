@@ -65,7 +65,7 @@ for (const folded of [false, true]) {
     const reader = async () => (await ui.find({ type: 'Client', key: 'athkar' }))?.props.props
     expect(await reader()).toMatchObject({ period: 'afterSalah', phase: 'reading', isActive: true, count: 0 })
     expect(held.day.afterSalah).toMatchObject({ pray: 'fajr', at: TIMES.fajr })
-    expect(listFor('afterSalah', held.day.afterSalah).find(t => t.id === '73')).toBeDefined()
+    expect(listFor('afterSalah', held.day.afterSalah).find(t => t.id === '70-nas')).toBeDefined()
     await ui.key({ key: 'space', in: 'athkar' })
     expect(held.day.afterSalah.counts['66-istighfar']).toBe(1)
     // Close returns to the clock's period and the early-start signal cannot unhide it.

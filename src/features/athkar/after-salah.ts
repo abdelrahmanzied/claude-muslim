@@ -1,6 +1,6 @@
 // The athkar said after the salam of each obligatory prayer. The text is
 // transcribed from Hisn al-Muslim, chapter 25 (https://sunnah.com/hisn:66 to
-// hisn:73); the order follows Sheikh Ibn Baz's fatwa
+// hisn:72); the order follows Sheikh Ibn Baz's fatwa
 // (https://binbaz.org.sa/fatwas/9879). Authored text with tashkeel: display may
 // strip the marks, never change the words.
 
@@ -44,7 +44,6 @@ export const AFTER_SALAH: readonly AfterSalahThikr[] = [
   { id: "70-ikhlas", times: 1, timesAfter: QULS_THRICE, ...same("76-ikhlas") },
   { id: "70-falaq", times: 1, timesAfter: QULS_THRICE, ...same("76-falaq") },
   { id: "70-nas", times: 1, timesAfter: QULS_THRICE, ...same("76-nas") },
-  { id: "73", times: 1, only: ['fajr'], text: "اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا، وَرِزْقًا طَيِّبًا، وَعَمَلًا مُتَقَبَّلًا" },
 ]
 
 // The athkar after one prayer, each with its count there.

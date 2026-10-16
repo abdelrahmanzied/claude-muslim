@@ -60,4 +60,3 @@ TEXT_WIDTH['70-falaq'] = TEXT_WIDTH['76-falaq']!
 TEXT_WIDTH['70-nas'] = TEXT_WIDTH['76-nas']!
 TEXT_WIDTH['71'] = TEXT_WIDTH['75']!
 TEXT_WIDTH['72'] = { m: [552] }
-TEXT_WIDTH['73'] = { m: [335] }

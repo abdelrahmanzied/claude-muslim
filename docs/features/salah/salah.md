@@ -59,7 +59,7 @@ Prayer times for the user's city, calculated on their machine with
 ## Commands
 
 `/salah` shows a title, then two tables under their own headings: today's times (the next prayer marked, a moved prayer with its minutes), then the settings (city, method, show, athan, adjust), each with the command that changes it, and a hint to `/salah help`.
-`/salah help` is a table of every subcommand: `show always` · `<minutes>` · `off`, `athan on` · `off`, `demo` (fixed Fajr at 05:00, with no city or calculation; desktop open 5 s then folded 3 s; terminal rises 3.01 s then folded 3 s; both continue into 11.6 s of after-salah (7.2 s readings, 3.2 s finale, 1.2 s folded done); real state, settings and store are untouched), `city` (the setup question) and
+`/salah help` is a table of every subcommand: `show always` · `<minutes>` · `off`, `athan on` · `off`, `demo` (fixed Fajr at 05:00, with no city or calculation; desktop open 5 s then folded 3 s; terminal rises 3.01 s then folded 3 s; both continue into 10.4 s of after-salah (6.0 s readings, 3.2 s finale, 1.2 s folded done); real state, settings and store are untouched), `city` (the setup question) and
 `city <name or lat, lng>`, `method <auto or name>`, `adjust` and
 `adjust <prayer> <±min>` (any whole number of minutes, such as `+90` or `-120`; missing or malformed minutes are an error). An unknown word answers with the table.
 `/muslim help` shows the tables of thikr and salah; `/muslim help salah` only salah's.
@@ -73,7 +73,7 @@ Replies are short markdown: a bold title line first (`**Muslim › Salah**`, `**
 
 ## Demo
 
-`/salah demo` replies `**Salah demo:** athan · Fajr 05:00 · athkar after salah` and always previews «الفجر» at 05:00, formatted by the real `clockText` function. It does not read a city, method or calculated prayer time. Disposable module-local card and minaret values have their own redraw timers. One selector per existing render path chooses the demo while it is active; the same `athan-card.tsx` and minaret builders draw it. Desktop: open 5 seconds, folded 3 seconds; terminal: rise 3.01 seconds, folded 3 seconds. Expiry, × or the desktop start button immediately hands off to the Fajr after-salah demo in athkar's real reader. The card includes «ابدأ أذكار بعد الصلاة» even with athkar off. The continuation counts through four real-list passages for 7.2 seconds, plays the real 3.2-second finale, then holds the folded done row for 1.2 seconds (11.6 seconds total). Thus untouched desktop playback totals 19.6 seconds, terminal 17.61 seconds. Afterward any real athan returns with its state and timers untouched. Demo input cannot change the real card. The shared `/muslim demo` starts this same runner, which then reports its end only after the after-salah folded done row, through the existing transient signal and a completion callback connected in demo-only command hooks; it needs no city either.
+`/salah demo` replies `**Salah demo:** athan · Fajr 05:00 · athkar after salah` and always previews «الفجر» at 05:00, formatted by the real `clockText` function. It does not read a city, method or calculated prayer time. Disposable module-local card and minaret values have their own redraw timers. One selector per existing render path chooses the demo while it is active; the same `athan-card.tsx` and minaret builders draw it. Desktop: open 5 seconds, folded 3 seconds; terminal: rise 3.01 seconds, folded 3 seconds. Expiry, × or the desktop start button immediately hands off to the Fajr after-salah demo in athkar's real reader. The card includes «ابدأ أذكار بعد الصلاة» even with athkar off. The continuation counts through three real-list passages for 6.0 seconds, plays the real 3.2-second finale, then holds the folded done row for 1.2 seconds (10.4 seconds total). Thus untouched desktop playback totals 18.4 seconds, terminal 16.41 seconds. Afterward any real athan returns with its state and timers untouched. Demo input cannot change the real card. The shared `/muslim demo` starts this same runner, which then reports its end only after the after-salah folded done row, through the existing transient signal and a completion callback connected in demo-only command hooks; it needs no city either.
 
 ## Settings
 
@@ -133,7 +133,7 @@ Terminal checklist (each reply opens with its title, tables render):
 | `/salah show 600` | the line shows, counting down |
 | `/salah show off`, then `show always` | hides, then comes back at once |
 | `/salah show 0` · `show abc` | the accepted forms, nothing changed |
-| `/salah demo` | fixed Fajr at 05:00 without a city; desktop 5 s open + 3 s folded, terminal 3.01 s rise + 3 s folded; then after-salah 7.2 s readings + 3.2 s finale + 1.2 s folded; no real state, settings or store changes |
+| `/salah demo` | fixed Fajr at 05:00 without a city; desktop 5 s open + 3 s folded, terminal 3.01 s rise + 3 s folded; then after-salah 6.0 s readings + 3.2 s finale + 1.2 s folded; no real state, settings or store changes |
 | `/salah athan off` · `on` | `**Athan:** off` · `on` |
 | `/salah adjust` · `adjust asr +5` | the review form · `**Adjust:** Asr +5 min` |
 | `/salah method auto` | `**Method:** auto (…)` |

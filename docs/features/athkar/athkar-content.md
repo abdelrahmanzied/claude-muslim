@@ -1,6 +1,6 @@
 # Athkar content
 
-The religious text shown by the athkar feature: 25 morning and evening athkar, 12 athkar after salah, and the fixed titles, closing greeting and done rows, each with its count and source. The code is the source of truth for what is displayed; this file must stay identical to it (see the rule in CLAUDE.md). Arabic is authored with tashkeel and is never generated or reworded. Hadith references are the ones listed on sunnah.com for each Hisn al-Muslim number.
+The religious text shown by the athkar feature: 25 morning and evening athkar, 11 athkar after salah, and the fixed titles, closing greeting and done rows, each with its count and source. The code is the source of truth for what is displayed; this file must stay identical to it (see the rule in CLAUDE.md). Arabic is authored with tashkeel and is never generated or reworded. Hadith references are the ones listed on sunnah.com for each Hisn al-Muslim number.
 
 Sources in the code: `src/features/athkar/data.ts`, `src/features/athkar/after-salah.ts`, `src/features/athkar/logic.ts`.
 
@@ -279,7 +279,7 @@ Hisn al-Muslim chapter 27 (`src/features/athkar/data.ts`, `ATHKAR`). 25 items.
 
 ## أذكار بعد الصلاة — Athkar after salah
 
-Hisn al-Muslim chapter 25 (`src/features/athkar/after-salah.ts`, `AFTER_SALAH`). 12 items. The order follows Sheikh Ibn Baz's fatwa, [binbaz.org.sa/fatwas/9879](https://binbaz.org.sa/fatwas/9879); the text stays from Hisn al-Muslim chapter 25. Ayat al-Kursi and the three Quls reuse the text of the morning and evening athkar above.
+Hisn al-Muslim chapter 25 (`src/features/athkar/after-salah.ts`, `AFTER_SALAH`). 11 items. The order follows Sheikh Ibn Baz's fatwa, [binbaz.org.sa/fatwas/9879](https://binbaz.org.sa/fatwas/9879); the text stays from Hisn al-Muslim chapter 25. Ayat al-Kursi and the three Quls reuse the text of the morning and evening athkar above.
 
 ### 1. 66-istighfar
 
@@ -375,14 +375,6 @@ Hisn al-Muslim chapter 25 (`src/features/athkar/after-salah.ts`, `AFTER_SALAH`).
 
 > بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ  
 > قُلْ أَعُوذُ بِرَبِّ النَّاسِ (١) مَلِكِ النَّاسِ (٢) إِلَهِ النَّاسِ (٣) مِنْ شَرِّ الْوَسْوَاسِ الْخَنَّاسِ (٤) الَّذِي يُوَسْوِسُ فِي صُدُورِ النَّاسِ (٥) مِنَ الْجِنَّةِ وَالنَّاسِ (٦)
-
-### 12. 73
-
-- Count: once, only after Fajr
-- Hisn al-Muslim: [Hisn al-Muslim 73](https://sunnah.com/hisn:73)
-- Reference: Ibn Majah; Sahih Ibn Majah 1/152; Majma' Az-Zawa'id 10/111
-
-> اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا، وَرِزْقًا طَيِّبًا، وَعَمَلًا مُتَقَبَّلًا
 
 ## نصوص ثابتة — Fixed text
 

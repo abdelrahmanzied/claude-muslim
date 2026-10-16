@@ -19,14 +19,13 @@ test('general, Dhuhr, Fajr and Maghrib use the authored items and counts', () =>
     const list = afterSalah(pray)
     expect(list.filter(t => t.id.startsWith('70-')).map(t => t.times)).toEqual([3, 3, 3])
     expect(list.find(t => t.id === '72')?.times).toBe(10)
-    expect(list.some(t => t.id === '73')).toBe(pray === 'fajr')
     expect(list.map(t => t.text)).toEqual(AFTER_SALAH.filter(t => !t.only || t.only.includes(pray)).map(t => t.text))
   }
   expect(listFor('afterSalah')).toEqual(general)
 })
 
 test('the order follows the Ibn Baz fatwa', () => {
-  expect(afterSalah('fajr').map(t => t.id)).toEqual(['66-istighfar', '66-salam', '67', '68', '72', '69-tasbih', '69-tahlil', '71', '70-ikhlas', '70-falaq', '70-nas', '73'])
+  expect(afterSalah('fajr').map(t => t.id)).toEqual(['66-istighfar', '66-salam', '67', '68', '72', '69-tasbih', '69-tahlil', '71', '70-ikhlas', '70-falaq', '70-nas'])
   expect(afterSalah('dhuhr').map(t => t.id)).toEqual(['66-istighfar', '66-salam', '67', '68', '69-tasbih', '69-tahlil', '71', '70-ikhlas', '70-falaq', '70-nas'])
 })
 
@@ -75,9 +74,9 @@ test('the shared count, advance, progress, undo, last-item completion and reset 
   const after = step('afterSalah', before, { act: 'count' })
   expect(shouldAdvance('afterSalah', before, after)).toBe(true)
   expect(after.pray).toBe('fajr')
-  expect(overall('afterSalah', after)).toBe(1 / 12)
+  expect(overall('afterSalah', after)).toBe(1 / 11)
   expect(step('afterSalah', after, { act: 'back' }).counts['70-ikhlas']).toBe(2)
-  const done = step('afterSalah', { ...reading, index: 11, counts: { '73': 1 } }, { act: 'next' })
+  const done = step('afterSalah', { ...reading, index: 10, counts: { '70-nas': 3 } }, { act: 'next' })
   expect(done.isDone).toBe(true)
   expect(resetHint('afterSalah')).toBe('/athkar after-salah reset → to read again')
 })

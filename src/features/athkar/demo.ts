@@ -26,9 +26,8 @@ export const demoScenes = (style: Style, accent: Accent, finaleMs: number, set: 
     { kind: 'reading', id: '66-istighfar', duration: 1200, countMs: 200 },
     { kind: 'reading', id: '69-tasbih', duration: 3600, countMs: 100 },
     { kind: 'reading', id: '70-ikhlas', duration: 1200, countMs: 200 },
-    { kind: 'reading', id: '73', duration: 1200, countMs: 400 },
-    { kind: 'finale', id: '73', duration: finaleMs, countMs: 0 },
-    { kind: 'folded', id: '73', duration: 1200, countMs: 0 },
+    { kind: 'finale', id: '70-nas', duration: finaleMs, countMs: 0 },
+    { kind: 'folded', id: '70-nas', duration: 1200, countMs: 0 },
   ] : [
     { kind: 'reading', id: '75', duration: 5000, countMs: 2500 },
     { kind: 'reading', id: '83', duration: 4000, countMs: 400 },
