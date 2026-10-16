@@ -145,7 +145,7 @@ const quranCard = (m: PaneModel, hover: PaneAct | null): string => {
     + circle('quran-prev', 20, -62, 'prev', 'Previous', !ok || !q.canPrev)
     + circle('quran-toggle', 26, 0, on ? 'stop' : 'play', on ? 'Stop' : 'Play', !ok)
     + circle('quran-next', 20, 62, 'next', 'Next', !ok || !q.canNext)
-    + `<div class="wide dbtn${hover === 'quran-open' ? ' hot' : ''}" role="button" style="top:${OPEN_TOP}px">Open full player</div></section>`
+    + `<div class="wide dbtn${hover === 'quran-open' ? ' hot' : ''}" role="button" style="top:${OPEN_TOP}px">افتح المصحف</div></section>`
 }
 
 const athkarCard = (m: PaneModel, hover: PaneAct | null): string => {

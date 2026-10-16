@@ -30,7 +30,7 @@ test('the picture draws the three cards at the fixed pane height', () => {
   expect(svg).toContain('العصر')
   expect(svg).toContain('in 1h 12m')
   expect(svg).toContain('Munich')
-  expect(svg).toContain('Open full player')
+  expect(svg).toContain('افتح المصحف');expect(svg).not.toContain('Open full player')
   expect(svg).toContain('أَذْكَارُ الْمَسَاءِ')
   expect(svg.match(/class="pr done"/g)?.length).toBe(2)
   expect(svg.match(/class="pr next"/g)?.length).toBe(1)
