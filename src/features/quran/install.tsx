@@ -1,4 +1,3 @@
-import { accentText, type Accent } from '../../shared/color/index.ts'
 import type { EngineInterface, On } from 'claude-code'
 import type { Options } from '../../config.ts'
 import type { QuranPlaying } from '../../../types/index.d.ts'
@@ -7,7 +6,6 @@ import { audioUrl, CATALOG_MS, defaultReciter, filterReciters, isCatalog, matchR
 import { contentRangeTotal, decodeBase64, durationMs } from './mp3.ts'
 import { AUDIO_LIMIT_BYTES, CLIP_ERROR, SIZE_ERROR, TIMING_ERROR, cachedPlan, fileSize, lowerHeaders, makePlan, planKey, rangeHeader, readCache, timedSegments, timingRead, trimCache, sameRecording, withSegmentCut, type Checkpoint, type RecordingPlan, type Segment } from './segments.ts'
 import { SegmentScanner, SEGMENT_LEAD_MS, cbrByte, cbrCheckpoint, cbrStream, encodeBase64, seekCheckpoint } from './segment-mp3.ts'
-import { chipSize, chipText } from './footer.ts'
 import { formatTime, nextPlaybackItem, parseCommand, repeatMode, toggleRepeat, type Command } from './player.ts'
 import { isAvailable, nearestAvailable, nextAvailable, UNAVAILABLE_ERROR } from './availability.ts'
 import { quranHelp } from './help.ts'
@@ -436,16 +434,6 @@ async function open($: EngineInterface, focus = false): Promise<void> {
   if (focus && !placed.isPlaced) throw new Error(placed.reason)
   $.ui.invalidate('ui.render')
 }
-// The docked pane narrows the chat column and already shows the title and time, so the footer chip shrinks to its glyph while it is open.
-async function isPaneOpen($: EngineInterface): Promise<boolean> {
-  try { return (await $.ui.panes()).some(pane => pane.id === 'quran') } catch { return false }
-}
-async function togglePane($: EngineInterface): Promise<void> {
-  try {
-    if ((await $.ui.panes()).some(pane => pane.id === 'quran')) await $.ui.close({ id: 'quran' })
-    else { await dispatch($, { kind: 'open' }, false); $.ui.invalidate('ui.render') }
-  } catch (error) { await fail($, error) }
-}
 async function action($: EngineInterface, command: Command, fromCommand: boolean, paneOpened = false): Promise<string> {
   const generation = runtime.generation
   if (command.kind === 'help' || command.kind === 'usage') return quranHelp()
@@ -566,7 +554,7 @@ async function panelQuran($: EngineInterface): Promise<PanelQuran | null> {
     canNext: model.canNext !== false,
   }
 }
-// Connect on footer/pane draws and again in the Muslim press's own context.
+// Connect on footer/pane draws (Quran adds nothing to the footer) and again in the Muslim press's own context.
 function connectToPanel($: EngineInterface): void {
   connectQuran(() => panelQuran($))
   connectPanelAction('quran-toggle', () => togglePlayback($))
@@ -578,12 +566,6 @@ function connectToPanel($: EngineInterface): void {
     await open($, true)
     await dispatch($, { kind: 'open' }, false, true)
   })
-}
-
-async function mainColor($: EngineInterface, color: Accent): Promise<string> {
-  if (color === 'orange') return accentText(color, undefined)
-  const theme = (await $.config.list()).find(row => row.key === 'theme')
-  return accentText(color, theme?.value)
 }
 
 export const install = (on: On, options: Options) => {
@@ -599,23 +581,10 @@ export const install = (on: On, options: Options) => {
     connectToPanel($)
     return next(e)
   })
-  // Registered before salah: this outer hook prepends Quran to salah's tree.
-  on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
-    const theirs = await next(e)
+  // Quran has no footer chip (the footer is ☾ Muslim and the prayer line); its draws still connect the panel feeds.
+  on('ui.render', { component: 'SessionMode' }, ($, e, next) => {
     connectToPanel($)
-    if (e.surface !== 'desktop') return theirs
-    const { Box, Text, Button } = $.ui.resolve(e)
-    const playing = (await $.state.get(playingRef)).value
-    const raw = await $.store.get('quran.catalog')
-    const name = playing && isCatalog(raw) ? raw.surahs[playing.surah - 1]!.name : 'القرآن'
-    const time = playing ? formatTime(Math.max(0, await $.clock.now() - playing.startedAt)) : null
-    // Desktop draws a Button from its label alone and ignores the Text inside, so the label is the visible chip text.
-    // The Text repeats it, in the main color, for a Desktop that draws the children.
-    const chip = chipText(chipSize(e.viewport?.columns, await isPaneOpen($)), name, time)
-    return <Box gap={1}>
-      <Button key="quran-footer" label={chip} plain onPress={() => { void togglePane($) }}><Text color={await mainColor($, options.color)}>{chip}</Text></Button>
-      {theirs}
-    </Box>
+    return next(e)
   })
   on('command.run', { command: 'quran' }, async ($, e) => ({ text: await dispatch($, parseCommand(e.args)) }))
   on('ui.render', { component: 'CommandOutput', props: { command: 'quran' } }, async ($, e, next) => {

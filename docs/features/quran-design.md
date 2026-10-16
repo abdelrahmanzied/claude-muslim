@@ -96,9 +96,7 @@ The minimum pane width is 240. Narrow panes scale instead of wrapping the contro
 
 `<Client key="quran-card" module="./client.tsx" width="100%" props={model} />` mounts the full pane. Picks post `{ act: 'pick', list, value }` through `surface.post` to `ui.message`; the hooks validate the value against the authoritative cached catalog, then save/restart the reciter or play the surah using existing dispatch. Playback controls still use validated pointer hit testing or keyboard posts. Once-per-second props update elapsed/progress without resetting dropdown state. Errors are drawn dim inside the picture; actions never show toasts.
 
-The desktop footer is a plain native Button whose Text uses the shared main color (`claude` for orange, shared theme shade otherwise) and contains «۞» before its label. Idle: «۞ القرآن». Playing: `۞ <surah Arabic name> mm:ss` (`h:mm:ss` from an hour). A separate Svg passed engine tests but did not appear in live Desktop, so the visible text symbol replaces it. Pressing toggles `quran` using `$.ui.panes`, `$.ui.open` and `$.ui.close`, without changing audio. Quran's outer SessionMode hook stays before salah's, preserving `[Quran] [salah]` order. Placement belongs to the Desktop: the mod only fills the `SessionMode` slot. Before the Desktop app 2.37 redesign (the Claude Code engine and API stayed at 2.1.295) the slot sat before the model name on one row; the redesigned footer (observed live, model, effort and context ring on a first row) draws our items on a second row under those controls, right-aligned, and its native Button chrome draws the chip's text in the Button's own foreground, so the main color applies to the salah line (plain Text) but was not seen on the chip. The API offers no control over either, so the design does not depend on them.
-
-**Scaling.** The Desktop footer shrinks its own items as the window narrows (design-system tokens and hidden labels); our items sit in a strip outside that, and the mod API has no size, density, font or icon prop for Text, Button or Svg. What a hook can read is `e.viewport.columns` (the chat column in code-font cells, re-sent and re-drawn on resize, documented in the types). The chip therefore sheds words in tiers (pure logic in `src/features/quran/footer.ts`, tests in `tests/quran/footer.test.ts`): `full` (≥ 60 columns, or unmeasured) «۞ القرآن» / «۞ surah mm:ss»; `time` (40–59) «۞ القرآن» idle or «۞ mm:ss» playing; `glyph` (< 40, or the docked pane is open) «۞». The 60 and 40 are tuning values, not the host's breakpoints (not exposed). Desktop 2.37 draws a Button from its `label` only and ignores its children, so the label is the visible text, and the Text child repeats it for a Desktop that draws children. Trade-off: while shrunk, the chip's accessible name is the shrunk text; the full text is not kept apart (there is no separate accessible-name prop), and the host's own tooltip shows the strip's full text only when it overflows. The salah item is plain Text that already inherits the strip's font, so it is unchanged. Live check needed: shrink the window and the chip should lose words at the tiers above; with the pane closed and a wide window, whether Desktop keeps the row under the controls (then nothing more can be done from the mod) or puts it back inline.
+**No footer item.** Quran used to put a «۞» Button in the Desktop footer (`SessionMode`) that toggled its pane and shed words by width. It was removed: the footer is one shared slot sized by Desktop, and it now holds only `☾ Muslim` (which opens the Muslim pane, whose Quran card and **Open full player** reach this pane) and salah's prayer line. Quran's `SessionMode` hook only reconnects the panel feeds and returns `next(e)` unchanged.
 
 **Why:** listening is an explicit activity with choices and controls; the Pane keeps those together without interrupting Claude's transcript. No AbovePrompt band or automatic opening at startup. Whole-track natural ends continue to the next available surah with the same recording, stopping when none remains. Split segments continue within the surah and then to the next available surah; previous/next skip unavailable surahs when crossing surah boundaries. Salah’s athan moment does not interrupt recitation.
 
@@ -114,15 +112,14 @@ Its text forms are: 1 → «سورة واحدة غير متاحة لهذا ال�
 
 | Moment | Surface | Shows |
 | --- | --- | --- |
-| Footer idle/playing | Desktop SessionMode | Native Button with ۞: القرآن or surah + approximate elapsed (main color where the Desktop honors it); words shed by chat-column width (full, time, «۞»), «۞» alone while the pane is open; toggles the docked pane |
+| Footer | SessionMode | Nothing on any surface; the Muslim pane is the way in |
 | User opens player | Desktop docked Pane `quran` | One full Client picture: dropdown fields/search overlays and a card-less player with hit-tested controls (two repeat buttons), RTL Arabic and embedded Tajawal; dim hints |
 | Non-desktop pane | Terminal, mobile, vscode Pane | Only dim «مشغّل القرآن متاح على تطبيق Claude للديسكتوب» |
 | Commands/help/settings | Command reply on all surfaces | Short status or requested catalog/help; Quran row in `/muslim` |
 | Playback failure after command | Quran CommandOutput and pane | Dim error line; command output only for playback started by a command |
 | Playback failure after pane action | Desktop pane | Dim error line only; no toast or command-row rewrite |
-| Playing | Desktop footer chip and docked Pane | Clock-based approximate elapsed/progress, redraw once per second |
+| Playing | Docked Pane and the Muslim pane's Quran card | Clock-based approximate elapsed/progress, redraw once per second |
 | AbovePrompt | All surfaces | No Quran band |
-| Terminal footer | SessionMode | No Quran label; preserve other features |
 | Stopped | Same desktop Pane | No redraw timer; per-clip watchdog ends when its play promise settles; play starts from beginning |
 
 Desktop is the supported v1 surface, a stated scope exception to the shared cross-platform playback goal. Terminal Arabic follows `src/shared/arabic` and the saved per-terminal mode; desktop and other surfaces keep source text as authored. Use simple Latin digits consistently for result numbering and time, as permitted by the feature spec. Audio plays only when the user starts it.
@@ -152,7 +149,7 @@ Quran demo is deferred to a separate task and is not included in the shared sequ
 ## Checklist for a change
 
 - [ ] Full Client pane, embedded Tajawal and silent dropdown/control picks render on Desktop; no Quran toasts.
-- [ ] Full Client pane and main-color footer Button render on Desktop; terminal has only the pane fallback through shared Arabic.
+- [ ] Full Client pane renders on Desktop and the footer has no Quran item; terminal has only the pane fallback through shared Arabic.
 - [ ] Whole-surah audio, abort on stop/replacement, advance only on the active generation’s natural end; stop after 114.
 - [ ] Redraw timer runs only while playing; per-clip watchdog cancels on settlement; elapsed remains explicitly approximate.
 - [ ] No config reload from recording changes; all durable Quran data in store.

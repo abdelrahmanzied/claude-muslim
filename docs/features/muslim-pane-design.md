@@ -22,7 +22,7 @@ One token set per theme, switched exactly as in the Quran pane: dark by default,
 
 ## Footer chip
 
-On Desktop the footer's SessionMode row gets one plain Button, `☾ Muslim`, owned by this feature (its own `ui.render` hook, registered before Quran's so it is leftmost), followed by the Quran chip, prayer text and engine items. The label has a matching Text child and the button opens the Muslim pane when closed and closes it when open. It stays at every width. The SessionMode slot is the only footer space the API gives plugins and Desktop sets its width, so every item there stays short. Not drawn in the terminal.
+On Desktop the footer's SessionMode row gets one plain Button, `☾ Muslim`, owned by this feature (its own `ui.render` hook, registered before Quran's so it is leftmost), followed by the prayer text and engine items (Quran adds no footer item). The label has a matching Text child and the button opens the Muslim pane when closed and closes it when open. It stays at every width. The SessionMode slot is the only footer space the API gives plugins and Desktop sets its width, so every item there stays short. Not drawn in the terminal.
 
 ## Layout
 

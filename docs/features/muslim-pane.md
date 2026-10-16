@@ -10,7 +10,7 @@ The pane has no userConfig field of its own and no off switch: it is a view, and
 
 ## Footer chip
 
-On Desktop a plain `☾ Muslim` button sits at the left of the prompt footer (before the Quran chip and the prayer text) and toggles the pane open or closed.
+On Desktop a plain `☾ Muslim` button sits at the left of the prompt footer (before the prayer text; Quran has no footer item) and toggles the pane open or closed.
 
 ## The three cards
 
@@ -33,7 +33,7 @@ The pane never imports another feature. `src/shared/panel/signal.ts` holds trans
 | Card | Data | Action |
 | --- | --- | --- |
 | Prayer | salah connects `panelSalah(options, now)` (pure, `src/features/salah/panel.ts`: today's times for the saved place, method and adjustments, and the next pray) when it installs | the Athan row: `$.config.set({ key: 'muslim.salahAthan' })` by the pane |
-| Quran | Quran connects a reader of the selected reciter, surah, quarter, elapsed, total and progress from the same model its pane draws, on each footer-chip or Muslim-pane draw and before each Muslim-pane input | `quran-toggle`, `quran-prev`, `quran-next` use the pane's own handlers; `quran-open` immediately calls `$.ui.open` for `quran` with `focus: true`, then initializes the player through its existing queue |
+| Quran | Quran connects a reader of the selected reciter, surah, quarter, elapsed, total and progress from the same model its pane draws, on each footer or Muslim-pane draw and before each Muslim-pane input | `quran-toggle`, `quran-prev`, `quran-next` use the pane's own handlers; `quran-open` immediately calls `$.ui.open` for `quran` with `focus: true`, then initializes the player through its existing queue |
 | Athkar | athkar connects a reader of today's reading in the period now on each band draw, only while athkar is on | `athkar-open` unhides, opens and lights the current period reader; `athkar-finish` fills all counts and sets `isDone` for the clock's current period through athkar's shared finish operation, without opening or unhiding a hidden band |
 
 A reload clears the connections; each feature connects again on its next draw (the module asks for a redraw at start). The Muslim render and input hooks continue the hook chain first, so Quran can connect without a footer draw and refresh its closures with the current input context. Quran navigation happens before queued catalog/recording work; initialization skips a redundant pane-open call. An unplaced/refused open shows the existing short unavailable toast. Other presses whose feature is not connected show a short toast.
