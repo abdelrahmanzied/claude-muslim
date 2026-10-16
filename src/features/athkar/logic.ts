@@ -78,6 +78,35 @@ export const skyAt = (hour: number): Sky => {
   return 'crescent'
 }
 
+const HOUR_MS = 3600_000
+
+// Ordered phase starts, in epoch milliseconds. Compressed phases may be empty.
+export const skyBoundaries = (times: SalahAthkarTimes) => {
+  const fajr = times.fajr
+  const maghrib = Math.max(fajr, Math.min(times.maghrib, times.nextFajr))
+  const realSunrise = Number.isFinite(times.sunrise) && times.sunrise > fajr && times.sunrise < maghrib
+  const sunrise = Math.min(maghrib, realSunrise ? times.sunrise : fajr + 1.5 * HOUR_MS)
+  const rose = Math.max(sunrise, maghrib - HOUR_MS)
+  const day = Math.min(sunrise + 2 * HOUR_MS, rose)
+  const isha = Number.isFinite(times.isha) ? times.isha : maghrib + HOUR_MS
+  const crescent = Math.max(maghrib, Math.min(maghrib + HOUR_MS, isha, times.nextFajr))
+  return { fajr, sunrise, day, rose, maghrib, crescent }
+}
+
+// Real-clock callers use prayer timestamps; skyAt retains the exact fixed hours.
+export const skyOn = (date: Date, times?: SalahAthkarTimes | null): Sky => {
+  if (!times) return skyAt(date.getHours() + date.getMinutes() / 60)
+  const at = date.getTime()
+  const bounds = skyBoundaries(times)
+  if (at < bounds.fajr) return 'crescent'
+  if (at < bounds.sunrise) return 'dawn'
+  if (at < bounds.day) return 'sunrise'
+  if (at < bounds.rose) return 'day'
+  if (at < bounds.maghrib) return 'rose'
+  if (at < bounds.crescent) return 'bluehour'
+  return 'crescent'
+}
+
 // Exact prayer bounds, or the existing local clock without a saved place.
 export const periodOn = (date: Date, times?: SalahAthkarTimes | null): Period => times
   ? date.getTime() >= times.fajr && date.getTime() < times.maghrib ? 'morning' : 'evening'

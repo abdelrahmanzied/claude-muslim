@@ -395,3 +395,20 @@ for (const surface of SURFACES) {
     })
   }
 }
+
+test('desktop: the minute redraw follows real sunrise even in a manually chosen set with show off', {
+  options: { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berlin; DE', salahShow: 'off', salahAthan: false },
+}, async ($, on) => {
+  // Munich sunrise is 07:26 local (05:26 UTC); the fixed-hour sky is already sunrise.
+  const clock = mock.clock(on, { now: Date.parse('2026-10-10T05:25:00Z') })
+  mock.store(on)
+  mock.env(on, {})
+  engineBand(on, 'desktop')
+  await $.command.run(run('evening'))
+  const ui = await $.ui.mount(band('desktop'))
+  const model = async () => (await ui.find({ type: 'Client', key: 'athkar' }))?.props.props
+  expect(await model()).toMatchObject({ sky: 'dawn', period: 'evening' })
+  await clock.advance(60_000)
+  expect(await model()).toMatchObject({ sky: 'sunrise', period: 'evening' })
+  await ui.unmount()
+})

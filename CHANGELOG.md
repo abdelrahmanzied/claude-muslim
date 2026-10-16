@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Follow saved salah times for the desktop athkar sky, using real Sunrise and Isha with a sunrise fallback and ordered short-day phases; keep the exact fixed sky hours without prayer times.
+
 - Follow Fajr/Maghrib for morning/evening athkar and turn the saved day at Fajr when a salah place is set; keep 05:00/17:00 without prayer times.
 
 - Replace the morning, evening and after-salah reader’s closing verse with «تَقَبَّلَ اللَّهُ 🤲», a short greeting outside the authored athkar, without a citation. Keep the emoji in the terminal and update desktop width metrics.

@@ -12,7 +12,7 @@ import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, KEY_REST_MS, LEAVE_MS,
 import { bandHeight, closeArea, pixelOf } from './band.ts'
 import type { BandModel } from './band.ts'
 import type { AthkarSet } from './logic.ts'
-import { ADVANCE_MS, countOf, currentOf, dayOf, emptyReading, END, listFor, overall, offerStart, nextPeriodAt, setAt, syncAfterSalah, readDay, shouldAdvance, skyAt, step, textOf, timesOf, TITLE } from './logic.ts'
+import { ADVANCE_MS, countOf, currentOf, dayOf, emptyReading, END, listFor, overall, offerStart, nextPeriodAt, setAt, syncAfterSalah, readDay, shouldAdvance, skyOn, step, textOf, timesOf, TITLE } from './logic.ts'
 import type { Act } from './logic.ts'
 import { lookFor, plain, readerProps, resetHint } from './look.ts'
 import type { Style } from './look.ts'
@@ -148,8 +148,6 @@ const periodOf = (now: Date, day: Day, last: SalahLast | null, requested?: Salah
 
 const localNow = async ($: EngineInterface) => new Date(await $.clock.now())
 
-const hourOf = (date: Date) => date.getHours() + date.getMinutes() / 60
-
 // Today's reading as held this session, else as stored, or a fresh day once
 // the day has turned.
 const today = async ($: EngineInterface) => {
@@ -262,7 +260,7 @@ export const install = (on: On, options: Options) => {
   let startTimer: { cancel: () => void } | undefined
   let periodDeadline: number | undefined
   let periodTimer: { cancel: () => void } | undefined
-  // The sky stays on the clock; also refresh after clock/time-zone changes.
+  // Refresh the prayer-based or fixed-hour sky, including clock/time-zone changes.
   let clock: { cancel: () => void } | undefined
   // The glow eases from where it last stood.
   let glowAt = -1
@@ -368,7 +366,9 @@ export const install = (on: On, options: Options) => {
     const playing = demo
     if (!playing || e.props.hasSurvey || (playing.style === 'sky' && e.surface !== 'desktop')) return theirs
     const now = await $.clock.now()
-    const scene = demoStep(playing.style, playing.accent, now - playing.startedAt, FINALE_MS, playing.set, skyAt(hourOf(new Date(now))))
+    const bounds = playing.set === 'afterSalah' && hasPrayerTimes
+      ? (await $.state.get({ plugin: 'muslim', key: 'salahAthkarTimes' })).value : null
+    const scene = demoStep(playing.style, playing.accent, now - playing.startedAt, FINALE_MS, playing.set, skyOn(new Date(now), bounds))
     if (!scene) return theirs
     const isPicture = e.surface === 'desktop'
     if (isPicture && playing.set !== 'afterSalah') {
@@ -598,7 +598,7 @@ export const install = (on: On, options: Options) => {
     const theme = (await $.config.list().catch(() => [])).find(row => row.key === 'theme')
     const isDark = isDarkTheme(theme?.value)
     const isPicture = e.surface === 'desktop'
-    const sky = skyAt(hourOf(now))
+    const sky = skyOn(now, bounds)
     // Sky is desktop only; the terminal always draws the frame.
     const look = lookFor(isPicture ? options.athkarStyle : 'frame', options.color, sky, isDark, isPicture)
     // The shared Arabic path: the tashkeel setting, then this terminal's mode.

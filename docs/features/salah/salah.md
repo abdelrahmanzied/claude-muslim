@@ -146,6 +146,6 @@ Alongside `salahWindow`, salah publishes `salahLast: { pray: Fard; at: number } 
 
 The after-salah flow is specified in [athkar spec](../athkar/athkar.md#athkar-after-salah).
 
-Salah also owns the read-through `salahAthkarTimes` state contract: current and previous calendar date keys in the saved place’s time zone, today’s Fajr/Maghrib and tomorrow’s Fajr. Each read computes from the current clock, configured method and adjustments, without waiting for the ticker or writing during rendering. With no place it returns null. Athkar uses these bounds for Fajr/Maghrib periods, a Fajr day turnover and its next boundary timer; show off does not disable them.
+Salah also owns the read-through `salahAthkarTimes` state contract: current and previous calendar date keys in the saved place’s time zone, today’s Fajr, Sunrise, Maghrib and Isha, and tomorrow’s Fajr (epoch milliseconds). Each read computes from the current clock, configured method and adjustments, without waiting for the ticker or writing during rendering. With no place it returns null. Athkar uses these bounds for Fajr/Maghrib periods, a Fajr day turnover, its next period boundary timer and prayer-based sky phases refreshed each minute; show off does not disable them.
 
 Prayer bounds reuse a pure daily calculation cache, refreshed on the first read after the place’s date changes; a settings reload drops the cache.

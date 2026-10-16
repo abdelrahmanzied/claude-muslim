@@ -87,10 +87,12 @@ describe('clock', () => {
 
 test('athkar bounds share adjusted prayer times and calendar dates through DST', () => {
   for (const at of [OCT_10, Date.parse('2026-10-25T00:30:00Z'), Date.parse('2026-03-29T00:30:00Z')]) {
-    const adjust = { ...NO_ADJUST, fajr: 7, maghrib: -3 }
+    const adjust = { ...NO_ADJUST, fajr: 7, sunrise: 4, maghrib: -3, isha: -8 }
     const bounds = athkarTimes(MUNICH, 'mwl', adjust, at)
     const today = timesOn(MUNICH, 'mwl', adjust, at)
     expect(bounds.fajr).toBe(today.fajr)
+    expect(bounds.sunrise).toBe(today.sunrise)
+    expect(bounds.isha).toBe(today.isha)
     expect(bounds.maghrib).toBe(today.maghrib)
     expect(bounds.nextFajr).toBe(timesOn(MUNICH, 'mwl', adjust, at + 27 * 3600_000).fajr)
   }

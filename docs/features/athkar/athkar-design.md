@@ -36,7 +36,7 @@ Everything else (font, size) stays Claude's: the API sets neither, so the reader
 
 ## Third set: after salah
 
-The title is أَذْكَارُ بَعْدَ الصَّلَاةِ; the command is `/athkar after-salah`. This uses the same cover, counts, passage labels, progress, undo, ×, reset and two fixed heights as morning/evening. The sky follows the current hour, including manual readings. The folded done note is `أَتْمَمْتَ وِرْدَكَ ✓`, with no promise of a next time; the open done row and finale keep the shared closing du’a and the hint `/athkar after-salah reset → to read again`.
+The title is أَذْكَارُ بَعْدَ الصَّلَاةِ; the command is `/athkar after-salah`. This uses the same cover, counts, passage labels, progress, undo, ×, reset and two fixed heights as morning/evening. The sky follows the current prayer bounds (fixed clock hours without a saved place), including manual readings. The folded done note is `أَتْمَمْتَ وِرْدَكَ ✓`, with no promise of a next time; the open done row and finale keep the shared closing du’a and the hint `/athkar after-salah reset → to read again`.
 
 One slot holds the current prayer's reading (`pray`, `at`), or the general reading with both null. A different prayer time clears counts, done and hidden state and starts on the cover. There is no history. The Fajr day boundary (05:00 without prayer times) also clears it; old days missing the slot are tolerated. The list is authored in Hisn al-Muslim chapter 25 ([hisn:66](https://sunnah.com/hisn:66)–[73](https://sunnah.com/hisn:73)); general readings use base counts, while Fajr/Maghrib carry their specified extras.
 
@@ -48,8 +48,12 @@ The desktop athan action **ابدأ أذكار بعد الصلاة** hands off i
 
 | Look | Surface | Drawn as |
 | --- | --- | --- |
-| Sky (default) | desktop | A sky that follows the clock: dawn 4–6, sunrise 6–8, clear day 8–17, rose 17–18, blue hour 18–19, crescent 19–4. Rich motion: stars, sun, clouds, birds, shooting stars. Faded until clicked, then in color. |
+| Sky (default) | desktop | A sky that follows saved prayer times (see below); without them, exactly dawn 4–6, sunrise 6–8, clear day 8–17, rose 17–18, blue hour 18–19, crescent 19–4. Rich motion: stars, sun, clouds, birds, shooting stars. Faded until clicked, then in color. |
 | Frame | both (the only look in the terminal) | A main-color frame that breathes while reading. |
+
+With a saved salah place, the sky uses absolute prayer timestamps, independently of the selected reading: dawn from Fajr to Sunrise, sunrise until Sunrise + 2 hours, day until Maghrib − 1 hour, rose until Maghrib, blue hour until the earlier of Maghrib + 1 hour and Isha, then crescent until the next Fajr (including after midnight before Fajr). Sunrise comes from the same calculation and adjustments as salah. If it is missing, nonfinite or not strictly between Fajr and Maghrib, use Fajr + 1.5 hours.
+
+`skyBoundaries` clamps sunrise into Fajr–Maghrib, rose's start between sunrise and Maghrib, and day's start to at most rose's start. Short days can have zero-length phases, never negative ones. Blue hour ends no earlier than Maghrib and no later than next Fajr; nonfinite Isha uses Maghrib + 1 hour. The existing minute redraw recalculates the sky from fresh bounds, so transitions appear within one minute. Fixed-sky demo scenes keep their authored skies; the after-salah demo uses the current sky through the same selector.
 
 On every sky the pill is the main color with a white number. Sunrise takes dark words; every other sky white.
 
@@ -57,7 +61,7 @@ On every sky the pill is the main color with a white number. Sunrise takes dark 
 
 The shared `/muslim demo` connects a transient signal to this same feature-local starter through a demo-only setup hook. It passes no engine handle across files and writes no state. Started that way, it reports its end after its folded scene, so the next demo follows it.
 
-The `/salah demo` continuation uses these same builders and `demoStep`, with the real `listFor('afterSalah', reading)` Fajr list in a disposable reading (`pray: 'fajr'`). It shows four readings in order: `66-istighfar` (1.2s, counts every 200ms to three), `69-tasbih` (3.6s, 100ms to 33), `70-ikhlas` (1.2s, 200ms to three) and `73` (1.2s, 400ms). It skips the readings between them using the existing disposable-counts technique. Reading totals 7.2s, followed by the real `FINALE_MS` (3.2s) and a 1.2s folded done row: 11.6s total. The sky follows the current hour and uses the configured accent and desktop style; terminal uses Frame. There is no new drawing path, command or saved state.
+The `/salah demo` continuation uses these same builders and `demoStep`, with the real `listFor('afterSalah', reading)` Fajr list in a disposable reading (`pray: 'fajr'`). It shows four readings in order: `66-istighfar` (1.2s, counts every 200ms to three), `69-tasbih` (3.6s, 100ms to 33), `70-ikhlas` (1.2s, 200ms to three) and `73` (1.2s, 400ms). It skips the readings between them using the existing disposable-counts technique. Reading totals 7.2s, followed by the real `FINALE_MS` (3.2s) and a 1.2s folded done row: 11.6s total. The sky follows the current prayer bounds (fixed clock hours without a saved place) and uses the configured accent and desktop style; terminal uses Frame. There is no new drawing path, command or saved state.
 
 A demo-only command hook connects the `afterSalah` starter on the shared transient bus for both `/salah demo` and `/muslim demo`. Salah's start button, × or expiry closes its disposable athan and starts this continuation immediately. Athkar calls the supplied completion callback only after the folded done row, allowing salah to report its end to `/muslim demo`. A real athan waits until the continuation finishes, then returns untouched. Restarting the salah demo cancels the previous continuation. Demo input targets `athkar-demo` and cannot change the real reading, store or signals.
 
@@ -170,6 +174,6 @@ Counting by keys with the pointer on the band keeps it open until the pointer le
 
 With a saved salah place, morning runs from Fajr inclusive to Maghrib exclusive, and evening until the next Fajr. The saved day turns over at Fajr in the place’s time zone; after midnight before Fajr retains the previous evening. Without a place, retain 05:00–17:00 morning and 17:00–05:00 evening.
 
-Salah owns a read-through `salahAthkarTimes` state value: each read calculates current bounds and date keys from the configured place, method and adjustments. It is available before the first ticker publication and cannot retain yesterday’s bounds at midnight or after a settings reload. Athkar reads it for commands, input and drawing. A one-shot redraw wakes at the next Fajr/Maghrib; the existing minute ticker remains for clock-based skies and clock changes. Manual choices, after-salah precedence and demos keep their rules.
+Salah owns a read-through `salahAthkarTimes` state value: each read calculates current bounds and date keys from the configured place, method and adjustments. It is available before the first ticker publication and cannot retain yesterday’s bounds at midnight or after a settings reload. Athkar reads it for commands, input and drawing. A one-shot redraw wakes at the next Fajr/Maghrib; the existing minute ticker refreshes prayer-based or fixed-hour skies and handles clock changes. Manual choices, after-salah precedence and demos keep their rules.
 
 Prayer bounds reuse a pure daily calculation cache, refreshed on the first read after the place’s date changes; a settings reload drops the cache.

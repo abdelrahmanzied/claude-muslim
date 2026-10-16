@@ -30,8 +30,8 @@ export type SalahWindow = { pray: 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
 // Last obligatory prayer that came in today in the configured place, or null.
 export type SalahLast = { pray: Fard; at: number }
 
-// Current prayer-day bounds, supplied on read by salah for athkar.
-export type SalahAthkarTimes = { day: string; previousDay: string; fajr: number; maghrib: number; nextFajr: number }
+// Current place-calendar-day bounds in epoch ms, supplied on read by salah for athkar.
+export type SalahAthkarTimes = { day: string; previousDay: string; fajr: number; sunrise: number; maghrib: number; isha: number; nextFajr: number }
 
 // The terminal moment: rise frame (1 to 7), fold and expiry deadlines in ms since epoch.
 export type SalahMinaret = { pray: SalahWindow['pray']; frame: number; startedAt: number; foldsAt: number; isFolded: boolean; until: number }
