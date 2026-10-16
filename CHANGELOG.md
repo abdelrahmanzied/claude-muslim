@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add Hisn al-Muslim 96, «أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ» 100 times, to the morning athkar only (the book says 100 times during the day), after 95 and before 97.
+
 - `/athkar help`: morning, evening and after-salah share one row, `/athkar morning` · `evening` · `after-salah`, each with what it opens.
 
 - Rule: every typed command, subcommand and option is in its feature's help table in the same commit, and a name is the same in the command, the code and the docs.

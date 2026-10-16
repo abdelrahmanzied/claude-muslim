@@ -1,12 +1,12 @@
 # Athkar content
 
-The religious text shown by the athkar feature: 24 morning and evening athkar, 12 athkar after salah, and the fixed titles, closing greeting and done rows, each with its count and source. The code is the source of truth for what is displayed; this file must stay identical to it (see the rule in CLAUDE.md). Arabic is authored with tashkeel and is never generated or reworded. Hadith references are the ones listed on sunnah.com for each Hisn al-Muslim number.
+The religious text shown by the athkar feature: 25 morning and evening athkar, 12 athkar after salah, and the fixed titles, closing greeting and done rows, each with its count and source. The code is the source of truth for what is displayed; this file must stay identical to it (see the rule in CLAUDE.md). Arabic is authored with tashkeel and is never generated or reworded. Hadith references are the ones listed on sunnah.com for each Hisn al-Muslim number.
 
 Sources in the code: `src/features/athkar/data.ts`, `src/features/athkar/after-salah.ts`, `src/features/athkar/logic.ts`.
 
 ## أذكار الصباح والمساء — Morning and evening athkar
 
-Hisn al-Muslim chapter 27 (`src/features/athkar/data.ts`, `ATHKAR`). 24 items.
+Hisn al-Muslim chapter 27 (`src/features/athkar/data.ts`, `ATHKAR`). 25 items.
 
 ### 1. 75
 
@@ -249,7 +249,17 @@ Hisn al-Muslim chapter 27 (`src/features/athkar/data.ts`, `ATHKAR`). 24 items.
 
 > اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا وَرِزْقًا طَيِّبًا وَعَمَلًا مُتَقَبَّلًا
 
-### 23. 97
+### 23. 96
+
+- Count: 100 times
+- When: Morning only
+- Hisn al-Muslim: [Hisn al-Muslim 96](https://sunnah.com/hisn:96)
+- Reference: Al-Bukhari, cf. Al-Asqalani, Fathul-Bari 11/101, Muslim 4/2075
+- Note: the book says 100 times during the day, so it is in the morning only.
+
+> أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ
+
+### 24. 97
 
 - Count: 3 times
 - When: Evening only
@@ -258,7 +268,7 @@ Hisn al-Muslim chapter 27 (`src/features/athkar/data.ts`, `ATHKAR`). 24 items.
 
 > أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ
 
-### 24. 98
+### 25. 98
 
 - Count: 10 times
 - When: Morning and evening
