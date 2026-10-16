@@ -1,17 +1,13 @@
 import { expect, test } from 'claude-code/testing'
-import { AVATAR_H, CARDS_TOP, CITY_H, CITY_TOP, FOLDED_H, GAP, TOP_H, TOP_Y, NO_FOLDS, TITLE_HIT_H, cardRects, paneHeight, ATHAN_H, ATHAN_TOP, ATHKAR_H, ATHKAR_Y, CONTROLS_CY, KBTN_W, KFINISH_W, KROW_GAP, KROW_TOP, OPEN_TOP, PAD, SIDE, PANE_HEIGHT, PRAYER_H, PRAYER_Y, QURAN_Y, hitAt, hitOfCells, isPaneMessage, keyAct, type Enabled } from '../../src/features/muslim-pane/layout.ts'
+import { CARDS_TOP, CITY_H, CITY_TOP, FOLDED_H, GAP, NO_FOLDS, TITLE_HIT_H, cardRects, paneHeight, ATHAN_H, ATHAN_TOP, ATHKAR_H, ATHKAR_Y, CONTROLS_CY, KBTN_W, KFINISH_W, KROW_GAP, KROW_TOP, OPEN_TOP, PAD, SIDE, PANE_HEIGHT, PRAYER_H, PRAYER_Y, QURAN_Y, hitAt, hitOfCells, isPaneMessage, keyAct, type Enabled } from '../../src/features/muslim-pane/layout.ts'
 
 const ALL: Enabled = { athan: true, quran: true, canPrev: true, canNext: true, athkar: true }
 const W = 360
 
 test('the cards stack in order and the pane height ends under the folded settings card', () => {
   expect(PRAYER_Y).toBe(CARDS_TOP)
-  expect(TOP_Y).toBe(0)
-  expect(TOP_H).toBe(36)
-  expect(AVATAR_H).toBe(TOP_H)
-  expect(CARDS_TOP).toBe(44)
-  expect(CARDS_TOP - TOP_Y - TOP_H).toBe(8)
-  expect(hitAt(W, W / 2, TOP_Y + TOP_H / 2, ALL)).toBeNull()
+  // No heading: the first card starts at the picture's top edge.
+  expect(CARDS_TOP).toBe(0)
   expect(QURAN_Y).toBe(PRAYER_Y + PRAYER_H + GAP)
   expect(ATHKAR_Y).toBeGreaterThan(QURAN_Y)
   expect(PANE_HEIGHT).toBe(ATHKAR_Y + ATHKAR_H + GAP + FOLDED_H + PAD)
