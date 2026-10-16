@@ -37,20 +37,19 @@ A thin rule with an eight-point rosette marks a change of purpose, not decoratio
 
 ### 4. Palette tokens, light and dark
 
-Colors exist only as CSS variables from `paletteCss()` in `card.ts`; no component names a hex. Dark is the default; light applies under `prefers-color-scheme: light` (the desktop app theme, not the CLI theme) or is forced with `theme-light` / `theme-dark`. The pane and player backgrounds are transparent (`--q-bg`), so the host surface shows through in both; only the dropdown and search keep opaque backgrounds, because they float over content.
+Colors exist only as CSS variables from `paletteCss()` in `card.ts`; no component names a hex. Dark is the default; light applies under `prefers-color-scheme: light` (the desktop app theme, not the CLI theme) or is forced with `theme-light` / `theme-dark`. The pane and player backgrounds are transparent (`--q-bg`), so the host surface shows through in both. The field boxes and the search box have no fill of their own: transparent, with a 1px `--q-line` hairline, like the Muslim pane's controls. Only the dropdown keeps an opaque background and shadow, because it floats over content.
 
 | Role | Token | Dark | Light |
 | --- | --- | --- | --- |
 | Text and title | `--q-text`, `--q-title` | `#ece9e2` | `#302f2a` |
 | Muted and dim: field labels, hints, notes, `/quran`, «▾» | `--q-muted`, `--q-dim` | `#98948b` | `#79766c` |
-| Field fill | `--q-field-bg` | `#252321` | `#f9f7f2` |
-| Hairlines, progress track, control border | `--q-line`, `--q-track`, `--q-control-border` | `#393733` | `#d9d6cd` |
+| Hairlines, field and search borders, progress track, control border | `--q-line`, `--q-track`, `--q-control-border` | `#393733` | `#d9d6cd` |
 | Main accent: status, fill, rosette, selection, filled buttons | `--q-accent` | Shared dark shade | Shared light shade |
 | Player secondary text, icons, captions | `--q-soft`, `--q-label`, `--q-icon` | `#c6c3bb` | `#46443e` |
 | Rosette arm | `--q-ornament-dim` | Shared dark shade | Shared light shade |
 | Hover fill outside lists | `--q-hover-bg` | `#23221f` | `#f3f1ec` |
 | The one highlighted row (pointer or arrows); chosen row | `--q-accent` mixed 20% (hot), 34% (chosen), 44% (both) over the dropdown | Shared dark shade | Shared light shade |
-| Dropdown, search | `--q-dropdown-bg`, `--q-search-bg` | `#252321`, `#1c1b19` | `#fdfcf9`, `#f5f3ee` |
+| Dropdown | `--q-dropdown-bg` | `#1f1e1d` (the host surface, so it reads as a hairline panel, not a grey slab) | `#fdfcf9` |
 
 Main accents, hover borders, primary hover and rosette arms use `src/shared/color/` and `/muslim color` (default Claude orange), with the shared shade for each theme. White (`--q-on-primary`) sits on filled controls. Secondary text, muted fills and the supplied artwork retain their designed colors. Both themes must be checked on every change.
 

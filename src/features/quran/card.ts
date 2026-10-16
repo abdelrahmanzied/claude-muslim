@@ -73,8 +73,8 @@ export function isCardMessage(value: unknown): value is CardMessage {
   return m.act === 'pointer' && ['x', 'y', 'columns', 'rows', 'width', 'generation'].every(k => typeof m[k] === 'number' && Number.isFinite(m[k])) && (m.columns as number) > 0 && (m.rows as number) > 0 && typeof m.button === 'string'
 }
 export type Theme = 'light' | 'dark'
-const DARK_VARS = '--q-bg:transparent;--q-text:#ece9e2;--q-title:#ece9e2;--q-muted:#98948b;--q-dim:#98948b;--q-field-bg:#252321;--q-line:#393733;--q-soft:#c6c3bb;--q-label:#c6c3bb;--q-track:#393733;--q-control-border:#393733;--q-icon:#c6c3bb;--q-on-primary:#ffffff;--q-hover-bg:#23221f;--q-dropdown-bg:#252321;--q-search-bg:#1c1b19;--q-shadow:0 10px 30px #0008;--q-hot:#23221f;--q-scrollbar:#393733'
-const LIGHT_VARS = '--q-bg:transparent;--q-text:#302f2a;--q-title:#302f2a;--q-muted:#79766c;--q-dim:#79766c;--q-field-bg:#f9f7f2;--q-line:#d9d6cd;--q-soft:#46443e;--q-label:#46443e;--q-track:#d9d6cd;--q-control-border:#d9d6cd;--q-icon:#46443e;--q-on-primary:#ffffff;--q-hover-bg:#f3f1ec;--q-dropdown-bg:#fdfcf9;--q-search-bg:#f5f3ee;--q-shadow:0 10px 30px rgba(48,47,42,.14);--q-hot:#f3f1ec;--q-scrollbar:#d9d6cd'
+const DARK_VARS = '--q-bg:transparent;--q-text:#ece9e2;--q-title:#ece9e2;--q-muted:#98948b;--q-dim:#98948b;--q-line:#393733;--q-soft:#c6c3bb;--q-label:#c6c3bb;--q-track:#393733;--q-control-border:#393733;--q-icon:#c6c3bb;--q-on-primary:#ffffff;--q-hover-bg:#23221f;--q-dropdown-bg:#1f1e1d;--q-shadow:0 10px 30px #0008;--q-hot:#23221f;--q-scrollbar:#393733'
+const LIGHT_VARS = '--q-bg:transparent;--q-text:#302f2a;--q-title:#302f2a;--q-muted:#79766c;--q-dim:#79766c;--q-line:#d9d6cd;--q-soft:#46443e;--q-label:#46443e;--q-track:#d9d6cd;--q-control-border:#d9d6cd;--q-icon:#46443e;--q-on-primary:#ffffff;--q-hover-bg:#f3f1ec;--q-dropdown-bg:#fdfcf9;--q-shadow:0 10px 30px rgba(48,47,42,.14);--q-hot:#f3f1ec;--q-scrollbar:#d9d6cd'
 // Colors live here only: dark by default, light under the app's color scheme, or forced by theme-light / theme-dark.
 const palette = (color: Accent, isDark: boolean): string => {
   const accent = accentHex(color, isDark)

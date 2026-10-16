@@ -154,12 +154,12 @@ test('repeat icons: two circling arrows, and the same arrows with a «1» for th
 })
 
 const lightPalette = {
-  '--q-bg': 'transparent', '--q-text': '#302f2a', '--q-title': '#302f2a', '--q-muted': '#79766c', '--q-dim': '#79766c', '--q-field-bg': '#f9f7f2', '--q-line': '#d9d6cd',
+  '--q-bg': 'transparent', '--q-text': '#302f2a', '--q-title': '#302f2a', '--q-muted': '#79766c', '--q-dim': '#79766c', '--q-line': '#d9d6cd',
   '--q-accent': '#c8642d', '--q-soft': '#46443e', '--q-track': '#d9d6cd', '--q-control-border': '#d9d6cd', '--q-on-primary': '#ffffff', '--q-ornament-dim': '#c8642d',
-  '--q-hover-border': '#c8642d', '--q-hover-bg': '#f3f1ec', '--q-dropdown-bg': '#fdfcf9', '--q-search-bg': '#f5f3ee', '--q-shadow': '0 10px 30px rgba(48,47,42,.14)', '--q-hot': '#f3f1ec', '--q-scrollbar': '#d9d6cd', '--q-label': '#46443e',
+  '--q-hover-border': '#c8642d', '--q-hover-bg': '#f3f1ec', '--q-dropdown-bg': '#fdfcf9', '--q-shadow': '0 10px 30px rgba(48,47,42,.14)', '--q-hot': '#f3f1ec', '--q-scrollbar': '#d9d6cd', '--q-label': '#46443e',
 }
 const darkPalette = {
-  '--q-text': '#ece9e2', '--q-muted': '#98948b', '--q-field-bg': '#252321', '--q-line': '#393733', '--q-accent': '#d97757', '--q-soft': '#c6c3bb', '--q-track': '#393733', '--q-on-primary': '#ffffff', '--q-dropdown-bg': '#252321', '--q-search-bg': '#1c1b19',
+  '--q-text': '#ece9e2', '--q-muted': '#98948b', '--q-line': '#393733', '--q-accent': '#d97757', '--q-soft': '#c6c3bb', '--q-track': '#393733', '--q-on-primary': '#ffffff', '--q-dropdown-bg': '#1f1e1d',
 }
 test('card colors are CSS variables with a dark default and a light palette under prefers-color-scheme', () => {
   const svg = cardSvg(build())
@@ -189,17 +189,16 @@ test('the avatar gets a light-only drop shadow that .theme-dark cancels', () => 
   expect(css.slice(0, css.indexOf('@media'))).not.toContain('drop-shadow')
 })
 
-test('both palettes keep dropdown and search backgrounds opaque independently of the transparent pane', () => {
+test('both palettes keep the dropdown opaque and give fields and search no fill of their own', () => {
   const palettes = Array.from(paletteCss('.pane').matchAll(/\.pane(?:\.theme-(?:light|dark))?\{([^}]+)\}/g), match => match[1]!)
   expect(palettes).toHaveLength(4)
   for (const [index, palette] of palettes.entries()) {
     expect(palette).toContain('--q-bg:transparent;')
     const dropdown = palette.match(/--q-dropdown-bg:([^;]+)/)![1]!
-    const search = palette.match(/--q-search-bg:([^;]+)/)![1]!
     expect(dropdown).toMatch(/^#[0-9a-f]{6}$/)
-    expect(search).toMatch(/^#[0-9a-f]{6}$/)
-    expect(dropdown).toBe(index === 1 || index === 2 ? '#fdfcf9' : '#252321')
-    expect(search).toBe(index === 1 || index === 2 ? '#f5f3ee' : '#1c1b19')
+    expect(dropdown).toBe(index === 1 || index === 2 ? '#fdfcf9' : '#1f1e1d')
+    expect(palette).not.toContain('--q-field-bg')
+    expect(palette).not.toContain('--q-search-bg')
   }
 })
 

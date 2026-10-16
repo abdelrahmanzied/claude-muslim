@@ -106,8 +106,8 @@ test('pane note names the surah without reader-duration text; root is transparen
 test('pane colors are CSS variables with a light palette under prefers-color-scheme and an optional forced theme class', () => {
   const svg = paneSvg(model, pickerInitial(model))
   expect(svg).toContain('@media (prefers-color-scheme: light){.pane{--q-bg:transparent;--q-text:#302f2a;--q-title:#302f2a')
-  expect(svg).toContain('--q-field-bg:#f9f7f2')
-  expect(svg).toContain('--q-field-bg:#252321')
+  expect(svg).toContain('--q-line:#d9d6cd')
+  expect(svg).toContain('--q-line:#393733')
   expect(svg).toContain('--q-accent:#d97757')
   expect(svg).toContain('--q-shadow:0 10px 30px rgba(48,47,42,.14)')
   expect(svg).not.toMatch(/(^|[;{\s])color-scheme\s*:/)
@@ -123,7 +123,7 @@ test('pane colors are CSS variables with a light palette under prefers-color-sch
   expect(paneModel(fixtureCatalog, fixtureCatalog.reciters[0]!, 18, null, 0, 420, 4, 0, true, null).theme).toBeUndefined()
 })
 
-test('pane and SVG wrapper stay transparent while every dropdown and search use opaque palette backgrounds', () => {
+test('pane, fields and search stay transparent with a hairline while every dropdown keeps its opaque background and shadow', () => {
   for (const theme of [undefined, 'light', 'dark'] as const) for (const list of ['reciter', 'surah', 'segment'] as const) {
     const picture = { ...model, theme }
     const svg = paneSvg(picture, openPicker(picture, pickerInitial(picture), list))
@@ -135,9 +135,13 @@ test('pane and SVG wrapper stay transparent while every dropdown and search use 
     const dropdown = svg.match(/\.dropdown\{([^}]+)\}/)![1]!
     const search = svg.match(/\.search\{([^}]+)\}/)![1]!
     expect(dropdown).toContain('background:var(--q-dropdown-bg);')
-    expect(search).toContain('background:var(--q-search-bg);')
+    expect(dropdown).toContain('box-shadow:var(--q-shadow);')
+    expect(search).toContain('background:transparent;')
+    expect(search).toContain('border:1px solid var(--q-line);')
     expect(dropdown + search).not.toContain('var(--q-bg)')
-    expect(svg.match(/\.field\{([^}]+)\}/)![1]!).toContain('background:var(--q-field-bg);')
+    const field = svg.match(/\.field\{([^}]+)\}/)![1]!
+    expect(field).toContain('background:transparent;')
+    expect(field).toContain('border:1px solid var(--q-line);')
   }
 })
 
