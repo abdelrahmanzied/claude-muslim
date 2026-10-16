@@ -3,7 +3,7 @@
 import { helpReply, type HelpRow } from '../../table.ts'
 
 export const ATHKAR_COMMANDS: readonly HelpRow[] = [
-  ['/athkar', 'Morning, evening and after-salah athkar above the prompt. Alone, it shows today\'s status and brings the athkar back if hidden', '`on` (default) · `off`'],
+  ['/athkar', 'Morning/evening follow Fajr/Maghrib with prayer times, otherwise 05:00/17:00. Alone, it shows today\'s status and brings the athkar back if hidden', '`on` (default) · `off`'],
   ['/athkar after-salah', 'Open Athkar after salah; offered automatically after the athan card duration when prayer times are set; the desktop athan button starts it immediately', '`reset`: read it again from the start'],
   ['/athkar help', 'This table', ''],
   ['/athkar style', 'The look', '`sky` (DESKTOP ONLY, default): a sky that follows the time of day · `frame`: a plain frame in the main color'],

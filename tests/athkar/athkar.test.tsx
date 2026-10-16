@@ -366,3 +366,32 @@ test('/athkar morning replies with the reset hint when that period is done, and 
   expect((await $.command.run(run('morning reset'))).text).toBe('morning athkar start again from the first')
   expect((kept.day as typeof day).morning.isDone).toBe(false)
 })
+
+for (const surface of SURFACES) {
+  for (const [name, at, before, after] of [
+    ['Fajr', Date.parse('2026-10-10T03:42:00Z'), 'evening', 'morning'],
+    ['Maghrib', Date.parse('2026-10-10T16:35:00Z'), 'morning', 'evening'],
+  ] as const) {
+    test(`${surface}: automatic period wakes exactly at ${name} with show off`, {
+      options: { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berlin; DE', salahShow: 'off', salahAthan: false },
+    }, async ($, on) => {
+      const clock = mock.clock(on, { now: at - 1 })
+      mock.store(on)
+      mock.env(on, {})
+      engineBand(on, surface)
+      const ui = await $.ui.mount(band(surface))
+      const title = async (period: 'morning' | 'evening') => surface === 'desktop'
+        ? (await picture(ui)).includes(TITLE[period])
+        : (await ui.find({ in: 'athkar', text: stripTashkeel(TITLE[period]) })) !== undefined
+      expect(await title(before)).toBe(true)
+      // Let prayer tracking initialize, then dismiss the existing Asr offer so
+      // this test observes the automatic morning/evening reader.
+      await clock.advance(0)
+      if (name === 'Maghrib') await ui.post({ act: 'hide' })
+      expect(await title(before)).toBe(true)
+      await clock.advance(1)
+      expect(await title(after)).toBe(true)
+      await ui.unmount()
+    })
+  }
+}

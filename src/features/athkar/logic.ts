@@ -2,7 +2,7 @@ import { IN_MS } from '../../shared/pray/line.ts'
 import { ATHKAR } from './data.ts'
 import type { Period, Thikr } from './data.ts'
 import { afterSalah } from './after-salah.ts'
-import type { SalahLast } from '../../../types'
+import type { SalahAthkarTimes, SalahLast } from '../../../types'
 import type { Fard } from '../../shared/pray/names.ts'
 
 export type AthkarSet = Period | 'afterSalah'
@@ -24,7 +24,7 @@ export type Reading = {
   isHidden: boolean
 }
 
-// A day's athkar: morning, evening and one after-salah slot. A day runs from 05:00 to 05:00, so the
+// A day's athkar: morning, evening and one after-salah slot. A day turns at Fajr (05:00 without prayer times), so the
 // evening athkar read after midnight still belong to the evening before.
 export type Day = {
   day: string
@@ -43,7 +43,7 @@ export type Act =
   | { act: 'previous' }
   | { act: 'hide' }
 
-// The morning athkar are read 05:00 to 17:00, the evening ones 17:00 to 05:00.
+// Without prayer times, morning athkar are read 05:00 to 17:00, the evening ones 17:00 to 05:00.
 export const MORNING_FROM = 5
 export const EVENING_FROM = 17
 
@@ -78,8 +78,17 @@ export const skyAt = (hour: number): Sky => {
   return 'crescent'
 }
 
-// The athkar day a local time belongs to: the date five hours earlier.
-export const dayOf = (date: Date): string => {
+// Exact prayer bounds, or the existing local clock without a saved place.
+export const periodOn = (date: Date, times?: SalahAthkarTimes | null): Period => times
+  ? date.getTime() >= times.fajr && date.getTime() < times.maghrib ? 'morning' : 'evening'
+  : periodAt(date.getHours())
+
+export const nextPeriodAt = (date: Date, times: SalahAthkarTimes): number =>
+  date.getTime() < times.fajr ? times.fajr : date.getTime() < times.maghrib ? times.maghrib : times.nextFajr
+
+// The prayer-place day at Fajr, or the original local 05:00 boundary.
+export const dayOf = (date: Date, times?: SalahAthkarTimes | null): string => {
+  if (times) return date.getTime() < times.fajr ? times.previousDay : times.day
   const shifted = new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours() - MORNING_FROM, date.getMinutes())
   const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -133,11 +142,11 @@ export const syncAfterSalah = (day: Day, last: SalahLast | null): Day => {
 export const offerStart = (last: SalahLast, requested?: SalahLast | null) =>
   requested?.at === last.at && requested.pray === last.pray ? last.at : last.at + IN_MS
 
-export const setAt = (now: Date, day: Day, last: SalahLast | null, chosen?: AthkarSet, requested?: SalahLast | null): AthkarSet => {
+export const setAt = (now: Date, day: Day, last: SalahLast | null, chosen?: AthkarSet, requested?: SalahLast | null, times?: SalahAthkarTimes | null): AthkarSet => {
   if (chosen) return chosen
   const slot = day.afterSalah
   return last && now.getTime() >= offerStart(last, requested) && !slot.isDone && !slot.isHidden
-    ? 'afterSalah' : periodAt(now.getHours())
+    ? 'afterSalah' : periodOn(now, times)
 }
 
 const isNumbers = (value: unknown): value is Record<string, number> =>

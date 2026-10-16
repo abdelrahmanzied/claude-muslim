@@ -2,7 +2,7 @@
 // computed by the vendored athan library; and which pray comes next.
 
 import { CalculationParameters, Coordinates, HighLatitudeRule, PolarCircleResolution, PrayerTimes } from './athan/Athan.ts'
-import type { SalahLast } from '../../../types'
+import type { SalahAthkarTimes, SalahLast } from '../../../types'
 import { hijriMonth, localTime } from './clock.ts'
 import { METHODS, PRAYS, type MethodId, type Pray } from './methods.ts'
 
@@ -84,4 +84,18 @@ export const lastSalahToday = (place: Where, method: MethodId, adjust: Adjust, a
   const times = timesOn(place, method, adjust, at)
   const pray = [...PRAYS].reverse().find(name => name !== 'sunrise' && times[name] <= at)
   return pray && pray !== 'sunrise' ? { pray, at: times[pray] } : null
+}
+
+// Bounds for the place's current calendar day. Calendar arithmetic at noon keeps
+// adjacent dates correct across DST (a local day need not last 24 hours).
+export const athkarTimes = (place: Where, method: MethodId, adjust: Adjust, at: number): SalahAthkarTimes => {
+  const { year, month, day } = localTime(at, place.timeZone)
+  const key = (offset: number) => {
+    const d = new Date(year, month - 1, day + offset, 12)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+  const today = timesOn(place, method, adjust, at)
+  // Pick a point well inside tomorrow in the place's zone, including DST days.
+  const tomorrow = at + (36 - localTime(at, place.timeZone).hour) * 3600_000
+  return { day: key(0), previousDay: key(-1), fajr: today.fajr, maghrib: today.maghrib, nextFajr: timesOn(place, method, adjust, tomorrow).fajr }
 }

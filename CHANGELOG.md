@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Follow Fajr/Maghrib for morning/evening athkar and turn the saved day at Fajr when a salah place is set; keep 05:00/17:00 without prayer times.
+
 - Replace the morning, evening and after-salah reader’s closing verse with «تَقَبَّلَ اللَّهُ 🤲», a short greeting outside the authored athkar, without a citation. Keep the emoji in the terminal and update desktop width metrics.
 
 - Docs: each feature now has its own folder `docs/features/<feature>/` (`<feature>.md`, `<feature>-design.md`, and `<feature>-content.md` for the religious text it shows); `docs/content.md` is split into per-feature content files. Terminal Arabic (the shared guide and the `/muslim terminal-arabic` check) is one file, `docs/terminal/terminal-arabic.md`, since it is a platform doc and not a feature.

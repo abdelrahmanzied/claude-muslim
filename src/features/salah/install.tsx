@@ -2,7 +2,7 @@ import { accentText, isDarkTheme, type Accent } from '../../shared/color/index.t
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
-import type { SalahCard, SalahMinaret, SalahWindow, SalahLast } from '../../../types'
+import type { SalahCard, SalahMinaret, SalahWindow, SalahLast, SalahAthkarTimes } from '../../../types'
 
 import { countdownMinutes, isMethod, parseShow, SHOW_MAX, SHOW_MIN, writeAdjust } from '../../config.ts'
 import type { Options } from '../../config.ts'
@@ -23,7 +23,8 @@ import { ACCENT_ROWS, FRAME_MS, isDue, LABEL_ROW, minaretRows, minaretStage, ROW
 import { nudge, reviewRows } from './review.ts'
 import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, isOnClose, KEY_REST_MS, LEAVE_MS, LINE_PX } from '../../shared/card/card.ts'
 import { athanFrame, cardIsFolded, CARD_MS, isOnStart, type AthanCardProps } from './card.ts'
-import { clockText, lastPray, lastSalahToday, nextSalah, type Adjust } from './times.ts'
+import { localTime } from './clock.ts'
+import { athkarTimes, clockText, lastPray, lastSalahToday, nextSalah, type Adjust } from './times.ts'
 import { lineAt, methodOf, settingsTable, showText, timesTable } from './today.ts'
 
 // The engine follows $ only into same-file top-level functions, so the
@@ -385,6 +386,21 @@ const begin = async ($: EngineInterface, options: Options, place: Place, timer: 
 }
 
 export const install = (on: On, options: Options) => {
+  // Read-through: correct on the first read, at midnight and between ticker ticks.
+  // No state writes while drawing; this value is calculated rather than persisted.
+  let athkarBounds: { key: string; value: SalahAthkarTimes } | undefined
+  on('state.get', { plugin: 'muslim', key: 'salahAthkarTimes' }, async $ => {
+    const place = options.salahPlace
+    if (!place) return { value: { value: null, version: 0 } }
+    const now = await $.clock.now()
+    const { year, month, day } = localTime(now, place.timeZone)
+    const key = `${year}-${month}-${day}`
+    // Pure calculation cache only; settings reload this closure, date changes
+    // replace it on the first read. Frequent reader redraws reuse daily times.
+    if (athkarBounds?.key !== key) athkarBounds = { key, value: athkarTimes(place, methodOf(options, place), options.salahAdjust, now) }
+    return { value: { value: athkarBounds.value, version: 0 } }
+  })
+
   const arabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
   const guess = guessPlace(systemTimeZone())
   // The prayer tracking timer, started once per module load by whichever of the

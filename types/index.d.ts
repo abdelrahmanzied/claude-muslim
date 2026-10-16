@@ -30,6 +30,9 @@ export type SalahWindow = { pray: 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
 // Last obligatory prayer that came in today in the configured place, or null.
 export type SalahLast = { pray: Fard; at: number }
 
+// Current prayer-day bounds, supplied on read by salah for athkar.
+export type SalahAthkarTimes = { day: string; previousDay: string; fajr: number; maghrib: number; nextFajr: number }
+
 // The terminal moment: rise frame (1 to 7), fold and expiry deadlines in ms since epoch.
 export type SalahMinaret = { pray: SalahWindow['pray']; frame: number; startedAt: number; foldsAt: number; isFolded: boolean; until: number }
 
@@ -61,6 +64,7 @@ declare module 'claude-code' {
       salahReview: SalahAdjust | null
       salahWindow: SalahWindow | null
       salahLast: SalahLast | null
+      salahAthkarTimes: SalahAthkarTimes | null
       // Desktop athan button requests this prayer's reader; salah writes, athkar reads.
       salahAfterSalahStart: SalahLast | null
       // The pray time (ms since epoch) whose minaret has played, so it plays once.
