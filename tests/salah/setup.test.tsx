@@ -538,6 +538,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
 
 for (const [color, expected] of [['orange', 'claude'], ['blue', '#4a7fc0']] as const) {
   test(`salah prayer, review and minaret accents follow ${color}`, { options: { ...AT_MUNICH, color, athkar: false, salahShow: 'always' } }, async ($, on) => {
+    on('session.surface', async () => ({ value: 'terminal' }))
     mock.env(on, {})
     mock.store(on, { arabicTerminals: { unknown: 'plain' } })
     const clock = mock.clock(on, { now: Date.parse('2026-10-10T12:00:00Z') })

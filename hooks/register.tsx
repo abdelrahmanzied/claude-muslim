@@ -106,7 +106,7 @@ export const register: Register = (on, options) => {
     })
     await $.command.register({
       name: 'athkar',
-      description: 'Morning and evening athkar above the prompt: help, on, off, reset, style',
+      description: 'Morning, evening and after-salah athkar above the prompt: help, on, off, reset, style',
     })
     await $.command.register({
       name: 'salah',
@@ -190,7 +190,7 @@ export const register: Register = (on, options) => {
         '',
         statusTable([
           ['Thikr', 'Tasbih in Claude\'s working line', onOff(settings.thikr)],
-          ['Athkar', 'Morning and evening athkar above the prompt', onOff(settings.athkar)],
+          ['Athkar', 'Morning, evening and after-salah athkar above the prompt', onOff(settings.athkar)],
           ['Salah', 'Pray times and the next pray under the prompt', settings.salahPlace ? showText(settings.salahShow) : 'not set up'],
           ['Quran', 'Desktop recitation player; the selected recording', reciterLabel],
         ], 'Feature'),

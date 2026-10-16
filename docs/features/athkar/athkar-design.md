@@ -1,6 +1,6 @@
-# Morning and evening athkar — design
+# Morning, evening and after-salah athkar — design
 
-The athkar reader's own design. It adds to the shared base in [DESIGN.md](../../DESIGN.md) and never contradicts it. What the feature does is in [athkar.md](athkar.md). Change a rule here first, then the code and its tests.
+The athkar reader's own design. It adds to the shared base in [DESIGN.md](../../../DESIGN.md) and never contradicts it. What the feature does is in [athkar spec](athkar.md). Change a rule here first, then the code and its tests.
 
 ## Visual means: a drawn reader
 
@@ -12,7 +12,7 @@ The athkar reader is the one feature the person sits with, so it is drawn:
 
 Everything else (font, size) stays Claude's: the API sets neither, so the reader follows the app's zoom.
 
-**Why:** reading two dozen athkar with counts needs a place to sit, click and see progress; a text row cannot hold it. The terminal gets the same reader as text in the Frame look.
+**Why:** reading a set of athkar with counts needs a place to sit, click and see progress; a text row cannot hold it. The terminal gets the same reader as text in the Frame look.
 
 ## Scope
 
@@ -28,24 +28,42 @@ Everything else (font, size) stays Claude's: the API sets neither, so the reader
 
 ## Reading
 
-- **Cover:** the title (أَذْكَارُ الصَّبَاحِ or أَذْكَارُ الْمَسَاءِ) and the keys. Faded, it folds to one slim row (24px, the reading's folded height): the title on the right, a muted one-line hint (`click to start`, or `click to continue`) at the left, the × at the left edge and the thin progress line. The first click only opens it (full cover with the keys); the next starts the reading; neither counts.
+- **Cover:** the title (أَذْكَارُ الصَّبَاحِ, أَذْكَارُ الْمَسَاءِ or أَذْكَارُ بَعْدَ الصَّلَاةِ) and the keys. Faded, it folds to one slim row (24px, the reading's folded height): the title on the right, a muted one-line hint (`click to start`, or `click to continue`) at the left, the × at the left edge and the thin progress line. The first click only opens it (full cover with the keys); the next starts the reading; neither counts.
 - **Count:** click, Space or Enter adds one. Right click or Backspace takes one back, or goes to the thikr before at 0. ← next, → previous (Arabic reads right to left). Esc gives the prompt back. The band folds by itself once the person stops ([rules](#when-it-folds-collapse-rules)).
 - **Passage name:** Quran items show their name beside the set position on desktop and in the terminal: آية الكرسي and the three short surahs (الإخلاص، الفلق، الناس). Duas have no passage name.
 - **Count on the line:** no circles. The progress line along the bottom shows the whole set; a small pill on its glowing head shows the repetitions left on this thikr in Arabic-Indic digits (٣ then ٢, ١, ٠; ١ for a thikr said once), easing along with the head and kept clear of both ends of the line. The set position (e.g. ١٦ مِنْ ٢٢) sits small and muted at the line's left end. In the terminal the head is `` ٢ `` on the main color.
-- **Progress:** Horizon glow, a soft line along the bottom filled from the right, its head pulsing slowly and easing forward on each count. The share per thikr is in [athkar.md](athkar.md#reading).
+- **Progress:** Horizon glow, a soft line along the bottom filled from the right, its head pulsing slowly and easing forward on each count. The share per thikr is in [athkar spec](athkar.md#reading).
+
+## Third set: after salah
+
+The title is أَذْكَارُ بَعْدَ الصَّلَاةِ; the command is `/athkar after-salah`. This uses the same cover, counts, passage labels, progress, undo, ×, reset and two fixed heights as morning/evening. The sky follows the current prayer bounds (fixed clock hours without a saved place), including manual readings. The folded done note is `أَتْمَمْتَ وِرْدَكَ ✓`, with no promise of a next time; the open done row and finale keep the shared closing du’a and the hint `/athkar after-salah reset → to read again`.
+
+One slot holds the current prayer's reading (`pray`, `at`), or the general reading with both null. A different prayer time clears counts, done and hidden state and starts on the cover. There is no history. The Fajr day boundary (05:00 without prayer times) also clears it; old days missing the slot are tolerated. The list is authored in Hisn al-Muslim chapter 25 ([hisn:66](https://sunnah.com/hisn:66)–[72](https://sunnah.com/hisn:72)); general readings use base counts, while Fajr/Maghrib carry their specified extras.
+
+Prayer tracking depends on a saved place, independently of footer visibility (`/salah show off`). The offer starts at `salahLast.at + IN_MS`, using the shared athan duration (currently 15 minutes), even on terminal or when the athan card is disabled, closed early or never drawn. A timer only wakes the drawing at this start; there is no end timer. Once offered, morning/evening wait until after-salah is done, hidden or replaced by the next prayer. Done/× immediately returns to the automatic morning/evening set. A new prayer clears the slot, discards a manual after-salah choice and starts the wait again; a manual morning/evening choice keeps its existing hold. No prayer times means no automatic offer; manual access remains available.
+
+The desktop athan action **ابدأ أذكار بعد الصلاة** hands off immediately: salah closes its moment and writes `salahAfterSalahStart` with that prayer's identity. Athkar checks it against `salahLast`, unhides/resumes the reading (restarts if completed), and opens it lit, past the cover; the next count counts. The signal overrides a manual choice, survives a module reload for the same prayer, and cannot carry over to another prayer. The automatic offer after the normal deadline starts on the usual folded cover. The sky, reader layout and counting paths are unchanged; no setting or demo scene is added.
 
 ## Looks
 
 | Look | Surface | Drawn as |
 | --- | --- | --- |
-| Sky (default) | desktop | A sky that follows the clock: dawn 4–6, sunrise 6–8, clear day 8–17, rose 17–18, blue hour 18–19, crescent 19–4. Rich motion: stars, sun, clouds, birds, shooting stars. Faded until clicked, then in color. |
+| Sky (default) | desktop | A sky that follows saved prayer times (see below); without them, exactly dawn 4–6, sunrise 6–8, clear day 8–17, rose 17–18, blue hour 18–19, crescent 19–4. Rich motion: stars, sun, clouds, birds, shooting stars. Faded until clicked, then in color. |
 | Frame | both (the only look in the terminal) | A main-color frame that breathes while reading. |
+
+With a saved salah place, the sky uses absolute prayer timestamps, independently of the selected reading: dawn from Fajr to Sunrise, sunrise until Sunrise + 2 hours, day until Maghrib − 1 hour, rose until Maghrib, blue hour until the earlier of Maghrib + 1 hour and Isha, then crescent until the next Fajr (including after midnight before Fajr). Sunrise comes from the same calculation and adjustments as salah. If it is missing, nonfinite or not strictly between Fajr and Maghrib, use Fajr + 1.5 hours.
+
+`skyBoundaries` clamps sunrise into Fajr–Maghrib, rose's start between sunrise and Maghrib, and day's start to at most rose's start. Short days can have zero-length phases, never negative ones. Blue hour ends no earlier than Maghrib and no later than next Fajr; nonfinite Isha uses Maghrib + 1 hour. The existing minute redraw recalculates the sky from fresh bounds, so transitions appear within one minute. Fixed-sky demo scenes keep their authored skies; the after-salah demo uses the current sky through the same selector.
 
 On every sky the pill is the main color with a white number. Sunrise takes dark words; every other sky white.
 
 ## Demo path
 
 The shared `/muslim demo` connects a transient signal to this same feature-local starter through a demo-only setup hook. It passes no engine handle across files and writes no state. Started that way, it reports its end after its folded scene, so the next demo follows it.
+
+The `/salah demo` continuation uses these same builders and `demoStep`, with the real `listFor('afterSalah', reading)` Fajr list in a disposable reading (`pray: 'fajr'`). It shows three readings in order: `66-istighfar` (1.2s, counts every 200ms to three), `69-tasbih` (3.6s, 100ms to 33) and `70-ikhlas` (1.2s, 200ms to three). It skips the readings between them using the existing disposable-counts technique. Reading totals 6.0s, followed by the real `FINALE_MS` (3.2s) and a 1.2s folded done row: 10.4s total. The sky follows the current prayer bounds (fixed clock hours without a saved place) and uses the configured accent and desktop style; terminal uses Frame. There is no new drawing path, command or saved state.
+
+A demo-only command hook connects the `afterSalah` starter on the shared transient bus for both `/salah demo` and `/muslim demo`. Salah's start button, × or expiry closes its disposable athan and starts this continuation immediately. Athkar calls the supplied completion callback only after the folded done row, allowing salah to report its end to `/muslim demo`. A real athan waits until the continuation finishes, then returns untouched. Restarting the salah demo cancels the previous continuation. Demo input targets `athkar-demo` and cannot change the real reading, store or signals.
 
 `/athkar demo [sky|frame]` plays the real builders. Sky has eight scenes
 (33.2 seconds), with each of the six skies on a distinct reading scene:
@@ -90,7 +108,7 @@ Sky is desktop only; no-word playback uses the current style on desktop and
 Frame in the terminal. Another demo command restarts playback; there is no
 input handler, including for ×. It uses its own `athkar-demo` Client and a
 separate render hook even with athkar off; the real render only yields its
-place during playback. The desktop athan card keeps precedence. The demo
+place during playback. For standalone athkar previews, the desktop athan card keeps precedence. The demo
 never changes the real reading, view or timers and never writes settings,
 store or state. At the end the real band redraws normally. Scenes and timings
 are pure in `demo.ts`; marked blocks in `install.tsx` hold only the demo path.
@@ -110,7 +128,7 @@ are pure in `demo.ts`; marked blocks in `install.tsx` hold only the demo path.
 - On the cover, the next click opens the reading; it does not count either. After that, clicks count.
 - The cover lists no Esc key: the mod never receives Esc (see rule 4).
 - Click, Space or Enter counts. Right click or Backspace takes one back. ← next, → previous.
-- × hides the band for this period and keeps the reading. `/athkar` brings it back. `/athkar morning` · `evening` shows that period by the same cover and reading even outside its hours; the choice ends at ×.
+- × hides the band for this set (for the current prayer with after-salah) and keeps the reading. `/athkar` brings it back. `/athkar morning` · `evening` shows that period by the same cover and reading even outside its hours; the choice ends at ×.
 
 ## When it folds (collapse rules)
 
@@ -138,13 +156,14 @@ The terminal draws the question, muted line and two native text buttons through 
 
 ## End
 
-- The finale (desktop): falling stars, and the end verse ﴿رَبَّنَا تَقَبَّلْ مِنَّا إِنَّكَ أَنتَ السَّمِيعُ الْعَلِيمُ﴾ rising centered with — البقرة ١٢٧, at a fixed 18px.
-- After it, the done row: the verse and — البقرة ١٢٧ on the right at 14px, like the reading (smaller only if the window is too narrow), the reset hint (`/athkar morning reset → to read again`) on the left.
-- The end verse is always in the words' face (Tajawal), in the finale and the done row alike.
+- The finale (desktop): falling stars, and «تَقَبَّلَ اللَّهُ 🤲» rising centered at a fixed 18px. This short du’a greets the reader on finishing; it is not one of the authored athkar and has no source citation. The chosen closing greeting is an explicit exception to the shared no-emoji voice rule.
+- After it, the done row: the same closing greeting, without a citation, on the right at 14px, like the reading (smaller only if the window is too narrow), the reset hint (`/athkar morning reset → to read again`) on the left.
+- The closing du’a is always in the words' face (Tajawal), in the finale and the done row alike.
 - Its color: on a sky, the words' color (white or dark, as the sky's text); on Frame, the main color (the frame's and the progress line's).
 - The open done row's progress line is full with a ✓ in the pill at its head, so it reads as finished, not as one more thikr.
+- Widths use the embedded Tajawal font for the words and a separate emoji allowance; tashkeel has no advance width. The terminal keeps 🤲, strips tashkeel and applies the shared Arabic mode. Its native `Text` handles wrapping/truncation and the emoji’s two-cell width; no string-length padding is used for the closing row.
 - The hint marks the command apart from what it does with an arrow: `/athkar morning reset → to read again`.
-- Faded, the done row folds to one slim row: أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الْمَسَاءُ after the morning, أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الصَّبَاحُ after the evening, no verse. The finale (falling stars) never folds.
+- Faded, the done row folds to one slim row: أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الْمَسَاءُ after the morning, أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الصَّبَاحُ after the evening, no closing greeting. The finale (falling stars) never folds.
 
 ## Limits of the mod API
 
@@ -158,3 +177,24 @@ The terminal draws the question, muted line and two native text buttons through 
 - [ ] Only two heights ever show: open (77px) and folded (24px).
 - [ ] Tests on `terminal` and `desktop`; the terminal shows no tashkeel, the desktop follows `/muslim tashkeel`.
 - [ ] Religious text unchanged from `data.ts`.
+
+## Period boundaries
+
+With a saved salah place, morning runs from Fajr inclusive to Maghrib exclusive, and evening until the next Fajr. The saved day turns over at Fajr in the place’s time zone; after midnight before Fajr retains the previous evening. Without a place, retain 05:00–17:00 morning and 17:00–05:00 evening.
+
+The whole day at a glance: the period, the sky and the after-salah offer, with prayer times and without.
+
+| From | Until | Period | Sky | Without prayer times |
+| --- | --- | --- | --- | --- |
+| Fajr | Sunrise | morning | dawn | 04:00–06:00 dawn; morning from 05:00 |
+| Sunrise | Sunrise + 2 h | morning | sunrise | 06:00–08:00 sunrise |
+| Sunrise + 2 h | Maghrib − 1 h | morning | day | 08:00–17:00 day |
+| Maghrib − 1 h | Maghrib | morning | rose | 17:00–18:00 rose; evening from 17:00 |
+| Maghrib | min(Maghrib + 1 h, Isha) | evening | blue hour | 18:00–19:00 blue hour |
+| that | next Fajr | evening (after midnight: the day before) | crescent | 19:00–04:00 crescent; day turns at 05:00 |
+
+After each obligatory prayer, the after-salah reading takes the band at prayer + 15 min (or at once from the athan card's start action) until it is done, closed or the next prayer comes; then the row's period returns. Without prayer times there is no offer. Sunrise falls back to Fajr + 1.5 h when missing. On a short day the phases are cut, not scaled: dawn always keeps Fajr to Sunrise; the day phase goes first, then the sunrise phase shortens, and only on a very short day does rose start later than Maghrib − 1 h (see `skyBoundaries` above). Demos keep their authored skies.
+
+Salah owns a read-through `salahAthkarTimes` state value: each read calculates current bounds and date keys from the configured place, method and adjustments. It is available before the first ticker publication and cannot retain yesterday’s bounds at midnight or after a settings reload. Athkar reads it for commands, input and drawing. A one-shot redraw wakes at the next Fajr/Maghrib; the existing minute ticker refreshes prayer-based or fixed-hour skies and handles clock changes. Manual choices, after-salah precedence and demos keep their rules.
+
+Prayer bounds reuse a pure daily calculation cache, refreshed on the first read after the place’s date changes; a settings reload drops the cache.

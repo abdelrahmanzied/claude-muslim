@@ -1,15 +1,18 @@
 // DEMO BEGIN: transient signals, no engine API or persistent state.
 export type DemoFeature = 'thikr' | 'athkar' | 'salah'
-const starters = new Map<DemoFeature, () => string | Promise<string>>()
+type DemoPart = DemoFeature | 'afterSalah'
+type Starter = (finished?: () => void) => string | Promise<string>
+const starters = new Map<DemoPart, { start: Starter; cancel?: () => void }>()
 let failure: (() => void) | undefined
 
 // Each feature captures its own hook's $; the shared bus never receives $.
 // The salah starter is shared with `/salah demo`, which previews fixed Fajr.
-export const connectDemo = (feature: DemoFeature, start: () => string | Promise<string>) => { starters.set(feature, start) }
-export const startDemo = async (feature: DemoFeature) => {
+export const connectDemo = (feature: DemoPart, start: Starter, cancel?: () => void) => { starters.set(feature, { start, cancel }) }
+export const cancelDemo = (feature: DemoPart) => { starters.get(feature)?.cancel?.() }
+export const startDemo = async (feature: DemoPart, finished?: () => void) => {
   const start = starters.get(feature)
   if (!start) throw new Error(`Demo not connected: ${feature}`)
-  await start()
+  await start.start(finished)
 }
 export const onDemoFailure = (failed?: () => void) => { failure = failed }
 export const failDemo = () => { failure?.() }

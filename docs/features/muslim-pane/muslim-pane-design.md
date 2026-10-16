@@ -1,6 +1,6 @@
 # Muslim pane — design
 
-The Muslim pane's visual means and layout, following [DESIGN.md](../../DESIGN.md). Behavior is in [muslim-pane.md](muslim-pane.md).
+The Muslim pane's visual means and layout, following [DESIGN.md](../../../DESIGN.md). Behavior is in [muslim-pane.md](muslim-pane.md).
 
 ## Visual means
 

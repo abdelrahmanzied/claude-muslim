@@ -4,7 +4,7 @@ import { expect, test } from 'claude-code/testing'
 import { ATHKAR } from '../../src/features/athkar/data.ts'
 import { arabicDigits, dayOf, END, END_NOTE, isAct, emptyReading, listFor, overall, periodAt, readDay, shouldAdvance, skyAt, step, textOf } from '../../src/features/athkar/logic.ts'
 import type { Reading } from '../../src/features/athkar/logic.ts'
-import { bandHeight, bandSvg, closeArea, coverFit, doneFit, finaleSize, fitOf, pixelOf } from '../../src/features/athkar/band.ts'
+import { bandHeight, bandSvg, closeArea, coverFit, doneFit, endWidth, finaleSize, fitOf, pixelOf } from '../../src/features/athkar/band.ts'
 import type { BandModel } from '../../src/features/athkar/band.ts'
 import { SIZE_DEFAULT, readOptions } from '../../src/config.ts'
 import { hitsFor } from '../../src/features/athkar/install.tsx'
@@ -29,19 +29,22 @@ test('a stored day from another day starts fresh', async () => {
   expect(readDay('junk', '2026-10-10').day).toBe('2026-10-10')
 })
 
-test('93 is merged into 92; each period has its own thikrs and wording', async () => {
-  expect(ATHKAR.some(t => t.id === '93')).toBe(false)
+test('92 is the evening, 93 the morning; each period has its own thikrs and wording', async () => {
   const morning = listFor('morning').map(t => t.id)
   const evening = listFor('evening').map(t => t.id)
   expect(morning).toContain('94')
   expect(morning).not.toContain('97')
   expect(evening).toContain('97')
   expect(evening).not.toContain('94')
+  expect(morning).toContain('93')
+  expect(morning).not.toContain('92')
+  expect(evening).toContain('92')
+  expect(evening).not.toContain('93')
   const t77 = ATHKAR.find(t => t.id === '77')!
   expect(textOf(t77, 'evening').startsWith('أَمْسَيْنَا')).toBe(true)
-  // Counts come only from the data: 91 and 92 a hundred, 98 ten.
+  // Counts come only from the data: 91 and 93 a hundred, 92 and 98 ten.
   expect(ATHKAR.some(t => 'choices' in t)).toBe(false)
-  expect(['91', '92', '98'].map(id => ATHKAR.find(t => t.id === id)!.times)).toEqual([100, 100, 10])
+  expect(['91', '92', '93', '98'].map(id => ATHKAR.find(t => t.id === id)!.times)).toEqual([100, 10, 100, 10])
 })
 
 test('counting fills the thikr, moves on past its end, and back undoes', async () => {
@@ -263,7 +266,7 @@ test('the basmala stays unnumbered and Ayat al-Kursi carries its verse number', 
   expect(kursi.endsWith('الْعَظِيمُ (٢٥٥)')).toBe(true)
 })
 
-test('the done row: the verse and its citation on one line, the hint going first, then the verse shrinks', async () => {
+test('the done row: the greeting without a citation, with the hint yielding first', async () => {
   const hint = '/athkar evening reset → to read again'
   const wide = doneFit(END, hint, 860)
   expect(wide.size).toBe(14)
@@ -272,27 +275,34 @@ test('the done row: the verse and its citation on one line, the hint going first
     const fit = doneFit(END, hint, width)
     expect(fit.size).toBeLessThanOrEqual(14)
     expect(fit.size).toBeGreaterThanOrEqual(9)
-    // The hint is dropped before the verse shrinks.
+    // The hint is dropped before the greeting shrinks.
     if (fit.hint === '') expect(doneFit(END, '', width).size).toBe(fit.size)
     const html = bandSvg(model({ phase: 'done', isActive: true, end: END, endHint: hint, width }))
     expect(html).toContain(`--ds:${fit.size}px`)
-    expect(html).toContain('class="cite"')
+    expect(html).toContain(`<span class="big">${END}</span>`)
+    expect(html).not.toContain('class="cite"')
+    expect(html).not.toContain('—')
+    expect(html).not.toContain('البقرة')
     expect(html).toContain('white-space: nowrap')
   }
-  expect(doneFit(END, hint, 380).hint).toBe('')
+  expect(doneFit(END, hint, 200).hint).toBe('')
+  expect(doneFit(END.repeat(4), hint, 200).size).toBeLessThan(14)
   expect(doneFit(END, hint, 100).size).toBeGreaterThanOrEqual(9)
 })
 
-test('the finale: the verse and its citation, centered, in the words face, a fixed 18px', async () => {
+test('the finale: the closing greeting without a citation, centered, a fixed 18px', async () => {
   const html = bandSvg(model({ phase: 'done', end: END, finaleMs: 500 }))
   const rise = html.slice(html.indexOf('<span class="rise-msg"'))
-  expect(rise).toContain('رَبَّنَا')
-  expect(rise).toContain('البقرة')
+  expect(END).toBe('تَقَبَّلَ اللَّهُ 🤲')
+  expect(rise).toContain(`>${END}</span>`)
+  expect(rise).not.toContain('class="cite"')
+  expect(rise).not.toContain('—')
+  expect(rise).not.toContain('البقرة')
   expect(html).toMatch(/\.rise-msg \{[^}]*left: 50%[^}]*font-family: var\(--font-band/)
   for (const width of [300, 500, 860, 1400]) expect(finaleSize(END, width)).toBe(18)
 })
 
-test('the end verse takes the words color on a sky, the main color on Frame', async () => {
+test('the closing greeting takes the words color on a sky, the main color on Frame', async () => {
   const sky = bandSvg(model({ phase: 'done', isActive: true, end: END, style: 'sky' }))
   expect(sky).toMatch(/\.done-row \.big \{[^}]*color: var\(--b-ink\)/)
   expect(sky).toMatch(/\.rise-msg \{[^}]*color: var\(--b-ink\)/)
@@ -327,4 +337,13 @@ test('athkar takes the shared main color without changing body or sky colors', (
       expect({ ...blue, ring: orange.ring }).toEqual(orange)
     }
   }
+})
+
+// Width evidence from the embedded font, including the platform emoji allowance.
+test('closing width ignores tashkeel and reserves the emoji separately', () => {
+  const near = (a: number, b: number) => expect(Math.abs(a - b)).toBeLessThan(1e-3)
+  near(endWidth(END, 16), (60.432 + 24) * 1.04)
+  expect(endWidth('تقبل الله 🤲', 16)).toBe(endWidth(END, 16))
+  near(endWidth(END, 16) - endWidth('تَقَبَّلَ اللَّهُ ', 16), 24 * 1.04)
+  near(endWidth(END, 18), endWidth(END, 16) * 18 / 16)
 })

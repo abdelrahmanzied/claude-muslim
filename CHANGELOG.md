@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Athkar: the end question («أتممتَ الأذكار؟») also covers athkar after salah, and the Muslim pane's athkar card follows the set the band shows by itself (morning, evening or after salah), with prayer-based periods. The Muslim pane docs move to `docs/features/muslim-pane/`, like every feature.
+
 - Muslim pane: cards use a 12px corner radius like Claude Desktop's own cards (was 19px); the next-prayer row inside uses 8px.
 
 - Muslim pane: the next-prayer countdown is Arabic with Arabic digits, like the time above it (`بعد ٦ س ٥٥ د`, `بعد ١٢ د`, `بعد أقل من دقيقة`), instead of `in 6h 55m`.
@@ -63,6 +65,31 @@
 - Fix Muslim pane Open full player: reconnect Quran without waiting for the footer and open/raise its existing `quran` tab with a focus request in the shared Desktop mod-pane dock before queued catalog/recording work. Keep Muslim open and avoid a second initialization open; handle unplaced results. Add regression coverage for first/repeated opens, coarse pointers, missing catalog/footer and pending preparation.
 
 - Fix Muslim pane wheel/trackpad jitter over the Quran reciter and surah rows: skip Desktop scroll redraws when the body cannot move, and remove unused Client size polling that redrew the picture on changing row measurements. Real overflow still scrolls through the host; add pure scroll and engine regression tests.
+
+- Athkar: «لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ…» follows Hisn al-Muslim 92 and 93: 100 times in the morning (93) and 10 times in the evening (92), instead of 100 in both.
+- Athkar after salah: remove Hisn al-Muslim 73, «اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا…», from the Fajr list (the morning athkar keep their own copy). Fajr now has 11 items; the `/salah demo` after-salah story drops its `73` scene and ends on the last real item, so it is 10.4 s (6.0 s readings, 3.2 s finale, 1.2 s folded).
+
+- Athkar after salah: the order now follows Sheikh Ibn Baz's fatwa (https://binbaz.org.sa/fatwas/9879): istighfar, salam, 67, 68, the ten tahlils after Fajr and Maghrib, tasbih and tahlil, Ayat al-Kursi, then the three Quls. Text and counts are unchanged.
+
+- Add Hisn al-Muslim 96, «أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ» 100 times, to the morning athkar only (the book says 100 times during the day), after 95 and before 97.
+
+- `/athkar help`: morning, evening and after-salah share one row, `/athkar morning` · `evening` · `after-salah`, each with what it opens.
+
+- Rule: every typed command, subcommand and option is in its feature's help table in the same commit, and a name is the same in the command, the code and the docs.
+
+- Docs: athkar design has one table of the whole day: period, sky and after-salah offer, with prayer times and without.
+
+- Follow saved salah times for the desktop athkar sky, using real Sunrise and Isha with a sunrise fallback and ordered short-day phases; keep the exact fixed sky hours without prayer times.
+
+- Follow Fajr/Maghrib for morning/evening athkar and turn the saved day at Fajr when a salah place is set; keep 05:00/17:00 without prayer times.
+
+- Replace the morning, evening and after-salah reader’s closing verse with «تَقَبَّلَ اللَّهُ 🤲», a short greeting outside the authored athkar, without a citation. Keep the emoji in the terminal and update desktop width metrics.
+
+- Docs: each feature now has its own folder `docs/features/<feature>/` (`<feature>.md`, `<feature>-design.md`, and `<feature>-content.md` for the religious text it shows); `docs/content.md` is split into per-feature content files. Terminal Arabic (the shared guide and the `/muslim terminal-arabic` check) is one file, `docs/terminal/terminal-arabic.md`, since it is a platform doc and not a feature.
+
+- Extend `/salah demo` from the athan moment into a fast Fajr after-salah reading using the real reader: 6.0 s of counts, the full 3.2 s finale and 1.2 s folded done. The demo card shows its start button; start, × and expiry all continue to athkar. `/muslim demo` waits for the whole flow, with no saved-state changes.
+
+- Add Athkar after salah to the shared reader, with prayer-specific counts, one current reading slot, manual commands and an automatic offer from prayer time plus the shared athan card duration (currently 15 minutes) when a place is saved, including with `/salah show off`. The desktop athan text action «ابدأ أذكار بعد الصلاة ←», white beside × on the left and accented on hover, closes the card and starts that prayer's reading immediately; × waits for the original deadline. The offer stays until done, hidden or the next prayer, with no expiry timer. Prayer tracking continues without the footer, countdown or athan.
 
 - `/athkar morning` · `evening` opens that period's reader above the prompt even outside its hours, un-hides it, and counts to it; the choice holds for the session until the other period is picked or × hides the band. A finished period replies with its reset hint. `reset` is unchanged and the help row says both.
 
