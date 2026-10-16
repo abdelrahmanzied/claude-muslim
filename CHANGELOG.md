@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Quran pickers open as full pages in our drawn style with our search and every matching row. Desktop scrolls the pane body natively; the plugin never holds or pulls the window back, removing the overlay wheel shake. Picking or «رجوع» returns to the unchanged card from its top. The reciter list tightens its rows so all 155 fit the host's 4096px Svg limit on one page instead of failing to draw; a list too long even then shows pages with «السابق» and «التالي».
+
 - Muslim pane settings: label with an Arabic description under it, switches beside their label, centered color dots, the terminal-arabic command as a one-press copy button, no subheader, switches that flip at once (a denied write clears only its own pending value), a 28px gap between rows with no space left by a hidden stepper line, a «تم النسخ ✓» confirmation for 2 seconds after the copy button, 20px settings tab icons, a card only as tall as its visible rows, and no Quran tab (its reciter and repeat live in `/quran` and the Quran pane). The pane title is «☾ Muslim». The end-of-turn switch left the pane settings (it only changes a terminal line; `/thikr end` still does). The athkar settings preview box is gone. The Quran «۞» chip left the Desktop footer: it now holds only ☾ Muslim and the prayer line. The color dots sit on their label's line, like the switches. The Quran card's Open full player button reads «افتح المصحف». The Quran pane no longer shakes while scrolling: wheel ticks that cannot move the window are not redrawn, and the size report no longer redraws the picture (the open list still scrolls).
 
 - Muslim pane: the Athan label and other icon rows sit on their icon's line, and settings rows have more space between label, controls, hint and the next row.

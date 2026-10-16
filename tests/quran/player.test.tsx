@@ -2,7 +2,7 @@ import type { QuranPlaying, QuranRepeat } from '../../types/index.d.ts'
 import type { On, HttpResponse } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 import { controls, type CardModel } from '../../src/features/quran/card.ts'
-import { PANE_HEIGHT, CARD_TOP, SEGMENT_EXTRA, fieldTop, overlayTop, type List, type PaneModel } from '../../src/features/quran/pane.ts'
+import { PANE_HEIGHT, CARD_TOP, SEGMENT_EXTRA, fieldTop, LIST_ROWS_TOP, LIST_BACK, type List, type PaneModel } from '../../src/features/quran/pane.ts'
 import type { Mounted } from 'claude-code/testing'
 import { CATALOG_MS } from '../../src/features/quran/catalog.ts'
 import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
@@ -14,9 +14,12 @@ import { encodeBase64 } from '../../src/features/quran/segment-mp3.ts'
 const run = (args: string) => ({ command: 'quran', args, origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } })
 const pane = (surface: 'desktop' | 'terminal') => ({ plugin: 'muslim', component: 'Pane' as const, requestId: 'quran', surface, props: { title: 'القرآن الكريم', isFocused: false, bodyColumns: 80, placement: 'inline' as const, scroll: { offset: 0, bodyRows: 20 }, view: {} } })
 type Ui = Mounted<'desktop' | 'terminal', 'Pane'>
-async function clickPixel(ui: Ui, x: number, y: number, height = PANE_HEIGHT) {
-  await ui.resize({ columns: 50, rows: 32, in: 'quran-card' })
-  const fine = { x: x * 50 / 420, y: y * 32 / height }
+async function clickPixel(ui: Ui, x: number, y: number, height?: number) {
+  const svg = (await ui.find({ in: 'quran-card', type: 'Svg' }))!.props
+  height ??= Number(svg.height ?? String(svg.source).match(/height="(\d+)"/)![1])
+  const rows = Math.ceil(height / 19)
+  await ui.resize({ columns: 50, rows, in: 'quran-card' })
+  const fine = { x: x * 50 / 420, y: y * rows / height }
   await ui.pointer({ in: 'quran-card', type: 'down', button: 'left', x: Math.floor(fine.x), y: Math.floor(fine.y), fine })
 }
 async function openList(ui: Ui, list: List) { await clickPixel(ui, 210, fieldTop(list) + 20) }
@@ -751,15 +754,16 @@ test('session start discards stale playing state and does not resume or start a 
   expect(timers).toEqual([])
 })
 
-test('Client dropdown searches all recordings/surahs, scrolls with keys and collapses on picking', async ($, on) => {
+test('Client list page searches all recordings/surahs, highlights with keys and collapses on picking', async ($, on) => {
   const many = Array.from({ length: 155 }, (_, i) => ({ ...fixtureCatalog.reciters[0]!, key: `${i + 1}:20`, name: `Fixture reciter ${i + 1}`, label: `Fixture reciter ${i + 1}` }))
   const clock = setup(on, { 'quran.catalog': { ...fixtureCatalog, reciters: many }, 'quran.reciter': '1:20' })
   const played = audio(on, clock)
   const mounted = await $.ui.mount(pane('desktop'))
   await openList(mounted, 'reciter')
   const picture = async () => String((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source)
-  expect((await picture()).match(/role="option"/g)).toHaveLength(8)
-  expect(await picture()).toContain('المزيد')
+  // 155 reciters fit one 4096px Svg with tightened rows: no pages.
+  expect((await picture()).match(/role="option"/g)).toHaveLength(155)
+  expect(await picture()).not.toContain('aria-label="التالي"')
   for (let i = 0; i < 10; ++i) await mounted.key({ in: 'quran-card', key: 'down' })
   expect(await picture()).toContain('Fixture reciter 11')
   expect(clock.store['quran.reciter']).toBe('1:20')
@@ -768,15 +772,15 @@ test('Client dropdown searches all recordings/surahs, scrolls with keys and coll
   expect(await picture()).toContain('Fixture reciter 155')
   await mounted.key({ in: 'quran-card', key: 'return' })
   expect(clock.store['quran.reciter']).toBe('155:20')
-  expect(await picture()).not.toContain('class="dropdown"')
+  expect(await picture()).not.toContain('class="list-page"')
   await pickIn(mounted, 'surah', '١١٤')
   expect(clock.state.quranPlaying?.surah).toBe(114)
-  expect(await picture()).not.toContain('class="dropdown"')
+  expect(await picture()).not.toContain('class="list-page"')
   expect(await picture()).toContain('١١٤')
   await openList(mounted, 'surah'); await typeIn(mounted, 'missing')
   expect(await picture()).toContain('لا توجد نتائج')
-  await clickPixel(mounted, 3, 3)
-  expect(await picture()).not.toContain('class="dropdown"')
+  await clickPixel(mounted, LIST_BACK.x + 20, LIST_BACK.y + 15)
+  expect(await picture()).not.toContain('class="list-page"')
   await mounted.post({ act: 'key', key: 'return' }, { in: 'quran-card' })
 })
 test('/muslim Quran row uses this terminal mode and remembered recording', async ($, on) => {
@@ -1000,106 +1004,54 @@ for (const key of ['right', 'left']) test(`Client ${key} aborts the old signal b
   await mounted.post({ act: 'key', key: 'return' }, { in: 'quran-card' })
 })
 
-test('whole pane dropdown toggles on field click, picks rows, ignores invalid picks and closes on reported focus loss', async ($, on) => {
+test('whole pane list page opens, returns, picks rows, ignores invalid picks and closes on reported focus loss', async ($, on) => {
   const clock = setup(on)
   const played = audio(on, clock)
   on('ui.focus', async () => ({}))
   const mounted = await $.ui.mount(pane('desktop'))
   const picture = async () => String((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source)
   await openList(mounted, 'surah')
-  expect(await picture()).toContain('class="dropdown"')
-  await openList(mounted, 'surah')
-  expect(await picture()).not.toContain('class="dropdown"')
+  expect(await picture()).toContain('class="list-page"')
+  await clickPixel(mounted, LIST_BACK.x + 20, LIST_BACK.y + 15)
+  expect(await picture()).not.toContain('class="list-page"')
   await openList(mounted, 'surah')
   await typeIn(mounted, '١٨')
   await mounted.key({ in: 'quran-card', key: 'backspace' })
   expect(await picture()).toContain('الفاتحة')
   await mounted.key({ in: 'quran-card', key: '٨' })
-  await clickPixel(mounted, 210, overlayTop('surah') + 56 + 17)
+  await clickPixel(mounted, 210, LIST_ROWS_TOP + 17)
   expect(clock.state.quranPlaying?.surah).toBe(18)
-  expect(await picture()).not.toContain('class="dropdown"')
+  expect(await picture()).not.toContain('class="list-page"')
   await mounted.post({ act: 'pick', list: 'reciter', value: '999:999' }, { in: 'quran-card' })
   await mounted.post({ act: 'pick', list: 'surah', value: '115' }, { in: 'quran-card' })
   expect(played).toHaveLength(1)
   await openList(mounted, 'reciter')
   await $.ui.focus({ component: 'Pane', requestId: 'quran', origin: { kind: 'person' } })
-  expect(await picture()).not.toContain('class="dropdown"')
+  expect(await picture()).not.toContain('class="list-page"')
   await $.command.run(run('stop'))
 })
 
-test('Client consumes wheel revisions once, scrolls both catalogs, and picks the visible filtered row', { plugins: [{
-  name: 'quran-wheel-test', tier: 'prepend', register(on) {
-    on('ui.render', { component: 'Pane', requestId: 'quran' }, async ($, e, next) => {
-      const tree = await next(e)
-      const wheel = await $.store.get('quran.testWheel') as number
-      if (tree?.type === 'Client') return { ...tree, props: { ...tree.props, props: { ...tree.props.props as PaneModel, wheel } } }
-      return tree
-    })
-  },
-}] }, async ($, on) => {
-  const reciters = Array.from({ length: 30 }, (_, i) => ({ ...fixtureCatalog.reciters[0]!, key: `${i + 1}:20`, label: `Fixture reciter ${i + 1}` }))
-  const clock = setup(on, { 'quran.catalog': { ...fixtureCatalog, reciters }, 'quran.reciter': '1:20', 'quran.testWheel': 0 })
+test('full list rows survive host redraws and keyboard navigation picks the highlighted match', async ($, on) => {
+  const reciters = Array.from({ length: 155 }, (_, i) => ({ ...fixtureCatalog.reciters[0]!, key: `${i + 1}:20`, label: `Fixture reciter ${i + 1}` }))
+  const clock = setup(on, { 'quran.catalog': { ...fixtureCatalog, reciters }, 'quran.reciter': '1:20' })
   audio(on, clock)
   const mounted = await $.ui.mount(pane('desktop'))
-  const picture = async () => (await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source as string
+  const picture = async () => String((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source)
   await openList(mounted, 'reciter')
-  clock.store['quran.testWheel'] = 10
+  const before = await picture()
+  expect(before.match(/role="option"/g)).toHaveLength(155)
   await mounted.redraw()
-  expect(await picture()).toContain('Fixture reciter 11')
-  expect(await picture()).not.toContain('Fixture reciter 19')
-  await mounted.redraw()
-  expect(await picture()).not.toContain('Fixture reciter 19')
-  await clickPixel(mounted, 210, overlayTop('reciter') + 60)
-  expect(clock.store['quran.reciter']).toBe('11:20')
+  expect(await picture()).toBe(before)
+  await clickPixel(mounted, 210, LIST_ROWS_TOP + 154 * 25 + 12)
+  expect(clock.store['quran.reciter']).toBe('155:20')
   await openList(mounted, 'surah')
-  clock.store['quran.testWheel'] = 26
-  await mounted.redraw()
+  expect((await picture()).match(/role="option"/g)).toHaveLength(114)
   await mounted.key({ in: 'quran-card', key: 'down' })
   await mounted.key({ in: 'quran-card', key: 'return' })
-  expect(clock.state.quranPlaying?.surah).toBe(18)
+  expect(clock.state.quranPlaying?.surah).toBe(2)
   await $.command.run(run('stop'))
-  await openList(mounted, 'surah')
-  await typeIn(mounted, '١٨')
-  clock.store['quran.testWheel'] = 100
-  await mounted.redraw()
-  await mounted.key({ in: 'quran-card', key: 'return' })
+  await pickIn(mounted, 'surah', '١٨')
   expect(clock.state.quranPlaying?.surah).toBe(18)
-  await $.command.run(run('stop'))
-})
-
-
-test('Client pointer capture drags both dropdowns, releases outside, and keeps search and picking intact', async ($, on) => {
-  const many = Array.from({ length: 155 }, (_, i) => ({ ...fixtureCatalog.reciters[0]!, key: `${i + 1}:20`, name: `Fixture reciter ${i + 1}`, label: `Fixture reciter ${i + 1}` }))
-  const clock = setup(on, { 'quran.catalog': { ...fixtureCatalog, reciters: many }, 'quran.reciter': '1:20' })
-  const played = audio(on, clock)
-  const mounted = await $.ui.mount(pane('desktop'))
-  const picture = async () => String((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source)
-  const pointer = async (type: 'move' | 'up', y: number) => {
-    const fine = { x: 28 * 50 / 420, y: y * 32 / PANE_HEIGHT }
-    await mounted.pointer({ in: 'quran-card', type, button: 'left', x: Math.floor(fine.x), y: Math.floor(fine.y), fine })
-  }
-  for (const list of ['reciter', 'surah'] as const) {
-    const max = list === 'reciter' ? 147 : 106
-    const top = overlayTop(list) + 56
-    await openList(mounted, list)
-    await clickPixel(mounted, 28, top + 12)
-    await pointer('move', top + 300)
-    expect(await picture()).toContain(`aria-valuenow="${max}"`)
-    await pointer('up', PANE_HEIGHT + 50)
-    await pointer('move', top)
-    expect(await picture()).toContain(`aria-valuenow="${max}"`)
-    await clickPixel(mounted, 28, top + 260)
-    await pointer('move', top - 50)
-    await pointer('up', -10)
-    expect(await picture()).toContain('aria-valuenow="0"')
-    await typeIn(mounted, list === 'reciter' ? '155' : '١٨')
-    expect(await picture()).not.toContain('role="scrollbar"')
-    await mounted.key({ in: 'quran-card', key: 'return' })
-    expect(await picture()).not.toContain('class="dropdown"')
-    if (list === 'reciter') expect(clock.store['quran.reciter']).toBe('155:20')
-    else expect(clock.state.quranPlaying?.surah).toBe(18)
-  }
-  expect(played).toHaveLength(1)
   await $.command.run(run('stop'))
 })
 

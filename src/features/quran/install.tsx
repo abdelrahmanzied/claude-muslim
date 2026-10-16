@@ -12,7 +12,7 @@ import { quranHelp } from './help.ts'
 import { isCardMessage, pointerPixels, pointerSlack } from './card.ts'
 import { connectPanelAction, connectQuran, type PanelQuran } from '../../shared/panel/signal.ts'
 import { skipPaneScroll } from '../../shared/scroll/index.ts'
-import { PANE_HEIGHT, arabicDigits, columnsWidth, isPickMessage, isPickerMessage, pickerWheelDelta, paneHit, paneModel, pickerInitial, paneHeight, type PickerMessage } from './pane.ts'
+import { arabicDigits, columnsWidth, isPickMessage, isPickerMessage, paneHit, paneModel, pickerInitial, paneHeight } from './pane.ts'
 
 const QURAN_DEBUG = false
 type Preparing = { moshafKey: string; surah: number; stage: 'checking' | 'preparing' }
@@ -28,7 +28,12 @@ const surahRef = { plugin: 'muslim', key: 'quranSurah' } as const
 const runtime: { controller?: AbortController; prefetch?: PrefetchTarget & { controller: AbortController; source: Promise<PreparedSegment> }; plan?: RecordingPlan; preparing?: Preparing; selectedSegment: number; reads?: unknown; timer?: { cancel(): void }; catalog?: Promise<Catalog>; queue: Promise<unknown>; probe: number; generation: number; stopEpoch: number; debugQueue: Promise<unknown>; cacheQueue: Promise<unknown>; clip?: { generation: number; surah: number } } = { selectedSegment: 0, queue: Promise.resolve(), probe: 0, generation: 0, stopEpoch: 0, debugQueue: Promise.resolve(), cacheQueue: Promise.resolve() }
 
 // ui.scroll has no surface field: `desktop` and `offset` are the pane's latest render.
-const view: { focusRevision: number; picker: PickerMessage | null; wheel: number; offset: number; wheelAt: number; desktop: boolean } = { focusRevision: 0, picker: null, wheel: 0, offset: 0, wheelAt: -Infinity, desktop: false }
+const view: { focusRevision: number; offset: number; desktop: boolean } = { focusRevision: 0, offset: 0, desktop: false }
+
+async function scrollStart($: EngineInterface): Promise<void> {
+  try { await $.ui.scroll({ in: 'quran', to: 'start' }) }
+  catch { /* A surface refusing the reveal must not prevent a pick or return. */ }
+}
 
 async function writeDebug($: EngineInterface, message: string): Promise<void> {
   try {
@@ -352,7 +357,6 @@ async function play($: EngineInterface, reciter: Reciter, surah: number, fromCom
   runtime.clip = { generation: token, surah }
   runtime.preparing = { moshafKey: reciter.key, surah, stage: 'checking' }
   runtime.selectedSegment = index
-  view.picker = null
   ++view.focusRevision
   if (runtime.plan?.moshafKey !== reciter.key || runtime.plan.surah !== surah || refresh) runtime.plan = undefined
   await $.state.set(surahRef, surah)
@@ -541,7 +545,7 @@ async function panelQuran($: EngineInterface): Promise<PanelQuran | null> {
   const surah = nearestAvailable(reciter.key, stored) ?? stored
   const playing = (await $.state.get(playingRef)).value
   const selection = trackSelection(reciter, surah)
-  const model = paneModel(raw, reciter, surah, playing, await $.clock.now(), 480, runtime.generation, view.focusRevision, false, null, 0, selection, repeatMode((await $.state.get(repeatRef)).value))
+  const model = paneModel(raw, reciter, surah, playing, await $.clock.now(), 480, runtime.generation, view.focusRevision, false, null, selection, repeatMode((await $.state.get(repeatRef)).value))
   const active = playing ? raw.reciters.find(r => r.key === playing.moshafKey) ?? reciter : reciter
   const index = playing?.segmentIndex ?? selection.selectedSegment
   return {
@@ -598,11 +602,13 @@ export const install = (on: On, options: Options) => {
   on('ui.message', { element: 'quran-card' }, async ($, e) => {
     if (e.surface !== 'desktop') return {}
     if (isPickerMessage(e.data)) {
-      if (e.data.focusRevision === view.focusRevision) view.picker = e.data
+      if (e.data.focusRevision === view.focusRevision) {
+        await scrollStart($)
+      }
       return {}
     }
     if (isPickMessage(e.data)) {
-      view.picker = null
+      await scrollStart($)
       const pickMessage = e.data
       // Dispatch surah picks before catalog refresh so known gaps do no network work.
       if (pickMessage.list === 'surah') {
@@ -635,7 +641,7 @@ export const install = (on: On, options: Options) => {
       const c = await chosen($, raw)
       const playing = (await $.state.get(playingRef)).value
       const selected = (await $.state.get(surahRef)).value ?? 1
-      const model = paneModel(raw, c, selected, playing, await $.clock.now(), message.width, runtime.generation, view.focusRevision, true, (await $.state.get(errorRef)).value, view.wheel, trackSelection(c, selected), repeatMode((await $.state.get(repeatRef)).value))
+      const model = paneModel(raw, c, selected, playing, await $.clock.now(), message.width, runtime.generation, view.focusRevision, true, (await $.state.get(errorRef)).value, trackSelection(c, selected), repeatMode((await $.state.get(repeatRef)).value))
       const pixels = pointerPixels(message.width, message.x, message.y, message.columns, message.rows, paneHeight(model))
       const hit = paneHit(model, pickerInitial(model), pixels.x, pixels.y, pointerSlack(message.width, message.columns, message.rows, paneHeight(model), message.coarse === true))
       buttonAction = hit?.act === 'control' ? hit.action : null
@@ -645,28 +651,16 @@ export const install = (on: On, options: Options) => {
     return {}
   }).catch(async ($) => { await fail($, new Error('Quran control unavailable')); return {} })
   on('ui.focus', { requestId: 'quran' }, async ($, e, next) => {
-    if (e.element !== 'quran-card') { view.picker = null; ++view.focusRevision; $.ui.invalidate('ui.render') }
+    if (e.element !== 'quran-card') { ++view.focusRevision; $.ui.invalidate('ui.render') }
     return next(e)
   })
   on('ui.close', { id: 'quran' }, async ($, e, next) => {
-    view.picker = null
     ++view.focusRevision
     const closed = await next(e)
     $.ui.invalidate('ui.render')
     return closed
   })
-  on('ui.scroll', { component: 'Pane', requestId: 'quran' }, async ($, e, next) => {
-    const delta = pickerWheelDelta(view.picker, e, view.focusRevision, view.offset)
-    // A wheel tick that cannot move the window (content fits, or at an edge) would
-    // redraw the whole picture for nothing: that redraw is the shaking. Keep it undrawn.
-    if (!delta) return skipPaneScroll(view.desktop, view.offset, e) ? {} : next(e)
-    const now = await $.clock.now()
-    if (now - view.wheelAt < 120) return {}
-    view.wheelAt = now
-    view.wheel += delta
-    $.ui.invalidate('ui.render')
-    return {}
-  })
+  on('ui.scroll', { component: 'Pane', requestId: 'quran' }, ($, e, next) => skipPaneScroll(view.desktop, view.offset, e) ? {} : next(e))
   on('ui.render', { component: 'Pane', requestId: 'quran' }, async ($, e) => {
     const { Box, Text } = $.ui.resolve(e)
     view.desktop = e.surface === 'desktop'
@@ -680,7 +674,7 @@ export const install = (on: On, options: Options) => {
     const reciter = await chosen($, raw)
     const stored = (await $.state.get(surahRef)).value ?? 1
     const surah = nearestAvailable(reciter.key, stored) ?? stored
-    const model = paneModel(raw, reciter, surah, playing, await $.clock.now(), columnsWidth(e.props.bodyColumns), runtime.generation, view.focusRevision, e.props.isFocused, error, view.wheel, trackSelection(reciter, surah), repeatMode((await $.state.get(repeatRef)).value))
+    const model = paneModel(raw, reciter, surah, playing, await $.clock.now(), columnsWidth(e.props.bodyColumns), runtime.generation, view.focusRevision, e.props.isFocused, error, trackSelection(reciter, surah), repeatMode((await $.state.get(repeatRef)).value))
     model.color = options.color
     return <Client key="quran-card" module="./client.tsx" width="100%" props={model} />
   }).catch(async ($, e) => {
