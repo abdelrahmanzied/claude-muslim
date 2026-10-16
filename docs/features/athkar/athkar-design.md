@@ -174,6 +174,19 @@ Counting by keys with the pointer on the band keeps it open until the pointer le
 
 With a saved salah place, morning runs from Fajr inclusive to Maghrib exclusive, and evening until the next Fajr. The saved day turns over at Fajr in the place’s time zone; after midnight before Fajr retains the previous evening. Without a place, retain 05:00–17:00 morning and 17:00–05:00 evening.
 
+The whole day at a glance: the period, the sky and the after-salah offer, with prayer times and without.
+
+| From | Until | Period | Sky | Without prayer times |
+| --- | --- | --- | --- | --- |
+| Fajr | Sunrise | morning | dawn | 04:00–06:00 dawn; morning from 05:00 |
+| Sunrise | Sunrise + 2 h | morning | sunrise | 06:00–08:00 sunrise |
+| Sunrise + 2 h | Maghrib − 1 h | morning | day | 08:00–17:00 day |
+| Maghrib − 1 h | Maghrib | morning | rose | 17:00–18:00 rose; evening from 17:00 |
+| Maghrib | min(Maghrib + 1 h, Isha) | evening | blue hour | 18:00–19:00 blue hour |
+| that | next Fajr | evening (after midnight: the day before) | crescent | 19:00–04:00 crescent; day turns at 05:00 |
+
+After each obligatory prayer, the after-salah reading takes the band at prayer + 15 min (or at once from the athan card's start action) until it is done, closed or the next prayer comes; then the row's period returns. Without prayer times there is no offer. Sunrise falls back to Fajr + 1.5 h when missing. On a short day the phases are cut, not scaled: dawn always keeps Fajr to Sunrise; the day phase goes first, then the sunrise phase shortens, and only on a very short day does rose start later than Maghrib − 1 h (see `skyBoundaries` above). Demos keep their authored skies.
+
 Salah owns a read-through `salahAthkarTimes` state value: each read calculates current bounds and date keys from the configured place, method and adjustments. It is available before the first ticker publication and cannot retain yesterday’s bounds at midnight or after a settings reload. Athkar reads it for commands, input and drawing. A one-shot redraw wakes at the next Fajr/Maghrib; the existing minute ticker refreshes prayer-based or fixed-hour skies and handles clock changes. Manual choices, after-salah precedence and demos keep their rules.
 
 Prayer bounds reuse a pure daily calculation cache, refreshed on the first read after the place’s date changes; a settings reload drops the cache.
