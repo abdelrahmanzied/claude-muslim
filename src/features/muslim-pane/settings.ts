@@ -78,11 +78,6 @@ export const EXTRA_TOP = CONTROL_TOP + CONTROL_H + 10
 export const EXTRA_ROW_H = EXTRA_TOP + CONTROL_H + ROW_GAP // 146
 export const ADJUST_TOP = 42
 export const ADJUST_NOTE_TOP = ADJUST_TOP + 6 * ROW_H
-// Athkar preview: a 12px muted label «معاينة» 14px under the style row's controls, then the 62px box 4px under it.
-export const PREVIEW_LABEL_H = 16
-export const PREVIEW_LABEL_TOP = SWITCH_ROW_H + ROW_H - ROW_GAP + 14 // 164
-export const ATHKAR_SAMPLE_TOP = PREVIEW_LABEL_TOP + PREVIEW_LABEL_H + 4 // 184
-export const SAMPLE_BOX_H = 62
 // The last row's gap is replaced by this much space above the card's own 12px bottom inset.
 export const BODY_END = 18
 const bodyH = (...rows: number[]): number => rows.reduce((n, h) => n + h, 0) - ROW_GAP + BODY_END
@@ -93,7 +88,7 @@ export const LIST_CHOICE_H = LIST_ROW_H - 12
 export const LIST_H = 548
 // Constants, per tab, for the tallest row set: «عرض الصلاة» and the speed row count their stepper line (EXTRA_ROW_H) here.
 export const MAIN_HEIGHTS = {
-  prayer: bodyH(EXTRA_ROW_H, SWITCH_ROW_H, ROW_H, ROW_H, ROW_H), athkar: ATHKAR_SAMPLE_TOP + SAMPLE_BOX_H + BODY_END,
+  prayer: bodyH(EXTRA_ROW_H, SWITCH_ROW_H, ROW_H, ROW_H, ROW_H), athkar: bodyH(SWITCH_ROW_H, ROW_H),
   thikr: bodyH(SWITCH_ROW_H, ROW_H, EXTRA_ROW_H), general: bodyH(ROW_H, SWITCH_ROW_H, ROW_H),
 } as const
 export const FACE_HEIGHTS = { methods: LIST_H, adjust: ADJUST_NOTE_TOP + 50, city: 310 } as const

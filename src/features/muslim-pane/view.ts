@@ -10,7 +10,7 @@ import {
   ATHAN_H, ATHAN_TOP, BAR_TOP, CITY_H, CITY_TOP, CONTROLS_CY, FIELD_H, HEAD_H, HEAD_TOP, KBTN_W, KROW_H, KROW_TOP, KFINISH_W, KROW_GAP, NX_H, NX_TOP, OPEN_H, OPEN_TOP,
   AVATAR_H, PAD, RECITER_TOP, TOP_H, TOP_Y, ROWS_TOP, ROW_H, SIDE, SURAH_TOP, TIMES_TOP, cardRects, type PaneAct,
 } from './layout.ts'
-import { SETTINGS_TOP, SETTINGS_BODY_TOP, TABS_H, TAB_INSET, LIST_CHOICE_H, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, EXTRA_TOP, ADJUST_NOTE_TOP, ATHKAR_SAMPLE_TOP, PREVIEW_LABEL_TOP, categoryTabs, settingsBody, type SettingRow, type SettingsTarget } from './settings.ts'
+import { SETTINGS_TOP, SETTINGS_BODY_TOP, TABS_H, TAB_INSET, LIST_CHOICE_H, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, EXTRA_TOP, ADJUST_NOTE_TOP, categoryTabs, settingsBody, type SettingRow, type SettingsTarget } from './settings.ts'
 import type { PaneModel } from './model.ts'
 import { avatar } from './avatar.ts'
 
@@ -181,7 +181,6 @@ const SETTINGS_CSS = `
 .list-choice small{display:block;margin-top:4px;font-size:12px;color:var(--muted);line-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.list-choice>span{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.list-choice.on{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}.list-choice.hot{background:var(--raised-2)}
 .settings-subtitle{position:absolute;right:16px;top:4px;font-size:14px}.settings-page{position:absolute;top:476px;left:94px;right:94px;text-align:center;font-size:12px;color:var(--muted)}
 .command-sheet{position:absolute;left:16px;right:16px;top:46px;font-size:12px;color:var(--muted)}.command-sheet p{direction:rtl;text-align:right;line-height:18px;height:126px;margin-bottom:16px}.command-sheet code{display:block;direction:ltr;text-align:left;font:12px/18px monospace;padding:12px;background:var(--raised);border-radius:9px;overflow-wrap:anywhere}
-.settings-sky{position:absolute;left:16px;right:16px;height:62px;border-radius:10px;padding:14px;display:flex;align-items:center;gap:10px;background:var(--raised);color:var(--text-2)}.settings-sky>span{line-height:1;transform:translateY(.12em)}.settings-sky.frame{background:transparent;border:1px solid var(--accent)}
 
 `
 const settingControl = (t: SettingsTarget, hover: PaneAct | null): string => {
@@ -205,7 +204,6 @@ const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
     let body=''
     if (s.face==='main') {
       body=b.rows.map(({row,y})=>settingRow(row,y)).join('')
-      if (s.category==='athkar') body+=`<span class="setting-hint" style="top:${PREVIEW_LABEL_TOP}px">معاينة</span><div class="settings-sky ${model.options.athkarStyle}" style="top:${ATHKAR_SAMPLE_TOP}px">${icon('sun')}<span>أذكار الصباح</span></div>`
     } else {
       const title=s.face==='methods'?'طريقة الحساب':s.face==='adjust'?'تعديل المواقيت':'اختيار المدينة'
       body=`<strong class="settings-subtitle">${title}</strong>`

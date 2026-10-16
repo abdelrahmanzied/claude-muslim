@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import { readAdjust, readOptions, writeAdjust } from '../../src/config.ts'
 import { cardRects, hitAt, hitOfCells, NO_FOLDS, paneHeight, settingsBoxes, type Enabled } from '../../src/features/muslim-pane/layout.ts'
-import { BODY_TOP, BODY_END, COPIED_LABEL, COPIED_MS, EXTRA_TOP, PREVIEW_LABEL_TOP, ATHKAR_SAMPLE_TOP, SAMPLE_BOX_H, copiedAt, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, CONTROL_H, ROW_GAP, ROW_H, SWITCH_ROW_H, EXTRA_ROW_H, pendingSwitches, optimisticOptions, TABS_H, SETTINGS_BODY_TOP, CATEGORIES, CLOSED_SETTINGS, DEFAULT_SETTINGS, FACE_HEIGHTS, LIST_SIZE, MAIN_HEIGHTS, METHOD_CHOICES, SETTINGS_TOP, categoryTabs, loadSettings, changeCategory, isSettings, settingsBody, settingsBodyHeight, settingsHeight, settingsOptions, settingsRows, terminalSettings, type SettingsModel, type SettingsState } from '../../src/features/muslim-pane/settings.ts'
+import { BODY_TOP, BODY_END, COPIED_LABEL, COPIED_MS, EXTRA_TOP, copiedAt, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, CONTROL_H, ROW_GAP, ROW_H, SWITCH_ROW_H, EXTRA_ROW_H, pendingSwitches, optimisticOptions, TABS_H, SETTINGS_BODY_TOP, CATEGORIES, CLOSED_SETTINGS, DEFAULT_SETTINGS, FACE_HEIGHTS, LIST_SIZE, MAIN_HEIGHTS, METHOD_CHOICES, SETTINGS_TOP, categoryTabs, loadSettings, changeCategory, isSettings, settingsBody, settingsBodyHeight, settingsHeight, settingsOptions, settingsRows, terminalSettings, type SettingsModel, type SettingsState } from '../../src/features/muslim-pane/settings.ts'
 import { paneModel } from '../../src/features/muslim-pane/model.ts'
 import { paneSvg } from '../../src/features/muslim-pane/view.ts'
 const OFF: Enabled = { athan:false,quran:false,canPrev:false,canNext:false,athkar:false }
@@ -246,16 +246,11 @@ test('a tab is only as tall as its visible rows when the options are known',()=>
   }
 })
 
-test('the athkar preview has a «معاينة» label above its box, in constants',()=>{
+test('the athkar tab is its two rows, with no preview box',()=>{
   const m=make('athkar'), model=paneModel({salah:null,quran:null,athkar:null},0,360,'orange'); model.settings=m
   const svg=paneSvg(model)
-  expect(svg).toContain(`<span class="setting-hint" style="top:${PREVIEW_LABEL_TOP}px">معاينة</span><div class="settings-sky`)
-  expect(svg).toContain(`class="settings-sky sky" style="top:${ATHKAR_SAMPLE_TOP}px"`)
-  const rows=settingsRows(m), end=rows.reduce((h,r)=>h+r.height,0)
-  expect(PREVIEW_LABEL_TOP).toBeGreaterThan(end-ROW_GAP)
-  expect(ATHKAR_SAMPLE_TOP).toBeGreaterThan(PREVIEW_LABEL_TOP+16)
-  expect(ATHKAR_SAMPLE_TOP+SAMPLE_BOX_H+BODY_END).toBe(MAIN_HEIGHTS.athkar)
-  expect(svg).not.toContain('معاينة</span><div class="settings-sky frame')
+  expect(svg).not.toContain('معاينة');expect(svg).not.toContain('settings-sky')
+  expect(MAIN_HEIGHTS.athkar).toBe(settingsRows(m).reduce((h,r)=>h+r.height,0)-ROW_GAP+BODY_END)
 })
 
 test('copy buttons confirm with «تم النسخ ✓» (no glyph) while their command was just copied',()=>{
