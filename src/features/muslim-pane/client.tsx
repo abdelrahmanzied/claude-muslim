@@ -36,7 +36,7 @@ const client: ClientModule<PaneModel, Local> = (props, surface) => {
   })
   surface.onKey(e => { surface.post({ act: 'key', key: e.key }) })
 
-  const svg: SvgProps = { source: paneSvg(model, local.hover), width: model.width, height: paneHeight(model.folds, model.settings.state), alt: paneAlt(model) }
+  const svg: SvgProps = { source: paneSvg(model, local.hover), width: model.width, height: paneHeight(model.folds, model.settings.state, model.settings.options), alt: paneAlt(model) }
   return <Box width="100%">{h('Svg', svg)}</Box>
 }
 export default client

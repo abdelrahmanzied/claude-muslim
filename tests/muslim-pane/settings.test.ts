@@ -5,7 +5,7 @@ import { BODY_TOP, BODY_END, COPIED_LABEL, COPIED_MS, EXTRA_TOP, PREVIEW_LABEL_T
 import { paneModel } from '../../src/features/muslim-pane/model.ts'
 import { paneSvg } from '../../src/features/muslim-pane/view.ts'
 const OFF: Enabled = { athan:false,quran:false,canPrev:false,canNext:false,athkar:false }
-const make = (category: SettingsState['category'], face: SettingsState['face']='main', page=0, raw: Record<string,string|undefined>={thikrSpeed:'60',salahShow:'720'}): SettingsModel => ({ ...DEFAULT_SETTINGS, state:{open:true,category,face,page}, options:settingsOptions(readOptions(raw)), quran:{selected:'r1',repeat:'off',split:true,reciters:Array.from({length:17},(_,i)=>({key:`r${i}`,label:`قارئ ${i}`,note:'مرتل'}))} })
+const make = (category: SettingsState['category'], face: SettingsState['face']='main', page=0, raw: Record<string,string|undefined>={thikrSpeed:'60',salahShow:'720'}): SettingsModel => ({ ...DEFAULT_SETTINGS, state:{open:true,category,face,page}, options:settingsOptions(readOptions(raw)) })
 
 test('settings heights are fixed per category and sub-face, independent of width or config',()=>{
   expect(settingsHeight(CLOSED_SETTINGS)).toBe(56)
@@ -18,8 +18,8 @@ test('settings heights are fixed per category and sub-face, independent of width
     expect(settingsHeight(m.state)).toBe(SETTINGS_BODY_TOP+MAIN_HEIGHTS[category]+12)
     expect(paneHeight(NO_FOLDS,m.state)-paneHeight(NO_FOLDS)).toBe(settingsHeight(m.state)-56)
   }
-  for(const face of ['methods','reciters','adjust','city'] as const){
-    const m=make(face==='reciters'?'quran':'prayer',face)
+  for(const face of ['methods','adjust','city'] as const){
+    const m=make('prayer',face)
     expect(settingsBodyHeight(m.state)).toBe(FACE_HEIGHTS[face])
   }
 })
@@ -27,18 +27,18 @@ test('settings heights are fixed per category and sub-face, independent of width
 test('a different tab resets its face and page; the selected tab is a no-op',()=>{
   const prayer=changeCategory({...CLOSED_SETTINGS,open:true},'prayer')
   expect(prayer.category).toBe('prayer')
-  const quran=changeCategory({...prayer,face:'methods',page:2},'quran')
-  expect(quran).toEqual({open:true,category:'quran',face:'main',page:0})
-  expect(changeCategory(quran,'quran')).toBe(quran)
-  const detail={...quran,face:'reciters' as const,page:2}
-  expect(changeCategory(detail,'quran')).toBe(detail)
-  expect(isSettings(quran)).toBe(true)
-  for(const invalid of [null,{}, {...quran,page:-1},{...quran,face:'methods'},{...quran,page:Infinity},{...quran,open:1},{...quran,category:null}]) expect(isSettings(invalid)).toBe(false)
+  const thikr=changeCategory({...prayer,face:'methods',page:2},'thikr')
+  expect(thikr).toEqual({open:true,category:'thikr',face:'main',page:0})
+  expect(changeCategory(thikr,'thikr')).toBe(thikr)
+  const detail={...prayer,face:'methods' as const,page:2}
+  expect(changeCategory(detail,'prayer')).toBe(detail)
+  expect(isSettings(thikr)).toBe(true)
+  for(const invalid of [null,{}, {...thikr,page:-1},{...thikr,face:'methods'},{...thikr,page:Infinity},{...thikr,open:1},{...thikr,category:null},{...thikr,category:'quran'}]) expect(isSettings(invalid)).toBe(false)
 })
 
 test('every active settings target is reachable with pixels, cells and coarse slack at supported widths',()=>{
   for(const width of [240,320,420,1200]) for(const [category] of CATEGORIES){
-    const faces:SettingsState['face'][]=category==='prayer'?['main','methods','adjust','city']:category==='quran'?['main','reciters']:['main']
+    const faces:SettingsState['face'][]=category==='prayer'?['main','methods','adjust','city']:['main']
     for(const face of faces) for(const page of [0,1,2,3]){
       const m=make(category,face,page), height=paneHeight(NO_FOLDS,m.state)
       for(const t of settingsBoxes(width,NO_FOLDS,m)){
@@ -62,8 +62,6 @@ test('closed settings and disabled controls have no body targets',()=>{
   expect(hitAt(320,40,r.settingsY+SETTINGS_BODY_TOP+40,OFF,0,0,NO_FOLDS,closed)).toBeNull()
   // The title remains the independent way to reopen the card.
   expect(hitAt(320,40,r.settingsY+20,OFF,0,0,NO_FOLDS,closed)).toBe('settings:fold')
-  const q=make('quran'); q.quran.split=false
-  expect(settingsBody(320,q).targets.some(t=>t.act==='settings:repeat:segment')).toBe(false)
   expect(settingsBody(320,m).targets.some(t=>t.act==='settings:salahShow:+')).toBe(false)
   const th=make('thikr')
   expect(settingsBody(320,th).targets.some(t=>t.act==='settings:thikrSpeed:+')).toBe(false)
@@ -71,16 +69,16 @@ test('closed settings and disabled controls have no body targets',()=>{
   expect(settingsBody(320,auto).targets.some(t=>t.act.startsWith('settings:thikrSpeed:')&&t.act.endsWith(':-'))).toBe(false)
 })
 
-test('list pages cover all twenty methods and the full reciter feed with a fixed height',()=>{
-  for(const category of ['prayer','quran'] as const){
-    const face=category==='prayer'?'methods':'reciters', m=make(category,face), keys:string[]=[]
+test('list pages cover all twenty methods with a fixed height',()=>{
+  {
+    const m=make('prayer','methods'), keys:string[]=[]
     for(let page=0;page<settingsBody(320,m).pages;page++){
       const body=settingsBody(320,{...m,state:{...m.state,page}})
       expect(body.choices.length).toBeLessThanOrEqual(LIST_SIZE)
       keys.push(...body.choices.map(c=>c.control.id))
       expect(settingsBodyHeight({...m.state,page})).toBe(548)
     }
-    expect(keys).toHaveLength(category==='prayer'?20:17)
+    expect(keys).toHaveLength(20)
     expect(new Set(keys).size).toBe(keys.length)
   }
   expect(METHOD_CHOICES[0]![0]).toBe('auto')
@@ -93,29 +91,28 @@ test('six signed offsets preserve the shared parse/write order and untouched val
   expect(writeAdjust(readAdjust('-120 1 2 3 4 90'))).toBe('-120 1 2 3 4 90')
 })
 
-test('terminal lists every config key and Quran controls, and all Arabic values use show',()=>{
+test('terminal lists every config key, and all Arabic values use show',()=>{
   const m=make('general');m.options.salahPlace={name:'مدينة',latitude:1,longitude:2,timeZone:'UTC',country:'ZZ'}
-  m.quran.selected='r1'
   const text=terminalSettings(m,s=>`SHOWN(${s})`).join('\n')
-  for(const command of ['/salah city','/salah show','/salah athan','/salah method','/salah adjust','/quran reciter','/quran repeat','/athkar on','/athkar style','/thikr on','/thikr mode','/thikr speed','/thikr end','/muslim color','/muslim tashkeel','/muslim terminal-arabic']) expect(text).toContain(command)
-  expect(text).toContain('SHOWN(مدينة)');expect(text).toContain('SHOWN(قارئ 1)')
+  for(const command of ['/salah city','/salah show','/salah athan','/salah method','/salah adjust','/athkar on','/athkar style','/thikr on','/thikr mode','/thikr speed','/thikr end','/muslim color','/muslim tashkeel','/muslim terminal-arabic']) expect(text).toContain(command)
+  expect(text).toContain('SHOWN(مدينة)');expect(text).not.toContain('/quran')
 })
 
-test('settings picture draws only the open category, escapes catalog text and keeps demo notes out',()=>{
+test('settings picture draws only the open category, escapes city text and keeps demo notes out',()=>{
   const model=paneModel({salah:null,quran:null,athkar:null},0,320,'orange')
-  model.settings=make('quran','reciters');model.settings.quran.reciters[0]!.label='<bad>&'
+  model.settings=make('prayer');model.settings.options.salahPlace={name:'<bad>&',latitude:1,longitude:2,timeZone:'UTC',country:'ZZ'}
   const svg=paneSvg(model)
-  expect(svg).toContain('&lt;bad&gt;&amp;');expect(svg).toContain('رجوع')
+  expect(svg).toContain('&lt;bad&gt;&amp;');expect(svg).not.toContain('القارئ')
   expect(svg).not.toContain('تعديل المواقيت</strong>');expect(svg).not.toContain('Preview')
-  expect(svg).toContain(`height="${paneHeight(model.folds,model.settings.state)}"`)
+  expect(svg).toContain(`height="${paneHeight(model.folds,model.settings.state,model.settings.options)}"`)
 })
 
-test('five equal tabs fit the card in RTL order at every supported width',()=>{
-  expect(CATEGORIES.map(c=>c[0])).toEqual(['general','prayer','quran','athkar','thikr'])
-  expect(CATEGORIES.map(c=>c[1])).toEqual(['عام','الصلاة','القرآن','الأذكار','الذكر'])
+test('four equal tabs fit the card in RTL order at every supported width',()=>{
+  expect(CATEGORIES.map(c=>c[0])).toEqual(['general','prayer','athkar','thikr'])
+  expect(CATEGORIES.map(c=>c[1])).toEqual(['عام','الصلاة','الأذكار','الذكر'])
   for(const width of [240,320,360,420,1200]){
     const tabs=categoryTabs(width), w=tabs[0]!.x1-tabs[0]!.x0
-    expect(tabs).toHaveLength(5)
+    expect(tabs).toHaveLength(4)
     for(const [i,t] of tabs.entries()){
       expect(Math.abs(t.x1-t.x0-w)).toBeLessThan(0.000001)
       expect(t.x0).toBeGreaterThanOrEqual(12+16)
@@ -136,8 +133,10 @@ test('legacy null category state loads as general without closing the card',()=>
   expect(loadSettings({...old,open:false})).toEqual(CLOSED_SETTINGS)
   expect(loadSettings({...old,page:-1})).toEqual(CLOSED_SETTINGS)
   expect(loadSettings(null)).toEqual(CLOSED_SETTINGS)
-  const detail=make('quran','reciters',2).state
+  const detail=make('prayer','methods',2).state
   expect(loadSettings(detail)).toBe(detail)
+  // The removed Quran tab opens the general tab.
+  expect(loadSettings({open:true,category:'quran',face:'reciters',page:2})).toEqual({open:true,category:'general',face:'main',page:0})
 })
 
 test('terminal settings headings match the tabs, with all Arabic through show',()=>{
@@ -232,8 +231,19 @@ test('a hidden stepper line takes no height: «عرض الصلاة» leaves the 
   expect(speed(speedHidden)).toBe(ROW_H);expect(speed(speedShown)).toBe(EXTRA_ROW_H)
 })
 
-test('the Quran reciter hint only says the choice is saved',()=>{
-  expect(settingsRows(make('quran'))[0]!.hint).toBe('يُحفظ اختيارك')
+test('a tab is only as tall as its visible rows when the options are known',()=>{
+  const prayerHidden=make('prayer','main',0,{salahShow:'always'}), prayerShown=make('prayer','main',0,{salahShow:'20'})
+  expect(settingsBodyHeight(prayerShown.state,prayerShown.options)-settingsBodyHeight(prayerHidden.state,prayerHidden.options)).toBe(EXTRA_ROW_H-ROW_H)
+  const thikrHidden=make('thikr','main',0,{thikrSpeed:'auto'}), thikrShown=make('thikr','main',0,{thikrSpeed:'5'})
+  expect(settingsBodyHeight(thikrShown.state,thikrShown.options)-settingsBodyHeight(thikrHidden.state,thikrHidden.options)).toBe(EXTRA_ROW_H-ROW_H)
+  for(const m of [prayerHidden,prayerShown,thikrHidden,thikrShown]){
+    const rows=settingsRows(m)
+    expect(settingsBodyHeight(m.state,m.options)).toBe(rows.reduce((h,r)=>h+r.height,BODY_TOP)-ROW_GAP+BODY_END)
+    expect(paneHeight(NO_FOLDS,m.state,m.options)-paneHeight(NO_FOLDS)).toBe(settingsHeight(m.state,m.options)-56)
+    // Hit testing uses the same height: the lowest target sits inside the drawn picture.
+    const height=paneHeight(NO_FOLDS,m.state,m.options)
+    for(const t of settingsBoxes(360,NO_FOLDS,m)) expect(t.y1).toBeLessThanOrEqual(height-12)
+  }
 })
 
 test('the athkar preview has a «معاينة» label above its box, in constants',()=>{

@@ -3,7 +3,7 @@
 // (hit testing) and the Client (drawing) agree without measuring anything.
 // Pure: no $.
 
-import { CLOSED_SETTINGS, DEFAULT_SETTINGS, SETTINGS_BODY_TOP, categoryTabs, settingsBody, settingsHeight, type SettingsAct, type SettingsModel, type SettingsState } from './settings.ts'
+import { CLOSED_SETTINGS, DEFAULT_SETTINGS, SETTINGS_BODY_TOP, categoryTabs, settingsBody, settingsHeight, type SettingsAct, type SettingsModel, type SettingsOptions, type SettingsState } from './settings.ts'
 import { pointerPixels, pointerSlack } from '../../shared/card/pointer.ts'
 
 export const PAD = 12
@@ -63,13 +63,13 @@ export const NO_FOLDS: Folds = { prayer: false, quran: false, athkar: false }
 export const isFolds = (value: unknown): value is Folds => !!value && typeof value === 'object' && (['prayer', 'quran', 'athkar'] as const).every(k => typeof (value as Record<string, unknown>)[k] === 'boolean')
 
 // Where each card sits and how tall it is, and the whole pane's height, for the folded cards.
-export const cardRects = (f: Folds, settings: SettingsState = CLOSED_SETTINGS) => {
+export const cardRects = (f: Folds, settings: SettingsState = CLOSED_SETTINGS, options?: SettingsOptions) => {
   const prayerH = f.prayer ? FOLDED_H : PRAYER_H, quranH = f.quran ? FOLDED_H : QURAN_H, athkarH = f.athkar ? FOLDED_H : ATHKAR_H
   const prayerY = CARDS_TOP, quranY = prayerY + prayerH + GAP, athkarY = quranY + quranH + GAP
-  const settingsY = athkarY + athkarH + GAP, settingsH = settingsHeight(settings)
+  const settingsY = athkarY + athkarH + GAP, settingsH = settingsHeight(settings, options)
   return { prayerY, prayerH, quranY, quranH, athkarY, athkarH, settingsY, settingsH, height: settingsY + settingsH + PAD }
 }
-export const paneHeight = (f: Folds, settings: SettingsState = CLOSED_SETTINGS): number => cardRects(f, settings).height
+export const paneHeight = (f: Folds, settings: SettingsState = CLOSED_SETTINGS, options?: SettingsOptions): number => cardRects(f, settings, options).height
 
 // The unfolded pane.
 export const PRAYER_Y = CARDS_TOP
@@ -94,7 +94,7 @@ const circles = (width: number, f: Folds): Circle[] => {
 }
 type Box = { act: PaneAct; x0: number; x1: number; y0: number; y1: number }
 const boxes = (width: number, f: Folds, settings: SettingsModel): Box[] => {
-  const r = cardRects(f, settings.state)
+  const r = cardRects(f, settings.state, settings.options)
   const title = (act: PaneAct, y: number): Box => ({ act, x0: PAD, x1: width - PAD, y0: y, y1: y + TITLE_HIT_H })
   return [
     ...settingsBoxes(width, f, settings),
@@ -110,7 +110,7 @@ const boxes = (width: number, f: Folds, settings: SettingsModel): Box[] => {
 
 // Settings share the existing nearest-edge/slack arbitration with daily cards.
 export const settingsBoxes = (width: number, folds: Folds, m: SettingsModel): Box[] => {
-  const y = cardRects(folds, m.state).settingsY
+  const y = cardRects(folds, m.state, m.options).settingsY
   if (!m.state.open) return []
   return [
     ...categoryTabs(width).map(c => ({ act:`settings:tab:${c.category}` as const, x0:c.x0, x1:c.x1, y0:y+c.y0, y1:y+c.y1 })),
@@ -149,7 +149,7 @@ export const hitAt = (width: number, x: number, y: number, on: Enabled, sx = 0, 
 // A click in region cells, to its act.
 export const hitOfCells = (width: number, x: number, y: number, columns: number, rows: number, isCoarse: boolean, on: Enabled, folds: Folds = NO_FOLDS, settings: SettingsModel = DEFAULT_SETTINGS): PaneAct | null => {
   if (!(columns > 0) || !(rows > 0)) return null
-  const height = paneHeight(folds, settings.state)
+  const height = paneHeight(folds, settings.state, settings.options)
   const p = pointerPixels(width, x, y, columns, rows, height)
   const s = pointerSlack(width, columns, rows, height, isCoarse)
   return hitAt(width, p.x, p.y, on, s.x, s.y, folds, settings)

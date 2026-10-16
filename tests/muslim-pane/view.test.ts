@@ -137,7 +137,10 @@ for (const folded of [false, true]) {
     model.settings = { ...model.settings, state: { ...CLOSED_SETTINGS, open: true } }
     const svg = paneSvg(model)
     const headers = svg.match(/<div class="in dh"[^>]*>.*?<\/div>/g)!
-    for (const [category, key] of [['prayer', 'sujoodreal'], ['quran', 'qpane'], ['athkar', 'horizon']] as const) {
+    // The Quran card keeps its icon; it has no settings tab.
+    expect(headers.find(h => h.includes('<span class="ar">القرآن</span>'))).toContain(FEATURE_ICONS.qpane)
+    expect(svg).not.toContain('aria-label="القرآن"')
+    for (const [category, key] of [['prayer', 'sujoodreal'], ['athkar', 'horizon']] as const) {
       const label = CATEGORIES.find(c => c[0] === category)![1]
       const head = headers.find(h => h.includes(`<span class="ar">${category === 'athkar' ? feeds.athkar.title : label}</span>`))!
       const tab = svg.match(new RegExp(`role="tab"[^>]*aria-label="${label}">.*?</svg>`))![0]
@@ -164,7 +167,7 @@ for (const folded of [false, true]) {
   }
 }
 
-test('settings uses the approved gear, Quran mushaf, and exact five tab labels',()=>{
+test('settings uses the approved gear and exact four tab labels',()=>{
   const model=paneModel(feeds,NOW,240,'orange')
   model.settings={...model.settings,state:{...CLOSED_SETTINGS,open:true,category:'thikr'}}
   const svg=paneSvg(model)
@@ -173,7 +176,7 @@ test('settings uses the approved gear, Quran mushaf, and exact five tab labels',
   expect(header).toContain('M10.3 3h3.4l.5 2.3')
   expect(header).not.toContain('M4 7h9M17 7h3')
   const tabs=settings.slice(settings.indexOf('<div class="settings-tabs"'),settings.indexOf('<div class="settings-body"'))
-  expect(tabs.match(/role="tab"/g)).toHaveLength(5)
+  expect(tabs.match(/role="tab"/g)).toHaveLength(4)
   let last=-1
   for(const [,label] of CATEGORIES){
     const pos=tabs.indexOf(`aria-label="${label}"`)

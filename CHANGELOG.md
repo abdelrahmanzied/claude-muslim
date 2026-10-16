@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Muslim pane settings: label with an Arabic description under it, switches beside their label, centered color dots, the terminal-arabic command as a one-press copy button, no subheader, switches that flip at once (a denied write clears only its own pending value), a 28px gap between rows with no space left by a hidden stepper line, a «تم النسخ ✓» confirmation for 2 seconds after the copy button, a «معاينة» label over the athkar preview, a shorter reciter hint, and 20px settings tab icons.
+- Muslim pane settings: label with an Arabic description under it, switches beside their label, centered color dots, the terminal-arabic command as a one-press copy button, no subheader, switches that flip at once (a denied write clears only its own pending value), a 28px gap between rows with no space left by a hidden stepper line, a «تم النسخ ✓» confirmation for 2 seconds after the copy button, a «معاينة» label over the athkar preview, 20px settings tab icons, a card only as tall as its visible rows, and no Quran tab (its reciter and repeat live in `/quran` and the Quran pane). The pane title is «☾ Muslim».
 
 - Muslim pane: the Athan label and other icon rows sit on their icon's line, and settings rows have more space between label, controls, hint and the next row.
 

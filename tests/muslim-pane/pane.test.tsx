@@ -37,7 +37,7 @@ const modes = (surface: 'desktop' | 'terminal') => ({ plugin: 'muslim', surface,
 test('/muslim pane opens the Muslim pane on desktop', { options: { salahPlace: MUNICH } }, async ($, on) => {
   const opened = engine(on, 'desktop')
   const result = await $.command.run({ command: 'muslim', args: 'pane', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
-  expect(opened).toEqual([{ id: 'muslim', title: 'Muslim' }])
+  expect(opened).toEqual([{ id: 'muslim', title: '☾ Muslim' }])
   expect(result.text).toContain('Muslim pane opened')
 })
 
@@ -139,8 +139,8 @@ for (const [key, label] of [['muslim-footer', '☾ Muslim']] as const) {
     expect(button?.props.plain).toBe(true)
     expect(await mounted.find({ text: label })).toBeDefined()
     await mounted.press({ key })
-    expect(opened).toEqual([{ id: 'muslim', title: 'Muslim' }])
-    panes.push({ id: 'muslim', title: 'Muslim', isShown: true, isPlaced: true, isFocused: false })
+    expect(opened).toEqual([{ id: 'muslim', title: '☾ Muslim' }])
+    panes.push({ id: 'muslim', title: '☾ Muslim', isShown: true, isPlaced: true, isFocused: false })
     await mounted.press({ key })
     expect(closed).toEqual(['muslim'])
     expect(opened).toHaveLength(1)
@@ -188,7 +188,7 @@ test('pressing a card title folds it and unfolds it again, kept in the session',
 for (const alreadyOpen of [false, true]) test(`Open full player requests the Quran tab in front (${alreadyOpen ? 'existing tab' : 'first open'}) with a coarse pointer`, async ($, on) => {
   const opened = engine(on, 'desktop', undefined, { 'quran.catalog': { ...fixtureCatalog, fetchedAt: NOON } })
   const panes = [
-    { id: 'muslim', title: 'Muslim', isPlaced: true, isShown: true, isFocused: true },
+    { id: 'muslim', title: '☾ Muslim', isPlaced: true, isShown: true, isFocused: true },
     ...(alreadyOpen ? [{ id: 'quran', title: 'القرآن الكريم', isPlaced: true, isShown: false, isFocused: false }] : []),
   ]
   on('ui.panes', async () => ({ value: panes }))
@@ -276,10 +276,10 @@ for (const style of ['sky', 'frame'] as const) {
 async function settingsClick(ui: Mounted<'desktop' | 'terminal', 'Pane'>, act: string) {
   await ui.resize({ columns:50, rows:100, in:'muslim-pane' })
   const model=(await ui.find({type:'Client',key:'muslim-pane'}))!.props.props as PaneModel
-  const y=cardRects(model.folds,model.settings.state).settingsY
+  const y=cardRects(model.folds,model.settings.state,model.settings.options).settingsY
   const t=act==='settings:fold'?{x0:12,x1:408,y0:y,y1:y+TITLE_HIT_H}:settingsBoxes(420,model.folds,model.settings).find(t=>t.act===act)
   if(!t) throw new Error(`Missing settings target ${act}`)
-  const height=paneHeight(model.folds,model.settings.state)
+  const height=paneHeight(model.folds,model.settings.state,model.settings.options)
   const fine={x:(t.x0+t.x1)/2*50/420,y:(t.y0+t.y1)/2*100/height}
   await ui.pointer({in:'muslim-pane',type:'down',button:'left',x:Math.floor(fine.x),y:Math.floor(fine.y),fine})
 }
@@ -363,34 +363,6 @@ test('legacy open accordion state renders general and saves normalized state on 
   expect(state()).toEqual({open:true,category:'prayer',face:'main',page:0})
 })
 
-test('reciter press reaches the Quran connector and its command selection path, without userConfig',async($,on)=>{
-  const saved:{key:string;value:unknown}[]=[], configs:unknown[]=[]
-  engine(on,'desktop',undefined,{'quran.catalog':{...fixtureCatalog,fetchedAt:NOON}},saved)
-  const state=settingsState(on,{open:true,category:'quran',face:'main',page:0})
-  on('config.set',async(_$,e)=>{configs.push(e);return {value:e.value}})
-  on('http.fetch',{init:{method:'HEAD'}},async()=>({value:{ok:true,status:200,headers:{'content-length':'1000000'},text:''}}))
-  const ui=await $.ui.mount(pane('desktop'))
-  await settingsClick(ui,'settings:reciters')
-  await settingsClick(ui,'settings:pick:10:21')
-  expect(saved).toContainEqual({key:'quran.reciter',value:'10:21'})
-  expect(configs).toEqual([])
-  expect(state().face).toBe('main')
-})
-
-test('repeat pills reach existing Quran repeat logic, remain session-only, and can turn off',async($,on)=>{
-  const stores:{key:string;value:unknown}[]=[]
-  engine(on,'desktop',undefined,{'quran.catalog':{...fixtureCatalog,fetchedAt:NOON}},stores)
-  settingsState(on,{open:true,category:'quran',face:'main',page:0})
-  const repeats:unknown[]=[],configs:string[]=[]
-  on('state.set',{plugin:'muslim',key:'quranRepeat'},async(_$,e,next)=>{repeats.push(e.value);return next(e)})
-  on('config.set',async(_$,e)=>{configs.push(e.key);return {value:e.value}})
-  const ui=await $.ui.mount(pane('desktop'))
-  await settingsClick(ui,'settings:repeat:surah')
-  await settingsClick(ui,'settings:repeat:off')
-  expect(repeats).toEqual(['surah','off'])
-  expect(stores).toEqual([]);expect(configs).toEqual([])
-})
-
 test('city press runs Salah question and its existing save/review flow',async($,on)=>{
   engine(on,'desktop')
   settingsState(on,{open:true,category:'prayer',face:'main',page:0})
@@ -444,12 +416,12 @@ test('terminal Arabic copies its command in one press, then confirms «تم ال
   expect(button).not.toContain('تم النسخ')
 })
 
-test('terminal pane command refreshes Quran settings before any footer or pane draw',async($,on)=>{
+test('terminal pane command lists no Quran settings: they live in /quran',async($,on)=>{
   engine(on,'terminal',undefined,{'quran.catalog':{...fixtureCatalog,fetchedAt:NOON},'quran.reciter':'10:21'})
   const result=await $.command.run({command:'muslim',args:'pane',origin:{kind:'composer'},presentation:{isFullscreen:false,columns:80}})
-  expect(result.text).toContain('Quran · reciter: محمد صديق المنشاوي')
-  expect(result.text).toContain('/quran reciter <number or name>')
-  expect(result.text).toContain('Quran · repeat: off')
+  expect(result.text).not.toContain('Quran · reciter')
+  expect(result.text).not.toContain('/quran reciter')
+  expect(result.text).not.toContain('Quran · repeat')
   expect(result.text).toContain('Terminal Arabic:')
 })
 

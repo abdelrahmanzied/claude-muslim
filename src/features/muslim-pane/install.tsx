@@ -2,10 +2,10 @@ import type { EngineInterface, On } from 'claude-code'
 import type { Options } from '../../config.ts'
 import type { PaneOptimistic } from '../../../types/index.d.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
-import { readAthkar, readQuran, readQuranSettings, readSalah, runPanelAction } from '../../shared/panel/signal.ts'
+import { readAthkar, readQuran, readSalah, runPanelAction } from '../../shared/panel/signal.ts'
 import { NO_FOLDS, hitOfCells, isFolds, isPaneMessage, keyAct, type Enabled, type Folds, type PaneAct } from './layout.ts'
 import { paneModel, textLines, widthOf, type PaneModel } from './model.ts'
-import { CATEGORIES, COPIED_MS, EMPTY_QURAN_SETTINGS, changeCategory, copiedAt, isSwitchField, loadSettings, optimisticOptions, settingsBody, type SettingsState } from './settings.ts'
+import { CATEGORIES, COPIED_MS, changeCategory, copiedAt, isSwitchField, loadSettings, optimisticOptions, settingsBody, type SettingsState } from './settings.ts'
 import { skipPaneScroll } from './scroll.ts'
 
 const playingRef = { plugin: 'muslim', key: 'quranPlaying' } as const
@@ -72,7 +72,7 @@ async function arabicMode($: EngineInterface, surface: string): Promise<ArabicMo
 // What the three cards show right now: whatever the features have connected.
 async function modelNow($: EngineInterface, options: Options, columns: unknown): Promise<PaneModel> {
   const now = await $.clock.now()
-  return paneModel({ salah: readSalah(now), quran: await readQuran(), athkar: await readAthkar() }, now, widthOf(columns), options.color, undefined, await readFolds($), { state: await readSettings($), options: optimisticOptions(options, (await $.state.get(optimisticRef)).value), quran: await readQuranSettings() ?? EMPTY_QURAN_SETTINGS, terminalMode: 'per-terminal setup', copied: copiedAt((await $.state.get(copiedRef)).value, now) })
+  return paneModel({ salah: readSalah(now), quran: await readQuran(), athkar: await readAthkar() }, now, widthOf(columns), options.color, undefined, await readFolds($), { state: await readSettings($), options: optimisticOptions(options, (await $.state.get(optimisticRef)).value), terminalMode: 'per-terminal setup', copied: copiedAt((await $.state.get(copiedRef)).value, now) })
 }
 
 const enabledOf = (m: PaneModel): Enabled => ({
@@ -130,16 +130,9 @@ async function settingsPress($: EngineInterface, options: Options, act: PaneAct)
     } else if (effect.kind === 'face') {
       await $.state.set(settingsRef, { ...s, face: effect.face, page: 0 })
       if (effect.face === 'city' && !(await runPanelAction('salah-city'))) $.ui.toast('Choose a city with /salah city.')
-      if (effect.face === 'reciters' && !(await runPanelAction('quran-catalog'))) $.ui.toast('Quran catalog unavailable. Use /quran reciter.')
     } else if (effect.kind === 'page') await $.state.set(settingsRef, { ...s, page: effect.page })
-    else if (effect.kind === 'copy') {
-      if ((await $.ui.copy({ text: effect.command, surface: 'desktop' })).isCopied) await confirmCopy($, effect.command)
-      else $.ui.toast(effect.command)
-    } else {
-      const took = effect.kind === 'reciter' ? await runPanelAction('quran-reciter', effect.key) : await runPanelAction('quran-repeat', effect.value)
-      if (!took) $.ui.toast('Quran is not ready yet. /quran')
-      else if (effect.kind === 'reciter') await $.state.set(settingsRef, { ...s, face: 'main', page: 0 })
-    }
+    else if ((await $.ui.copy({ text: effect.command, surface: 'desktop' })).isCopied) await confirmCopy($, effect.command)
+    else $.ui.toast(effect.command)
   }
   $.ui.invalidate('ui.render')
 }
@@ -151,7 +144,7 @@ async function isPaneOpen($: EngineInterface): Promise<boolean> {
 async function togglePane($: EngineInterface): Promise<void> {
   try {
     if (await isPaneOpen($)) await $.ui.close({ id: PANE_ID })
-    else { await $.ui.open({ id: PANE_ID, title: 'Muslim' }); $.ui.invalidate('ui.render') }
+    else { await $.ui.open({ id: PANE_ID, title: '☾ Muslim' }); $.ui.invalidate('ui.render') }
   } catch { $.ui.toast('Muslim pane unavailable. Use /muslim pane.') }
 }
 
@@ -187,7 +180,7 @@ export const install = (on: On, options: Options) => {
       model.settings.terminalMode = mode
       return { text: textLines(model, text => terminalArabic(surface, mode, text)).join('\n') }
     }
-    await $.ui.open({ id: PANE_ID, title: 'Muslim' })
+    await $.ui.open({ id: PANE_ID, title: '☾ Muslim' })
     $.ui.invalidate('ui.render')
     return { text: 'Muslim pane opened (desktop only).' }
   })

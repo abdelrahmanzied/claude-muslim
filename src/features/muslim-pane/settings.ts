@@ -3,18 +3,17 @@
 import { readOptions, writeAdjust, type Options } from '../../config.ts'
 import type { PaneCopied, PaneOptimistic, PaneSettings } from '../../../types/index.d.ts'
 import type { FeatureIconKey } from '../../shared/icon/index.ts'
-import type { PanelQuranSettings } from '../../shared/panel/signal.ts'
 import { arabicDigits } from '../../shared/pray/line.ts'
 
 export type SettingsState = PaneSettings
 export const CATEGORIES = [
-  ['general', 'عام', 'sliders'], ['prayer', 'الصلاة', 'sujoodreal'], ['quran', 'القرآن', 'qpane'], ['athkar', 'الأذكار', 'horizon'], ['thikr', 'الذكر', 'spinbeads'],
+  ['general', 'عام', 'sliders'], ['prayer', 'الصلاة', 'sujoodreal'], ['athkar', 'الأذكار', 'horizon'], ['thikr', 'الذكر', 'spinbeads'],
 ] as const satisfies readonly (readonly [SettingsState['category'], string, FeatureIconKey])[]
 export const CLOSED_SETTINGS: SettingsState = { open: false, category: 'general', face: 'main', page: 0 }
 export const isSettings = (v: unknown): v is SettingsState => {
   if (!v || typeof v !== 'object') return false
   const s = v as Record<string, unknown>
-  const validFace = s.face === 'main' || s.category === 'prayer' && ['methods', 'adjust', 'city'].includes(String(s.face)) || s.category === 'quran' && s.face === 'reciters'
+  const validFace = s.face === 'main' || s.category === 'prayer' && ['methods', 'adjust', 'city'].includes(String(s.face))
   return typeof s.open === 'boolean' && CATEGORIES.some(c => c[0] === s.category) && validFace && Number.isSafeInteger(s.page) && Number(s.page) >= 0
 }
 // Older accordion state could have no open category. Normalize on read, never
@@ -24,6 +23,8 @@ export const loadSettings = (saved: unknown): SettingsState => {
   if (saved && typeof saved === 'object') {
     const s = saved as Record<string, unknown>
     if (s.category === 'general' && s.face === 'terminal' && isSettings({ ...s, face: 'main' })) return { ...s, face: 'main', page: 0 } as SettingsState
+    // The Quran tab was removed: its saved state opens the general tab.
+    if (s.category === 'quran' && isSettings({ ...s, category: 'general', face: 'main', page: 0 })) return { ...s, category: 'general', face: 'main', page: 0 } as SettingsState
     const migrated = { ...s, category: 'general' }
     if (s.category === null && s.face === 'main' && isSettings(migrated)) return { ...migrated, page: 0 }
   }
@@ -40,20 +41,17 @@ export const pendingSwitches = (options: Options, saved: PaneOptimistic = {}): P
 )
 export const optimisticOptions = (options: Options, saved: PaneOptimistic = {}): SettingsOptions => ({ ...settingsOptions(options), ...pendingSwitches(options, saved) })
 // `copied` is the command whose copy button confirmed within the last COPIED_MS, else null.
-export type SettingsModel = { state: SettingsState; options: SettingsOptions; quran: PanelQuranSettings; terminalMode: string; copied: string | null }
+export type SettingsModel = { state: SettingsState; options: SettingsOptions; terminalMode: string; copied: string | null }
 export const COPIED_LABEL = 'تم النسخ ✓'
 export const COPIED_MS = 2000
 export const isPaneCopied = (v: unknown): v is PaneCopied => !!v && typeof v === 'object' && typeof (v as PaneCopied).command === 'string' && Number.isFinite((v as PaneCopied).until)
 // The command to show as copied at `now`: a saved confirmation counts until its expiry time.
 export const copiedAt = (saved: unknown, now: number): string | null => isPaneCopied(saved) && saved.until > now ? saved.command : null
-export const EMPTY_QURAN_SETTINGS: PanelQuranSettings = { reciters: [], selected: '', repeat: 'off', split: false }
-export const DEFAULT_SETTINGS: SettingsModel = { state: CLOSED_SETTINGS, options: settingsOptions(readOptions({})), quran: EMPTY_QURAN_SETTINGS, terminalMode: 'per-terminal setup', copied: null }
+export const DEFAULT_SETTINGS: SettingsModel = { state: CLOSED_SETTINGS, options: settingsOptions(readOptions({})), terminalMode: 'per-terminal setup', copied: null }
 export type SettingsAct = `settings:${string}`
 export type Effect =
   | { kind: 'config'; field: keyof Options; value: string | boolean }
   | { kind: 'face'; face: SettingsState['face'] }
-  | { kind: 'reciter'; key: string }
-  | { kind: 'repeat'; value: 'off' | 'surah' | 'segment' }
   | { kind: 'page'; page: number }
   | { kind: 'copy'; command: string }
 export type SettingControl = { id: SettingsAct; label: string; width: number; style: 'pill' | 'switch' | 'value' | 'step' | 'swatch'; selected?: boolean; disabled?: boolean; done?: boolean; effect: Effect }
@@ -96,12 +94,20 @@ export const LIST_CHOICE_H = LIST_ROW_H - 12
 export const LIST_H = 548
 // Constants, per tab, for the tallest row set: «عرض الصلاة» and the speed row count their stepper line (EXTRA_ROW_H) here.
 export const MAIN_HEIGHTS = {
-  prayer: bodyH(EXTRA_ROW_H, SWITCH_ROW_H, ROW_H, ROW_H, ROW_H), quran: bodyH(ROW_H, ROW_H), athkar: ATHKAR_SAMPLE_TOP + SAMPLE_BOX_H + BODY_END,
+  prayer: bodyH(EXTRA_ROW_H, SWITCH_ROW_H, ROW_H, ROW_H, ROW_H), athkar: ATHKAR_SAMPLE_TOP + SAMPLE_BOX_H + BODY_END,
   thikr: bodyH(SWITCH_ROW_H, ROW_H, EXTRA_ROW_H, SAMPLE_ROW_H), general: bodyH(ROW_H, SWITCH_ROW_H, ROW_H),
 } as const
-export const FACE_HEIGHTS = { methods: LIST_H, reciters: LIST_H, adjust: ADJUST_NOTE_TOP + 50, city: 310 } as const
-export const settingsBodyHeight = (s: SettingsState): number => !s.open ? 0 : s.face === 'main' ? MAIN_HEIGHTS[s.category] : FACE_HEIGHTS[s.face]
-export const settingsHeight = (s: SettingsState): number => s.open ? SETTINGS_BODY_TOP + settingsBodyHeight(s) + 12 : SETTINGS_TOP
+export const FACE_HEIGHTS = { methods: LIST_H, adjust: ADJUST_NOTE_TOP + 50, city: 310 } as const
+// With the options, a tab is only as tall as its visible rows: a hidden stepper line takes no space,
+// as in row(). Without them, the tallest set.
+type StepperOptions = Pick<SettingsOptions, 'salahShow' | 'thikrSpeed'>
+export const mainHeight = (c: SettingsState['category'], o?: StepperOptions): number =>
+  !o ? MAIN_HEIGHTS[c]
+  : c === 'prayer' ? bodyH(typeof o.salahShow === 'number' ? EXTRA_ROW_H : ROW_H, SWITCH_ROW_H, ROW_H, ROW_H, ROW_H)
+  : c === 'thikr' ? bodyH(SWITCH_ROW_H, ROW_H, o.thikrSpeed === 'auto' ? ROW_H : EXTRA_ROW_H, SAMPLE_ROW_H)
+  : MAIN_HEIGHTS[c]
+export const settingsBodyHeight = (s: SettingsState, o?: StepperOptions): number => !s.open ? 0 : s.face === 'main' ? mainHeight(s.category, o) : FACE_HEIGHTS[s.face]
+export const settingsHeight = (s: SettingsState, o?: StepperOptions): number => s.open ? SETTINGS_BODY_TOP + settingsBodyHeight(s, o) + 12 : SETTINGS_TOP
 // width is the whole pane; rectangles are pane-relative in x, card-relative in y.
 export const categoryTabs = (width: number) => {
   const left = 12 + TAB_INSET + TAB_PAD
@@ -136,7 +142,7 @@ const step = (id: string, value: number, min: number, max: number, effect: (n: n
   control(`${id}:+`, '+', effect(value + 1), 'step', 30, false, value >= max),
 ]
 export const settingsRows = (m: SettingsModel): SettingRow[] => {
-  const o = m.options, s = m.state, q = m.quran
+  const o = m.options, s = m.state
   switch (s.category) {
     case 'prayer': return [
       row('عرض الصلاة', pills('salahShow', typeof o.salahShow === 'number' ? '20' : o.salahShow, [['always','دائمًا'],['20','قبل'],['off','إيقاف']]).map(c => c.label === 'قبل' ? { ...c, effect: config('salahShow', String(typeof o.salahShow === 'number' ? o.salahShow : 20)) } : c), 'ظهور الصلاة أسفل Claude · قبلها بـ٢٠ دقيقة', { label: typeof o.salahShow === 'number' ? 'قبل الصلاة بدقائق' : '', controls: typeof o.salahShow === 'number' ? step('salahShow', o.salahShow, 1, 720, n => config('salahShow', String(n))) : [] }),
@@ -144,10 +150,6 @@ export const settingsRows = (m: SettingsModel): SettingRow[] => {
       row('المكان', face('city',o.salahPlace?.name ?? 'اختيار المدينة'), 'يفتح سؤال المدينة في Claude'),
       row('طريقة الحساب',face('methods',METHOD_CHOICES.find(c => c[0] === o.salahMethod)?.[1] ?? 'تلقائي'),'التلقائي يستخدم طريقة بلدك'),
       row('تعديل المواقيت',face('adjust','− / + دقيقة'),'ستة مواقيت، منها الشروق'),
-    ]
-    case 'quran': return [
-      row('القارئ',face('reciters',q.reciters.find(r => r.key === q.selected)?.label ?? 'اختيار القارئ'),'يُحفظ اختيارك'),
-      row('التكرار',(['off','surah','segment'] as const).map((v,i) => control(`repeat:${v}`,['إيقاف','السورة','المقطع'][i]!,{kind:'repeat',value:v},'pill',46,q.repeat === v,v === 'segment' && !q.split)),'لهذه الجلسة · المقطع للسور المقسّمة'),
     ]
     case 'athkar': return [row('أذكار الصباح والمساء',toggle(o,'athkar'),'يعرض الأذكار فوق خانة الكتابة'),row('المظهر',pills('athkarStyle',o.athkarStyle,[['sky','سماء'],['frame','إطار']]),'سماء على سطح المكتب، وإطار في الترمينال')]
     case 'thikr': return [
@@ -167,7 +169,7 @@ export const settingsRows = (m: SettingsModel): SettingRow[] => {
 export type SettingsTarget = { act: SettingsAct; x0: number; x1: number; y0: number; y1: number; effect: Effect; control: SettingControl }
 export type SettingsBody = { rows: { row: SettingRow; y: number }[]; targets: SettingsTarget[]; controls: SettingsTarget[]; page: number; pages: number; choices: { label: string; note: string; y: number; control: SettingControl }[] }
 export const settingsBody = (width: number, m: SettingsModel): SettingsBody => {
-  const { state:s, options:o, quran:q } = m
+  const { state:s, options:o } = m
   const out: SettingsBody = { rows: [], targets: [], controls: [], page: 0, pages: 1, choices: [] }
   const left = 28, right = width - 28
   const add = (c: SettingControl, x: number, y: number, w = c.width, h = 28) => {
@@ -177,11 +179,11 @@ export const settingsBody = (width: number, m: SettingsModel): SettingsBody => {
   }
   if (!s.open) return out
   if (s.face !== 'main') add(control('back','رجوع',{kind:'face',face:'main'},'value',65),left,0)
-  if (s.face === 'methods' || s.face === 'reciters') {
-    const choices = s.face === 'methods' ? METHOD_CHOICES.map(([key,label,note]) => ({key,label,note})) : q.reciters.map(r => ({key:r.key,label:r.label,note:r.note}))
+  if (s.face === 'methods') {
+    const choices = METHOD_CHOICES.map(([key,label,note]) => ({key,label,note}))
     out.pages = Math.max(1,Math.ceil(choices.length/LIST_SIZE)); out.page = Math.min(s.page,out.pages-1)
     out.choices = choices.slice(out.page*LIST_SIZE,(out.page+1)*LIST_SIZE).map((r,i) => {
-      const c = control(`pick:${r.key}`,r.label,s.face === 'methods' ? config('salahMethod',r.key) : {kind:'reciter',key:r.key},'value',right-left,s.face === 'methods' ? o.salahMethod === r.key : q.selected === r.key)
+      const c = control(`pick:${r.key}`,r.label,config('salahMethod',r.key),'value',right-left,o.salahMethod === r.key)
       const y = 42+i*LIST_ROW_H; add(c,left,y,right-left,LIST_CHOICE_H)
       return {label:r.label,note:r.note,y,control:c}
     })
@@ -214,7 +216,7 @@ export const settingsBody = (width: number, m: SettingsModel): SettingsBody => {
   return out
 }
 export const terminalSettings = (m: SettingsModel, show: (s:string)=>string): string[] => {
-  const o=m.options, q=m.quran, on=(v:boolean)=>v?'on':'off'
+  const o=m.options, on=(v:boolean)=>v?'on':'off'
   return [
     `**${show('الإعدادات')}**`,
     `**${show('عام')}**`,
@@ -226,9 +228,6 @@ export const terminalSettings = (m: SettingsModel, show: (s:string)=>string): st
     `Prayer · athan: ${on(o.salahAthan)} · /salah athan on | off`,
     `Prayer · method: ${o.salahMethod} · /salah method <auto or name>`,
     `Prayer · adjust: ${writeAdjust(o.salahAdjust)} · /salah adjust <pray> <±min>`,
-    `**${show('القرآن')}**`,
-    `Quran · reciter: ${show(q.reciters.find(r=>r.key===q.selected)?.label ?? '—')} · /quran reciter <number or name>`,
-    `Quran · repeat: ${q.repeat} · /quran repeat [segment] (session only)`,
     `**${show('الأذكار')}**`,
     `Athkar: ${on(o.athkar)} · /athkar on | off`, `Athkar · style: ${o.athkarStyle} · /athkar style sky | frame`,
     `**${show('الذكر')}**`,

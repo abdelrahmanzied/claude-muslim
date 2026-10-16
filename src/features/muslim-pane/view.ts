@@ -199,8 +199,8 @@ const settingRow = (row: SettingRow, y: number): string => {
   return `<span class="setting-label" style="top:${y}px;max-width:calc(100% - ${isSwitch ? 82 : 32}px)"><span>${escape(row.label)}</span></span><span class="setting-hint" style="top:${y+HINT_TOP}px">${escape(row.hint)}</span>${row.extra?.controls.length?`<span class="setting-extra" style="top:${y+EXTRA_TOP+7}px">${escape(row.extra.label)}</span>`:''}${row.sample?`<span class="setting-sample" style="top:${y+CONTROL_TOP}px">${escape(row.sample)}</span>`:''}`
 }
 const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
-  const model=m.settings, s=model.state, r=cardRects(m.folds,s), b=settingsBody(m.width,model)
-  let content=header('gearteeth','الإعدادات','٥ أقسام',!s.open,hover==='settings:fold')
+  const model=m.settings, s=model.state, r=cardRects(m.folds,s,model.options), b=settingsBody(m.width,model)
+  let content=header('gearteeth','الإعدادات','٤ أقسام',!s.open,hover==='settings:fold')
   if (s.open) {
     content+=`<div class="settings-tabs" role="tablist" aria-label="الإعدادات">${categoryTabs(m.width).map(c=>`<div class="setting-tab${hover===`settings:tab:${c.category}`?' hot':''}" style="left:${c.x0-PAD-TAB_INSET-1}px;top:${c.y0-SETTINGS_TOP-1}px;width:${c.x1-c.x0}px;height:${c.y1-c.y0}px" role="tab" aria-selected="${s.category===c.category}" aria-label="${c.label}">${icon(c.icon)}<span>${c.label}</span></div>`).join('')}</div>`
     let body=''
@@ -208,13 +208,12 @@ const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
       body=b.rows.map(({row,y})=>settingRow(row,y)).join('')
       if (s.category==='athkar') body+=`<span class="setting-hint" style="top:${PREVIEW_LABEL_TOP}px">معاينة</span><div class="settings-sky ${model.options.athkarStyle}" style="top:${ATHKAR_SAMPLE_TOP}px">${icon('sun')}<span>أذكار الصباح</span></div>`
     } else {
-      const title=s.face==='methods'?'طريقة الحساب':s.face==='reciters'?'اختيار القارئ':s.face==='adjust'?'تعديل المواقيت':'اختيار المدينة'
+      const title=s.face==='methods'?'طريقة الحساب':s.face==='adjust'?'تعديل المواقيت':'اختيار المدينة'
       body=`<strong class="settings-subtitle">${title}</strong>`
-      if (s.face==='methods'||s.face==='reciters') {
+      if (s.face==='methods') {
         body+=b.choices.map(c=>`<div class="list-choice${c.control.selected?' on':''}${hover===c.control.id?' hot':''}" style="top:${c.y}px" role="button" aria-pressed="${!!c.control.selected}"><span>${escape(c.label)}<small>${escape(c.note)}</small></span>${c.control.selected?icon('check'):''}</div>`).join('')
         body+=`<span class="settings-page">${escape(String(b.page+1))} / ${b.pages}</span>`
-        if (!b.choices.length) body+=`<span class="setting-hint" style="top:52px">قائمة القراء غير متاحة · /quran reciter</span>`
-        body+=`<span class="setting-hint" style="top:510px">${s.face==='methods'?'كل طرق الحساب العشرين · يُطبّق فورًا':'تلاوات كاملة برواية حفص'}</span>`
+        body+=`<span class="setting-hint" style="top:510px">كل طرق الحساب العشرين · يُطبّق فورًا</span>`
       } else if (s.face==='adjust') {
         body+=b.rows.map(({row,y})=>settingRow(row,y)).join('')
         body+=`<span class="setting-hint" style="top:${ADJUST_NOTE_TOP}px">دقائق صحيحة بالزيادة أو النقصان.<br/>الترتيب: الفجر، الشروق، الظهر، العصر، المغرب، العشاء.</span>`
@@ -234,7 +233,7 @@ const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
 const paneTop = `<div class="pane-top">${avatar(AVATAR_H)}<span>مسلم</span></div><div class="pane-command" dir="ltr">${ltr('/muslim')}</div>`
 
 export const paneSvg = (m: PaneModel, hover: PaneAct | null = null): string => {
-  const width = m.width, height = cardRects(m.folds, m.settings.state).height
+  const width = m.width, height = cardRects(m.folds, m.settings.state, m.settings.options).height
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" class="dp${m.theme ? ` theme-${m.theme}` : ''}" dir="rtl"><style>${tajawalFontFaceCss()}${paletteCss('.dp', m.color)}${CSS}${SETTINGS_CSS}</style>${paneTop}${prayerCard(m, hover)}${quranCard(m, hover)}${athkarCard(m, hover)}${settingsCard(m, hover)}</div></foreignObject></svg>`
 }
 

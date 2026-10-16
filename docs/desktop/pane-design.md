@@ -18,7 +18,7 @@ The design principles for every drawn desktop pane in this mod (today the Muslim
 
 - **Transparent**, like the Quran pane: no panel fill. It follows the app's light or dark scheme, and every color is a token (`--text`, `--muted`, `--line`, `--raised`, `--accent`); the accent is the plugin-wide main color from `src/shared/color/`.
 - **Tajawal** throughout, embedded from `src/shared/font/`.
-- **Type scale:** 24px the plugin name «مسلم», 20px the big fact (next prayer), 16px card titles, 14px body and buttons, 12px meta and descriptions. Settings tab labels are 11px so five tabs fit at 240px.
+- **Type scale:** 24px the plugin name «مسلم», 20px the big fact (next prayer), 16px card titles, 14px body and buttons, 12px meta and descriptions. Settings tab labels are 11px so the tabs fit at 240px.
 - **Tajawal sits high.** Text beside an icon or a switch gets `line-height:1; transform:translateY(.12em)` so icon, text and control share one center line. Check every icon + text row for this.
 - **Icons:** each feature has one standard icon (DESIGN.md §3 Icons, `src/shared/icon/`), 20px in the main color on its card header and 20px on its settings tab. Small row icons (bell, check ring) stay free.
 
@@ -40,7 +40,9 @@ The design principles for every drawn desktop pane in this mod (today the Muslim
 - **Switches** sit on the label's line at the opposite end, never on a line of their own. They flip at once on press (the value is drawn from `$.state` before the config write and its module reload).
 - **Color dots** are a centered row.
 - **A command is its own button.** When a setting is changed by running a command elsewhere (the terminal check), the button's text is the command itself (no glyph) and one press copies it (`$.ui.copy`, a toast when copying fails). After a copy the button shows «تم النسخ ✓» in the main color for 2 seconds, then the command again. No extra page for one command, no long how-to text.
-- Lists (methods, reciters) and steppers (adjustments) may open a detail face with a back control.
+- A card is only as tall as its visible rows: a hidden line takes its height with it.
+- One home per setting: a setting already in another pane (the Quran reciter and repeat) is not repeated here.
+- Lists (methods) and steppers (adjustments) may open a detail face with a back control.
 
 ## 7. Terminal
 
