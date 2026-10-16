@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Rule: every typed command, subcommand and option is in its feature's help table in the same commit, and a name is the same in the command, the code and the docs.
+
 - Docs: athkar design has one table of the whole day: period, sky and after-salah offer, with prayer times and without.
 
 - Follow saved salah times for the desktop athkar sky, using real Sunrise and Isha with a sunrise fallback and ordered short-day phases; keep the exact fixed sky hours without prayer times.
