@@ -1,55 +1,55 @@
 import type { ClientModule, SvgProps } from 'claude-code'
 import { pointerPixels, pointerSlack, type CardAction } from './card.ts'
-import { columnsWidth, safeWidth, paneHeight, listTitle, moveHighlight, openPicker, options, paneHit, paneSvg, pickerInitial, turnPage, typeQuery, type PaneModel, type PickerState } from './pane.ts'
+import { columnsWidth, dragCell, safeWidth, paneHeight, beginPickerDrag, dragPicker, moveHighlight, openPicker, options, paneHit, paneSvg, pickerInitial, typeQuery, type PaneModel, type PickerState, type PickerDrag } from './pane.ts'
 
-type Local = { picker: PickerState; hover: CardAction | null }
+type Local = { picker: PickerState; hover: CardAction | null; drag: PickerDrag | null }
+// The list never follows the mouse wheel: Desktop moves the pane before any hook sees a wheel tick, so holding the pane still to scroll
+// the list made it shake. The wheel scrolls the pane like any other; the list moves by search, ↑ ↓ and the scrollbar.
+// One highlight serves both hands: the row under the pointer becomes the highlight, and ↑ ↓ go on from it.
 const client: ClientModule<PaneModel, Local> = (props, surface) => {
   const { Box } = surface.elements
   const model = { ...props, width: surface.columns > 0 ? columnsWidth(surface.columns, safeWidth(props.width)) : safeWidth(props.width) }
-  let local = surface.state ?? { picker: pickerInitial(model), hover: null }
+  let local = surface.state ?? { picker: pickerInitial(model), hover: null, drag: null }
   if (surface.state === undefined) surface.setState(local)
-  const reportPicker = (picker: PickerState) => surface.post({ act: 'picker', list: picker.open, focusRevision: model.focusRevision })
   if (local.picker.focusRevision !== model.focusRevision || local.picker.wasFocused && !model.isFocused) {
-    const wasOpen = local.picker.open !== null
-    local = { picker: pickerInitial(model), hover: null }
+    local = { ...local, picker: pickerInitial(model), drag: null }
     surface.setState(local)
-    if (wasOpen) reportPicker(local.picker)
   } else if (local.picker.wasFocused !== model.isFocused) {
     local = { ...local, picker: { ...local.picker, wasFocused: model.isFocused } }
     surface.setState(local)
   }
-  const closePicker = () => {
-    const picker = pickerInitial(model)
-    surface.setState({ picker, hover: null })
-    reportPicker(picker)
-  }
   surface.onPointer(e => {
     const current = surface.state ?? local
     const x = e.fine?.x ?? e.x + 0.5, y = e.fine?.y ?? e.y + 0.5
-    // Client rows start at the region's top, even inside a scrolled pane. Use
-    // the whole picture's height, never the visible pane window or its offset.
-    const height = paneHeight(model, current.picker)
-    const pixels = pointerPixels(model.width, x, y, surface.columns, surface.rows, height)
+    // Shared card maps cells to pixels; the full pane substitutes its own height.
+    const pixels = pointerPixels(model.width, x, y, surface.columns, surface.rows, paneHeight(model))
+    // Without `fine` the pointer is a whole cell snapped to its center; hit testing then treats the cell's half-extent as slack.
     const coarse = e.fine === undefined
-    const slack = pointerSlack(model.width, surface.columns, surface.rows, height, coarse)
+    const slack = pointerSlack(model.width, surface.columns, surface.rows, paneHeight(model), coarse)
+    if (current.drag && current.picker.open && (e.type === 'move' || e.type === 'up')) {
+      // While dragging, vertical position is the cell count times the scale frozen at the press, never today's rows.
+      const y = Number.isFinite(current.drag.cell) ? (e.fine?.y ?? e.y + 0.5) * current.drag.cell : pixels.y
+      const picker = dragPicker(current.picker, options(model, current.picker.open, current.picker.query).length, current.drag, y)
+      // A move that changes nothing draws nothing: every redraw swaps a whole picture on the host.
+      if (e.type === 'move' && picker.scroll === current.picker.scroll && picker.highlight === current.picker.highlight && current.hover === null) return
+      surface.setState({ ...current, picker, hover: null, drag: e.type === 'up' ? null : current.drag })
+      return
+    }
     const hit = paneHit(model, current.picker, pixels.x, pixels.y, slack)
     const hover = e.type !== 'leave' && hit?.act === 'control' ? hit.action : null
-    const rowHover = e.type === 'leave' ? -1 : hit?.act === 'row' ? hit.index : hit?.act === 'close' ? -2 : -1
-    if (hover !== current.hover || rowHover !== current.picker.hover) surface.setState({ ...current, hover, picker: { ...current.picker, hover: rowHover } })
+    const highlight = e.type !== 'leave' && hit?.act === 'row' ? hit.index : current.picker.highlight
+    if (hover !== current.hover || highlight !== current.picker.highlight) surface.setState({ ...current, hover, picker: { ...current.picker, highlight } })
     if (e.type !== 'down' || (e.button ?? 'left') !== 'left') return
-    if (hit?.act === 'field') {
-      const picker = openPicker(model, current.picker, hit.list)
-      surface.setState({ picker, hover: null })
-      reportPicker(picker)
+    if (hit?.act === 'scrollbar' && current.picker.open) {
+      const result = beginPickerDrag(current.picker, options(model, current.picker.open, current.picker.query).length, pixels.y, dragCell(paneHeight(model), surface.rows))
+      if (result) surface.setState({ ...current, ...result, hover: null })
+    } else if (hit?.act === 'field') {
+      surface.setState({ ...current, picker: openPicker(model, current.picker, hit.list), hover: null, drag: null })
     } else if (hit?.act === 'row' && current.picker.open) {
       const option = options(model, current.picker.open, current.picker.query)[hit.index]
-      if (option) {
-        surface.setState({ picker: pickerInitial(model), hover: null })
-        // post is one message per frame: pick also requests the card's top.
-        surface.post({ act: 'pick', list: current.picker.open, value: option.value })
-      }
-    } else if (hit?.act === 'page') surface.setState({ ...current, picker: { ...turnPage(model, current.picker, hit.delta), hover: -1 } })
-    else if (hit?.act === 'close') closePicker()
+      if (option) surface.post({ act: 'pick', list: current.picker.open, value: option.value })
+      surface.setState({ ...current, picker: pickerInitial(model), drag: null })
+    } else if (hit?.act === 'close') surface.setState({ ...current, picker: pickerInitial(model), drag: null })
     else if (hit?.act === 'control') surface.post({ act: 'pointer', x, y, columns: surface.columns, rows: surface.rows, width: model.width, generation: props.generation, button: 'left', coarse })
   })
   surface.onKey(e => {
@@ -63,20 +63,14 @@ const client: ClientModule<PaneModel, Local> = (props, surface) => {
     if (e.key === 'return') {
       const selected = matches[state.highlight]
       if (selected) {
-        surface.setState({ picker: pickerInitial(model), hover: null })
         surface.post({ act: 'pick', list, value: selected.value })
+        surface.setState({ ...current, picker: pickerInitial(model), drag: null })
       }
-    } else if (e.key === 'up' || e.key === 'down') surface.setState({ ...current, picker: moveHighlight(state, matches.length, e.key === 'up' ? -1 : 1) })
-    else if (!e.ctrl && !e.meta && (e.key === 'backspace' || Array.from(e.key).length === 1 && e.key >= ' ')) {
-      const picker = typeQuery(state, e.key)
-      surface.setState({ ...current, picker })
-      reportPicker(picker)
-    } else if (e.key === 'tab' || e.key === 'escape') closePicker()
+    } else if (e.key === 'up' || e.key === 'down') surface.setState({ ...current, picker: moveHighlight(state, matches.length, e.key === 'up' ? -1 : 1), drag: null })
+    else if (!e.ctrl && !e.meta && (e.key === 'backspace' || Array.from(e.key).length === 1 && e.key >= ' ')) surface.setState({ ...current, picker: typeQuery(state, e.key), drag: null })
+    else if (e.key === 'tab') surface.setState({ ...current, picker: pickerInitial(model), drag: null })
   })
-  const cardAlt = `المصحف · القارئ · السورة · ${model.segmented ? 'ابدأ من · ' + model.segmentLabel + ' · ' : ''}${model.status} · ${model.title} · ${model.reciter} · ${model.elapsed} / ${model.total} · السابقة · ${model.playing || model.preparing ? 'إيقاف' : 'تشغيل'} · التالية · تكرار السورة ${model.repeat === 'surah' ? 'مفعّل' : 'متوقف'} · تكرار المقطع ${model.repeat === 'segment' ? 'مفعّل' : 'متوقف'}`
-  const listAlt = local.picker.open ? `${listTitle(local.picker.open)} · رجوع · بحث ${local.picker.query} · ${options(model, local.picker.open, local.picker.query).length} خيارات` : ''
-  // Svg sizes are capped at 4096px; listPageLayout pages a long list to stay within it.
-  const svg: SvgProps = { source: paneSvg(model, local.picker, local.hover), width: model.width, height: paneHeight(model, local.picker), alt: local.picker.open ? listAlt : cardAlt }
+  const svg: SvgProps = { source: paneSvg(model, local.picker, local.hover), width: model.width, height: paneHeight(model), alt: `المصحف · القارئ · السورة · ${model.segmented ? 'ابدأ من · ' + model.segmentLabel + ' · ' : ''}${model.status} · ${model.title} · ${model.reciter} · ${model.elapsed} / ${model.total} · السابقة · ${model.playing || model.preparing ? 'إيقاف' : 'تشغيل'} · التالية · تكرار السورة ${model.repeat === 'surah' ? 'مفعّل' : 'متوقف'} · تكرار المقطع ${model.repeat === 'segment' ? 'مفعّل' : 'متوقف'}` }
   return <Box width="100%">{h('Svg', svg)}</Box>
 }
 export default client

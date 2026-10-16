@@ -27,10 +27,11 @@ export const FIELD_HEIGHT = 46
 export const CARD_TOP = 293
 export const SEGMENT_EXTRA = 118
 export const PANE_HEIGHT = CARD_TOP + CARD_HEIGHT + 12
+export const VISIBLE_ROWS = 8
 export const ROW_HEIGHT = 34
 export type List = 'reciter' | 'surah' | 'segment'
 export type PaneModel = CardModel & { reciters: Reciter[]; surahs: Catalog['surahs']; selectedReciter: string; selectedSurah: number; focusRevision: number; isFocused: boolean; error: string; selection?: TrackSelection }
-export type PickerState = { open: List | null; query: string; highlight: number; hover: number; focusRevision: number; wasFocused: boolean }
+export type PickerState = { open: List | null; query: string; highlight: number; scroll: number; focusRevision: number; wasFocused: boolean }
 export type Option = { value: string; label: string; number: string; selected: boolean; detail?: string }
 export const arabicDigits = (value: number): string => String(value).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[Number(d)]!)
 export function paneModel(catalog: Catalog, reciter: Reciter, selected: number, playing: QuranPlaying | null | undefined, now: number, width: number, generation: number, focusRevision: number, isFocused: boolean, error: string | null | undefined, selection?: TrackSelection, repeat: QuranRepeat = 'off', theme?: Theme): PaneModel {
@@ -44,7 +45,7 @@ export function paneModel(catalog: Catalog, reciter: Reciter, selected: number, 
   card.canNext = !!(segment && index < selection!.segments.length - 1) || nextAvailable(reciter.key, selected, 1) !== null
   return { ...card, ...(theme ? { theme } : {}), selection, reciters: catalog.reciters, surahs: catalog.surahs, selectedReciter: reciter.key, selectedSurah: selected, focusRevision, isFocused, error: error ?? '' }
 }
-export const pickerInitial = (model: PaneModel): PickerState => ({ open: null, query: '', highlight: 0, hover: -1, focusRevision: model.focusRevision, wasFocused: model.isFocused })
+export const pickerInitial = (model: PaneModel): PickerState => ({ open: null, query: '', highlight: 0, scroll: 0, focusRevision: model.focusRevision, wasFocused: model.isFocused })
 export function options(model: PaneModel, list: List, query: string): Option[] {
   if (list === 'segment') return (model.selection?.segments ?? []).map((s, i) => ({ value: String(i), label: `الآيات ${arabicDigits(s.firstAyah)}–${arabicDigits(s.lastAyah)}`, number: arabicDigits(i + 1), detail: `ربع الحزب ${arabicDigits(s.quarter)} · ${formatTime(s.durationMs)}`, selected: i === model.selection?.selectedSegment })).filter(o => normalizeName(`${o.label} ${o.number} ${o.detail}`, false).includes(normalizeName(query.replace(/[0-9]/g, d => arabicDigits(Number(d))), false)))
   return list === 'reciter' ? searchReciters(query, model.reciters).map(r => ({ value: r.key, label: r.label.replace(' — ', ' · '), number: '', selected: r.key === model.selectedReciter }))
@@ -54,69 +55,69 @@ export const fieldTop = (list: List): number => list === 'reciter' ? 135 : list 
 export const paneCardTop = (model: PaneModel): number => CARD_TOP + (model.selection?.segments.length ? SEGMENT_EXTRA : 0)
 export const paneErrorHeight = (model: PaneModel): number => model.error ? Math.max(36, Math.ceil(model.error.length / Math.max(12, (model.width - 40) / 7)) * 18) : 0
 export const paneRetryTop = (model: PaneModel): number => paneCardTop(model) + CARD_HEIGHT + 18 + paneErrorHeight(model)
-const cardPaneHeight = (model: PaneModel): number => PANE_HEIGHT + (model.selection?.segments.length ? SEGMENT_EXTRA : 0) + (model.error ? paneErrorHeight(model) + 44 : 0)
+export const paneHeight = (model: PaneModel): number => PANE_HEIGHT + (model.selection?.segments.length ? SEGMENT_EXTRA : 0) + (model.error ? paneErrorHeight(model) + 44 : 0)
 export const pickerRowHeight = (list: List): number => list === 'segment' ? 46 : ROW_HEIGHT
-// The host owns the only scroll window. It refuses an Svg taller than 4096px,
-// so a long reciter list tightens its rows, and a list longer than one page
-// even then shows pages of rows with «السابق» and «التالي».
-export const LIST_ROWS_TOP = 146
-export const LIST_MAX_HEIGHT = 4096
-export const COMPACT_ROW_HEIGHT = 24
-export const LIST_BACK = { x: 20, y: 16, width: 68, height: 34 }
-export const listTitle = (list: List): string => list === 'reciter' ? 'اختيار القارئ' : list === 'surah' ? 'اختيار السورة' : 'ابدأ من'
-export function listPageLayout(model: PaneModel, state: PickerState) {
-  const list = state.open ?? 'surah'
-  const count = options(model, list, state.query).length
-  const note = list === 'surah' ? unavailableNote(unavailableSurahs(model.selectedReciter).length) : ''
-  const room = LIST_MAX_HEIGHT - LIST_ROWS_TOP - (note ? ROW_HEIGHT : 0) - 20
-  // A reciter list too long for 34px rows tightens them (down to 24px) so it
-  // still fits one page; only a list too long even then pages.
-  const full = pickerRowHeight(list)
-  const rowHeight = list === 'reciter' && count * full > room ? Math.max(COMPACT_ROW_HEIGHT, Math.min(full, Math.floor(room / count))) : full
-  const fit = Math.floor(room / rowHeight)
-  // Every page keeps both turn slots, so pages hold the same rows whichever way they are reached.
-  const perPage = count <= fit ? Math.max(1, count) : fit - 2
-  const start = Math.floor(Math.max(0, Math.min(state.highlight, count - 1)) / perPage) * perPage
-  const end = Math.min(count, start + perPage)
-  const prev = start > 0, next = end < count
-  const slots = Math.max(1, end - start + (prev ? 1 : 0) + (next ? 1 : 0))
-  const rowsBottom = LIST_ROWS_TOP + slots * rowHeight
-  return { count, rowHeight, rowsTop: LIST_ROWS_TOP, rowsBottom, note, start, end, prev, next, perPage, height: rowsBottom + (note ? ROW_HEIGHT : 0) + 20 }
-}
-// «السابق» lands on the previous page's last row, «التالي» on the next page's first.
-export function turnPage(model: PaneModel, state: PickerState, delta: -1 | 1): PickerState {
-  const page = listPageLayout(model, state)
-  return moveHighlight({ ...state, highlight: delta < 0 ? page.start - 1 : page.end }, page.count, 0)
-}
-export const paneHeight = (model: PaneModel, state?: PickerState): number => state?.open ? listPageLayout(model, state).height : cardPaneHeight(model)
+// Below the rows: an unavailable-surah note when there is one, then a one-line footer: the position, and how to move in the list.
+export const PICKER_FOOTER = 30
+export const pickerFooterTop = (list: List, unavailableCount = 0): number => 56 + VISIBLE_ROWS * pickerRowHeight(list) + (list === 'surah' && unavailableCount > 0 ? ROW_HEIGHT : 0)
+export const pickerOverlayHeight = (list: List, unavailableCount = 0): number => pickerFooterTop(list, unavailableCount) + PICKER_FOOTER
+export const PICKER_HINT = 'Use ↑ ↓ for scrolling'
+export const overlayTop = (list: List): number => fieldTop(list) + FIELD_HEIGHT + 8
 export function moveHighlight(state: PickerState, count: number, delta: number): PickerState {
   const highlight = Math.max(0, Math.min(Math.max(0, count - 1), state.highlight + delta))
-  return { ...state, highlight, hover: -1 }
+  const scroll = Math.max(0, Math.min(Math.max(0, count - VISIBLE_ROWS), highlight < state.scroll ? highlight : highlight >= state.scroll + VISIBLE_ROWS ? highlight - VISIBLE_ROWS + 1 : state.scroll))
+  return { ...state, highlight, scroll }
 }
 export function typeQuery(state: PickerState, key: string): PickerState {
   const query = key === 'backspace' ? Array.from(state.query).slice(0, -1).join('') : state.query + key
-  return { ...state, query: query.slice(0, 120), highlight: 0, hover: -1 }
+  return { ...state, query: query.slice(0, 120), highlight: 0, scroll: 0 }
 }
-export type PaneHit = { act: 'field'; list: List } | { act: 'row'; index: number } | { act: 'page'; delta: -1 | 1 } | { act: 'panel' } | { act: 'close' } | { act: 'control'; action: CardAction } | null
+export type PickerScrollbar = { top: number; height: number; thumbTop: number; thumbHeight: number; maxScroll: number }
+// `cell` is the pane pixels one reported row stood for when the bar was pressed. It is frozen for the whole drag: the host's row count can change by one while the picture is swapped, and following it would move the list under a pointer that did not.
+export type PickerDrag = { y: number; scroll: number; cell: number }
+export const dragCell = (height: number, rows: number): number => Number.isFinite(height) && Number.isFinite(rows) && rows > 0 ? height / rows : NaN
+export function pickerScrollbar(state: PickerState, count: number): PickerScrollbar | null {
+  if (!state.open || count <= VISIBLE_ROWS) return null
+  const top = overlayTop(state.open) + 56, height = VISIBLE_ROWS * pickerRowHeight(state.open)
+  const maxScroll = count - VISIBLE_ROWS, thumbHeight = Math.max(24, height * VISIBLE_ROWS / count)
+  return { top, height, thumbHeight, maxScroll, thumbTop: top + Math.max(0, Math.min(maxScroll, state.scroll)) / maxScroll * (height - thumbHeight) }
+}
+export function beginPickerDrag(state: PickerState, count: number, y: number, cell = NaN): { picker: PickerState; drag: PickerDrag } | null {
+  const bar = pickerScrollbar(state, count)
+  if (!bar || !Number.isFinite(y)) return null
+  const target = y >= bar.thumbTop && y <= bar.thumbTop + bar.thumbHeight ? state.scroll
+    : Math.round((y - bar.top - bar.thumbHeight / 2) / (bar.height - bar.thumbHeight) * bar.maxScroll)
+  const picker = scrollPicker(state, count, target - state.scroll)
+  return { picker, drag: { y, scroll: picker.scroll, cell } }
+}
+export function dragPicker(state: PickerState, count: number, drag: PickerDrag, y: number): PickerState {
+  const bar = pickerScrollbar(state, count)
+  if (!bar || ![drag.y, drag.scroll, y].every(Number.isFinite)) return state
+  const target = Math.round(drag.scroll + (y - drag.y) / (bar.height - bar.thumbHeight) * bar.maxScroll)
+  return scrollPicker(state, count, target - state.scroll)
+}
+export type PaneHit = { act: 'field'; list: List } | { act: 'row'; index: number } | { act: 'scrollbar' } | { act: 'panel' } | { act: 'close' } | { act: 'control'; action: CardAction } | null
 export type PointerSlack = { x: number; y: number }
 // Distance from a point to the nearest point of [lo, hi]; 0 inside it.
 const gap = (v: number, lo: number, hi: number): number => v < lo ? lo - v : v > hi ? v - hi : 0
 // `slack` is the half-extent in pixels of the pointer's cell. Desktop reports whole cells only (no `fine`), so the pointer is snapped to the
 // cell center and may really be anywhere within it: field, retry and control targets count as hit when the cell overlaps them, the one
-// nearest the center winning. An open list page owns the entire picture.
+// nearest the center winning. The open overlay still owns the pixels its center falls on, so slack never reaches beneath it.
 export function paneHit(model: PaneModel, state: PickerState, x: number, y: number, slack: PointerSlack = { x: 0, y: 0 }): PaneHit {
   if (![x, y].every(Number.isFinite)) return null
   const sx = Number.isFinite(slack.x) && slack.x > 0 ? slack.x : 0, sy = Number.isFinite(slack.y) && slack.y > 0 ? slack.y : 0
+  // Open overlay owns its pixels; it must never click the player beneath it.
   if (state.open) {
-    if (x + sx >= LIST_BACK.x && x - sx <= LIST_BACK.x + LIST_BACK.width && gap(y, LIST_BACK.y, LIST_BACK.y + LIST_BACK.height) <= sy) return { act: 'close' }
-    const page = listPageLayout(model, state)
-    const slot = Math.floor((y - page.rowsTop) / page.rowHeight)
-    if (x < 26 || x > model.width - 26 || slot < 0) return { act: 'panel' }
-    if (page.prev && slot === 0) return { act: 'page', delta: -1 }
-    const index = page.start + slot - (page.prev ? 1 : 0)
-    if (index < page.end) return { act: 'row', index }
-    if (page.next && index === page.end) return { act: 'page', delta: 1 }
-    return { act: 'panel' }
+    const top = overlayTop(state.open)
+    const unavailable = state.open === 'surah' ? unavailableSurahs(model.selectedReciter).length : 0
+    if (x >= 20 && x <= model.width - 20 && y >= top && y < top + pickerOverlayHeight(state.open, unavailable)) {
+      const bar = pickerScrollbar(state, options(model, state.open, state.query).length)
+      if (bar && x + sx >= 22 && x - sx <= 38 && y >= bar.top && y < bar.top + bar.height) return { act: 'scrollbar' }
+      const row = Math.floor((y - top - 56) / pickerRowHeight(state.open))
+      const count = options(model, state.open, state.query).length
+      if (row >= 0 && row < VISIBLE_ROWS && state.scroll + row < count) return { act: 'row', index: state.scroll + row }
+      return { act: 'panel' }
+    }
   }
   // Candidates under the cell, each with its distance from the cell center; the nearest wins.
   let best: PaneHit = null, bestDistance = Infinity
@@ -128,6 +129,7 @@ export function paneHit(model: PaneModel, state: PickerState, x: number, y: numb
     if (inX && dy <= sy) consider({ act: 'field', list }, dy)
   }
   if (best) return best
+  if (state.open) return { act: 'close' }
   if (model.error) {
     const top = paneRetryTop(model)
     if (x + sx >= 20 && x - sx <= 160 && y + sy >= top && y - sy <= top + 34) return { act: 'control', action: 'retry' }
@@ -137,15 +139,14 @@ export function paneHit(model: PaneModel, state: PickerState, x: number, y: numb
   return action ? { act: 'control', action } : null
 }
 export function openPicker(model: PaneModel, state: PickerState, list: List): PickerState {
-  if (state.open === list) return { ...state, open: null, query: '', hover: -1 }
+  if (state.open === list) return { ...state, open: null, query: '' }
   const all = options(model, list, '')
   const highlight = Math.max(0, all.findIndex(o => o.selected))
-  return moveHighlight({ ...state, open: list, query: '', highlight }, all.length, 0)
+  return moveHighlight({ ...state, open: list, query: '', highlight, scroll: 0 }, all.length, 0)
 }
 const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 const number = (text: string) => `<bdi dir="ltr">${escape(text)}</bdi>`
 export function paneSvg(model: PaneModel, state: PickerState, hover: CardAction | null = null): string {
-  if (state.open) return listPageSvg(model, state)
   const selected = model.reciters.find(r => r.key === model.selectedReciter) ?? model.reciters[0]!
   const lists: List[] = model.selection?.segments.length ? ['reciter', 'surah', 'segment'] : ['reciter', 'surah']
   const fields = lists.map(list => {
@@ -154,28 +155,25 @@ export function paneSvg(model: PaneModel, state: PickerState, hover: CardAction 
     const value = list === 'reciter' ? escape(selected.label.replace(' — ', ' · ')) : list === 'surah' ? `${number(arabicDigits(model.selectedSurah))} · ${escape(model.surahs[model.selectedSurah - 1]!.name)}` : segment ? `المقطع ${number(segment.number)} · ${escape(segment.label)}` : ''
     return `<div class="field-label" style="top:${fieldTop(list) - 26}px">${label}</div><div class="field" role="combobox" aria-expanded="${state.open === list}" style="top:${fieldTop(list)}px"><span class="value">${value}</span><span class="arrow">▾</span></div>`
   }).join('')
+  let dropdown = ''
+  if (state.open) {
+    const matches = options(model, state.open, state.query)
+    const note = state.open === 'surah' ? unavailableNote(unavailableSurahs(model.selectedReciter).length) : ''
+    const unavailable = note ? `<div class="unavailable-note" style="top:${56 + VISIBLE_ROWS * pickerRowHeight(state.open)}px">${escape(note).replace(/[٠-٩]+/g, digits => number(digits))}</div>` : ''
+    const rows = matches.slice(state.scroll, state.scroll + VISIBLE_ROWS).map((o, i) => `<div class="option ${o.selected ? 'selected' : ''} ${state.highlight === state.scroll + i ? 'hot' : ''}" role="option" aria-selected="${o.selected}" style="top:${56 + i * pickerRowHeight(state.open!)}px;height:${pickerRowHeight(state.open!)}px"><span>${o.number ? `${number(o.number)} · ` : ''}${escape(o.label)}${o.detail ? `<small>${escape(o.detail)}</small>` : ''}</span><span class="check">${o.selected ? '✓' : ''}</span></div>`).join('')
+    const bar = pickerScrollbar(state, matches.length)
+    const scrollbar = bar ? `<div class="scrollbar" role="scrollbar" aria-label="موضع القائمة" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="${bar.maxScroll}" aria-valuenow="${state.scroll}" style="top:56px;height:${bar.height}px"><div class="thumb" style="top:${bar.thumbTop - bar.top}px;height:${bar.thumbHeight}px"></div></div>` : ''
+    const placeholder = state.open === 'reciter' ? 'ابحث عن قارئ' : state.open === 'surah' ? 'ابحث عن سورة أو رقمها' : 'ابحث عن مقطع أو آية'
+    dropdown = `<div class="dropdown" style="top:${overlayTop(state.open)}px;height:${pickerOverlayHeight(state.open, note ? 1 : 0)}px"><div class="search" role="searchbox">${state.query ? escape(state.query).replace(/[0-9٠-٩]+/g, digits => number(digits)) : `<span class="placeholder">${placeholder}</span>`}<span class="caret">│</span></div>${rows}${scrollbar}${unavailable}${!matches.length ? '<div class="no-results">لا توجد نتائج</div>' : ''}<div class="picker-footer" style="top:${pickerFooterTop(state.open, note ? 1 : 0)}px"><div class="picker-count" dir="rtl">${matches.length ? `${number(arabicDigits(state.highlight + 1))} / ${number(arabicDigits(matches.length))}` : ''}</div><div class="picker-hint" dir="ltr">${escape(PICKER_HINT)}</div></div></div>`
+  }
   const heading = headingLayout(model.width)
   const mushaf = `<div class="mushaf" aria-label="المصحف" ><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v15M12 5C8 2 4 3 1 4v16c4-2 8-1 11 1 3-2 7-3 11-1V4c-3-1-7-2-11 1Z"/></svg><span>القرآن الكريم</span></div>`
   const command = `<div class="command" dir="ltr"><bdi dir="ltr">/quran</bdi></div>`
   const player = cardSvg({ ...model, width: model.width - 40 }, hover)
   const fonts = tajawalFontFaceCss()
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${model.width}" height="${paneHeight(model)}" viewBox="0 0 ${model.width} ${paneHeight(model)}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" class="pane${model.theme ? ` theme-${model.theme}` : ''}" dir="rtl"><style>${fonts}${paletteCss('.pane', model.color)}${ORNAMENT_CSS}
-*{box-sizing:border-box}.pane{position:relative;width:100%;height:100%;background:transparent;border:0;overflow:hidden;color:var(--q-text);font-family:Tajawal,sans-serif;font-weight:400;direction:rtl;text-align:right;user-select:none}.mushaf{position:absolute;right:20px;top:15px;height:36px;display:flex;align-items:center;gap:9px;color:var(--q-title);max-width:${heading.titleMaxWidth}px;font-size:${heading.titleSize}px;font-weight:700}.mushaf span{line-height:1;transform:translateY(.12em);min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.mushaf svg{color:var(--q-accent);flex-shrink:0}.command{position:absolute;left:20px;top:24px;line-height:18px;font-size:${heading.labelSize}px;white-space:nowrap;color:var(--q-dim)}.field-label{position:absolute;right:20px;left:20px;font-size:12px;color:var(--q-dim);line-height:18px}.field{position:absolute;left:20px;right:20px;height:${FIELD_HEIGHT}px;border:1px solid var(--q-line);border-radius:9px;background:var(--q-field-bg);padding:0 12px;font-size:14px;display:flex;align-items:center;justify-content:space-between;gap:10px}.field .value{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.arrow{color:var(--q-muted)}.player{position:absolute;left:20px;top:${paneCardTop(model)}px}.pane .quran{font-family:Tajawal,sans-serif;font-weight:400;text-align:right;direction:rtl}.error{position:absolute;top:${paneCardTop(model) + CARD_HEIGHT + 6}px;line-height:18px;left:20px;right:20px;font-size:12px;color:var(--q-dim)}.segment-note{position:absolute;top:${fieldTop('segment') + FIELD_HEIGHT + 8}px;left:20px;right:20px;font-size:11px;color:var(--q-dim);line-height:20px}.retry{position:absolute;left:20px;top:${paneRetryTop(model)}px;height:34px;width:140px;border:1px solid var(--q-line);border-radius:8px;color:var(--q-soft);font-size:12px;display:grid;place-items:center}bdi{unicode-bidi:isolate;direction:ltr}
-</style>${mushaf}${command}${ornament(65, 20)}${fields}${model.selection?.segments.length ? `<div class="segment-note">المقطع ${number(arabicDigits((model.selection.selectedSegment ?? 0) + 1))} من ${number(arabicDigits(model.selection.segments.length))} داخل سورة ${escape(model.surahs[model.selectedSurah - 1]!.name)}</div>` : ''}<div class="player">${player}</div>${model.error ? `<div class="error">${escape(model.error)}</div><div class="retry" role="button" aria-label="إعادة المحاولة">إعادة المحاولة</div>` : ''}</div></foreignObject></svg>`
-}
-
-function listPageSvg(model: PaneModel, state: PickerState): string {
-  const list = state.open!
-  const page = listPageLayout(model, state)
-  const range = (from: number, to: number) => `${number(arabicDigits(from + 1))}–${number(arabicDigits(to))}`
-  const prev = page.prev ? `<div class="turn" role="button" aria-label="السابق">السابق · ${range(Math.max(0, page.start - page.perPage), page.start)}</div>` : ''
-  const next = page.next ? `<div class="turn" role="button" aria-label="التالي">التالي · ${range(page.end, Math.min(page.count, page.end + page.perPage))}</div>` : ''
-  const rows = options(model, list, state.query).slice(page.start, page.end).map((o, i) => `<div role="option" aria-selected="${o.selected}"${page.start + i === state.highlight || page.start + i === state.hover ? ' class="hot"' : ''}><span>${o.number ? `${number(o.number)} · ` : ''}${escape(o.label)}${o.detail ? `<small>${escape(o.detail)}</small>` : ''}</span><i>${o.selected ? '✓' : ''}</i></div>`).join('')
-  const placeholder = list === 'reciter' ? 'ابحث عن قارئ' : list === 'surah' ? 'ابحث عن سورة أو رقمها' : 'ابحث عن مقطع أو آية'
-  const query = state.query ? escape(state.query).replace(/[0-9٠-٩]+/g, digits => number(digits)) : `<span class="placeholder">${placeholder}</span>`
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${model.width}" height="${page.height}" viewBox="0 0 ${model.width} ${page.height}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" class="pane${model.theme ? ` theme-${model.theme}` : ''}" dir="rtl"><style>${tajawalFontFaceCss()}${paletteCss('.pane', model.color)}${ORNAMENT_CSS}
-*{box-sizing:border-box}.pane{position:relative;width:100%;height:100%;background:transparent;border:0;overflow:hidden;color:var(--q-text);font-family:Tajawal,sans-serif;font-weight:400;direction:rtl;text-align:right;user-select:none}.list-title{position:absolute;right:20px;left:100px;top:15px;height:36px;display:flex;align-items:center;font-size:20px;font-weight:700;color:var(--q-title)}.back{position:absolute;left:${LIST_BACK.x}px;top:${LIST_BACK.y}px;width:${LIST_BACK.width}px;height:${LIST_BACK.height}px;border:1px solid var(--q-line);border-radius:8px;display:grid;place-items:center;font-size:14px;color:var(--q-soft);${state.hover === -2 ? 'background:var(--q-hot)' : ''}}.list-page{position:absolute;left:20px;right:20px;top:90px;bottom:12px;border:1px solid var(--q-line);border-radius:10px;background:var(--q-dropdown-bg);}.search{position:absolute;left:28px;right:28px;top:98px;height:38px;padding:9px 10px;border:1px solid var(--q-line);border-radius:7px;background:var(--q-search-bg);font-size:14px;white-space:nowrap;overflow:hidden}.placeholder{color:var(--q-dim)}.caret{color:var(--q-accent)}.rows{position:absolute;left:26px;right:26px;top:${page.rowsTop}px}.rows>div{height:${page.rowHeight}px;padding:${page.rowHeight < ROW_HEIGHT ? '0' : '8px'} 10px;border-radius:5px;display:flex;gap:8px;align-items:center;justify-content:space-between;font-size:14px;white-space:nowrap;overflow:hidden}.rows>div>span{overflow:hidden;text-overflow:ellipsis}.rows>.hot{background:var(--q-hot)}.rows>.turn{justify-content:center;color:var(--q-accent);font-size:13px}.rows>[aria-selected="true"]{border-right:3px solid var(--q-accent)}.rows i{font-style:normal;color:var(--q-accent)}.rows small{display:block;font-size:10px;color:var(--q-label);line-height:14px}.unavailable-note{position:absolute;left:32px;right:32px;top:${page.rowsBottom}px;height:34px;display:flex;align-items:center;gap:4px;color:var(--q-dim);font-size:12px;pointer-events:none}.no-results{height:${page.rowHeight}px;padding:8px 10px;color:var(--q-dim);font-size:13px}bdi{unicode-bidi:isolate;direction:ltr}
-</style><div class="list-title">${listTitle(list)}</div><div class="back" role="button" aria-label="رجوع">رجوع</div>${ornament(65, 20)}<div class="list-page"></div><div class="search" role="searchbox">${query}<span class="caret">│</span></div><div class="rows" role="listbox" aria-label="${listTitle(list)}">${prev}${rows || '<div class="no-results">لا توجد نتائج</div>'}${next}</div>${page.note ? `<div class="unavailable-note">${escape(page.note).replace(/[٠-٩]+/g, digits => number(digits))}</div>` : ''}</div></foreignObject></svg>`
+*{box-sizing:border-box}.pane{position:relative;width:100%;height:100%;background:transparent;border:0;overflow:hidden;color:var(--q-text);font-family:Tajawal,sans-serif;font-weight:400;direction:rtl;text-align:right;user-select:none}.mushaf{position:absolute;right:20px;top:15px;height:36px;display:flex;align-items:center;gap:9px;color:var(--q-title);max-width:${heading.titleMaxWidth}px;font-size:${heading.titleSize}px;font-weight:700}.mushaf span{line-height:1;transform:translateY(.12em);min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.mushaf svg{color:var(--q-accent);flex-shrink:0}.command{position:absolute;left:20px;top:24px;line-height:18px;font-size:${heading.labelSize}px;white-space:nowrap;color:var(--q-dim)}.field-label{position:absolute;right:20px;left:20px;font-size:12px;color:var(--q-dim);line-height:18px}.field{position:absolute;left:20px;right:20px;height:${FIELD_HEIGHT}px;border:1px solid var(--q-line);border-radius:9px;background:var(--q-field-bg);padding:0 12px;font-size:14px;display:flex;align-items:center;justify-content:space-between;gap:10px}.field .value{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.arrow{color:var(--q-muted)}.player{position:absolute;left:20px;top:${paneCardTop(model)}px}.pane .quran{font-family:Tajawal,sans-serif;font-weight:400;text-align:right;direction:rtl}.dropdown{position:absolute;left:20px;right:20px;height:348px;border:1px solid var(--q-line);border-radius:10px;background:var(--q-dropdown-bg);z-index:5;box-shadow:var(--q-shadow);overflow:hidden}.search{position:absolute;left:8px;right:8px;top:8px;height:38px;padding:9px 10px;border:1px solid var(--q-line);border-radius:7px;background:var(--q-search-bg);font-size:14px;white-space:nowrap;overflow:hidden}.placeholder{color:var(--q-dim)}.caret{color:var(--q-accent)}.option{position:absolute;left:20px;right:6px;height:${ROW_HEIGHT}px;padding:8px 10px;border-radius:5px;display:flex;gap:8px;align-items:center;justify-content:space-between;font-size:14px;white-space:nowrap;overflow:hidden}.option>span:first-child{overflow:hidden;text-overflow:ellipsis}.scrollbar{position:absolute;left:4px;width:14px;z-index:1;border-radius:4px;background:linear-gradient(to right,transparent 3px,var(--q-scrollbar) 3px,var(--q-scrollbar) 11px,transparent 11px)}.thumb{position:absolute;left:4px;width:6px;border-radius:3px;background:var(--q-accent)}.unavailable-note{position:absolute;left:12px;right:12px;height:34px;display:flex;align-items:center;gap:4px;color:var(--q-dim);font-size:12px;pointer-events:none}.option.hot{background:color-mix(in srgb,var(--q-accent) 20%,transparent)}.option.selected{border-right:3px solid var(--q-accent);background:color-mix(in srgb,var(--q-accent) 34%,transparent)}.option.selected.hot{background:color-mix(in srgb,var(--q-accent) 44%,transparent)}.check{color:var(--q-accent)}.picker-footer{position:absolute;left:0;right:0;height:${PICKER_FOOTER}px;border-top:1px solid var(--q-line)}.picker-count{position:absolute;right:12px;left:auto;top:0;height:${PICKER_FOOTER - 1}px;display:flex;align-items:center;direction:rtl;text-align:right;white-space:nowrap;color:var(--q-dim);font-size:11px;line-height:14px}.picker-hint{position:absolute;left:12px;right:auto;top:0;height:${PICKER_FOOTER - 1}px;display:flex;align-items:center;direction:ltr;text-align:left;white-space:nowrap;color:var(--q-soft);font-size:12px;line-height:16px}.no-results{position:absolute;top:64px;right:18px;color:var(--q-dim);font-size:13px}.error{position:absolute;top:${paneCardTop(model) + CARD_HEIGHT + 6}px;line-height:18px;left:20px;right:20px;font-size:12px;color:var(--q-dim)}.option small{display:block;font-size:10px;color:var(--q-label);line-height:14px}.segment-note{position:absolute;top:${fieldTop('segment') + FIELD_HEIGHT + 8}px;left:20px;right:20px;font-size:11px;color:var(--q-dim);line-height:20px}.retry{position:absolute;left:20px;top:${paneRetryTop(model)}px;height:34px;width:140px;border:1px solid var(--q-line);border-radius:8px;color:var(--q-soft);font-size:12px;display:grid;place-items:center}bdi{unicode-bidi:isolate;direction:ltr}
+</style>${mushaf}${command}${ornament(65, 20)}${fields}${model.selection?.segments.length ? `<div class="segment-note">المقطع ${number(arabicDigits((model.selection.selectedSegment ?? 0) + 1))} من ${number(arabicDigits(model.selection.segments.length))} داخل سورة ${escape(model.surahs[model.selectedSurah - 1]!.name)}</div>` : ''}<div class="player">${player}</div>${model.error ? `<div class="error">${escape(model.error)}</div><div class="retry" role="button" aria-label="إعادة المحاولة">إعادة المحاولة</div>` : ''}${dropdown}</div></foreignObject></svg>`
 }
 
 export type PickMessage = { act: 'pick'; list: List; value: string }
@@ -185,10 +183,8 @@ export function isPickMessage(value: unknown): value is PickMessage {
   return m.act === 'pick' && (m.list === 'reciter' || m.list === 'surah' || m.list === 'segment') && typeof m.value === 'string' && (m.list === 'reciter' ? /^\d+:\d+$/.test(m.value) : /^\d+$/.test(m.value))
 }
 
-// A page transition requests the site's start once; it carries no wheel or viewport data.
-export type PickerMessage = { act: 'picker'; list: List | null; focusRevision: number }
-export function isPickerMessage(value: unknown): value is PickerMessage {
-  if (!value || typeof value !== 'object') return false
-  const m = value as Record<string, unknown>
-  return m.act === 'picker' && (m.list === null || m.list === 'reciter' || m.list === 'surah' || m.list === 'segment') && Number.isInteger(m.focusRevision) && (m.focusRevision as number) >= 0
+export function scrollPicker(state: PickerState, count: number, delta: number): PickerState {
+  const scroll = Math.max(0, Math.min(Math.max(0, count - VISIBLE_ROWS), state.scroll + delta))
+  const highlight = Math.max(scroll, Math.min(Math.max(0, count - 1), scroll + VISIBLE_ROWS - 1, state.highlight))
+  return { ...state, scroll, highlight }
 }

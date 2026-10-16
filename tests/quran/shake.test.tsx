@@ -1,11 +1,11 @@
 import type { On, UiScrollInput } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 import type { Mounted } from 'claude-code/testing'
-import { fieldTop, LIST_BACK } from '../../src/features/quran/pane.ts'
+import { fieldTop, overlayTop } from '../../src/features/quran/pane.ts'
 import { fixtureCatalog } from './fixtures/catalog.ts'
 
 // The Quran pane must not redraw for wheel ticks that cannot move the window
-// while every movable tick, including over an open list, reaches the host unchanged.
+// (that redraw was the whole window shaking), while the open list still scrolls.
 const pane = (offset = 0, bodyRows = 60) => ({ plugin: 'muslim', component: 'Pane' as const, requestId: 'quran', surface: 'desktop' as const, props: { title: 'القرآن الكريم', isFocused: true, bodyColumns: 50, placement: 'dock' as const, scroll: { offset, bodyRows }, view: {} } })
 const ROWS = 60
 // Enough reciters that the open list can scroll.
@@ -50,25 +50,18 @@ test('real overflow still reaches the host', async ($, on) => {
   expect(forwarded).toHaveLength(1)
 })
 
-test('wheel on an open list page reaches the host unchanged, without pinning or redrawing the list', async ($, on) => {
+test('the open reciter list leaves the wheel to the host: the pane scrolls, the list does not move', async ($, on) => {
   const forwarded = setup(on)
   const ui = await fit(await $.ui.mount(pane()))
+  // Map pixels to cells with the picture's own height, as the Client does.
   const H = Number((await svgOf(ui)).match(/height="(\d+)"/)![1])
   const y = (fieldTop('reciter') + 20) * ROWS / H
   await ui.pointer({ in: 'quran-card', type: 'down', button: 'left', x: 25, y: Math.floor(y), fine: { x: 25, y } })
+  const row = (overlayTop('reciter') + 75) * ROWS / H - 0.5
+  await ui.pointer({ in: 'quran-card', type: 'move', x: 25, y: Math.floor(row), fine: { x: 25, y: row } })
   const before = await svgOf(ui)
-  expect(before).toContain('class="list-page"')
-  forwarded.length = 0 // Opening requests start once; wheel input must never request it.
-  const rows = Math.ceil(Number((await svgOf(ui)).match(/height="(\d+)"/)![1]) / 19)
-  await ui.resize({ columns: 50, rows, in: 'quran-card' })
-  for (const event of [wheel(3, 12, rows), wheel(-2, 12, rows, 5), wheel(0.2, undefined, rows)]) {
-    await $.ui.scroll(event)
-    expect(forwarded.at(-1)).toEqual(event)
-  }
-  expect(forwarded).toHaveLength(3)
+  expect(before).toContain('class="dropdown"')
+  await $.ui.scroll(wheel(3, row, ROWS + 20))
+  expect(forwarded).toHaveLength(1)
   expect(await svgOf(ui)).toBe(before)
-  // Returning asks for start once; no wheel-position or list-offset state exists.
-  const backY = (LIST_BACK.y + 15) * rows / Number((await svgOf(ui)).match(/height="(\d+)"/)![1])
-  await ui.pointer({ in: 'quran-card', type: 'down', button: 'left', x: 5, y: Math.floor(backY), fine: { x: 5, y: backY } })
-  expect(await svgOf(ui)).not.toContain('class="list-page"')
 })

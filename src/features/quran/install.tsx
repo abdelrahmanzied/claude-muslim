@@ -12,7 +12,7 @@ import { quranHelp } from './help.ts'
 import { isCardMessage, pointerPixels, pointerSlack } from './card.ts'
 import { connectPanelAction, connectQuran, type PanelQuran } from '../../shared/panel/signal.ts'
 import { skipPaneScroll } from '../../shared/scroll/index.ts'
-import { arabicDigits, columnsWidth, isPickMessage, isPickerMessage, paneHit, paneModel, pickerInitial, paneHeight } from './pane.ts'
+import { arabicDigits, columnsWidth, isPickMessage, paneHit, paneModel, pickerInitial, paneHeight } from './pane.ts'
 
 const QURAN_DEBUG = false
 type Preparing = { moshafKey: string; surah: number; stage: 'checking' | 'preparing' }
@@ -29,11 +29,6 @@ const runtime: { controller?: AbortController; prefetch?: PrefetchTarget & { con
 
 // ui.scroll has no surface field: `desktop` and `offset` are the pane's latest render.
 const view: { focusRevision: number; offset: number; desktop: boolean } = { focusRevision: 0, offset: 0, desktop: false }
-
-async function scrollStart($: EngineInterface): Promise<void> {
-  try { await $.ui.scroll({ in: 'quran', to: 'start' }) }
-  catch { /* A surface refusing the reveal must not prevent a pick or return. */ }
-}
 
 async function writeDebug($: EngineInterface, message: string): Promise<void> {
   try {
@@ -601,14 +596,7 @@ export const install = (on: On, options: Options) => {
   })
   on('ui.message', { element: 'quran-card' }, async ($, e) => {
     if (e.surface !== 'desktop') return {}
-    if (isPickerMessage(e.data)) {
-      if (e.data.focusRevision === view.focusRevision) {
-        await scrollStart($)
-      }
-      return {}
-    }
     if (isPickMessage(e.data)) {
-      await scrollStart($)
       const pickMessage = e.data
       // Dispatch surah picks before catalog refresh so known gaps do no network work.
       if (pickMessage.list === 'surah') {
@@ -660,7 +648,8 @@ export const install = (on: On, options: Options) => {
     $.ui.invalidate('ui.render')
     return closed
   })
-  on('ui.scroll', { component: 'Pane', requestId: 'quran' }, ($, e, next) => skipPaneScroll(view.desktop, view.offset, e) ? {} : next(e))
+  // The wheel always belongs to the pane: Desktop moves the body before this hook runs, so pinning it to scroll the open list shook it.
+  on('ui.scroll', { component: 'Pane', requestId: 'quran' }, async ($, e, next) => skipPaneScroll(view.desktop, view.offset, e) ? {} : next(e))
   on('ui.render', { component: 'Pane', requestId: 'quran' }, async ($, e) => {
     const { Box, Text } = $.ui.resolve(e)
     view.desktop = e.surface === 'desktop'

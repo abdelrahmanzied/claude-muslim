@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { CARD_TOP, FIELD_HEIGHT, PANE_HEIGHT, SEGMENT_EXTRA, LIST_ROWS_TOP, LIST_BACK, listPageLayout, paneHeight, arabicDigits, fieldTop, isPickMessage, moveHighlight, openPicker, options, columnsWidth, headingLayout, HEADING_EDGE, HEADING_GAP, safeWidth, paneHit, paneModel, paneSvg, pickerInitial, typeQuery } from '../../src/features/quran/pane.ts'
+import { CARD_TOP, FIELD_HEIGHT, PANE_HEIGHT, SEGMENT_EXTRA, VISIBLE_ROWS, arabicDigits, fieldTop, isPickMessage, moveHighlight, openPicker, options, overlayTop, pickerOverlayHeight, columnsWidth, headingLayout, HEADING_EDGE, HEADING_GAP, safeWidth, paneHit, paneModel, paneSvg, pickerInitial, typeQuery } from '../../src/features/quran/pane.ts'
 import { fixtureCatalog } from './fixtures/catalog.ts'
 import { CONTROLS_Y, controls, paletteCss, pointerSlack } from '../../src/features/quran/card.ts'
 import { AUDIO_LIMIT_BYTES, timedSegments } from '../../src/features/quran/segments.ts'
@@ -19,29 +19,31 @@ test('whole pane model includes full catalogs, authoritative selected keys and p
   expect(options(model, 'reciter', 'مجود')[0]?.value).toBe('10:21')
   expect(arabicDigits(114)).toBe('١١٤')
 })
-test('pure picker navigation clamps highlight, filters and has no catalog/page cap', () => {
+test('pure picker navigation keeps the highlight visible and has no catalog/page cap', () => {
   let state = openPicker(model, pickerInitial(model), 'surah')
   expect(state.highlight).toBe(17)
+  expect(state.scroll).toBe(10)
   state = moveHighlight(state, 114, 1000)
   expect(state.highlight).toBe(113)
+  expect(state.scroll).toBe(114 - VISIBLE_ROWS)
   state = moveHighlight(state, 114, -1000)
   expect(state.highlight).toBe(0)
+  expect(state.scroll).toBe(0)
   for (const key of 'الكهف') state = typeQuery(state, key)
   expect(options(model, 'surah', state.query)[0]?.value).toBe('18')
   expect(typeQuery(state, 'backspace').query).toBe('الكه')
   expect(typeQuery(state, '😀').highlight).toBe(0)
   expect(openPicker(model, state, 'surah').open).toBe(null)
 })
-test('list page hit testing owns the whole picture, including empty areas and former player pixels', () => {
+test('overlay hit testing owns rows and empty panel areas, blocks player controls, and closes outside', () => {
   const initial = pickerInitial(model)
   expect(paneHit(model, initial, 210, fieldTop('surah') + 15)).toEqual({ act: 'field', list: 'surah' })
-  const opened = openPicker(model, initial, 'reciter')
-  expect(paneHit(model, opened, 210, LIST_ROWS_TOP + 10)).toEqual({ act: 'row', index: 0 })
-  expect(paneHit(model, opened, 210, 110)).toEqual({ act: 'panel' })
-  expect(paneHit(model, opened, 210, CARD_TOP + CONTROLS_Y)).toEqual({ act: 'panel' })
+  const opened = { ...openPicker(model, initial, 'reciter'), query: '', scroll: 0 }
+  expect(paneHit(model, opened, 210, overlayTop('reciter') + 60)).toEqual({ act: 'row', index: 0 })
+  expect(paneHit(model, opened, 210, overlayTop('reciter') + 10)).toEqual({ act: 'panel' })
+  expect(paneHit(model, opened, 210, overlayTop('reciter') + pickerOverlayHeight('reciter') + 6)).toEqual({ act: 'close' })
   expect(paneHit(model, initial, 210, CARD_TOP + CONTROLS_Y)).toEqual({ act: 'control', action: 'toggle' })
-  expect(paneHit(model, opened, -2, 10)).toEqual({ act: 'panel' })
-  expect(paneHit(model, opened, LIST_BACK.x + 10, LIST_BACK.y + 10)).toEqual({ act: 'close' })
+  expect(paneHit(model, opened, -2, 10)).toEqual({ act: 'close' })
   expect(paneHit(model, initial, NaN, 0)).toBe(null)
   expect(paneHit(model, initial, 315, 28)).toBe(null)
   expect(isPickMessage({ act: 'pick', list: 'surah', value: '18' })).toBe(true)
@@ -57,22 +59,19 @@ test('pane picture embeds both full Tajawal weights within engine limits and dra
   expect(svg.length).toBeLessThan(131072)
   expect(JSON.stringify({ type: 'Svg', props: { source: svg, width: 420, height: PANE_HEIGHT } }).length).toBeLessThan(100000)
   const open = paneSvg(model, openPicker(model, pickerInitial(model), 'surah'))
-  expect(open.match(/role="option"/g)).toHaveLength(114)
-  expect(open).not.toContain('role="scrollbar"')
+  expect(open.match(/role="option"/g)).toHaveLength(8)
+  expect(open).toContain('Use ↑ ↓ for scrolling')
   expect(open).toContain('ابحث عن سورة أو رقمها')
 })
-test('fonts and either list page stay below the Client payload limit at all supported widths', () => {
+test('avatar plus fonts and either open catalog stay below the Client payload limit at all supported widths', () => {
   const reciters = Array.from({ length: 160 }, (_, i) => ({ ...fixtureCatalog.reciters[0]!, key: `${100 + i}:20`, label: 'اختيار تجريبي '.repeat(10) + i }))
   for (const width of [240, 420, 672, 1200]) {
     const picture = { ...model, width, reciters }
     for (const list of ['reciter', 'surah'] as const) {
       const svg = paneSvg(picture, openPicker(picture, pickerInitial(picture), list))
       expect(JSON.stringify({ type: 'Box', props: {}, children: [{ type: 'Svg', props: { source: svg, width, height: PANE_HEIGHT } }] }).length).toBeLessThan(100000)
-      const page = listPageLayout(picture, openPicker(picture, pickerInitial(picture), list))
-      expect(svg).toContain('رجوع')
-      expect(svg).not.toContain('class="avatar"')
-      expect(svg.match(/role="option"/g)).toHaveLength(page.end - page.start)
-      expect(page.end - page.start).toBe(list === 'reciter' ? page.perPage : 114)
+      expect(svg).toContain('<span>القرآن الكريم</span>')
+      expect(svg).toContain('class="avatar"')
     }
   }
 })
@@ -116,7 +115,7 @@ test('pane colors are CSS variables with a light palette under prefers-color-sch
   expect(outside).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(/)
   expect(svg).toContain('class="pane" dir="rtl"')
   const dropdown = paneSvg(model, { ...pickerInitial(model), open: 'surah' }).replace(paletteCss('.pane'), '').replace(paletteCss('.quran'), '').replace(/<svg[^>]*kbx-root[\s\S]*?<\/svg>/, '').replace(/base64,[A-Za-z0-9+/=]+/g, '')
-  expect(dropdown).toContain('class="list-page"')
+  expect(dropdown).toContain('class="dropdown"')
   expect(dropdown).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(/)
   const forced = paneSvg(paneModel(fixtureCatalog, fixtureCatalog.reciters[0]!, 18, null, 0, 420, 4, 0, true, null, undefined, 'off', 'light'), pickerInitial(model))
   expect(forced).toContain('class="pane theme-light"')
@@ -124,7 +123,7 @@ test('pane colors are CSS variables with a light palette under prefers-color-sch
   expect(paneModel(fixtureCatalog, fixtureCatalog.reciters[0]!, 18, null, 0, 420, 4, 0, true, null).theme).toBeUndefined()
 })
 
-test('pane and SVG wrapper stay transparent while every list page and search use opaque palette backgrounds', () => {
+test('pane and SVG wrapper stay transparent while every dropdown and search use opaque palette backgrounds', () => {
   for (const theme of [undefined, 'light', 'dark'] as const) for (const list of ['reciter', 'surah', 'segment'] as const) {
     const picture = { ...model, theme }
     const svg = paneSvg(picture, openPicker(picture, pickerInitial(picture), list))
@@ -133,11 +132,12 @@ test('pane and SVG wrapper stay transparent while every list page and search use
     expect(root).not.toContain('border-radius')
     expect(svg).not.toContain('quran-pane-clip')
     expect(svg.slice(0, svg.indexOf('<foreignObject'))).not.toContain('<rect')
-    const dropdown = svg.match(/\.list-page\{([^}]+)\}/)![1]!
+    const dropdown = svg.match(/\.dropdown\{([^}]+)\}/)![1]!
     const search = svg.match(/\.search\{([^}]+)\}/)![1]!
     expect(dropdown).toContain('background:var(--q-dropdown-bg);')
     expect(search).toContain('background:var(--q-search-bg);')
     expect(dropdown + search).not.toContain('var(--q-bg)')
+    expect(svg.match(/\.field\{([^}]+)\}/)![1]!).toContain('background:var(--q-field-bg);')
   }
 })
 
@@ -176,16 +176,17 @@ test('one dim inactive unavailable note sits outside option navigation and scrol
     expect(note).not.toContain('role=')
     expect(note).not.toContain('tabindex')
     expect(note).not.toContain('option')
-    expect(svg.match(/role="option"/g)).toHaveLength(109)
-    expect(svg).not.toContain('role="scrollbar"')
+    expect(svg.match(/role="option"/g)).toHaveLength(8)
+    expect(svg).toContain('aria-valuemax="101"')
     const last = moveHighlight(picker, options(limited, 'surah', '').length, 1000)
     expect(last.highlight).toBe(108)
-    expect(paneHit(limited, picker, 210, listPageLayout(limited, picker).rowsBottom + 15)).toEqual({ act: 'panel' })
-    const searched = { ...picker, query: 'البقرة', highlight: 0 }
+    expect(last.scroll).toBe(101)
+    expect(paneHit(limited, picker, 210, overlayTop('surah') + 56 + 8 * 34 + 15)).toEqual({ act: 'panel' })
+    const searched = { ...picker, query: 'البقرة', highlight: 0, scroll: 0 }
     expect(paneSvg(limited, searched)).toContain('class="unavailable-note"')
-    expect(paneHit(limited, searched, 210, LIST_ROWS_TOP + 10)).toEqual({ act: 'panel' })
-    expect(paneHit(limited, last, 25, listPageLayout(limited, picker).rowsBottom + 15)).toEqual({ act: 'panel' })
-    expect(paneHit(limited, last, 25, listPageLayout(limited, picker).rowsBottom)).toEqual({ act: 'panel' })
+    expect(paneHit(limited, searched, 210, overlayTop('surah') + 60)).toEqual({ act: 'panel' })
+    expect(paneHit(limited, last, 25, overlayTop('surah') + 56 + 8 * 34 + 15)).toEqual({ act: 'panel' })
+    expect(paneHit(limited, last, 25, overlayTop('surah') + 56 + 8 * 34)).toEqual({ act: 'panel' })
     expect(paneSvg(limited, openPicker(limited, pickerInitial(limited), 'reciter'))).not.toContain('class="unavailable-note"')
   }
   const complete = paneModel(fixtureCatalog, { ...fixtureCatalog.reciters[0]!, key: '112:112' }, 1, null, 0, 420, 0, 0, true, null)
@@ -196,6 +197,7 @@ test('one dim inactive unavailable note sits outside option navigation and scrol
 test('selected design geometry: 46px fields every 90px, rosette rule under the heading, repeat right of next in the control row', () => {
   expect(FIELD_HEIGHT).toBe(46)
   expect(fieldTop('surah') - fieldTop('reciter')).toBe(90)
+  expect(overlayTop('surah') - fieldTop('surah')).toBe(FIELD_HEIGHT + 8)
   const svg = paneSvg(model, pickerInitial(model))
   expect(svg.match(/class="orn"/g)).toHaveLength(2)
   expect(svg).toContain('style="top:65px;left:20px;right:20px"')
@@ -269,10 +271,10 @@ test('a whole-cell pointer (no fine position) hits a field whose bottom edge it 
   expect(paneHit(model, initial, 210, fieldTop('surah') + FIELD_HEIGHT)).toEqual({ act: 'field', list: 'surah' })
   expect(paneHit(model, initial, 210, fieldTop('surah') + FIELD_HEIGHT + 0.5)).toBe(null)
 })
-test('slack does not let a field steal the list page, controls keep the nearest circle and the segment note stays inert', () => {
+test('slack does not let a field steal the open overlay, controls keep the nearest circle and the segment note stays inert', () => {
   const slack = pointerSlack(420, 50, 40, PANE_HEIGHT, true)
-  const opened = { ...openPicker(model, pickerInitial(model), 'reciter'), query: '' }
-  // The list page owns all pixels; old field geometry cannot open a second list.
+  const opened = { ...openPicker(model, pickerInitial(model), 'reciter'), query: '', scroll: 0 }
+  // Surah field sits under the open reciter overlay: its pixels belong to the overlay.
   expect(paneHit(model, opened, 210, fieldTop('surah') + 20, slack)?.act).toBe('row')
   // Controls: a cell centered just past the play circle's edge overlaps it; one a full half cell further does not.
   const play = controls(420 - 40).find(b => b.action === 'toggle')!

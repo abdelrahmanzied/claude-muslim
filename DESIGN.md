@@ -10,7 +10,7 @@ The shared base every feature follows, and the index to each feature's own desig
 | Morning and evening athkar | `/athkar` | [athkar.md](docs/features/athkar.md) | [athkar-design.md](docs/features/athkar-design.md): a drawn reader (Client module, desktop Svg sky) |
 | Salah | `/salah` | [salah.md](docs/features/salah.md) | [salah-design.md](docs/features/salah-design.md): text, richer athan moment |
 | Terminal Arabic check ([shared guide](docs/terminal.md)) | `/muslim terminal-arabic` | [arabic-fix.md](docs/features/arabic-fix.md) | [arabic-fix-design.md](docs/features/arabic-fix-design.md) |
-| Quran | `/quran` | [quran.md](docs/features/quran.md) | [quran-design.md](docs/features/quran-design.md): a full Client-drawn pane (no footer item) with searchable list pages |
+| Quran | `/quran` | [quran.md](docs/features/quran.md) | [quran-design.md](docs/features/quran-design.md): a full Client-drawn pane (no footer item) with searchable dropdowns |
 | Muslim pane | `/muslim pane` | [muslim-pane.md](docs/features/muslim-pane.md) | [muslim-pane-design.md](docs/features/muslim-pane-design.md): a docked desktop pane of three daily cards (prayers, Quran player, athkar progress) and one folded settings card with five non-scrolling tabs, a Client-drawn picture; text in the terminal |
 
 Everything below is shared by every feature. A feature's doc may add to it, never contradict it.
