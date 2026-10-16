@@ -172,7 +172,6 @@ const SETTINGS_CSS = `
 .setting-label span{line-height:1;transform:translateY(.12em)}
 .setting-hint{position:absolute;left:16px;right:16px;text-align:right;direction:rtl;line-height:${HINT_H}px;font-size:12px;color:var(--muted)}
 .setting-extra{position:absolute;right:16px;max-width:calc(100% - 142px);font-size:12px;line-height:14px;color:var(--muted)}
-.setting-sample{position:absolute;right:16px;height:18px;line-height:18px;font-size:14px;color:var(--text-2)}
 .sc{position:absolute;display:flex;align-items:center;justify-content:center;gap:4px;border-radius:7px;font-size:14px;color:var(--text-2);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .sc.pill,.sc.value{background:var(--raised);padding:3px 6px}.sc.pill.on{color:var(--accent);box-shadow:inset 0 0 0 1px var(--line)}
 .sc.hot{background:var(--raised-2)}.sc.disabled{opacity:.38}.sc.step{border:1px solid var(--line);direction:ltr;border-radius:4px}.sc.step.output{opacity:1;color:var(--text);font-size:14px}.sc.step:not(.output){font-size:20px;line-height:1}
@@ -196,7 +195,7 @@ const settingControl = (t: SettingsTarget, hover: PaneAct | null): string => {
 }
 const settingRow = (row: SettingRow, y: number): string => {
   const isSwitch = row.controls[0]?.style === 'switch'
-  return `<span class="setting-label" style="top:${y}px;max-width:calc(100% - ${isSwitch ? 82 : 32}px)"><span>${escape(row.label)}</span></span><span class="setting-hint" style="top:${y+HINT_TOP}px">${escape(row.hint)}</span>${row.extra?.controls.length?`<span class="setting-extra" style="top:${y+EXTRA_TOP+7}px">${escape(row.extra.label)}</span>`:''}${row.sample?`<span class="setting-sample" style="top:${y+CONTROL_TOP}px">${escape(row.sample)}</span>`:''}`
+  return `<span class="setting-label" style="top:${y}px;max-width:calc(100% - ${isSwitch ? 82 : 32}px)"><span>${escape(row.label)}</span></span><span class="setting-hint" style="top:${y+HINT_TOP}px">${escape(row.hint)}</span>${row.extra?.controls.length?`<span class="setting-extra" style="top:${y+EXTRA_TOP+7}px">${escape(row.extra.label)}</span>`:''}`
 }
 const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
   const model=m.settings, s=model.state, r=cardRects(m.folds,s,model.options), b=settingsBody(m.width,model)

@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 import { readAdjust, readOptions, writeAdjust } from '../../src/config.ts'
 import { cardRects, hitAt, hitOfCells, NO_FOLDS, paneHeight, settingsBoxes, type Enabled } from '../../src/features/muslim-pane/layout.ts'
-import { BODY_TOP, BODY_END, COPIED_LABEL, COPIED_MS, EXTRA_TOP, PREVIEW_LABEL_TOP, ATHKAR_SAMPLE_TOP, SAMPLE_BOX_H, copiedAt, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, CONTROL_H, ROW_GAP, ROW_H, SWITCH_ROW_H, EXTRA_ROW_H, SAMPLE_ROW_H, pendingSwitches, optimisticOptions, TABS_H, SETTINGS_BODY_TOP, CATEGORIES, CLOSED_SETTINGS, DEFAULT_SETTINGS, FACE_HEIGHTS, LIST_SIZE, MAIN_HEIGHTS, METHOD_CHOICES, SETTINGS_TOP, categoryTabs, loadSettings, changeCategory, isSettings, settingsBody, settingsBodyHeight, settingsHeight, settingsOptions, settingsRows, terminalSettings, type SettingsModel, type SettingsState } from '../../src/features/muslim-pane/settings.ts'
+import { BODY_TOP, BODY_END, COPIED_LABEL, COPIED_MS, EXTRA_TOP, PREVIEW_LABEL_TOP, ATHKAR_SAMPLE_TOP, SAMPLE_BOX_H, copiedAt, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, CONTROL_H, ROW_GAP, ROW_H, SWITCH_ROW_H, EXTRA_ROW_H, pendingSwitches, optimisticOptions, TABS_H, SETTINGS_BODY_TOP, CATEGORIES, CLOSED_SETTINGS, DEFAULT_SETTINGS, FACE_HEIGHTS, LIST_SIZE, MAIN_HEIGHTS, METHOD_CHOICES, SETTINGS_TOP, categoryTabs, loadSettings, changeCategory, isSettings, settingsBody, settingsBodyHeight, settingsHeight, settingsOptions, settingsRows, terminalSettings, type SettingsModel, type SettingsState } from '../../src/features/muslim-pane/settings.ts'
 import { paneModel } from '../../src/features/muslim-pane/model.ts'
 import { paneSvg } from '../../src/features/muslim-pane/view.ts'
 const OFF: Enabled = { athan:false,quran:false,canPrev:false,canNext:false,athkar:false }
@@ -150,7 +150,7 @@ test('rows share label/description/control geometry, inline switches and centere
   expect(HINT_TOP-LABEL_H).toBe(4)
   expect(CONTROL_TOP-HINT_TOP-HINT_H).toBe(10)
   expect(ROW_H-CONTROL_TOP-CONTROL_H).toBe(ROW_GAP)
-  expect([ROW_H,SWITCH_ROW_H,EXTRA_ROW_H,SAMPLE_ROW_H]).toEqual([108,70,146,98])
+  expect([ROW_H,SWITCH_ROW_H,EXTRA_ROW_H]).toEqual([108,70,146])
   for(const width of [240,360,1200]) for(const [category] of CATEGORIES){
     const m=make(category), b=settingsBody(width,m)
     expect(b.rows[0]!.y).toBe(0)
@@ -158,7 +158,7 @@ test('rows share label/description/control geometry, inline switches and centere
       const controls=b.controls.filter(t=>row.controls.some(c=>c.id===t.act))
       for(const t of controls) expect(t.y0).toBe(y+(t.control.style==='switch'?0:CONTROL_TOP))
       if(row.controls[0]?.style==='switch'){
-        expect(row.height).toBe(row.sample?SAMPLE_ROW_H:SWITCH_ROW_H)
+        expect(row.height).toBe(SWITCH_ROW_H)
         expect(controls[0]!.x0).toBe(28)
         expect(controls[0]!.y1-y).toBe(LABEL_H)
       }
@@ -187,17 +187,17 @@ test('terminal Arabic is one direct command-copy target; old terminal face migra
 
 test('optimistic switches retain mismatches and drop confirmed or malformed values',()=>{
   const options=readOptions({})
-  const saved={athkar:false,tashkeel:true,thikrEnd:false}
-  expect(pendingSwitches(options,saved)).toEqual({athkar:false,thikrEnd:false})
-  expect(optimisticOptions(options,saved)).toMatchObject({athkar:false,tashkeel:true,thikrEnd:false})
-  expect(pendingSwitches({...options,athkar:false,thikrEnd:false},saved)).toEqual({})
+  const saved={athkar:false,tashkeel:true,thikr:false}
+  expect(pendingSwitches(options,saved)).toEqual({athkar:false,thikr:false})
+  expect(optimisticOptions(options,saved)).toMatchObject({athkar:false,tashkeel:true,thikr:false})
+  expect(pendingSwitches({...options,athkar:false,thikr:false},saved)).toEqual({})
   expect(pendingSwitches(options,{athkar:'no',color:'blue'} as never)).toEqual({})
   expect(options.athkar).toBe(true)
 })
 
 // The last shown line of a row, from the row's top: what the 28px gap is measured from.
 const lastLineBottom=(row:ReturnType<typeof settingsRows>[number], showsExtra:boolean)=>
-  showsExtra?EXTRA_TOP+CONTROL_H : row.sample?CONTROL_TOP+18 : row.controls[0]?.style==='switch'?HINT_TOP+HINT_H : CONTROL_TOP+CONTROL_H
+  showsExtra?EXTRA_TOP+CONTROL_H: row.controls[0]?.style==='switch'?HINT_TOP+HINT_H : CONTROL_TOP+CONTROL_H
 
 test('every setting row ends 28px under its last shown line, in every tab and both stepper states',()=>{
   expect(ROW_GAP).toBe(28)

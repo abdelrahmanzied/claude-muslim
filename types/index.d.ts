@@ -39,7 +39,7 @@ export type QuranPlaying = { moshafKey: string; surah: number; startedAt: number
 export type PaneSettings = { open: boolean; category: 'prayer' | 'athkar' | 'thikr' | 'general'; face: 'main' | 'methods' | 'adjust' | 'city'; page: number }
 // A copy button that just copied: its command and the time (ms since the epoch) its «تم النسخ» confirmation ends.
 export type PaneCopied = { command: string; until: number }
-export type PaneOptimistic = Partial<Record<'tashkeel' | 'thikr' | 'thikrEnd' | 'athkar' | 'salahAthan', boolean>>
+export type PaneOptimistic = Partial<Record<'tashkeel' | 'thikr' | 'athkar' | 'salahAthan', boolean>>
 
 declare module 'claude-code' {
   interface PluginState {

@@ -32,7 +32,7 @@ export const loadSettings = (saved: unknown): SettingsState => {
 }
 export type SettingsOptions = Omit<Options, 'salahPlace'> & { salahPlace: NonNullable<Options['salahPlace']> | null }
 export const settingsOptions = (o: Options): SettingsOptions => ({ ...o, salahPlace: o.salahPlace ?? null })
-export const SWITCH_FIELDS = ['tashkeel', 'thikr', 'thikrEnd', 'athkar', 'salahAthan'] as const
+export const SWITCH_FIELDS = ['tashkeel', 'thikr', 'athkar', 'salahAthan'] as const
 export const isSwitchField = (field: keyof Options): field is keyof PaneOptimistic => SWITCH_FIELDS.some(f => f === field)
 // Retain only pending values; called on load, outside drawing (state writes
 // are forbidden during ui.render). Also filters malformed session data.
@@ -55,7 +55,7 @@ export type Effect =
   | { kind: 'page'; page: number }
   | { kind: 'copy'; command: string }
 export type SettingControl = { id: SettingsAct; label: string; width: number; style: 'pill' | 'switch' | 'value' | 'step' | 'swatch'; selected?: boolean; disabled?: boolean; done?: boolean; effect: Effect }
-export type SettingRow = { label: string; hint: string; height: number; controls: SettingControl[]; extra?: { label: string; controls: SettingControl[] }; sample?: string }
+export type SettingRow = { label: string; hint: string; height: number; controls: SettingControl[]; extra?: { label: string; controls: SettingControl[] } }
 export const SETTINGS_TOP = 56
 // One-line labels: 4px padding, 20px icon, 4px gap, 14px label, 4px padding, inside the 5px border+padding.
 export const TABS_H = 60
@@ -76,7 +76,6 @@ export const ROW_H = CONTROL_TOP + CONTROL_H + ROW_GAP // 108
 export const SWITCH_ROW_H = HINT_TOP + HINT_H + ROW_GAP // 70
 export const EXTRA_TOP = CONTROL_TOP + CONTROL_H + 10
 export const EXTRA_ROW_H = EXTRA_TOP + CONTROL_H + ROW_GAP // 146
-export const SAMPLE_ROW_H = CONTROL_TOP + 18 + ROW_GAP // 98
 export const ADJUST_TOP = 42
 export const ADJUST_NOTE_TOP = ADJUST_TOP + 6 * ROW_H
 // Athkar preview: a 12px muted label «معاينة» 14px under the style row's controls, then the 62px box 4px under it.
@@ -95,7 +94,7 @@ export const LIST_H = 548
 // Constants, per tab, for the tallest row set: «عرض الصلاة» and the speed row count their stepper line (EXTRA_ROW_H) here.
 export const MAIN_HEIGHTS = {
   prayer: bodyH(EXTRA_ROW_H, SWITCH_ROW_H, ROW_H, ROW_H, ROW_H), athkar: ATHKAR_SAMPLE_TOP + SAMPLE_BOX_H + BODY_END,
-  thikr: bodyH(SWITCH_ROW_H, ROW_H, EXTRA_ROW_H, SAMPLE_ROW_H), general: bodyH(ROW_H, SWITCH_ROW_H, ROW_H),
+  thikr: bodyH(SWITCH_ROW_H, ROW_H, EXTRA_ROW_H), general: bodyH(ROW_H, SWITCH_ROW_H, ROW_H),
 } as const
 export const FACE_HEIGHTS = { methods: LIST_H, adjust: ADJUST_NOTE_TOP + 50, city: 310 } as const
 // With the options, a tab is only as tall as its visible rows: a hidden stepper line takes no space,
@@ -104,7 +103,7 @@ type StepperOptions = Pick<SettingsOptions, 'salahShow' | 'thikrSpeed'>
 export const mainHeight = (c: SettingsState['category'], o?: StepperOptions): number =>
   !o ? MAIN_HEIGHTS[c]
   : c === 'prayer' ? bodyH(typeof o.salahShow === 'number' ? EXTRA_ROW_H : ROW_H, SWITCH_ROW_H, ROW_H, ROW_H, ROW_H)
-  : c === 'thikr' ? bodyH(SWITCH_ROW_H, ROW_H, o.thikrSpeed === 'auto' ? ROW_H : EXTRA_ROW_H, SAMPLE_ROW_H)
+  : c === 'thikr' ? bodyH(SWITCH_ROW_H, ROW_H, o.thikrSpeed === 'auto' ? ROW_H : EXTRA_ROW_H)
   : MAIN_HEIGHTS[c]
 export const settingsBodyHeight = (s: SettingsState, o?: StepperOptions): number => !s.open ? 0 : s.face === 'main' ? mainHeight(s.category, o) : FACE_HEIGHTS[s.face]
 export const settingsHeight = (s: SettingsState, o?: StepperOptions): number => s.open ? SETTINGS_BODY_TOP + settingsBodyHeight(s, o) + 12 : SETTINGS_TOP
@@ -126,11 +125,11 @@ export const METHOD_CHOICES = [
 const PRAYERS = [['fajr','الفجر'],['sunrise','الشروق'],['dhuhr','الظهر'],['asr','العصر'],['maghrib','المغرب'],['isha','العشاء']] as const
 const config = (field: keyof Options, value: string | boolean): Effect => ({ kind: 'config', field, value })
 const control = (id: string, label: string, effect: Effect, style: SettingControl['style'] = 'pill', width = 42, selected = false, disabled = false): SettingControl => ({ id: `settings:${id}`, label, effect, style, width, selected, disabled })
-const toggle = (o: SettingsOptions, field: 'thikr' | 'thikrEnd' | 'tashkeel' | 'athkar' | 'salahAthan') => [control(field, o[field] ? 'on' : 'off', config(field, !o[field]), 'switch', 38, o[field])]
+const toggle = (o: SettingsOptions, field: 'thikr' | 'tashkeel' | 'athkar' | 'salahAthan') => [control(field, o[field] ? 'on' : 'off', config(field, !o[field]), 'switch', 38, o[field])]
 const pills = (field: keyof Options, selected: string, values: readonly (readonly [string, string])[]) => values.map(([v,l]) => control(`${field}:${v}`, l, config(field, v), 'pill', l.length > 10 ? 108 : 46, selected === v))
 const face = (id: SettingsState['face'], label: string) => [control(id, label, { kind: 'face', face: id }, 'value', 142)]
 // Heights include the ROW_GAP after each row. A switch shares the label line.
-const row = (label: string, controls: SettingControl[], hint: string, extra?: SettingRow['extra'], sample?: string): SettingRow => ({ label, controls, hint, height: extra?.controls.length ? EXTRA_ROW_H : sample ? SAMPLE_ROW_H : controls[0]?.style === 'switch' ? SWITCH_ROW_H : ROW_H, ...(extra ? { extra } : {}), ...(sample ? { sample } : {}) })
+const row = (label: string, controls: SettingControl[], hint: string, extra?: SettingRow['extra']): SettingRow => ({ label, controls, hint, height: extra?.controls.length ? EXTRA_ROW_H : controls[0]?.style === 'switch' ? SWITCH_ROW_H : ROW_H, ...(extra ? { extra } : {}) })
 // A copy button: its label is the command (or a note); for COPIED_MS after a copy it confirms instead.
 const copyControl = (m: SettingsModel, id: string, label: string, command: string, width: number): SettingControl => {
   const done = m.copied === command
@@ -156,7 +155,6 @@ export const settingsRows = (m: SettingsModel): SettingRow[] => {
       row('الذكر',toggle(o,'thikr'),'عبارات في Spinner (سطر العمل) في Claude Code'),
       row('المحتوى',pills('thikrMode',o.thikrMode,[['all','الكل'],['salawat','الصلاة على النبي']]),'كل الأذكار أو صلاة على النبي في كل رد'),
       row('السرعة',pills('thikrSpeed',o.thikrSpeed === 'auto' ? 'auto' : '3',[['auto','تلقائي'],['3','ثوانٍ']]).map(c => c.label === 'ثوانٍ' ? {...c,effect:config('thikrSpeed',String(o.thikrSpeed === 'auto' ? 3 : o.thikrSpeed))} : c),'تلقائي: ثانية + نصف ثانية لكل كلمة',{label:o.thikrSpeed === 'auto' ? '' : 'ثوانٍ لكل عبارة',controls:o.thikrSpeed === 'auto' ? [] : step('thikrSpeed',o.thikrSpeed,1,60,n => config('thikrSpeed',String(n)))}),
-      row('نهاية الرد',toggle(o,'thikrEnd'),'سطر في الترمينال عند نهاية الرد',undefined,o.tashkeel ? 'تَمَّ بِحَمْدِ اللَّهِ' : 'تم بحمد الله'),
     ]
     case 'general': return [
       row('اللون الرئيسي',(['orange','green','yellow','blue'] as const).map(v => control(`color:${v}`,v,config('color',v),'swatch',23,o.color === v)),'لون واحد لكل الأجزاء'),

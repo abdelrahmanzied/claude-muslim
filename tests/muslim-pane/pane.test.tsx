@@ -293,7 +293,6 @@ const settingCases: {category:SettingsState['category'];face?:SettingsState['fac
   {category:'thikr',act:'thikr',field:'thikr',value:false},
   {category:'thikr',act:'thikrSpeed:3',field:'thikrSpeed',value:'3'},
   {category:'thikr',act:'thikrMode:salawat',field:'thikrMode',value:'salawat'},
-  {category:'thikr',act:'thikrEnd',field:'thikrEnd',value:false},
   {category:'general',act:'tashkeel',field:'tashkeel',value:false},
   {category:'general',act:'color:blue',field:'color',value:'blue'},
   {category:'athkar',act:'athkar',field:'athkar',value:false},
