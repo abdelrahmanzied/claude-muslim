@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Light mode: the Muslim pane and Quran pixel-art avatars get a soft drop shadow (`drop-shadow(0 1px 1.5px rgba(31,30,29,.35))`) so they stand out on the light card; dark mode is unchanged.
+
 - Quran pickers are the in-card dropdown again, with no wheel scrolling: the plugin never holds the pane to scroll a list, so the pane no longer shakes. The list moves by search, ↑ ↓ and the scrollbar; its one-line footer says “Use ↑ ↓ for scrolling”. The pointer and the arrows share one highlight, tinted lightly with the main color; the chosen row is tinted more strongly.
 
 - Muslim pane settings: label with an Arabic description under it, switches beside their label, centered color dots, the terminal-arabic command as a one-press copy button, no subheader, switches that flip at once (a denied write clears only its own pending value), a 28px gap between rows with no space left by a hidden stepper line, a «تم النسخ ✓» confirmation for 2 seconds after the copy button, 20px settings tab icons, a card only as tall as its visible rows, and no Quran tab (its reciter and repeat live in `/quran` and the Quran pane). The pane title is «☾ Muslim». The end-of-turn switch left the pane settings (it only changes a terminal line; `/thikr end` still does). The athkar settings preview box is gone. The Quran «۞» chip left the Desktop footer: it now holds only ☾ Muslim and the prayer line. The color dots sit on their label's line, like the switches. The Quran card's Open full player button reads «افتح المصحف». The Quran pane no longer shakes while scrolling: wheel ticks that cannot move the window are not redrawn, and the size report no longer redraws the picture (the open list still scrolls).

@@ -24,7 +24,9 @@ const VARS = {
 }
 export const paletteCss = (root: string, color: PaneModel['color']): string => {
   const dark = `${VARS.dark};--accent:${accentHex(color, true)}`, light = `${VARS.light};--accent:${accentHex(color, false)}`
-  return `${root}{${dark}}@media (prefers-color-scheme: light){${root}{${light}}}${root}.theme-light{${light}}${root}.theme-dark{${dark}}`
+  // Light only: a soft drop shadow lifts the pixel-art avatar off the light card; .theme-dark cancels it even when the OS is light.
+  const a = `${root} .pane-top svg`, shadow = 'filter:drop-shadow(0 1px 1.5px rgba(31,30,29,.35))'
+  return `${root}{${dark}}@media (prefers-color-scheme: light){${root}{${light}}}@media (prefers-color-scheme: light){${a}{${shadow}}}${root}.theme-light{${light}}${root}.theme-light .pane-top svg{${shadow}}${root}.theme-dark{${dark}}${root}.theme-dark .pane-top svg{filter:none}`
 }
 
 // Feature marks come from the standard set; row and control icons stay local.

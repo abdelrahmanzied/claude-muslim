@@ -109,6 +109,15 @@ test('the pane is transparent and uses the shared Tajawal face', () => {
   expect(svg).toMatch(/\.dcard\{[^}]*background:transparent/)
 })
 
+test('the header avatar gets a light-only drop shadow that .theme-dark cancels', () => {
+  const css = paletteCss('.dp', 'orange'), shadow = 'filter:drop-shadow(0 1px 1.5px rgba(31,30,29,.35))'
+  expect(css).toContain(`@media (prefers-color-scheme: light){.dp{`)
+  expect(css).toContain(`.dp .pane-top svg{${shadow}}`)
+  expect(css).toContain(`.dp.theme-light .pane-top svg{${shadow}}`)
+  expect(css).toContain('.dp.theme-dark .pane-top svg{filter:none}')
+  expect(css.slice(0, css.indexOf('@media'))).not.toContain('drop-shadow')
+})
+
 test('light and dark use their own consistent token sets and every element reads tokens', () => {
   const svg = paneSvg(paneModel(feeds, NOW, 360, 'orange'))
   const css = paletteCss('.dp', 'orange')

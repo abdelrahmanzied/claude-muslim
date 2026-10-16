@@ -170,3 +170,5 @@ Tab title: on desktop the pane opens as «۞ القرآن الكريم». The ho
 ### Muslim pane settings connector
 
 Quran also connects a read-only recording/selection/repeat feed, a catalog-load action, a recording-key selection action and an explicit session-repeat action. The pane routes through the existing Quran selection and repeat logic; reciter remains in `quran.reciter` and repeat in session state.
+
+In light mode only, the pixel-art avatar carries `filter: drop-shadow(0 1px 1.5px rgba(31,30,29,.35))` (light media query and `.theme-light`; `.theme-dark` sets `filter:none`) so it stands out on the light card; dark mode and the art are unchanged.

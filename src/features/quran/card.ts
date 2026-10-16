@@ -80,7 +80,9 @@ const palette = (color: Accent, isDark: boolean): string => {
   const accent = accentHex(color, isDark)
   return `${isDark ? DARK_VARS : LIGHT_VARS};--q-accent:${accent};--q-hover-border:${accent};--q-primary-hover:${accent};--q-ornament-dim:${accent}`
 }
-export const paletteCss = (root: string, color: Accent = 'orange'): string => `${root}{${palette(color, true)}}@media (prefers-color-scheme: light){${root}{${palette(color, false)}}}${root}.theme-light{${palette(color, false)}}${root}.theme-dark{${palette(color, true)}}`
+// Light only: a soft drop shadow lifts the pixel-art avatar off the light card; .theme-dark cancels it even when the OS is light.
+const AVATAR_SHADOW = 'filter:drop-shadow(0 1px 1.5px rgba(31,30,29,.35))'
+export const paletteCss = (root: string, color: Accent = 'orange'): string => `${root}{${palette(color, true)}}@media (prefers-color-scheme: light){${root}{${palette(color, false)}}}@media (prefers-color-scheme: light){${root} .avatar{${AVATAR_SHADOW}}}${root}.theme-light{${palette(color, false)}}${root}.theme-light .avatar{${AVATAR_SHADOW}}${root}.theme-dark{${palette(color, true)}}${root}.theme-dark .avatar{filter:none}`
 const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 // The selected design's rosette rule, drawn at the top of the pane and above the "next" line.
 export const ORNAMENT_CSS = '.orn{position:absolute;display:flex;gap:10px;align-items:center;justify-content:center;height:25px;color:var(--q-accent)}.orn .arm{flex:1;height:1px;opacity:.8}.orn .a1{background:linear-gradient(to right,transparent,var(--q-ornament-dim))}.orn .a2{background:linear-gradient(to left,transparent,var(--q-ornament-dim))}.orn svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8}'

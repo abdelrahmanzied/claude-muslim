@@ -181,6 +181,14 @@ test('card colors are CSS variables with a dark default and a light palette unde
   expect(cardSvg({ ...build(), theme: 'dark' })).toContain('.quran.theme-dark{')
 })
 
+test('the avatar gets a light-only drop shadow that .theme-dark cancels', () => {
+  const css = paletteCss('.quran'), shadow = 'filter:drop-shadow(0 1px 1.5px rgba(31,30,29,.35))'
+  expect(css).toMatch(/@media \(prefers-color-scheme: light\)\{[^@]*\.quran \.avatar\{filter:drop-shadow\(0 1px 1\.5px rgba\(31,30,29,\.35\)\)\}\}/)
+  expect(css).toContain(`.quran.theme-light .avatar{${shadow}}`)
+  expect(css).toContain('.quran.theme-dark .avatar{filter:none}')
+  expect(css.slice(0, css.indexOf('@media'))).not.toContain('drop-shadow')
+})
+
 test('both palettes keep dropdown and search backgrounds opaque independently of the transparent pane', () => {
   const palettes = Array.from(paletteCss('.pane').matchAll(/\.pane(?:\.theme-(?:light|dark))?\{([^}]+)\}/g), match => match[1]!)
   expect(palettes).toHaveLength(4)
