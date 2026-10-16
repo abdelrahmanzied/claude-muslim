@@ -29,19 +29,22 @@ test('a stored day from another day starts fresh', async () => {
   expect(readDay('junk', '2026-10-10').day).toBe('2026-10-10')
 })
 
-test('93 is merged into 92; each period has its own thikrs and wording', async () => {
-  expect(ATHKAR.some(t => t.id === '93')).toBe(false)
+test('92 is the evening, 93 the morning; each period has its own thikrs and wording', async () => {
   const morning = listFor('morning').map(t => t.id)
   const evening = listFor('evening').map(t => t.id)
   expect(morning).toContain('94')
   expect(morning).not.toContain('97')
   expect(evening).toContain('97')
   expect(evening).not.toContain('94')
+  expect(morning).toContain('93')
+  expect(morning).not.toContain('92')
+  expect(evening).toContain('92')
+  expect(evening).not.toContain('93')
   const t77 = ATHKAR.find(t => t.id === '77')!
   expect(textOf(t77, 'evening').startsWith('أَمْسَيْنَا')).toBe(true)
-  // Counts come only from the data: 91 and 92 a hundred, 98 ten.
+  // Counts come only from the data: 91 and 93 a hundred, 92 and 98 ten.
   expect(ATHKAR.some(t => 'choices' in t)).toBe(false)
-  expect(['91', '92', '98'].map(id => ATHKAR.find(t => t.id === id)!.times)).toEqual([100, 100, 10])
+  expect(['91', '92', '93', '98'].map(id => ATHKAR.find(t => t.id === id)!.times)).toEqual([100, 10, 100, 10])
 })
 
 test('counting fills the thikr, moves on past its end, and back undoes', async () => {

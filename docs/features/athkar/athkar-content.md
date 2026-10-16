@@ -1,12 +1,12 @@
 # Athkar content
 
-The religious text shown by the athkar feature: 25 morning and evening athkar, 11 athkar after salah, and the fixed titles, closing greeting and done rows, each with its count and source. The code is the source of truth for what is displayed; this file must stay identical to it (see the rule in CLAUDE.md). Arabic is authored with tashkeel and is never generated or reworded. Hadith references are the ones listed on sunnah.com for each Hisn al-Muslim number.
+The religious text shown by the athkar feature: 26 morning and evening athkar, 11 athkar after salah, and the fixed titles, closing greeting and done rows, each with its count and source. The code is the source of truth for what is displayed; this file must stay identical to it (see the rule in CLAUDE.md). Arabic is authored with tashkeel and is never generated or reworded. Hadith references are the ones listed on sunnah.com for each Hisn al-Muslim number.
 
 Sources in the code: `src/features/athkar/data.ts`, `src/features/athkar/after-salah.ts`, `src/features/athkar/logic.ts`.
 
 ## أذكار الصباح والمساء — Morning and evening athkar
 
-Hisn al-Muslim chapter 27 (`src/features/athkar/data.ts`, `ATHKAR`). 25 items.
+Hisn al-Muslim chapter 27 (`src/features/athkar/data.ts`, `ATHKAR`). 26 items.
 
 ### 1. 75
 
@@ -224,14 +224,25 @@ Hisn al-Muslim chapter 27 (`src/features/athkar/data.ts`, `ATHKAR`). 25 items.
 
 ### 20. 92
 
-- Count: 100 times
-- When: Morning and evening
+- Count: 10 times
+- When: Evening only
 - Hisn al-Muslim: [Hisn al-Muslim 92](https://sunnah.com/hisn:92)
 - Reference: An-Nasa'i, 'Amalul-Yawm wal-Laylah no. 24; Al-Albani, Sahihut-Targhib 1/272
+- Note: the morning says the same words 100 times as 93, so 92 is in the evening only.
 
 > لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ
 
-### 21. 94
+### 21. 93
+
+- Count: 100 times
+- When: Morning only
+- Hisn al-Muslim: [Hisn al-Muslim 93](https://sunnah.com/hisn:93)
+- Reference: Al-Bukhari 4/95, Muslim 4/2071
+- Note: the book says «مائة مرة إذا أصبح».
+
+> لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ
+
+### 22. 94
 
 - Count: 3 times
 - When: Morning only
@@ -240,7 +251,7 @@ Hisn al-Muslim chapter 27 (`src/features/athkar/data.ts`, `ATHKAR`). 25 items.
 
 > سُبْحَانَ اللَّهِ وَبِحَمْدِهِ عَدَدَ خَلْقِهِ وَرِضَا نَفْسِهِ وَزِنَةَ عَرْشِهِ وَمِدَادَ كَلِمَاتِهِ
 
-### 22. 95
+### 23. 95
 
 - Count: once
 - When: Morning only
@@ -249,7 +260,7 @@ Hisn al-Muslim chapter 27 (`src/features/athkar/data.ts`, `ATHKAR`). 25 items.
 
 > اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا وَرِزْقًا طَيِّبًا وَعَمَلًا مُتَقَبَّلًا
 
-### 23. 96
+### 24. 96
 
 - Count: 100 times
 - When: Morning only
@@ -259,7 +270,7 @@ Hisn al-Muslim chapter 27 (`src/features/athkar/data.ts`, `ATHKAR`). 25 items.
 
 > أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ
 
-### 24. 97
+### 25. 97
 
 - Count: 3 times
 - When: Evening only
@@ -268,7 +279,7 @@ Hisn al-Muslim chapter 27 (`src/features/athkar/data.ts`, `ATHKAR`). 25 items.
 
 > أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ
 
-### 25. 98
+### 26. 98
 
 - Count: 10 times
 - When: Morning and evening

@@ -1,6 +1,6 @@
 # Morning, evening and after-salah athkar
 
-A reader above the prompt for the morning athkar (Fajr to Maghrib) and the evening athkar (Maghrib to the next Fajr) when a salah place is saved; without prayer times, morning remains 05:00 to 17:00 and evening 17:00 to 05:00, from Hisn al-Muslim 75 to 98 (`src/features/athkar/data.ts`). 93 is the same words as 92, so they are one thikr.
+A reader above the prompt for the morning athkar (Fajr to Maghrib) and the evening athkar (Maghrib to the next Fajr) when a salah place is saved; without prayer times, morning remains 05:00 to 17:00 and evening 17:00 to 05:00, from Hisn al-Muslim 75 to 98 (`src/features/athkar/data.ts`). 92 and 93 are the same words: 92 (10 times) is in the evening, 93 (100 times, «إذا أصبح») in the morning.
 
 ## Athkar after salah
 
@@ -29,7 +29,7 @@ The third set, **Athkar after salah** (أَذْكَارُ بَعْدَ الصَ�
 
 ## Counts
 
-Every thikr's count comes from the data file only. There is no choice of counts at reading time (no 10 | 100 switch): 91 and 92 are a hundred, 98 is ten.
+Every thikr's count comes from the data file only. There is no choice of counts at reading time (no 10 | 100 switch): 91 and 93 (morning) are a hundred, 92 (evening) and 98 are ten.
 
 ## Settings
 

@@ -28,6 +28,7 @@ export const TEXT_WIDTH: Record<string, { m: readonly number[]; e?: readonly num
   '90': { m: [800], e: [800] },
   '91': { m: [127] },
   '92': { m: [468] },
+  '93': { m: [468] },
   '94': { m: [425] },
   '95': { m: [328] },
   '96': { m: [146] },

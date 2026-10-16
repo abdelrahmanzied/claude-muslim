@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Athkar: «لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ…» follows Hisn al-Muslim 92 and 93: 100 times in the morning (93) and 10 times in the evening (92), instead of 100 in both.
 - Athkar after salah: remove Hisn al-Muslim 73, «اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا…», from the Fajr list (the morning athkar keep their own copy). Fajr now has 11 items; the `/salah demo` after-salah story drops its `73` scene and ends on the last real item, so it is 10.4 s (6.0 s readings, 3.2 s finale, 1.2 s folded).
 
 - Athkar after salah: the order now follows Sheikh Ibn Baz's fatwa (https://binbaz.org.sa/fatwas/9879): istighfar, salam, 67, 68, the ten tahlils after Fajr and Maghrib, tasbih and tahlil, Ayat al-Kursi, then the three Quls. Text and counts are unchanged.
