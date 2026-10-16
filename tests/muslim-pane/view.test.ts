@@ -136,6 +136,8 @@ test('light and dark use their own consistent token sets and every element reads
   expect(rules).not.toMatch(/rgba?\(|color-mix\(/)
   expect(rules).toMatch(/\.dp\{[^}]*color:var\(--text\)/)
   expect(rules).toMatch(/\.dcard\{[^}]*inset 0 0 0 1px var\(--line\)/)
+  expect(rules).toMatch(/\.dcard\{[^}]*border-radius:12px;/)
+  expect(rules).toMatch(/\.pr\{[^}]*border-radius:8px\}/)
   expect(rules).toMatch(/\.dbtn\{[^}]*background:transparent;box-shadow:inset 0 0 0 1px var\(--line\);color:var\(--text\);border-radius:10px/)
   expect(rules).toMatch(/\.pbar\{[^}]*background:var\(--line\)/)
 })

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Muslim pane: cards use a 12px corner radius like Claude Desktop's own cards (was 19px); the next-prayer row inside uses 8px.
+
 - Muslim pane: the next-prayer countdown is Arabic with Arabic digits, like the time above it (`بعد ٦ س ٥٥ د`, `بعد ١٢ د`, `بعد أقل من دقيقة`), instead of `in 6h 55m`.
 
 - Quran pane: the reciter, surah and quarter boxes and the list search box are transparent with a thin hairline, matching the Muslim pane; the dropdown keeps its shadow, and its dark background now matches the host surface (`#1f1e1d`) instead of a lighter grey slab; the orange row highlights stay.

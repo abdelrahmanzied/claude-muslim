@@ -24,7 +24,7 @@ The design principles for every drawn desktop pane in this mod (today the Muslim
 
 ## 4. Cards
 
-- A card: 19px radius, 1px `--line` border, 16px side inset, 12px between cards.
+- A card: 12px radius (as Claude Desktop's own cards), 1px `--line` border, 16px side inset, 12px between cards.
 - **Title row:** the feature icon, the title, then at the far end short muted meta and a fold chevron. Pressing anywhere on the row folds the card to that row; the fold is kept in `$.state`.
 - **Meta stays short.** Long or secondary facts (the prayer card's city) go on a quiet 12px muted line at the bottom of the card, not in the title row.
 - One clear primary action per card at most, a full-width button at the card's end.

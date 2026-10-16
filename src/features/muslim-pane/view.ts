@@ -54,7 +54,7 @@ const CSS = `
 .dp{position:relative;width:100%;height:100%;background:transparent;font-family:${TAJAWAL_FAMILY};font-size:14px;line-height:1.35;font-weight:400;color:var(--text);direction:rtl;user-select:none;-webkit-user-select:none;overflow:hidden}
 .ic{width:1.3em;height:1.3em;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .pane-top{position:absolute;right:${PAD+8}px;top:${TOP_Y}px;height:${TOP_H}px;display:flex;align-items:center;gap:10px;color:var(--text);font-size:24px;font-weight:700}.pane-top span{line-height:1;transform:translateY(.12em)}.pane-top svg{flex-shrink:0;image-rendering:pixelated}.pane-command{position:absolute;left:${PAD+8}px;top:${TOP_Y+(TOP_H-18)/2}px;line-height:18px;font-size:12px;white-space:nowrap;color:var(--dim)}
-.dcard{position:absolute;left:${PAD}px;right:${PAD}px;border-radius:19px;background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
+.dcard{position:absolute;left:${PAD}px;right:${PAD}px;border-radius:12px;background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
 .in{position:absolute;left:${SIDE}px;right:${SIDE}px}
 .dh{display:flex;align-items:center;gap:8px;height:${HEAD_H}px;font-size:16px;font-weight:500;line-height:1.25;white-space:nowrap}
 .dh .hi{width:20px;height:20px;color:var(--accent)}
@@ -69,7 +69,7 @@ const CSS = `
 .nx-r{direction:ltr;text-align:left}
 .nx-t{font-size:20px;font-weight:500;line-height:1.2;font-variant-numeric:tabular-nums}
 .nx-in{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
-.pr{position:absolute;left:${SIDE - 8}px;right:${SIDE - 8}px;height:${ROW_H}px;font-size:14px;display:flex;align-items:center;gap:11px;padding-inline:8px;border-radius:11px}
+.pr{position:absolute;left:${SIDE - 8}px;right:${SIDE - 8}px;height:${ROW_H}px;font-size:14px;display:flex;align-items:center;gap:11px;padding-inline:8px;border-radius:8px}
 .pr .ic{width:16px;height:16px;color:var(--muted)}
 .pr>span{line-height:1;transform:translateY(.12em)}
 .pr .t{margin-inline-start:auto;font-variant-numeric:tabular-nums}
