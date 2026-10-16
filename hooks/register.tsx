@@ -15,6 +15,7 @@ import { nearestAvailable } from '../src/features/quran/availability.ts'
 import { terminalArabic, defaultArabicMode, isArabicMode, terminalIdFromEnv } from '../src/shared/arabic/terminal.ts'
 import { install as installThikr } from '../src/features/thikr/install.tsx'
 import { install as installMuslimPane } from '../src/features/muslim-pane/install.tsx'
+import { pendingSwitches } from '../src/features/muslim-pane/settings.ts'
 
 // $ stays in same-file helpers; Arabic transformation itself is shared pure logic.
 async function settingsArabic($: EngineInterface, surface: string, text: string): Promise<string> {
@@ -90,6 +91,11 @@ export const register: Register = (on, options) => {
   const settings = readOptions(options)
 
   on('session.start', async ($, e, next) => {
+    // Runs on config reload too. Clear confirmed switches outside ui.render.
+    const optimisticRef = { plugin: 'muslim', key: 'paneOptimistic' } as const
+    const optimistic = await $.state.get(optimisticRef)
+    const pending = pendingSwitches(settings, optimistic.value)
+    if (Object.keys(pending).length !== Object.keys(optimistic.value ?? {}).length) await $.state.set(optimisticRef, pending, { ifVersion: optimistic.version })
     await $.command.register({
       name: 'muslim',
       description: `Show ${PLUGIN} version, terminal Arabic setup, the Muslim pane, and help`,

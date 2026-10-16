@@ -1,7 +1,7 @@
 import { fixtureCatalog } from '../quran/fixtures/catalog.ts'
 import type { Mounted } from 'claude-code/testing'
 import { settingsBoxes, TITLE_HIT_H, paneHeight } from '../../src/features/muslim-pane/layout.ts'
-import { CLOSED_SETTINGS, type SettingsState } from '../../src/features/muslim-pane/settings.ts'
+import { CLOSED_SETTINGS, COPIED_MS, type SettingsState } from '../../src/features/muslim-pane/settings.ts'
 import type { On, PaneOpenArgs, UiOpenResult } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 import { cardRects, ATHAN_TOP, ATHKAR_Y, CONTROLS_CY, KROW_TOP, OPEN_TOP, PANE_HEIGHT, PRAYER_Y, QURAN_Y } from '../../src/features/muslim-pane/layout.ts'
@@ -10,6 +10,8 @@ import type { PaneModel } from '../../src/features/muslim-pane/model.ts'
 const MUNICH = 'Munich; 48.1351, 11.582; Europe/Berlin; DE'
 const NOON = Date.parse('2026-10-10T10:00:00Z')
 
+declare const setTimeout: (fn: () => void, ms: number) => unknown
+let testClock!: ReturnType<typeof mock.clock>
 const pane = (surface: 'desktop' | 'terminal') => ({ plugin: 'muslim', component: 'Pane' as const, requestId: 'muslim', surface, props: { title: 'Muslim', isFocused: false, bodyColumns: 50, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 40 }, view: {} } })
 // Stands for the engine's own band and mode labels beneath the plugin, so the features connect as in a session.
 const engine = (on: On, surface: 'desktop' | 'terminal', open?: (args: PaneOpenArgs) => UiOpenResult, entries: Record<string, unknown> = {}, storeWrites?: {key:string;value:unknown}[]) => {
@@ -18,7 +20,7 @@ const engine = (on: On, surface: 'desktop' | 'terminal', open?: (args: PaneOpenA
     on('store.get',async(_$,e)=>({value:entries[e.key]}))
     on('store.set',async(_$,e)=>{entries[e.key]=e.value;storeWrites.push({key:e.key,value:e.value});return {value:undefined}})
   } else mock.store(on, entries)
-  mock.clock(on, { now: NOON })
+  testClock = mock.clock(on, { now: NOON })
   on('session.surface', async () => ({ value: surface }))
   on('config.list', async () => ({ value: [] }))
   on('ui.render', { component: 'AbovePrompt' }, async ($, e) => { const { Box } = $.ui.resolve(e); return <Box /> })
@@ -410,17 +412,36 @@ test('city press runs Salah question and its existing save/review flow',async($,
   expect(reviews).toContainEqual({fajr:0,sunrise:0,dhuhr:0,asr:0,maghrib:0,isha:0})
 })
 
-test('terminal Arabic opens a command sheet and copies its command without a setting write',async($,on)=>{
+const svgOf=async(ui:Mounted<'desktop'|'terminal','Pane'>)=>String((await ui.find({in:'muslim-pane',type:'Svg'}))?.props.source)
+const terminalButton=(svg:string)=>svg.match(/<div class="sc value[^"]*"[^>]*aria-label="[^"]*"[^>]*>.*?<\/div>/gs)!.find(d=>d.includes('terminal-arabic')||d.includes('تم النسخ'))!
+
+test('terminal Arabic copies its command in one press, then confirms «تم النسخ ✓» for 2s and returns to the command',async($,on)=>{
   engine(on,'desktop')
   settingsState(on,{open:true,category:'general',face:'main',page:0})
   const copies:string[]=[],sets:string[]=[]
   on('ui.copy',async(_$,e)=>{copies.push(e.text);return {value:{isCopied:true}}})
   on('config.set',async(_$,e)=>{sets.push(e.key);return {value:e.value}})
   const ui=await $.ui.mount(pane('desktop'))
+  let button=terminalButton(await svgOf(ui))
+  expect(button).toContain('/muslim terminal-arabic')
+  expect(button).not.toContain('<svg')
   await settingsClick(ui,'settings:terminal')
-  expect(String((await ui.find({in:'muslim-pane',type:'Svg'}))?.props.source)).toContain('/muslim terminal-arabic')
-  await settingsClick(ui,'settings:copy')
+  button=terminalButton(await svgOf(ui))
+  expect(button).toContain('تم النسخ ✓')
+  expect(button).toContain(' copied')
+  expect(button).not.toContain('<svg')
+  expect(button).not.toContain('/muslim terminal-arabic')
+  const model=(await ui.find({type:'Client',key:'muslim-pane'}))!.props.props as PaneModel
+  expect(model.settings.state.face).toBe('main')
+  expect(model.settings.copied).toBe('/muslim terminal-arabic')
   expect(copies).toEqual(['/muslim terminal-arabic']);expect(sets).toEqual([])
+  await testClock.advance(COPIED_MS-1)
+  expect(terminalButton(await svgOf(ui))).toContain('تم النسخ ✓')
+  await testClock.advance(1)
+  for(let i=0;i<200&&terminalButton(await svgOf(ui)).includes('تم النسخ');i++)await new Promise<void>(r=>setTimeout(()=>r(),5))
+  button=terminalButton(await svgOf(ui))
+  expect(button).toContain('/muslim terminal-arabic')
+  expect(button).not.toContain('تم النسخ')
 })
 
 test('terminal pane command refreshes Quran settings before any footer or pane draw',async($,on)=>{
@@ -449,4 +470,87 @@ for(const c of boundaryCases) test(`setting step boundaries ${c.act} ${JSON.stri
     expect(settingsBoxes(420,model.folds,model.settings).some(t=>t.act===`settings:${c.act}`)).toBe(false)
     expect(sets).toEqual([])
   }
+})
+
+test('terminal Arabic copy failure shows the command as a toast',async($,on)=>{
+  engine(on,'desktop'); settingsState(on,{open:true,category:'general',face:'main',page:0})
+  const toasts:string[]=[]
+  on('ui.copy',async()=>({value:{isCopied:false,reason:'no-clipboard'}}))
+  on('ui.toast',async(_$,e)=>{toasts.push(e.text);return {value:undefined}})
+  const ui=await $.ui.mount(pane('desktop'))
+  await settingsClick(ui,'settings:terminal')
+  expect(toasts).toEqual(['/muslim terminal-arabic'])
+  expect(await svgOf(ui)).not.toContain('تم النسخ')
+})
+
+// A press resolves before its config write does; wait for the hook's own effects.
+const until=async(done:()=>boolean)=>{for(let i=0;i<200&&!done();i++)await new Promise<void>(r=>setTimeout(()=>r(),5))}
+const optimisticRef={plugin:'muslim',key:'paneOptimistic'} as const
+
+for(const denied of [false,true]) test(`settings switch redraws while config is pending, ${denied?'then rolls back denial':'then keeps the requested value'}`,async($,on)=>{
+  engine(on,'desktop'); settingsState(on,{open:true,category:'athkar',face:'main',page:0})
+  let optimistic:unknown
+  on('state.set',{plugin:'muslim',key:'paneOptimistic'},async(_$,e,next)=>{optimistic=e.value;return next(e)})
+  let started!:()=>void, release!:()=>void
+  const writing=new Promise<void>(resolve=>{started=resolve})
+  const held=new Promise<void>(resolve=>{release=resolve})
+  const toasts:string[]=[]
+  on('ui.toast',async(_$,e)=>{toasts.push(e.text);return {value:undefined}})
+  on('config.set',async()=>{started();await held;return denied?{deny:'locked'}:{value:false}})
+  const ui=await $.ui.mount(pane('desktop'))
+  const click=settingsClick(ui,'settings:athkar')
+  try {
+    await writing
+    expect(optimistic).toEqual({athkar:false})
+    const model=(await ui.find({type:'Client',key:'muslim-pane'}))!.props.props as PaneModel
+    expect(model.settings.options.athkar).toBe(false)
+    const svg=String((await ui.find({in:'muslim-pane',type:'Svg'}))?.props.source)
+    expect(svg).toContain('role="switch" aria-checked="false"')
+  } finally {release()}
+  await click
+  if(denied) await until(()=>toasts.length>0)
+  expect(optimistic).toEqual(denied?{}:{athkar:false})
+  const model=(await ui.find({type:'Client',key:'muslim-pane'}))!.props.props as PaneModel
+  expect(model.settings.options.athkar).toBe(denied)
+})
+
+test('a denied write clears only its own pending value, never a newer press for the same field',async($,on)=>{
+  engine(on,'desktop'); settingsState(on,{open:true,category:'athkar',face:'main',page:0})
+  let newer=false
+  const writes:unknown[]=[]
+  on('state.get',optimisticRef,async(_$,e,next)=>newer?{value:{value:{athkar:true,thikr:false},version:99}}:next(e))
+  on('state.set',optimisticRef,async(_$,e,next)=>{writes.push(e.value);return next(e)})
+  let started!:()=>void, release!:()=>void
+  const writing=new Promise<void>(resolve=>{started=resolve})
+  const held=new Promise<void>(resolve=>{release=resolve})
+  const toasts:string[]=[]
+  on('ui.toast',async(_$,e)=>{toasts.push(e.text);return {value:undefined}})
+  on('config.set',async()=>{started();await held;return {deny:'locked'}})
+  const ui=await $.ui.mount(pane('desktop'))
+  const click=settingsClick(ui,'settings:athkar')
+  await writing
+  // A newer press for the same switch (the opposite value) lands while the first is still pending.
+  newer=true
+  release()
+  await click
+  await until(()=>toasts.length>0)
+  expect(writes).toEqual([{athkar:false}])
+})
+
+test('a denied write is retried when another press beat its version',async($,on)=>{
+  engine(on,'desktop'); settingsState(on,{open:true,category:'athkar',face:'main',page:0})
+  const writes:unknown[]=[]
+  let denying=false, missed=false
+  on('state.set',optimisticRef,async(_$,e,next)=>{
+    writes.push(e.value)
+    if(denying&&!missed){missed=true;return {value:{isSet:false,version:50}}}
+    return next(e)
+  })
+  const toasts:string[]=[]
+  on('ui.toast',async(_$,e)=>{toasts.push(e.text);return {value:undefined}})
+  on('config.set',async()=>{denying=true;return {deny:'locked'}})
+  const ui=await $.ui.mount(pane('desktop'))
+  await settingsClick(ui,'settings:athkar')
+  await until(()=>toasts.length>0)
+  expect(writes).toEqual([{athkar:false},{},{}])
 })

@@ -1,11 +1,11 @@
 import { expect, test } from 'claude-code/testing'
 import { readAdjust, readOptions, writeAdjust } from '../../src/config.ts'
 import { cardRects, hitAt, hitOfCells, NO_FOLDS, paneHeight, settingsBoxes, type Enabled } from '../../src/features/muslim-pane/layout.ts'
-import { BODY_TOP, TABS_H, SETTINGS_BODY_TOP, CATEGORIES, CLOSED_SETTINGS, DEFAULT_SETTINGS, FACE_HEIGHTS, LIST_SIZE, MAIN_HEIGHTS, METHOD_CHOICES, SETTINGS_TOP, categoryTabs, loadSettings, changeCategory, isSettings, settingsBody, settingsBodyHeight, settingsHeight, settingsOptions, settingsRows, terminalSettings, type SettingsModel, type SettingsState } from '../../src/features/muslim-pane/settings.ts'
+import { BODY_TOP, BODY_END, COPIED_LABEL, COPIED_MS, EXTRA_TOP, PREVIEW_LABEL_TOP, ATHKAR_SAMPLE_TOP, SAMPLE_BOX_H, copiedAt, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, CONTROL_H, ROW_GAP, ROW_H, SWITCH_ROW_H, EXTRA_ROW_H, SAMPLE_ROW_H, pendingSwitches, optimisticOptions, TABS_H, SETTINGS_BODY_TOP, CATEGORIES, CLOSED_SETTINGS, DEFAULT_SETTINGS, FACE_HEIGHTS, LIST_SIZE, MAIN_HEIGHTS, METHOD_CHOICES, SETTINGS_TOP, categoryTabs, loadSettings, changeCategory, isSettings, settingsBody, settingsBodyHeight, settingsHeight, settingsOptions, settingsRows, terminalSettings, type SettingsModel, type SettingsState } from '../../src/features/muslim-pane/settings.ts'
 import { paneModel } from '../../src/features/muslim-pane/model.ts'
 import { paneSvg } from '../../src/features/muslim-pane/view.ts'
 const OFF: Enabled = { athan:false,quran:false,canPrev:false,canNext:false,athkar:false }
-const make = (category: SettingsState['category'], face: SettingsState['face']='main', page=0): SettingsModel => ({ ...DEFAULT_SETTINGS, state:{open:true,category,face,page}, options:settingsOptions(readOptions({thikrSpeed:'60',salahShow:'720'})), quran:{selected:'r1',repeat:'off',split:true,reciters:Array.from({length:17},(_,i)=>({key:`r${i}`,label:`قارئ ${i}`,note:'مرتل'}))} })
+const make = (category: SettingsState['category'], face: SettingsState['face']='main', page=0, raw: Record<string,string|undefined>={thikrSpeed:'60',salahShow:'720'}): SettingsModel => ({ ...DEFAULT_SETTINGS, state:{open:true,category,face,page}, options:settingsOptions(readOptions(raw)), quran:{selected:'r1',repeat:'off',split:true,reciters:Array.from({length:17},(_,i)=>({key:`r${i}`,label:`قارئ ${i}`,note:'مرتل'}))} })
 
 test('settings heights are fixed per category and sub-face, independent of width or config',()=>{
   expect(settingsHeight(CLOSED_SETTINGS)).toBe(56)
@@ -14,12 +14,12 @@ test('settings heights are fixed per category and sub-face, independent of width
     const m=make(category)
     expect(settingsBodyHeight(m.state)).toBe(MAIN_HEIGHTS[category])
     const rows=settingsRows(m)
-    expect(rows.reduce((h,r)=>h+r.height,BODY_TOP)).toBeLessThanOrEqual(MAIN_HEIGHTS[category])
+    if(category!=='athkar') expect(rows.reduce((h,r)=>h+r.height,BODY_TOP)-ROW_GAP+BODY_END).toBeLessThanOrEqual(MAIN_HEIGHTS[category])
     expect(settingsHeight(m.state)).toBe(SETTINGS_BODY_TOP+MAIN_HEIGHTS[category]+12)
     expect(paneHeight(NO_FOLDS,m.state)-paneHeight(NO_FOLDS)).toBe(settingsHeight(m.state)-56)
   }
-  for(const face of ['methods','reciters','adjust','city','terminal'] as const){
-    const m=make(face==='reciters'?'quran':face==='terminal'?'general':'prayer',face)
+  for(const face of ['methods','reciters','adjust','city'] as const){
+    const m=make(face==='reciters'?'quran':'prayer',face)
     expect(settingsBodyHeight(m.state)).toBe(FACE_HEIGHTS[face])
   }
 })
@@ -38,7 +38,7 @@ test('a different tab resets its face and page; the selected tab is a no-op',()=
 
 test('every active settings target is reachable with pixels, cells and coarse slack at supported widths',()=>{
   for(const width of [240,320,420,1200]) for(const [category] of CATEGORIES){
-    const faces:SettingsState['face'][]=category==='prayer'?['main','methods','adjust','city']:category==='quran'?['main','reciters']:category==='general'?['main','terminal']:['main']
+    const faces:SettingsState['face'][]=category==='prayer'?['main','methods','adjust','city']:category==='quran'?['main','reciters']:['main']
     for(const face of faces) for(const page of [0,1,2,3]){
       const m=make(category,face,page), height=paneHeight(NO_FOLDS,m.state)
       for(const t of settingsBoxes(width,NO_FOLDS,m)){
@@ -144,4 +144,134 @@ test('terminal settings headings match the tabs, with all Arabic through show',(
   const lines=terminalSettings(make('general'),s=>`SHOWN(${s})`)
   expect(lines.filter(s=>s.startsWith('**'))).toEqual(['الإعدادات',...CATEGORIES.map(c=>c[1])].map(s=>`**SHOWN(${s})**`))
   expect(lines.some(s=>s.startsWith('SHOWN(')&&s.includes('Spinner'))).toBe(true)
+})
+
+test('rows share label/description/control geometry, inline switches and centered swatches',()=>{
+  expect(SETTINGS_BODY_TOP-SETTINGS_TOP-TABS_H).toBe(16)
+  expect(HINT_TOP-LABEL_H).toBe(4)
+  expect(CONTROL_TOP-HINT_TOP-HINT_H).toBe(10)
+  expect(ROW_H-CONTROL_TOP-CONTROL_H).toBe(ROW_GAP)
+  expect([ROW_H,SWITCH_ROW_H,EXTRA_ROW_H,SAMPLE_ROW_H]).toEqual([108,70,146,98])
+  for(const width of [240,360,1200]) for(const [category] of CATEGORIES){
+    const m=make(category), b=settingsBody(width,m)
+    expect(b.rows[0]!.y).toBe(0)
+    for(const {row,y} of b.rows){
+      const controls=b.controls.filter(t=>row.controls.some(c=>c.id===t.act))
+      for(const t of controls) expect(t.y0).toBe(y+(t.control.style==='switch'?0:CONTROL_TOP))
+      if(row.controls[0]?.style==='switch'){
+        expect(row.height).toBe(row.sample?SAMPLE_ROW_H:SWITCH_ROW_H)
+        expect(controls[0]!.x0).toBe(28)
+        expect(controls[0]!.y1-y).toBe(LABEL_H)
+      }
+      if(row.controls[0]?.style==='swatch') expect(controls[0]!.x0+controls[controls.length-1]!.x1).toBe(width)
+      expect(row.hint).toMatch(/[ء-ي]/)
+    }
+    const model=paneModel({salah:null,quran:null,athkar:null},0,width,'orange'); model.settings=m
+    const svg=paneSvg(model)
+    expect(svg).not.toContain('Applies immediately')
+    expect(svg).not.toContain('class="settings-head"')
+    for(const {row,y} of b.rows){
+      expect(svg).toContain(`top:${y+HINT_TOP}px">${row.hint}`)
+    }
+  }
+})
+
+test('terminal Arabic is one direct command-copy target; old terminal face migrates to main',()=>{
+  const m=make('general'), t=settingsBody(360,m).targets.find(t=>t.act==='settings:terminal')!
+  expect(t.effect).toEqual({kind:'copy',command:'/muslim terminal-arabic'})
+  expect(t.control.label).toBe('/muslim terminal-arabic')
+  expect(isSettings({...m.state,face:'terminal'})).toBe(false)
+  expect(loadSettings({...m.state,face:'terminal',page:2})).toEqual({...m.state,page:0})
+  const city=make('prayer','city')
+  expect(settingsBody(360,city).targets.find(t=>t.act==='settings:copy')!.effect).toEqual({kind:'copy',command:'/salah city'})
+})
+
+test('optimistic switches retain mismatches and drop confirmed or malformed values',()=>{
+  const options=readOptions({})
+  const saved={athkar:false,tashkeel:true,thikrEnd:false}
+  expect(pendingSwitches(options,saved)).toEqual({athkar:false,thikrEnd:false})
+  expect(optimisticOptions(options,saved)).toMatchObject({athkar:false,tashkeel:true,thikrEnd:false})
+  expect(pendingSwitches({...options,athkar:false,thikrEnd:false},saved)).toEqual({})
+  expect(pendingSwitches(options,{athkar:'no',color:'blue'} as never)).toEqual({})
+  expect(options.athkar).toBe(true)
+})
+
+// The last shown line of a row, from the row's top: what the 28px gap is measured from.
+const lastLineBottom=(row:ReturnType<typeof settingsRows>[number], showsExtra:boolean)=>
+  showsExtra?EXTRA_TOP+CONTROL_H : row.sample?CONTROL_TOP+18 : row.controls[0]?.style==='switch'?HINT_TOP+HINT_H : CONTROL_TOP+CONTROL_H
+
+test('every setting row ends 28px under its last shown line, in every tab and both stepper states',()=>{
+  expect(ROW_GAP).toBe(28)
+  const raws=[{salahShow:'always',thikrSpeed:'auto'},{thikrSpeed:'60',salahShow:'720'}]
+  for(const raw of raws) for(const [category] of CATEGORIES){
+    const m=make(category,'main',0,raw), rows=settingsRows(m)
+    let y=0
+    for(const [i,row] of rows.entries()){
+      const showsExtra=!!row.extra?.controls.length
+      expect(row.height).toBe(lastLineBottom(row,showsExtra)+ROW_GAP)
+      expect(settingsBody(360,m).rows[i]!.y).toBe(y)
+      y+=row.height
+    }
+    expect(y-ROW_GAP+BODY_END).toBeLessThanOrEqual(MAIN_HEIGHTS[category])
+  }
+})
+
+test('a hidden stepper line takes no height: «عرض الصلاة» leaves the normal gap before «تنبيه الصلاة»',()=>{
+  const hidden=make('prayer','main',0,{salahShow:'always'}), shown=make('prayer','main',0,{salahShow:'20'})
+  const rowsOf=(m:SettingsModel)=>Object.fromEntries(settingsBody(360,m).rows.map(r=>[r.row.label,r]))
+  expect(rowsOf(hidden)['عرض الصلاة']!.row.height).toBe(ROW_H)
+  expect(rowsOf(shown)['عرض الصلاة']!.row.height).toBe(EXTRA_ROW_H)
+  expect(rowsOf(hidden)['تنبيه الصلاة']!.y).toBe(ROW_H)
+  expect(rowsOf(shown)['تنبيه الصلاة']!.y).toBe(EXTRA_ROW_H)
+  // Drawing and hit testing agree: the switch target sits on its row's label line at that y.
+  const sw=settingsBody(360,hidden).targets.find(t=>t.act==='settings:salahAthan')!
+  expect(sw.y0).toBe(ROW_H)
+  expect(settingsBoxes(360,NO_FOLDS,hidden).find(t=>t.act==='settings:salahAthan')!.y0).toBe(cardRects(NO_FOLDS,hidden.state).settingsY+SETTINGS_BODY_TOP+ROW_H)
+  const speedHidden=make('thikr','main',0,{thikrSpeed:'auto'}), speedShown=make('thikr','main',0,{thikrSpeed:'5'})
+  const speed=(m:SettingsModel)=>settingsBody(360,m).rows.find(r=>r.row.label==='السرعة')!.row.height
+  expect(speed(speedHidden)).toBe(ROW_H);expect(speed(speedShown)).toBe(EXTRA_ROW_H)
+})
+
+test('the Quran reciter hint only says the choice is saved',()=>{
+  expect(settingsRows(make('quran'))[0]!.hint).toBe('يُحفظ اختيارك')
+})
+
+test('the athkar preview has a «معاينة» label above its box, in constants',()=>{
+  const m=make('athkar'), model=paneModel({salah:null,quran:null,athkar:null},0,360,'orange'); model.settings=m
+  const svg=paneSvg(model)
+  expect(svg).toContain(`<span class="setting-hint" style="top:${PREVIEW_LABEL_TOP}px">معاينة</span><div class="settings-sky`)
+  expect(svg).toContain(`class="settings-sky sky" style="top:${ATHKAR_SAMPLE_TOP}px"`)
+  const rows=settingsRows(m), end=rows.reduce((h,r)=>h+r.height,0)
+  expect(PREVIEW_LABEL_TOP).toBeGreaterThan(end-ROW_GAP)
+  expect(ATHKAR_SAMPLE_TOP).toBeGreaterThan(PREVIEW_LABEL_TOP+16)
+  expect(ATHKAR_SAMPLE_TOP+SAMPLE_BOX_H+BODY_END).toBe(MAIN_HEIGHTS.athkar)
+  expect(svg).not.toContain('معاينة</span><div class="settings-sky frame')
+})
+
+test('copy buttons confirm with «تم النسخ ✓» (no glyph) while their command was just copied',()=>{
+  const m=make('general'), btn=(m:SettingsModel)=>settingsBody(360,m).targets.find(t=>t.act==='settings:terminal')!
+  expect(btn(m).control.label).toBe('/muslim terminal-arabic');expect(btn(m).control.done).toBeUndefined()
+  const done={...m,copied:'/muslim terminal-arabic'}
+  expect(btn(done).control.label).toBe(COPIED_LABEL);expect(btn(done).control.done).toBe(true)
+  expect(btn(done).effect).toEqual({kind:'copy',command:'/muslim terminal-arabic'})
+  expect(btn({...m,copied:'/salah city'}).control.label).toBe('/muslim terminal-arabic')
+  const model=paneModel({salah:null,quran:null,athkar:null},0,360,'orange')
+  model.settings=m;expect(paneSvg(model)).not.toContain('<svg xmlns="http://www.w3.org/2000/svg" class="ic " viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8"')
+  expect(paneSvg(model)).not.toContain('تم النسخ')
+  model.settings=done
+  const svg=paneSvg(model), cell=svg.match(/<div class="sc value[^"]* copied[^>]*>.*?<\/div>/s)![0]
+  expect(cell).toContain('تم النسخ ✓');expect(cell).not.toContain('<svg');expect(svg).toContain('.sc.copied{color:var(--accent)}')
+  // The city page's button confirms the same way.
+  const city=make('prayer','city')
+  expect(settingsBody(360,city).targets.find(t=>t.act==='settings:copy')!.control.label).toBe('نسخ الأمر')
+  expect(settingsBody(360,{...city,copied:'/salah city'}).targets.find(t=>t.act==='settings:copy')!.control.label).toBe(COPIED_LABEL)
+})
+
+test('a copy confirmation lasts until its expiry time and ignores malformed saved values',()=>{
+  const saved={command:'/muslim terminal-arabic',until:10_000+COPIED_MS}
+  expect(copiedAt(saved,10_000)).toBe('/muslim terminal-arabic')
+  expect(copiedAt(saved,10_000+COPIED_MS-1)).toBe('/muslim terminal-arabic')
+  expect(copiedAt(saved,10_000+COPIED_MS)).toBeNull()
+  for(const bad of [null,undefined,{},{command:1,until:5},{command:'x',until:'5'},{command:'x',until:Infinity*0}]) expect(copiedAt(bad,0)).toBeNull()
+  expect(COPIED_MS).toBe(2000)
 })

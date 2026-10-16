@@ -1,10 +1,11 @@
 import type { EngineInterface, On } from 'claude-code'
 import type { Options } from '../../config.ts'
+import type { PaneOptimistic } from '../../../types/index.d.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
 import { readAthkar, readQuran, readQuranSettings, readSalah, runPanelAction } from '../../shared/panel/signal.ts'
 import { NO_FOLDS, hitOfCells, isFolds, isPaneMessage, keyAct, type Enabled, type Folds, type PaneAct } from './layout.ts'
 import { paneModel, textLines, widthOf, type PaneModel } from './model.ts'
-import { CATEGORIES, EMPTY_QURAN_SETTINGS, changeCategory, loadSettings, settingsBody, settingsOptions, type SettingsState } from './settings.ts'
+import { CATEGORIES, COPIED_MS, EMPTY_QURAN_SETTINGS, changeCategory, copiedAt, isSwitchField, loadSettings, optimisticOptions, settingsBody, type SettingsState } from './settings.ts'
 import { skipPaneScroll } from './scroll.ts'
 
 const playingRef = { plugin: 'muslim', key: 'quranPlaying' } as const
@@ -17,6 +18,31 @@ async function readFolds($: EngineInterface): Promise<Folds> {
   return isFolds(saved) ? saved : NO_FOLDS
 }
 const settingsRef = { plugin: 'muslim', key: 'paneSettings' } as const
+const optimisticRef = { plugin: 'muslim', key: 'paneOptimistic' } as const
+const copiedRef = { plugin: 'muslim', key: 'paneCopied' } as const
+
+// Read-modify-write of the pending switches: `edit` gets a copy and returns the
+// new value, or null to leave it. A write that another press beat is redone from a fresh read.
+async function editPending($: EngineInterface, edit: (pending: PaneOptimistic) => PaneOptimistic | null): Promise<void> {
+  for (let tries = 0; tries < 5; tries++) {
+    const held = await $.state.get(optimisticRef)
+    const next = edit({ ...held.value })
+    if (!next) return
+    if ((await $.state.set(optimisticRef, next, { ifVersion: held.version })).isSet) return
+  }
+}
+
+// The copy button's confirmation, shown until its expiry time; the timer only redraws.
+async function confirmCopy($: EngineInterface, command: string): Promise<void> {
+  const until = (await $.clock.now()) + COPIED_MS
+  await $.state.set(copiedRef, { command, until })
+  $.clock.after(COPIED_MS, () => { void expireCopy($, until) })
+}
+async function expireCopy($: EngineInterface, until: number): Promise<void> {
+  const held = await $.state.get(copiedRef)
+  if (held.value?.until === until) await $.state.set(copiedRef, null, { ifVersion: held.version })
+  $.ui.invalidate('ui.render')
+}
 async function readSettings($: EngineInterface): Promise<SettingsState> {
   const saved = (await $.state.get(settingsRef)).value
   return loadSettings(saved)
@@ -46,7 +72,7 @@ async function arabicMode($: EngineInterface, surface: string): Promise<ArabicMo
 // What the three cards show right now: whatever the features have connected.
 async function modelNow($: EngineInterface, options: Options, columns: unknown): Promise<PaneModel> {
   const now = await $.clock.now()
-  return paneModel({ salah: readSalah(now), quran: await readQuran(), athkar: await readAthkar() }, now, widthOf(columns), options.color, undefined, await readFolds($), { state: await readSettings($), options: settingsOptions(options), quran: await readQuranSettings() ?? EMPTY_QURAN_SETTINGS, terminalMode: 'per-terminal setup' })
+  return paneModel({ salah: readSalah(now), quran: await readQuran(), athkar: await readAthkar() }, now, widthOf(columns), options.color, undefined, await readFolds($), { state: await readSettings($), options: optimisticOptions(options, (await $.state.get(optimisticRef)).value), quran: await readQuranSettings() ?? EMPTY_QURAN_SETTINGS, terminalMode: 'per-terminal setup', copied: copiedAt((await $.state.get(copiedRef)).value, now) })
 }
 
 const enabledOf = (m: PaneModel): Enabled => ({
@@ -90,8 +116,16 @@ async function settingsPress($: EngineInterface, options: Options, act: PaneAct)
     const effect = settingsBody(model.width, model.settings).targets.find(t => t.act === act)?.effect
     if (!effect) return
     if (effect.kind === 'config') {
+      // state.set redraws subscribed panes before config's reload completes.
+      const field = effect.field
+      const optimistic = isSwitchField(field) && typeof effect.value === 'boolean'
+      if (optimistic) await editPending($, pending => ({ ...pending, [field]: effect.value as boolean }))
       const { deny } = await $.config.set({ key: `muslim.${effect.field}`, value: effect.value })
-      if (deny) $.ui.toast(`Not changed: ${deny}`)
+      if (deny) {
+        // Clear only this press's own entry: a newer press for the field has a different value.
+        if (optimistic) await editPending($, pending => pending[field] === effect.value ? Object.fromEntries(Object.entries(pending).filter(([k]) => k !== field)) : null)
+        $.ui.toast(`Not changed: ${deny}`)
+      }
       else if (s.face === 'methods') await $.state.set(settingsRef, { ...s, face: 'main', page: 0 })
     } else if (effect.kind === 'face') {
       await $.state.set(settingsRef, { ...s, face: effect.face, page: 0 })
@@ -99,7 +133,8 @@ async function settingsPress($: EngineInterface, options: Options, act: PaneAct)
       if (effect.face === 'reciters' && !(await runPanelAction('quran-catalog'))) $.ui.toast('Quran catalog unavailable. Use /quran reciter.')
     } else if (effect.kind === 'page') await $.state.set(settingsRef, { ...s, page: effect.page })
     else if (effect.kind === 'copy') {
-      if (!(await $.ui.copy({ text: effect.command, surface: 'desktop' })).isCopied) $.ui.toast(effect.command)
+      if ((await $.ui.copy({ text: effect.command, surface: 'desktop' })).isCopied) await confirmCopy($, effect.command)
+      else $.ui.toast(effect.command)
     } else {
       const took = effect.kind === 'reciter' ? await runPanelAction('quran-reciter', effect.key) : await runPanelAction('quran-repeat', effect.value)
       if (!took) $.ui.toast('Quran is not ready yet. /quran')

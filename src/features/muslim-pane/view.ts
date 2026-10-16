@@ -10,7 +10,7 @@ import {
   ATHAN_H, ATHAN_TOP, BAR_TOP, CITY_H, CITY_TOP, CONTROLS_CY, FIELD_H, HEAD_H, HEAD_TOP, KBTN_W, KROW_H, KROW_TOP, KFINISH_W, KROW_GAP, NX_H, NX_TOP, OPEN_H, OPEN_TOP,
   AVATAR_H, PAD, RECITER_TOP, TOP_H, TOP_Y, ROWS_TOP, ROW_H, SIDE, SURAH_TOP, TIMES_TOP, cardRects, type PaneAct,
 } from './layout.ts'
-import { SETTINGS_TOP, SETTINGS_BODY_TOP, TABS_H, TAB_INSET, LIST_CHOICE_H, categoryTabs, settingsBody, type SettingsTarget } from './settings.ts'
+import { SETTINGS_TOP, SETTINGS_BODY_TOP, TABS_H, TAB_INSET, LIST_CHOICE_H, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, EXTRA_TOP, ADJUST_NOTE_TOP, ATHKAR_SAMPLE_TOP, PREVIEW_LABEL_TOP, categoryTabs, settingsBody, type SettingRow, type SettingsTarget } from './settings.ts'
 import type { PaneModel } from './model.ts'
 import { avatar } from './avatar.ts'
 
@@ -165,24 +165,23 @@ const athkarCard = (m: PaneModel, hover: PaneAct | null): string => {
 const SETTINGS_CSS = `
 .settings-tabs{position:absolute;left:${TAB_INSET}px;right:${TAB_INSET}px;top:${SETTINGS_TOP}px;height:${TABS_H}px;border:1px solid var(--line);border-radius:15px;padding:4px;background:var(--raised);overflow:hidden}
 .setting-tab{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:4px 2px;min-width:0;border-radius:11px;color:var(--muted)}
-.setting-tab .ic{width:24px;height:24px}.setting-tab span{font-size:11px;line-height:14px;text-align:center;white-space:nowrap;overflow:visible;height:14px}
+.setting-tab .ic{width:20px;height:20px}.setting-tab span{font-size:11px;line-height:14px;text-align:center;white-space:nowrap;overflow:visible;height:14px}
 .setting-tab.hot{background:var(--raised-2)}.setting-tab[aria-selected=true]{background:var(--card);color:var(--accent);box-shadow:0 0 0 1px var(--line)}
 .settings-body{position:absolute;left:0;right:0}
-.settings-head{position:absolute;top:0;left:16px;right:16px;height:24px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line-soft);color:var(--muted);font-size:12px}
-.settings-head small{font-size:12px;direction:ltr}.setting-label{position:absolute;right:16px;max-width:calc(100% - 32px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
-.spinner-note{left:16px;font-size:12px;line-height:14px}
-.setting-hint{position:absolute;left:16px;right:16px;text-align:right;direction:ltr;line-height:13px;font-size:12px;color:var(--muted)}
+.setting-label{position:absolute;right:16px;max-width:calc(100% - 32px);height:${LABEL_H}px;display:flex;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
+.setting-label span{line-height:1;transform:translateY(.12em)}
+.setting-hint{position:absolute;left:16px;right:16px;text-align:right;direction:rtl;line-height:${HINT_H}px;font-size:12px;color:var(--muted)}
 .setting-extra{position:absolute;right:16px;max-width:calc(100% - 142px);font-size:12px;line-height:14px;color:var(--muted)}
-.setting-sample{position:absolute;right:16px;font-size:14px;color:var(--text-2)}
+.setting-sample{position:absolute;right:16px;height:18px;line-height:18px;font-size:14px;color:var(--text-2)}
 .sc{position:absolute;display:flex;align-items:center;justify-content:center;gap:4px;border-radius:7px;font-size:14px;color:var(--text-2);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .sc.pill,.sc.value{background:var(--raised);padding:3px 6px}.sc.pill.on{color:var(--accent);box-shadow:inset 0 0 0 1px var(--line)}
 .sc.hot{background:var(--raised-2)}.sc.disabled{opacity:.38}.sc.step{border:1px solid var(--line);direction:ltr;border-radius:4px}.sc.step.output{opacity:1;color:var(--text);font-size:14px}.sc.step:not(.output){font-size:20px;line-height:1}
 .sc.pill .value-text,.sc.value .value-text{line-height:1;transform:translateY(.12em)}
-.sc .value-text{min-width:0;overflow:hidden;text-overflow:ellipsis}.sc .ic{width:12px;height:12px;flex:none}.sc.switch{overflow:visible}.sc .tog{margin:0}.sc.swatch{overflow:visible}.sc.swatch::before{content:'';width:16px;height:16px;border-radius:50%;background:var(--sw)}.sc.swatch.on::before{box-shadow:0 0 0 2px var(--card),0 0 0 3.5px var(--text-2)}
+.sc.copied{color:var(--accent)}.sc.command{direction:ltr}.sc.command .value-text{transform:none}.sc .value-text{min-width:0;overflow:hidden;text-overflow:ellipsis}.sc .ic{width:12px;height:12px;flex:none}.sc.switch{overflow:visible}.sc .tog{margin:0}.sc.swatch{overflow:visible}.sc.swatch::before{content:'';width:16px;height:16px;border-radius:50%;background:var(--sw)}.sc.swatch.on::before{box-shadow:0 0 0 2px var(--card),0 0 0 3.5px var(--text-2)}
 .list-choice{position:absolute;left:16px;right:16px;padding:6px 10px;border-radius:8px;height:${LIST_CHOICE_H}px;font-size:14px;display:flex;align-items:center;justify-content:space-between;gap:6px}
 .list-choice small{display:block;margin-top:4px;font-size:12px;color:var(--muted);line-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.list-choice>span{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.list-choice.on{color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent)}.list-choice.hot{background:var(--raised-2)}
 .settings-subtitle{position:absolute;right:16px;top:4px;font-size:14px}.settings-page{position:absolute;top:476px;left:94px;right:94px;text-align:center;font-size:12px;color:var(--muted)}
-.command-sheet{position:absolute;left:16px;right:16px;top:46px;font-size:12px;color:var(--muted)}.command-sheet p{direction:ltr;text-align:right;line-height:18px;height:126px;margin-bottom:16px}.command-sheet code{display:block;direction:ltr;text-align:left;font:12px/18px monospace;padding:12px;background:var(--raised);border-radius:9px;overflow-wrap:anywhere}
+.command-sheet{position:absolute;left:16px;right:16px;top:46px;font-size:12px;color:var(--muted)}.command-sheet p{direction:rtl;text-align:right;line-height:18px;height:126px;margin-bottom:16px}.command-sheet code{display:block;direction:ltr;text-align:left;font:12px/18px monospace;padding:12px;background:var(--raised);border-radius:9px;overflow-wrap:anywhere}
 .settings-sky{position:absolute;left:16px;right:16px;height:62px;border-radius:10px;padding:14px;display:flex;align-items:center;gap:10px;background:var(--raised);color:var(--text-2)}.settings-sky>span{line-height:1;transform:translateY(.12em)}.settings-sky.frame{background:transparent;border:1px solid var(--accent)}
 
 `
@@ -191,8 +190,13 @@ const settingControl = (t: SettingsTarget, hover: PaneAct | null): string => {
   const selected = c.selected ? ' on' : '', hot = hover === t.act ? ' hot' : ''
   const attr = c.style === 'switch' ? `role="switch" aria-checked="${!!c.selected}"` : output ? 'role="status"' : `role="button" aria-pressed="${!!c.selected}"`
   const swatch = c.style === 'swatch' ? `--sw:var(--${c.label});` : ''
+  const command = c.effect.kind === 'copy' && c.label.startsWith('/')
   const content = c.style === 'switch' ? `<span class="tog${selected}"><i></i></span>` : c.style === 'swatch' ? '' : `<span class="value-text">${escape(c.label)}</span>${c.style === 'value' && c.effect.kind === 'face' && c.effect.face !== 'main' ? icon('chevl') : ''}`
-  return `<div class="sc ${c.style}${selected}${hot}${c.disabled ? ' disabled' : ''}${output ? ' output' : ''}" ${attr} aria-disabled="${!!c.disabled}" aria-label="${escape(c.label)}" style="left:${t.x0-PAD}px;top:${t.y0}px;width:${t.x1-t.x0}px;height:${t.y1-t.y0}px;${swatch}">${content}</div>`
+  return `<div class="sc ${c.style}${command ? ' command' : ''}${selected}${hot}${c.done ? ' copied' : ''}${c.disabled ? ' disabled' : ''}${output ? ' output' : ''}" ${attr} aria-disabled="${!!c.disabled}" aria-label="${escape(c.label)}" style="left:${t.x0-PAD}px;top:${t.y0}px;width:${t.x1-t.x0}px;height:${t.y1-t.y0}px;${swatch}">${content}</div>`
+}
+const settingRow = (row: SettingRow, y: number): string => {
+  const isSwitch = row.controls[0]?.style === 'switch'
+  return `<span class="setting-label" style="top:${y}px;max-width:calc(100% - ${isSwitch ? 82 : 32}px)"><span>${escape(row.label)}</span></span><span class="setting-hint" style="top:${y+HINT_TOP}px">${escape(row.hint)}</span>${row.extra?.controls.length?`<span class="setting-extra" style="top:${y+EXTRA_TOP+7}px">${escape(row.extra.label)}</span>`:''}${row.sample?`<span class="setting-sample" style="top:${y+CONTROL_TOP}px">${escape(row.sample)}</span>`:''}`
 }
 const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
   const model=m.settings, s=model.state, r=cardRects(m.folds,s), b=settingsBody(m.width,model)
@@ -201,22 +205,21 @@ const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
     content+=`<div class="settings-tabs" role="tablist" aria-label="الإعدادات">${categoryTabs(m.width).map(c=>`<div class="setting-tab${hover===`settings:tab:${c.category}`?' hot':''}" style="left:${c.x0-PAD-TAB_INSET-1}px;top:${c.y0-SETTINGS_TOP-1}px;width:${c.x1-c.x0}px;height:${c.y1-c.y0}px" role="tab" aria-selected="${s.category===c.category}" aria-label="${c.label}">${icon(c.icon)}<span>${c.label}</span></div>`).join('')}</div>`
     let body=''
     if (s.face==='main') {
-      body=`<div class="settings-head"><span>الإعدادات</span><small>Applies immediately</small></div>`
-      if (s.category==='thikr') body+='<span class="setting-extra spinner-note" style="top:28px;max-width:none;color:var(--accent)">يتحكّم في الذكر المعروض في <bdi dir="ltr">Spinner</bdi> (سطر العمل) في <bdi dir="ltr">Claude Code</bdi></span>'
-      body+=b.rows.map(({row,y})=>`<span class="setting-label" style="top:${y+4}px;max-width:calc(100% - ${m.width<360?32:Math.max(160,row.controls.reduce((n,c)=>n+c.width+4,0)+50)}px)">${escape(row.label)}</span><span class="setting-hint" style="top:${y+(row.extra?106:row.sample?98:68)}px">${escape(row.hint)}</span>${row.extra?`<span class="setting-extra" style="top:${y+74}px">${escape(row.extra.label)}</span>`:''}${row.sample?`<span class="setting-sample" style="top:${y+70}px">${escape(row.sample)}</span>`:''}`).join('')
-      if (s.category==='athkar') body+=`<div class="settings-sky ${model.options.athkarStyle}" style="top:240px">${icon('sun')}<span>أذكار الصباح</span></div>`
+      body=b.rows.map(({row,y})=>settingRow(row,y)).join('')
+      if (s.category==='athkar') body+=`<span class="setting-hint" style="top:${PREVIEW_LABEL_TOP}px">معاينة</span><div class="settings-sky ${model.options.athkarStyle}" style="top:${ATHKAR_SAMPLE_TOP}px">${icon('sun')}<span>أذكار الصباح</span></div>`
     } else {
-      const title=s.face==='methods'?'طريقة الحساب':s.face==='reciters'?'اختيار القارئ':s.face==='adjust'?'تعديل المواقيت':s.face==='city'?'اختيار المدينة':'العربية في Terminal'
+      const title=s.face==='methods'?'طريقة الحساب':s.face==='reciters'?'اختيار القارئ':s.face==='adjust'?'تعديل المواقيت':'اختيار المدينة'
       body=`<strong class="settings-subtitle">${title}</strong>`
       if (s.face==='methods'||s.face==='reciters') {
         body+=b.choices.map(c=>`<div class="list-choice${c.control.selected?' on':''}${hover===c.control.id?' hot':''}" style="top:${c.y}px" role="button" aria-pressed="${!!c.control.selected}"><span>${escape(c.label)}<small>${escape(c.note)}</small></span>${c.control.selected?icon('check'):''}</div>`).join('')
         body+=`<span class="settings-page">${escape(String(b.page+1))} / ${b.pages}</span>`
-        if (!b.choices.length) body+=`<span class="setting-hint" style="top:52px">Catalog unavailable. /quran reciter</span>`
-        body+=`<span class="setting-hint" style="top:510px">${s.face==='methods'?'All 20 manifest options · applies immediately.':'Complete Hafs recordings.'}</span>`
+        if (!b.choices.length) body+=`<span class="setting-hint" style="top:52px">قائمة القراء غير متاحة · /quran reciter</span>`
+        body+=`<span class="setting-hint" style="top:510px">${s.face==='methods'?'كل طرق الحساب العشرين · يُطبّق فورًا':'تلاوات كاملة برواية حفص'}</span>`
       } else if (s.face==='adjust') {
-        body+=b.rows.map(({row,y})=>`<span class="setting-label" style="top:${y+6}px;max-width:calc(100% - 142px)">${escape(row.label)}</span><span class="setting-extra" style="top:${y+39}px;direction:ltr">${escape(row.hint)}</span>`).join('')
-        body+=`<span class="setting-hint" style="top:496px">Any whole minutes, positive or negative.<br/>Order: Fajr → Sunrise → Dhuhr → Asr → Maghrib → Isha.</span>`
-      } else body+=`<div class="command-sheet"><p>${s.face==='terminal'?'Run this in the terminal you want to configure. The three-choice check remembers that terminal’s mode. Desktop needs no Arabic setup.':'The city question opens in Claude. Enter a city in any language, or latitude and longitude. You can also run this command.'}</p><code>${s.face==='terminal'?'/muslim terminal-arabic':'/salah city'}</code></div>`
+        body+=b.rows.map(({row,y})=>settingRow(row,y)).join('')
+        body+=`<span class="setting-hint" style="top:${ADJUST_NOTE_TOP}px">دقائق صحيحة بالزيادة أو النقصان.<br/>الترتيب: الفجر، الشروق، الظهر، العصر، المغرب، العشاء.</span>`
+      } else body+=`<div class="command-sheet"><p>يفتح سؤال المدينة في Claude. اكتب اسمها بأي لغة أو خط العرض والطول، أو شغّل الأمر التالي.</p><code>/salah city</code></div>`
+
     }
     body+=b.controls.filter(t=>!t.act.startsWith('settings:pick:')).map(t=>settingControl(t,hover)).join('')
     content+=`<div class="settings-body" style="top:${SETTINGS_BODY_TOP}px">${body}</div>`

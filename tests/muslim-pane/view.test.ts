@@ -181,8 +181,9 @@ test('settings uses the approved gear, Quran mushaf, and exact five tab labels',
   }
   expect(tabs).toContain('aria-label="الذكر"')
   expect(tabs).toContain('<span>الذكر</span>')
-  expect(settings).toContain('Spinner</bdi> (سطر العمل)')
-  expect(svg).toContain('width:24px;height:24px')
+  expect(settings).toContain('Spinner (سطر العمل)')
+  expect(svg).toContain('.setting-tab .ic{width:20px;height:20px}')
+  expect(svg).not.toContain('width:24px;height:24px')
   expect(svg).toContain('font-size:11px;line-height:14px')
   expect(svg).not.toContain('setting-category')
 })

@@ -36,7 +36,10 @@ export type SalahCard = { pray: SalahWindow['pray']; time: string; foldsAt: numb
 export type QuranRepeat = 'off' | 'surah' | 'segment'
 export type QuranPlaying = { moshafKey: string; surah: number; startedAt: number; durationMs: number | null; segmentIndex?: number; segmentCount?: number }
 
-export type PaneSettings = { open: boolean; category: 'prayer' | 'quran' | 'athkar' | 'thikr' | 'general'; face: 'main' | 'methods' | 'reciters' | 'adjust' | 'city' | 'terminal'; page: number }
+export type PaneSettings = { open: boolean; category: 'prayer' | 'quran' | 'athkar' | 'thikr' | 'general'; face: 'main' | 'methods' | 'reciters' | 'adjust' | 'city'; page: number }
+// A copy button that just copied: its command and the time (ms since the epoch) its «تم النسخ» confirmation ends.
+export type PaneCopied = { command: string; until: number }
+export type PaneOptimistic = Partial<Record<'tashkeel' | 'thikr' | 'thikrEnd' | 'athkar' | 'salahAthan', boolean>>
 
 declare module 'claude-code' {
   interface PluginState {
@@ -49,6 +52,10 @@ declare module 'claude-code' {
 
       // Settings hub, one selected tab and its detail/page, kept across reloads.
       paneSettings: PaneSettings | null
+      // Immediate settings-switch display until config reload confirms it.
+      paneOptimistic: PaneOptimistic
+      // The copy button's transient confirmation; expires at `until`.
+      paneCopied: PaneCopied | null
       // Which daily cards are folded to their title row.
       paneFolds: { prayer: boolean; quran: boolean; athkar: boolean } | null
 
