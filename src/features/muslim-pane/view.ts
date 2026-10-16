@@ -191,8 +191,8 @@ const settingControl = (t: SettingsTarget, hover: PaneAct | null): string => {
   return `<div class="sc ${c.style}${command ? ' command' : ''}${selected}${hot}${c.done ? ' copied' : ''}${c.disabled ? ' disabled' : ''}${output ? ' output' : ''}" ${attr} aria-disabled="${!!c.disabled}" aria-label="${escape(c.label)}" style="left:${t.x0-PAD}px;top:${t.y0}px;width:${t.x1-t.x0}px;height:${t.y1-t.y0}px;${swatch}">${content}</div>`
 }
 const settingRow = (row: SettingRow, y: number): string => {
-  const isSwitch = row.controls[0]?.style === 'switch'
-  return `<span class="setting-label" style="top:${y}px;max-width:calc(100% - ${isSwitch ? 82 : 32}px)"><span>${escape(row.label)}</span></span><span class="setting-hint" style="top:${y+HINT_TOP}px">${escape(row.hint)}</span>${row.extra?.controls.length?`<span class="setting-extra" style="top:${y+EXTRA_TOP+7}px">${escape(row.extra.label)}</span>`:''}`
+  const inline = row.controls[0]?.style === 'switch' ? 82 : row.controls[0]?.style === 'swatch' ? 144 : 32
+  return `<span class="setting-label" style="top:${y}px;max-width:calc(100% - ${inline}px)"><span>${escape(row.label)}</span></span><span class="setting-hint" style="top:${y+HINT_TOP}px">${escape(row.hint)}</span>${row.extra?.controls.length?`<span class="setting-extra" style="top:${y+EXTRA_TOP+7}px">${escape(row.extra.label)}</span>`:''}`
 }
 const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
   const model=m.settings, s=model.state, r=cardRects(m.folds,s,model.options), b=settingsBody(m.width,model)

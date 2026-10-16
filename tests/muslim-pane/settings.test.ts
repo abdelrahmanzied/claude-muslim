@@ -145,7 +145,7 @@ test('terminal settings headings match the tabs, with all Arabic through show',(
   expect(lines.some(s=>s.startsWith('SHOWN(')&&s.includes('Spinner'))).toBe(true)
 })
 
-test('rows share label/description/control geometry, inline switches and centered swatches',()=>{
+test('rows share label/description/control geometry, inline switches and color dots on the label line',()=>{
   expect(SETTINGS_BODY_TOP-SETTINGS_TOP-TABS_H).toBe(16)
   expect(HINT_TOP-LABEL_H).toBe(4)
   expect(CONTROL_TOP-HINT_TOP-HINT_H).toBe(10)
@@ -156,13 +156,17 @@ test('rows share label/description/control geometry, inline switches and centere
     expect(b.rows[0]!.y).toBe(0)
     for(const {row,y} of b.rows){
       const controls=b.controls.filter(t=>row.controls.some(c=>c.id===t.act))
-      for(const t of controls) expect(t.y0).toBe(y+(t.control.style==='switch'?0:CONTROL_TOP))
+      for(const t of controls) expect(t.y0).toBe(y+(t.control.style==='switch'||t.control.style==='swatch'?0:CONTROL_TOP))
       if(row.controls[0]?.style==='switch'){
         expect(row.height).toBe(SWITCH_ROW_H)
         expect(controls[0]!.x0).toBe(28)
         expect(controls[0]!.y1-y).toBe(LABEL_H)
       }
-      if(row.controls[0]?.style==='swatch') expect(controls[0]!.x0+controls[controls.length-1]!.x1).toBe(width)
+      if(row.controls[0]?.style==='swatch'){
+        expect(row.height).toBe(SWITCH_ROW_H)
+        expect(controls[0]!.x0).toBe(28)
+        for(const t of controls) expect(t.y1-y).toBe(LABEL_H)
+      }
       expect(row.hint).toMatch(/[ء-ي]/)
     }
     const model=paneModel({salah:null,quran:null,athkar:null},0,width,'orange'); model.settings=m
@@ -197,7 +201,7 @@ test('optimistic switches retain mismatches and drop confirmed or malformed valu
 
 // The last shown line of a row, from the row's top: what the 28px gap is measured from.
 const lastLineBottom=(row:ReturnType<typeof settingsRows>[number], showsExtra:boolean)=>
-  showsExtra?EXTRA_TOP+CONTROL_H: row.controls[0]?.style==='switch'?HINT_TOP+HINT_H : CONTROL_TOP+CONTROL_H
+  showsExtra?EXTRA_TOP+CONTROL_H: row.controls[0]?.style==='switch'||row.controls[0]?.style==='swatch'?HINT_TOP+HINT_H : CONTROL_TOP+CONTROL_H
 
 test('every setting row ends 28px under its last shown line, in every tab and both stepper states',()=>{
   expect(ROW_GAP).toBe(28)

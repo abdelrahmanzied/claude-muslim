@@ -89,7 +89,7 @@ export const LIST_H = 548
 // Constants, per tab, for the tallest row set: «عرض الصلاة» and the speed row count their stepper line (EXTRA_ROW_H) here.
 export const MAIN_HEIGHTS = {
   prayer: bodyH(EXTRA_ROW_H, SWITCH_ROW_H, ROW_H, ROW_H, ROW_H), athkar: bodyH(SWITCH_ROW_H, ROW_H),
-  thikr: bodyH(SWITCH_ROW_H, ROW_H, EXTRA_ROW_H), general: bodyH(ROW_H, SWITCH_ROW_H, ROW_H),
+  thikr: bodyH(SWITCH_ROW_H, ROW_H, EXTRA_ROW_H), general: bodyH(SWITCH_ROW_H, SWITCH_ROW_H, ROW_H),
 } as const
 export const FACE_HEIGHTS = { methods: LIST_H, adjust: ADJUST_NOTE_TOP + 50, city: 310 } as const
 // With the options, a tab is only as tall as its visible rows: a hidden stepper line takes no space,
@@ -123,8 +123,9 @@ const control = (id: string, label: string, effect: Effect, style: SettingContro
 const toggle = (o: SettingsOptions, field: 'thikr' | 'tashkeel' | 'athkar' | 'salahAthan') => [control(field, o[field] ? 'on' : 'off', config(field, !o[field]), 'switch', 38, o[field])]
 const pills = (field: keyof Options, selected: string, values: readonly (readonly [string, string])[]) => values.map(([v,l]) => control(`${field}:${v}`, l, config(field, v), 'pill', l.length > 10 ? 108 : 46, selected === v))
 const face = (id: SettingsState['face'], label: string) => [control(id, label, { kind: 'face', face: id }, 'value', 142)]
-// Heights include the ROW_GAP after each row. A switch shares the label line.
-const row = (label: string, controls: SettingControl[], hint: string, extra?: SettingRow['extra']): SettingRow => ({ label, controls, hint, height: extra?.controls.length ? EXTRA_ROW_H : controls[0]?.style === 'switch' ? SWITCH_ROW_H : ROW_H, ...(extra ? { extra } : {}) })
+// Heights include the ROW_GAP after each row. A switch or the color dots share the label line.
+export const isInline = (c: SettingControl | undefined): boolean => c?.style === 'switch' || c?.style === 'swatch'
+const row = (label: string, controls: SettingControl[], hint: string, extra?: SettingRow['extra']): SettingRow => ({ label, controls, hint, height: extra?.controls.length ? EXTRA_ROW_H : isInline(controls[0]) ? SWITCH_ROW_H : ROW_H, ...(extra ? { extra } : {}) })
 // A copy button: its label is the command (or a note); for COPIED_MS after a copy it confirms instead.
 const copyControl = (m: SettingsModel, id: string, label: string, command: string, width: number): SettingControl => {
   const done = m.copied === command
@@ -196,10 +197,9 @@ export const settingsBody = (width: number, m: SettingsModel): SettingsBody => {
     let y = BODY_TOP
     for (const r of settingsRows(m)) {
       out.rows.push({row:r,y})
-      const total = r.controls.reduce((n,c) => n+c.width,0) + (r.controls.length-1)*4
-      let x = r.controls[0]?.style === 'swatch' ? (width-total)/2 : left
+      let x = left
       for (const c of r.controls) {
-        add(c,x,y+(c.style === 'switch' ? 0 : CONTROL_TOP),Math.min(c.width,right-left),c.style === 'switch' ? LABEL_H : CONTROL_H)
+        add(c,x,y+(isInline(c) ? 0 : CONTROL_TOP),Math.min(c.width,right-left),isInline(c) ? LABEL_H : CONTROL_H)
         x += c.width+4
       }
       if (r.extra) { x=left; for (const c of r.extra.controls) { add(c,x,y+EXTRA_TOP); x+=c.width } }

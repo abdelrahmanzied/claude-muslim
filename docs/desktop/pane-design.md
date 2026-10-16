@@ -38,7 +38,7 @@ The design principles for every drawn desktop pane in this mod (today the Muslim
 
 - **Order:** the label at the start; its description right under it (12px muted, 4px gap); then the choices (10px under the description). Rows are 28px apart, measured from a row's last shown line to the next label (a hidden optional line adds no height). No subheader over the rows; the first row starts 16px under the tab bar.
 - **Switches** sit on the label's line at the opposite end, never on a line of their own. They flip at once on press (the value is drawn from `$.state` before the config write and its module reload).
-- **Color dots** are a centered row.
+- **Color dots** sit on the label's line at the opposite end, like a switch, at their small 16px size.
 - **A command is its own button.** When a setting is changed by running a command elsewhere (the terminal check), the button's text is the command itself (no glyph) and one press copies it (`$.ui.copy`, a toast when copying fails). After a copy the button shows «تم النسخ ✓» in the main color for 2 seconds, then the command again. No extra page for one command, no long how-to text.
 - A card is only as tall as its visible rows: a hidden line takes its height with it.
 - One home per setting: a setting already in another pane (the Quran reciter and repeat) is not repeated here.
