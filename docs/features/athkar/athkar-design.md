@@ -36,7 +36,7 @@ Everything else (font, size) stays Claude's: the API sets neither, so the reader
 
 ## Third set: after salah
 
-The title is أَذْكَارُ بَعْدَ الصَّلَاةِ; the command is `/athkar after-salah`. This uses the same cover, counts, passage labels, progress, undo, ×, reset and two fixed heights as morning/evening. The sky follows the current hour, including manual readings. The folded done note is `أَتْمَمْتَ وِرْدَكَ ✓`, with no promise of a next time; the open done row and finale keep the shared end verse and the hint `/athkar after-salah reset → to read again`.
+The title is أَذْكَارُ بَعْدَ الصَّلَاةِ; the command is `/athkar after-salah`. This uses the same cover, counts, passage labels, progress, undo, ×, reset and two fixed heights as morning/evening. The sky follows the current hour, including manual readings. The folded done note is `أَتْمَمْتَ وِرْدَكَ ✓`, with no promise of a next time; the open done row and finale keep the shared closing du’a and the hint `/athkar after-salah reset → to read again`.
 
 One slot holds the current prayer's reading (`pray`, `at`), or the general reading with both null. A different prayer time clears counts, done and hidden state and starts on the cover. There is no history. The 05:00 day boundary also clears it; old days missing the slot are tolerated. The list is authored in Hisn al-Muslim chapter 25 ([hisn:66](https://sunnah.com/hisn:66)–[73](https://sunnah.com/hisn:73)); general readings use base counts, while Fajr/Maghrib carry their specified extras.
 
@@ -144,13 +144,14 @@ Counting by keys with the pointer on the band keeps it open until the pointer le
 
 ## End
 
-- The finale (desktop): falling stars, and the end verse ﴿رَبَّنَا تَقَبَّلْ مِنَّا إِنَّكَ أَنتَ السَّمِيعُ الْعَلِيمُ﴾ rising centered with — البقرة ١٢٧, at a fixed 18px.
-- After it, the done row: the verse and — البقرة ١٢٧ on the right at 14px, like the reading (smaller only if the window is too narrow), the reset hint (`/athkar morning reset → to read again`) on the left.
-- The end verse is always in the words' face (Tajawal), in the finale and the done row alike.
+- The finale (desktop): falling stars, and «تَقَبَّلَ اللَّهُ 🤲» rising centered at a fixed 18px. This short du’a greets the reader on finishing; it is not one of the authored athkar and has no source citation. The chosen closing greeting is an explicit exception to the shared no-emoji voice rule.
+- After it, the done row: the same closing greeting, without a citation, on the right at 14px, like the reading (smaller only if the window is too narrow), the reset hint (`/athkar morning reset → to read again`) on the left.
+- The closing du’a is always in the words' face (Tajawal), in the finale and the done row alike.
 - Its color: on a sky, the words' color (white or dark, as the sky's text); on Frame, the main color (the frame's and the progress line's).
 - The open done row's progress line is full with a ✓ in the pill at its head, so it reads as finished, not as one more thikr.
+- Widths use the embedded Tajawal font for the words and a separate emoji allowance; tashkeel has no advance width. The terminal keeps 🤲, strips tashkeel and applies the shared Arabic mode. Its native `Text` handles wrapping/truncation and the emoji’s two-cell width; no string-length padding is used for the closing row.
 - The hint marks the command apart from what it does with an arrow: `/athkar morning reset → to read again`.
-- Faded, the done row folds to one slim row: أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الْمَسَاءُ after the morning, أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الصَّبَاحُ after the evening, no verse. The finale (falling stars) never folds.
+- Faded, the done row folds to one slim row: أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الْمَسَاءُ after the morning, أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الصَّبَاحُ after the evening, no closing greeting. The finale (falling stars) never folds.
 
 ## Limits of the mod API
 

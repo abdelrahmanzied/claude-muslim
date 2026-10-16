@@ -34,15 +34,15 @@ export const TEXT_WIDTH: Record<string, { m: readonly number[]; e?: readonly num
   '98': { m: [208] },
 }
 
-// The end message (logic.ts END) at 16px, measured in a browser: its verse
-// is 251px in Tajawal (the done row and the finale), 63 characters; the
-// citation '— البقرة ١٢٧' (12 characters) 78px.
-// Per character, so any text of the same kind is worked out the same way. The
-// citation is set at END_CITE_EM of the verse's size, and the hint's mono font
-// is HINT_CHAR em a character. Remeasure when the end message changes.
-export const END_VERSE_CHAR = 3.99
-export const END_CITE_CHAR = 6.47
-export const END_CITE_EM = 0.7
+// Closing greeting (logic.ts END), measured with CoreText at 16px using
+// TAJAWAL_REGULAR from fonts.ts: words plus trailing space = 60.432px with
+// tashkeel, 60.336px without. Divide by the 10 visible characters (including
+// spaces), not UTF-16 length: Arabic marks have no independent advance.
+// The emoji uses the platform fallback, not Tajawal: measured 21px on macOS;
+// reserve 1.5em (24px at 16px) for fallback differences across platforms.
+// Remeasure when the end message changes.
+export const END_TEXT_CHAR = 60.432 / 10
+export const END_EMOJI_EM = 1.5
 export const HINT_CHAR = 0.602
 
 // After-salah widths: reuse the identical Quran passages above. New duas

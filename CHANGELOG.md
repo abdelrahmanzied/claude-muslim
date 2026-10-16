@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Replace the morning, evening and after-salah reader’s closing verse with «تَقَبَّلَ اللَّهُ 🤲», a short greeting outside the authored athkar, without a citation. Keep the emoji in the terminal and update desktop width metrics.
+
 - Docs: each feature now has its own folder `docs/features/<feature>/` (`<feature>.md`, `<feature>-design.md`, and `<feature>-content.md` for the religious text it shows); `docs/content.md` is split into per-feature content files. Terminal Arabic (the shared guide and the `/muslim terminal-arabic` check) is one file, `docs/terminal/terminal-arabic.md`, since it is a platform doc and not a feature.
 
 - Extend `/salah demo` from the athan moment into a fast Fajr after-salah reading using the real reader: 7.2 s of counts, the full 3.2 s finale and 1.2 s folded done. The demo card shows its start button; start, × and expiry all continue to athkar. `/muslim demo` waits for the whole flow, with no saved-state changes.

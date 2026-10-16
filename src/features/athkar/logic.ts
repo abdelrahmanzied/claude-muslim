@@ -56,7 +56,7 @@ export const TITLE: Record<AthkarSet, string> = {
   evening: 'أَذْكَارُ الْمَسَاءِ',
 }
 
-export const END = '﴿رَبَّنَا تَقَبَّلْ مِنَّا إِنَّكَ أَنتَ السَّمِيعُ الْعَلِيمُ﴾ — البقرة ١٢٧'
+export const END = 'تَقَبَّلَ اللَّهُ 🤲'
 
 // The folded done row: finished, and when the next period comes.
 export const END_NOTE: Record<AthkarSet, string> = {

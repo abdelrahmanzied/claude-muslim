@@ -4,7 +4,7 @@ import { expect, test } from 'claude-code/testing'
 import { ATHKAR } from '../../src/features/athkar/data.ts'
 import { arabicDigits, dayOf, END, END_NOTE, isAct, emptyReading, listFor, overall, periodAt, readDay, shouldAdvance, skyAt, step, textOf } from '../../src/features/athkar/logic.ts'
 import type { Reading } from '../../src/features/athkar/logic.ts'
-import { bandHeight, bandSvg, closeArea, coverFit, doneFit, finaleSize, fitOf, pixelOf } from '../../src/features/athkar/band.ts'
+import { bandHeight, bandSvg, closeArea, coverFit, doneFit, endWidth, finaleSize, fitOf, pixelOf } from '../../src/features/athkar/band.ts'
 import type { BandModel } from '../../src/features/athkar/band.ts'
 import { SIZE_DEFAULT, readOptions } from '../../src/config.ts'
 import { hitsFor } from '../../src/features/athkar/install.tsx'
@@ -263,7 +263,7 @@ test('the basmala stays unnumbered and Ayat al-Kursi carries its verse number', 
   expect(kursi.endsWith('الْعَظِيمُ (٢٥٥)')).toBe(true)
 })
 
-test('the done row: the verse and its citation on one line, the hint going first, then the verse shrinks', async () => {
+test('the done row: the greeting without a citation, with the hint yielding first', async () => {
   const hint = '/athkar evening reset → to read again'
   const wide = doneFit(END, hint, 860)
   expect(wide.size).toBe(14)
@@ -272,27 +272,34 @@ test('the done row: the verse and its citation on one line, the hint going first
     const fit = doneFit(END, hint, width)
     expect(fit.size).toBeLessThanOrEqual(14)
     expect(fit.size).toBeGreaterThanOrEqual(9)
-    // The hint is dropped before the verse shrinks.
+    // The hint is dropped before the greeting shrinks.
     if (fit.hint === '') expect(doneFit(END, '', width).size).toBe(fit.size)
     const html = bandSvg(model({ phase: 'done', isActive: true, end: END, endHint: hint, width }))
     expect(html).toContain(`--ds:${fit.size}px`)
-    expect(html).toContain('class="cite"')
+    expect(html).toContain(`<span class="big">${END}</span>`)
+    expect(html).not.toContain('class="cite"')
+    expect(html).not.toContain('—')
+    expect(html).not.toContain('البقرة')
     expect(html).toContain('white-space: nowrap')
   }
-  expect(doneFit(END, hint, 380).hint).toBe('')
+  expect(doneFit(END, hint, 200).hint).toBe('')
+  expect(doneFit(END.repeat(4), hint, 200).size).toBeLessThan(14)
   expect(doneFit(END, hint, 100).size).toBeGreaterThanOrEqual(9)
 })
 
-test('the finale: the verse and its citation, centered, in the words face, a fixed 18px', async () => {
+test('the finale: the closing greeting without a citation, centered, a fixed 18px', async () => {
   const html = bandSvg(model({ phase: 'done', end: END, finaleMs: 500 }))
   const rise = html.slice(html.indexOf('<span class="rise-msg"'))
-  expect(rise).toContain('رَبَّنَا')
-  expect(rise).toContain('البقرة')
+  expect(END).toBe('تَقَبَّلَ اللَّهُ 🤲')
+  expect(rise).toContain(`>${END}</span>`)
+  expect(rise).not.toContain('class="cite"')
+  expect(rise).not.toContain('—')
+  expect(rise).not.toContain('البقرة')
   expect(html).toMatch(/\.rise-msg \{[^}]*left: 50%[^}]*font-family: var\(--font-band/)
   for (const width of [300, 500, 860, 1400]) expect(finaleSize(END, width)).toBe(18)
 })
 
-test('the end verse takes the words color on a sky, the main color on Frame', async () => {
+test('the closing greeting takes the words color on a sky, the main color on Frame', async () => {
   const sky = bandSvg(model({ phase: 'done', isActive: true, end: END, style: 'sky' }))
   expect(sky).toMatch(/\.done-row \.big \{[^}]*color: var\(--b-ink\)/)
   expect(sky).toMatch(/\.rise-msg \{[^}]*color: var\(--b-ink\)/)
@@ -327,4 +334,13 @@ test('athkar takes the shared main color without changing body or sky colors', (
       expect({ ...blue, ring: orange.ring }).toEqual(orange)
     }
   }
+})
+
+// Width evidence from the embedded font, including the platform emoji allowance.
+test('closing width ignores tashkeel and reserves the emoji separately', () => {
+  const near = (a: number, b: number) => expect(Math.abs(a - b)).toBeLessThan(1e-3)
+  near(endWidth(END, 16), (60.432 + 24) * 1.04)
+  expect(endWidth('تقبل الله 🤲', 16)).toBe(endWidth(END, 16))
+  near(endWidth(END, 16) - endWidth('تَقَبَّلَ اللَّهُ ', 16), 24 * 1.04)
+  near(endWidth(END, 18), endWidth(END, 16) * 18 / 16)
 })

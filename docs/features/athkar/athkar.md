@@ -25,7 +25,7 @@ The third set, **Athkar after salah** (أَذْكَارُ بَعْدَ الصَ�
 - **Period:** the clock picks it unless `/athkar morning` or `/athkar evening` chose one (see Settings); every count, key and click goes to the period shown.
 - **×** hides the band and keeps the reading; `/athkar` brings it back.
 - **Saved** per day and period in `$.store`. A day runs 05:00 to 05:00, so evening athkar read after midnight still count for that evening. A new day starts fresh; a finished period does not show again that day.
-- **End:** the end verse ﴿رَبَّنَا تَقَبَّلْ مِنَّا إِنَّكَ أَنتَ السَّمِيعُ الْعَلِيمُ﴾ — البقرة ١٢٧, then the done row with `/athkar <period> reset → to read again`.
+- **End:** «تَقَبَّلَ اللَّهُ 🤲», a short closing du’a addressed to the reader, outside the authored athkar and without a source citation, then the done row with `/athkar <period> reset → to read again`.
 
 ## Counts
 

@@ -4,9 +4,10 @@ import type { AthkarSet } from './logic.ts'
 import { AREF_RUQAA_BOLD, TAJAWAL_BOLD, TAJAWAL_REGULAR } from './fonts.ts'
 import type { Sky } from './logic.ts'
 import type { Style } from './look.ts'
+import { stripTashkeel } from '../../shared/arabic/visual.ts'
 import { SIZE_DEFAULT } from '../../config.ts'
 import { CARD_BORDER_PX, CARD_FOOT, CARD_LINE, CARD_TOP, cardArea, cardHeight, cardHtml, cardSvg, closeArea as cardClose, fontFace, frameOf as cardFrame, pixelOf as cardPixel, type CardFrame } from '../../shared/card/card.ts'
-import { END_CITE_CHAR, END_CITE_EM, END_VERSE_CHAR, HINT_CHAR, TEXT_WIDTH } from './metrics.ts'
+import { END_EMOJI_EM, END_TEXT_CHAR, HINT_CHAR, TEXT_WIDTH } from './metrics.ts'
 
 // The desktop band: the athkar lab's band, drawn as HTML and CSS inside one
 // SVG document (an interactive Svg runs CSS animation; no script). Clicks and
@@ -43,7 +44,7 @@ export type BandModel = {
   glowMs?: number
   end: string
   endHint: string
-  // Folded, in place of the verse: finished.
+  // Folded, in place of the greeting: finished.
   endNote: string
   // When it is drawn, so the sky's motion carries on across redraws.
   now: number
@@ -154,7 +155,7 @@ const EXTRA_CSS = `
 @keyframes fall { to { transform: translateY(var(--dy)) rotate(var(--rot)); opacity: 0; } }
 .rise-msg { position: absolute; left: 50%; bottom: 24px; font-family: var(--font-band, var(--font-ar)); font-size: var(--rs, 30px); white-space: nowrap; direction: rtl; color: var(--b-ink); text-shadow: 0 0 18px color-mix(in srgb, var(--ring) 70%, transparent); opacity: 0; animation: riseMsg 2.8s ease-out both; }
 @keyframes riseMsg { 0% { opacity: 0; transform: translate(-50%, 30px); } 30% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -110px); } }
-/* The end verse: on a sky the words' color, on Frame the main color, as
+/* The closing greeting: on a sky the words' color, on Frame the main color, as
    the frame and the progress line. The finale's is in the words' face too. */
 .band.bg-frame .done-row .big, .band.bg-frame .rise-msg, .band.bg-frame .dn-peek .pk-text { color: var(--b-acc); }
 /* Skies have no edge line, colored or white: the picture is the edge. */
@@ -209,31 +210,18 @@ const foldedCover = (m: BandModel) => {
   return `<div class="peek cv-peek"><span class="pk-title">${esc(m.title)}</span><span class="pk-hint" style="font-size:${foldedHintSize(hint, m.width)}px">${hint}</span></div>`
 }
 
-// The end message is a verse and, after ' — ', where it is from.
-const splitEnd = (end: string) => {
-  const at = end.lastIndexOf(' — ')
-
-  return at < 0 ? { verse: end, cite: '' } : { verse: end.slice(0, at), cite: end.slice(at + 3) }
-}
-
 // The folded done row: the note alone.
 const foldedDone = (m: BandModel) => `<div class="peek dn-peek"><span class="pk-text">${esc(m.endNote)}</span></div>`
 
 const done = (m: BandModel) => {
-  const { verse, cite } = splitEnd(m.end)
   const fit = doneFit(m.end, m.endHint, m.width)
-  const citation = cite ? `<span class="cite">— ${esc(cite)}</span>` : ''
   const hint = fit.hint ? `<span class="dim done-hint">${esc(fit.hint)}</span>` : ''
 
-  return `<div class="done-row" style="--ds:${fit.size}px"><span class="big">${esc(verse)}${citation}</span>${hint}</div>`
+  return `<div class="done-row" style="--ds:${fit.size}px"><span class="big">${esc(m.end)}</span>${hint}</div>`
 }
 
-// The finale shows the verse centered, and where it is from.
-const riseHtml = (end: string) => {
-  const { verse, cite } = splitEnd(end)
-
-  return esc(verse) + (cite ? `<span class="cite">— ${esc(cite)}</span>` : '')
-}
+// The closing greeting has no citation, in the finale or done row.
+const riseHtml = (end: string) => esc(end)
 
 const GLYPHS = ['✦', '✧', '⋆', '✦', '☾']
 
@@ -364,21 +352,20 @@ export const pixelOf = (m: Framed, x: number, y: number, columns: number, rows: 
 // count or the width. The folded row is shorter (restHeight).
 export const bandHeight = (m: Pick<BandModel, 'phase' | 'thikrId' | 'period' | 'textSize'>, _width: number) => cardHeight(m.textSize)
 
-// The done row: the verse on one line, then where it is from, smaller and
-// muted; the hint after them, in one line. When space is short the hint goes
-// first (the long one, then the short one), then the verse and its citation
-// shrink together, to FIT_MIN, never wrap. Priority: verse, citation, hint.
+// The done row: the closing greeting on one line, then the reset hint.
+// When space is short the hint goes first (long, then short), then the
+// greeting shrinks to FIT_MIN, never wrapping.
 const DONE_BASE = 14
 const DONE_GAP = 12
-const CITE_GAP = 6
 const HINT_PX = 11.5
 // The band's padding takes 2 * 24px, the × clearance 14px, the border 2px.
 const DONE_SIDES = 64
 const FIT_SAFETY = 1.04
 
 export const endWidth = (end: string, size: number) => {
-  const { verse, cite } = splitEnd(end)
-  const w = verse.length * END_VERSE_CHAR + (cite ? CITE_GAP + (cite.length + 2) * END_CITE_CHAR * END_CITE_EM : 0)
+  const chars = Array.from(stripTashkeel(end))
+  const emoji = chars.filter(char => char === '🤲').length
+  const w = (chars.length - emoji) * END_TEXT_CHAR + emoji * END_EMOJI_EM * 16
 
   return w * (size / 16) * FIT_SAFETY
 }
@@ -398,5 +385,5 @@ export const doneFit = (end: string, hint: string, width: number) => {
   return { size, hint: '' }
 }
 
-// The finale's verse: a fixed 18px, whatever the width.
+// The finale's greeting: a fixed 18px, whatever the width.
 export const finaleSize = (_end: string, _width: number) => 18
