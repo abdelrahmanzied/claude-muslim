@@ -1,6 +1,6 @@
 import type { On } from 'claude-code'
 import { expect, mock, test, type Mounted } from 'claude-code/testing'
-import { DEMO_DURATION_MS, DEMO_FOLD_MS, DEMO_UNFOLD_MS, demoReply } from '../../src/features/muslim-pane/demo.ts'
+import { DEMO_DURATION_MS, DEMO_FOLD_MS, DEMO_UNFOLD_MS, demoReply, demoTerminalReply } from '../../src/features/muslim-pane/demo.ts'
 import { DEMO_GAP_MS, DEMO_START_MS } from '../../src/demo.ts'
 import { demoDuration as athkarDuration } from '../../src/features/athkar/demo.ts'
 import { demoDuration as salahDuration } from '../../src/features/salah/demo.ts'
@@ -36,7 +36,7 @@ const fixture = (on: On, surface: 'desktop' | 'terminal', startsOpen: boolean) =
 }
 const modelOf = async (ui: Pick<Mounted<'desktop' | 'terminal', 'Pane'>, 'find'>) => (await ui.find({ type: 'Client', key: 'muslim-pane' }))!.props.props as PaneModel
 
-// Drive the real shared sequence: the pane has no separate demo command.
+// Drive the real shared sequence; `/muslim demo pane` plays the same tour alone.
 const startTour = async ($: Engine, clock: ReturnType<typeof mock.clock>, surface: 'desktop' | 'terminal') => {
   await $.command.run(run('demo'))
   await clock.advance(DEMO_START_MS + DEMO_SUBMIT_MS)
@@ -84,3 +84,26 @@ for (const startsOpen of [false, true]) {
     await ui.unmount()
   })
 }
+
+test('/muslim demo pane on a terminal says desktop only, and nothing starts', async ($, on) => {
+  const { clock, calls, writes } = fixture(on, 'terminal', false)
+  expect((await $.command.run(run('demo pane'))).text).toBe(demoTerminalReply())
+  await clock.advance(DEMO_DURATION_MS)
+  expect(calls).toEqual([])
+  expect(writes).toEqual([])
+})
+
+test('/muslim demo pane on desktop plays the tour alone and closes the pane it opened, without saved writes', async ($, on) => {
+  const { clock, calls, writes } = fixture(on, 'desktop', false)
+  const ui = await $.ui.mount(pane('desktop'))
+  await clock.settle()
+  writes.length = 0
+  expect((await $.command.run(run('demo pane'))).text).toBe(demoReply())
+  expect(calls).toEqual(['open'])
+  await clock.advance(DEMO_UNFOLD_MS.athkar + 100)
+  expect((await modelOf(ui)).folds).toEqual({ prayer: false, quran: false, athkar: false })
+  await clock.advance(DEMO_DURATION_MS)
+  expect(calls).toEqual(['open', 'close'])
+  expect(writes).toEqual([])
+  await ui.unmount()
+})

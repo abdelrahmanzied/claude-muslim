@@ -10,7 +10,7 @@ import { dragBar, dragCell, isPanePicker, openPicker, pickerKey, pickerView, pre
 import { CATEGORIES, CLOSED_SETTINGS, COPIED_MS, changeCategory, copiedAt, isSwitchField, loadSettings, optimisticOptions, settingsBody, type SettingsState } from './settings.ts'
 import { skipPaneScroll } from '../../shared/scroll/index.ts'
 // DEMO BEGIN
-import { DEMO_TICK_MS, demoAthkar, demoFolds, demoNow, demoQuran, demoReply, demoSalah, isDemoOver } from './demo.ts'
+import { DEMO_TICK_MS, demoAthkar, demoFolds, demoNow, demoQuran, demoReply, demoSalah, demoTerminalReply, isDemoOver } from './demo.ts'
 import { avatarSvg } from '../../shared/quran-avatar/index.ts'
 import { ATHKAR_TITLE } from '../../shared/athkar/titles.ts'
 import { connectDemo, doneDemo } from '../../shared/demo/signal.ts'
@@ -413,11 +413,12 @@ export const install = (on: On, options: Options) => {
     return next(e)
   })
 
-  // DEMO BEGIN: the tour is the last step of /muslim demo.
+  // DEMO BEGIN: the tour is the last step of /muslim demo; `/muslim demo pane` plays it alone.
   on('command.run', { command: 'muslim', args: /^\s*demo\s*$/ }, ($, e, next) => {
     connectDemo('pane', () => playDemo($, true))
     return next(e)
   })
+  on('command.run', { command: 'muslim', args: /^\s*demo\s+pane\s*$/ }, async $ => ({ text: (await playDemo($, false)) || demoTerminalReply() }))
   // DEMO END
 
   on('ui.close', { id: PANE_ID }, async ($, e, next) => {

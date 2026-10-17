@@ -14,6 +14,7 @@ export const DEMO_ATHKAR_TOTAL = 6
 export const DEMO_DURATION_MS = 10_000
 
 export const demoReply = (): string => '**Muslim pane demo:** all cards unfold, play and fold back (about 10 s); nothing is saved.'
+export const demoTerminalReply = (): string => 'The Muslim pane demo is desktop only. Run /muslim demo pane in the Claude desktop app.'
 
 // 05:00 on a fixed day; the prays are on the same fixed day.
 const DAY = Date.UTC(2000, 0, 1)

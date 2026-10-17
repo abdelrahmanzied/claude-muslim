@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { DEMO_ATHKAR_DONE_MS, DEMO_ATHKAR_TOTAL, DEMO_DURATION_MS, DEMO_FOLD_MS, DEMO_TICK_MS, DEMO_UNFOLD_MS, demoAthkar, demoAthkarDone, demoFolds, demoNow, demoQuran, demoReply, demoSalah, isDemoOver } from '../../src/features/muslim-pane/demo.ts'
+import { DEMO_ATHKAR_DONE_MS, DEMO_ATHKAR_TOTAL, DEMO_DURATION_MS, DEMO_FOLD_MS, DEMO_TICK_MS, DEMO_UNFOLD_MS, demoAthkar, demoAthkarDone, demoFolds, demoNow, demoQuran, demoReply, demoSalah, demoTerminalReply, isDemoOver } from '../../src/features/muslim-pane/demo.ts'
 import { paneModel } from '../../src/features/muslim-pane/model.ts'
 import { TITLE } from '../../src/features/athkar/logic.ts'
 import { ARABIC } from '../../src/shared/pray/names.ts'
@@ -59,6 +59,7 @@ test('the athkar fill scene by scene up to done, with the authored title', () =>
   expect(demoAthkar(0, TITLE.morning).isDone).toBe(false)
 })
 
-test('the reply names the tour', () => {
+test('the replies name the tour; a terminal is told it is desktop only', () => {
   expect(demoReply()).toContain('Muslim pane demo')
+  expect(demoTerminalReply()).toBe('The Muslim pane demo is desktop only. Run /muslim demo pane in the Claude desktop app.')
 })

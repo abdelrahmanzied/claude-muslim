@@ -102,4 +102,4 @@ In light mode only, the pixel-art header avatar carries `filter: drop-shadow(0 1
 
 ## Demo note
 
-The final `pane` step of `/muslim demo` draws the same card layout with a demo model: all cards folded, unfolding one by one and folding back, the settings card always folded. Nothing about the look changes for it; the timeline is in [the spec](muslim-pane.md#demo).
+The final `pane` step of `/muslim demo` (or `/muslim demo pane` alone) draws the same card layout with a demo model: all cards folded, unfolding one by one and folding back, the settings card always folded. Nothing about the look changes for it; the timeline is in [the spec](muslim-pane.md#demo).

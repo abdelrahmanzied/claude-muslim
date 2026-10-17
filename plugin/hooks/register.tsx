@@ -256,8 +256,10 @@ export const register: Register = (on, options) => {
     const [word = '', feature = ''] = words
     // DEMO BEGIN: command entry; no feature settings or saved state.
     if (word === 'demo') {
-      if (words.length !== 1) return { text: 'Usage: /muslim demo' }
       if (demo) return { text: '**Muslim demo:** already playing.' }
+      // `/muslim demo pane` is the pane tour alone; the muslim-pane feature answers it.
+      if (words.length === 2 && feature === 'pane') return next(e)
+      if (words.length !== 1) return { text: 'Usage: /muslim demo [pane]' }
       // Walk the demo-only setup hooks once; no self-command dispatch.
       await next(e)
 

@@ -90,7 +90,7 @@ Auto-update reads and writes remain in `plugin/hooks/register.tsx`: its own Pane
 
 ## Demo
 
-`/muslim demo` ends with the 10-second pane tour as its fourth step `pane` (after `salah`; skipped on a terminal), connected through `plugin/src/shared/demo/signal.ts` and reporting its end after the cards fold back. The scenes and timing are pure (`plugin/src/features/muslim-pane/demo.ts`); the small runner and its module-local state live in `install.tsx` (marked `DEMO` blocks).
+`/muslim demo` ends with the 10-second pane tour as its fourth step `pane` (after `salah`; skipped on a terminal), connected through `plugin/src/shared/demo/signal.ts` and reporting its end after the cards fold back. `/muslim demo pane` plays the same tour alone on desktop (a terminal is told it is desktop only); it says `Muslim demo: already playing.` while `/muslim demo` runs. The scenes and timing are pure (`plugin/src/features/muslim-pane/demo.ts`); the small runner and its module-local state live in `install.tsx` (marked `DEMO` blocks).
 
 - The pane opens (if it was closed) with every card folded, then unfolds prayer (0.6 s), Quran (2.0 s) and athkar (3.6 s); settings stays folded. The athkar fill to done («أتممتَ وردك ✓») by 7.4 s, then athkar, Quran and prayer fold back (8.2, 8.8, 9.4 s). At 10 s the pane is closed again if it was closed before, otherwise it draws its real view.
 - Fixed feeds, never the real ones: prayer is Fajr at 05:00 (as `/salah demo`) with a countdown from 48 minutes running down; Quran looks playing («يتلى الآن», the avatar talking through the Quran feature's `avatarSvg`, time and progress advancing) with no audio, catalog or network; athkar is the morning set with its authored title.
