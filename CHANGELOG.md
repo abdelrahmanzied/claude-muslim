@@ -4,7 +4,7 @@
 
 - Dev: CLAUDE.md says to link each Claude session to the worktree it works in (`~/.claude/dev-mods/<session-id>/muslim` → `<worktree>/plugin`) so the mod is tested live with hot reload.
 
-- Docs: CONTRIBUTING.md is short now: open an issue for a problem or idea, comment and wait to be assigned before working on an issue, the religious-text, design, commit and pull request rules, setup, running your copy, testing a real install, and how versions work.
+- Docs: CONTRIBUTING.md is short now: open an issue for a problem or idea, comment and wait to be assigned before working on any issue (no unassigned pull requests, even for small fixes), the religious-text, design, commit and pull request rules, setup, running your copy, testing a real install, and how versions work.
 
 - Dev: the pre-push hook skips a push that only deletes remote branches, and says to run `npm install` when TypeScript is missing.
 

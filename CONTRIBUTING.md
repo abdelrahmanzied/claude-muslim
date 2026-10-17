@@ -5,8 +5,7 @@ Thank you for helping.
 ## How to start
 
 - **Found a problem or have an idea?** Open an issue with one of the forms.
-- **Want to work on an issue?** Comment that you are interested, and wait until it is assigned to you before you start.
-- Small fixes, like a typo, can go straight to a pull request.
+- **Want to work on an issue?** Comment that you are interested, and wait until it is assigned to you before you start. Every change, even a small fix, starts from an assigned issue.
 
 ## Rules
 
