@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Muslim pane: `/muslim pane demo` plays a 10-second tour on desktop (the cards unfold one by one, the Quran card plays without sound, the athkar fill to done, then everything folds back and the pane returns to how it was); `/muslim demo` ends with it (skipped on a terminal). Nothing is saved.
+
 - Quran: the standalone Quran pane («۞ القرآن الكريم» tab) is gone; the player lives only in the Muslim pane's Quran card. `/quran` opens the Muslim pane at that card and unfolds it; on a terminal it replies with a text status (reciter, surah, segment, time, playing or stopped) and `Playback runs in the Claude desktop app.`. The other `/quran` subcommands are unchanged.
 
 - Muslim pane: the Quran card's header reads «القرآن الكريم» (was «القرآن»), folded or open, and so does the terminal text fallback.

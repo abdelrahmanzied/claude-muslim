@@ -12,7 +12,7 @@ import { quranHelp } from './help.ts'
 import { connectPanelAction, connectQuran, connectQuranOptions, type PanelList, type PanelOption, type PanelQuran } from '../../shared/panel/signal.ts'
 import { isPickMessage, options as listOptions, paneModel, type List } from './pane.ts'
 import { segmentLabel } from './label.ts'
-import { avatarSvg } from './avatar.ts'
+import { avatarSvg } from '../../shared/quran-avatar/index.ts'
 
 const QURAN_DEBUG = false
 type Preparing = { moshafKey: string; surah: number; stage: 'checking' | 'preparing' }

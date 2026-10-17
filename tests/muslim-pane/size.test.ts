@@ -2,7 +2,9 @@ import { expect, test } from 'claude-code/testing'
 import { paneModel } from '../../src/features/muslim-pane/model.ts'
 import { CATEGORIES, DEFAULT_SETTINGS } from '../../src/features/muslim-pane/settings.ts'
 import { paneSvg } from '../../src/features/muslim-pane/view.ts'
-import { avatarSvg } from '../../src/features/quran/avatar.ts'
+import { avatarSvg } from '../../src/shared/quran-avatar/index.ts'
+import { DEMO_DURATION_MS, DEMO_TICK_MS, demoAthkar, demoFolds, demoNow, demoQuran, demoSalah } from '../../src/features/muslim-pane/demo.ts'
+import { TITLE } from '../../src/features/athkar/logic.ts'
 
 // The Client's whole tree must serialize under 100,000 characters, or Desktop draws an error
 // instead of the pane. The picture is nearly all of it: keep a margin for longer names and data.
@@ -28,4 +30,11 @@ test('the open picker leaves the Quran avatar out, since the sheet covers it', (
   const picker = { list: 'surah' as const, query: '', highlight: 0, scroll: 0, count: 114, rows, dragging: false }
   expect(paneSvg(paneModel(feeds as Parameters<typeof paneModel>[0], NOW, 400, 'orange')).includes('kbx-root')).toBe(true)
   expect(paneSvg(paneModel(feeds as Parameters<typeof paneModel>[0], NOW, 400, 'orange', undefined, undefined, DEFAULT_SETTINGS, picker)).includes('kbx-root')).toBe(false)
+})
+
+test('every frame of the pane demo stays under the Client tree limit', () => {
+  for (const width of [240, 400, 1200]) for (let t = 0; t <= DEMO_DURATION_MS; t += DEMO_TICK_MS) {
+    const model = paneModel({ salah: demoSalah(), quran: demoQuran(t, avatarSvg(true, t, 96)), athkar: demoAthkar(t, TITLE.morning) }, demoNow(t), width, 'orange', undefined, demoFolds(t))
+    expect(paneSvg(model).length).toBeLessThan(LIMIT)
+  }
 })

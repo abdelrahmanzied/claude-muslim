@@ -7,8 +7,14 @@ import { pointerPixels } from '../../shared/card/pointer.ts'
 import { NO_FOLDS, cardRects, hitOfCells, isFolds, isPaneMessage, keyAct, paneHeight, quranRowOf, type Enabled, type Folds, type PaneAct, type PaneMessage } from './layout.ts'
 import { paneModel, quranLayout, textLines, widthOf, type PaneModel } from './model.ts'
 import { dragBar, dragCell, isPanePicker, openPicker, pickerKey, pickerView, pressBar, type PickerView } from './picker.ts'
-import { CATEGORIES, COPIED_MS, changeCategory, copiedAt, isSwitchField, loadSettings, optimisticOptions, settingsBody, type SettingsState } from './settings.ts'
+import { CATEGORIES, CLOSED_SETTINGS, COPIED_MS, changeCategory, copiedAt, isSwitchField, loadSettings, optimisticOptions, settingsBody, type SettingsState } from './settings.ts'
 import { skipPaneScroll } from '../../shared/scroll/index.ts'
+// DEMO BEGIN
+import { DEMO_TICK_MS, demoAthkar, demoFolds, demoNow, demoQuran, demoReply, demoSalah, demoTerminalReply, isDemoOver } from './demo.ts'
+import { avatarSvg } from '../../shared/quran-avatar/index.ts'
+import { ATHKAR_TITLE } from '../../shared/athkar/titles.ts'
+import { connectDemo, doneDemo } from '../../shared/demo/signal.ts'
+// DEMO END
 
 const playingRef = { plugin: 'muslim', key: 'quranPlaying' } as const
 const PANE_ID = 'muslim'
@@ -241,6 +247,57 @@ async function togglePane($: EngineInterface): Promise<void> {
   } catch { $.ui.toast('Muslim pane unavailable. Use /muslim pane.') }
 }
 
+// DEMO BEGIN: the tour is module-local drawing only. It reads the clock and the pane list, and
+// never writes settings, the store, folds, the athkar menu or any other saved state.
+// shared: started by /muslim demo, which waits for this demo's end.
+type PaneDemo = { startedAt: number; shared: boolean; wasOpen: boolean; timer?: { cancel: () => void } }
+let demo: PaneDemo | undefined
+
+// What the pane draws while the tour plays instead of the real feeds.
+const demoModelAt = (elapsed: number, options: Options, columns: unknown): PaneModel => paneModel(
+  { salah: demoSalah(), quran: demoQuran(elapsed, avatarSvg(true, elapsed, 96)), athkar: demoAthkar(elapsed, ATHKAR_TITLE.morning) },
+  demoNow(elapsed), widthOf(columns), options.color, undefined, demoFolds(elapsed),
+  { state: CLOSED_SETTINGS, options: optimisticOptions(options), terminalMode: 'per-terminal setup', copied: null },
+)
+
+const finishDemo = async ($: EngineInterface, playing: PaneDemo) => {
+  if (demo !== playing) return
+  playing.timer?.cancel()
+  demo = undefined
+  // Back to how it was: closed again if it was closed before the tour; an open pane just draws its real view.
+  if (!playing.wasOpen) { try { await $.ui.close({ id: PANE_ID }) } catch { /* already closed */ } }
+  $.ui.invalidate('ui.render')
+  if (playing.shared) doneDemo('pane')
+}
+const tickDemo = async ($: EngineInterface, playing: PaneDemo) => {
+  if (demo !== playing) return
+  const elapsed = (await $.clock.now()) - playing.startedAt
+  if (demo !== playing) return
+  if (isDemoOver(elapsed)) await finishDemo($, playing)
+  else $.ui.invalidate('ui.render')
+}
+const playDemo = async ($: EngineInterface, shared: boolean): Promise<string> => {
+  if (await $.session.surface() !== 'desktop') {
+    if (shared) doneDemo('pane')
+    return demoTerminalReply()
+  }
+  demo?.timer?.cancel()
+  const wasOpen = await isPaneOpen($)
+  const playing: PaneDemo = { startedAt: await $.clock.now(), shared, wasOpen }
+  demo = playing
+  try {
+    if (!wasOpen) await $.ui.open({ id: PANE_ID, title: '☾ Muslim' })
+  } catch {
+    demo = undefined
+    if (shared) doneDemo('pane')
+    return 'Muslim pane unavailable. Use /muslim pane.'
+  }
+  playing.timer = $.clock.every(DEMO_TICK_MS, () => { void tickDemo($, playing) })
+  $.ui.invalidate('ui.render')
+  return demoReply()
+}
+// DEMO END
+
 export const install = (on: On, options: Options) => {
   // Registered before Quran and salah: this outer hook prepends the chip, so it is the leftmost item.
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
@@ -293,6 +350,12 @@ export const install = (on: On, options: Options) => {
       } catch { stopTicker() }
     })
     const { Box, Text } = $.ui.resolve(e)
+    // DEMO BEGIN: the tour draws its own model on desktop.
+    if (demo && e.surface === 'desktop') {
+      const { Client } = $.ui.resolve(e)
+      return <Client key="muslim-pane" module="./client.tsx" width="100%" props={demoModelAt((await $.clock.now()) - demo.startedAt, options, e.props.bodyColumns)} />
+    }
+    // DEMO END
     const model = await modelNow($, options, e.props.bodyColumns)
     if (e.surface !== 'desktop') {
       const mode = await arabicMode($, e.surface)
@@ -308,6 +371,9 @@ export const install = (on: On, options: Options) => {
 
   on('ui.message', { element: 'muslim-pane' }, async ($, e, next) => {
     if (e.surface !== 'desktop' || !isPaneMessage(e.data)) return {}
+    // DEMO BEGIN: pointer and keys do nothing during the tour.
+    if (demo) return {}
+    // DEMO END
     // Refresh action closures with this press's engine context, not a footer draw's.
     try { await next(e) } catch { /* no hook beneath */ }
     const message = e.data
@@ -335,7 +401,23 @@ export const install = (on: On, options: Options) => {
     return next(e)
   })
 
+  // DEMO BEGIN: connect the shared starter; `/muslim pane demo` plays the same tour.
+  on('command.run', { command: 'muslim', args: /^\s*demo\s*$/ }, ($, e, next) => {
+    connectDemo('pane', () => playDemo($, true))
+    return next(e)
+  })
+  on('command.run', { command: 'muslim', args: /^\s*pane\s+demo\s*$/ }, async $ => ({ text: await playDemo($, false) }))
+  // DEMO END
+
   on('ui.close', { id: PANE_ID }, async ($, e, next) => {
+    // DEMO BEGIN: closing the pane ends the tour; a shared run goes on to the next step.
+    if (demo) {
+      const closed = demo
+      closed.timer?.cancel()
+      demo = undefined
+      if (closed.shared) doneDemo('pane')
+    }
+    // DEMO END
     stopTicker()
     desktopPane = false
     paneOffset = 0

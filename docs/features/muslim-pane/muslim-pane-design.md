@@ -95,3 +95,7 @@ Settings switches render from session `muslim.paneOptimistic` over the normalize
 The terminal gets all settings and their commands in tab order, عام first and the exact heading الذكر, through the existing Arabic `show` path. Native Desktop painting and scroll feel still require a live host check; engine tests prove geometry, input routing, state and API calls.
 
 In light mode only, the pixel-art header avatar carries `filter: drop-shadow(0 1px 1.5px rgba(31,30,29,.35))` (light media query and `.theme-light`; `.theme-dark` sets `filter:none`) so it stands out on the light card; dark mode and the art are unchanged.
+
+## Demo note
+
+The `/muslim pane demo` tour draws the same card layout with a demo model: all cards folded, unfolding one by one and folding back, the settings card always folded. Nothing about the look changes for it; the timeline is in [the spec](muslim-pane.md#demo).

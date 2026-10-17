@@ -105,7 +105,8 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/muslim tashkeel on` · `off` | Show or hide Arabic diacritics on desktop (the terminal never shows them) |
 | `/muslim terminal-arabic` | Choose how Arabic shows in this terminal |
 | `/muslim help` · `help <feature>` | Command tables of every feature, or one (`thikr`, `athkar`, `salah`, `quran`) |
-| `/muslim demo` | Play the thikr, athkar and salah demos in order: thikr in a real turn (about 30 s; it uses tokens and leaves a message in the transcript), its 3 s usage-limit hold, athkar (desktop sky 33.2 s; terminal frame 24.2 s), then the salah athan moment (`/salah demo`); 0.1 s between demos, no setting or saved state changes; no city needed; another request while playing says so |
+| `/muslim pane demo` | Desktop: a 10 s tour of the Muslim pane (cards unfold, the Quran card plays without sound, athkar fill to done, then everything folds back and the pane returns to how it was); nothing is saved; a terminal says it is desktop only |
+| `/muslim demo` | Play the thikr, athkar, salah and Muslim pane (desktop) demos in order: thikr in a real turn (about 30 s; it uses tokens and leaves a message in the transcript), its 3 s usage-limit hold, athkar (desktop sky 33.2 s; terminal frame 24.2 s), then the salah athan moment (`/salah demo`), then the Muslim pane tour on desktop; 0.1 s between demos, no setting or saved state changes; no city needed; another request while playing says so |
 
 Shared and feature settings are also in `/config`; Quran remembers its recording in the local store to avoid reloading playback. The shared `color` setting changes existing main-color accents across athkar, salah, Quran, thikr's usage-limit line and the terminal Arabic survey label. Orange text follows Claude's theme; other choices use light/dark shades.
 

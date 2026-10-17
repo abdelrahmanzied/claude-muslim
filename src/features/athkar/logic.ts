@@ -4,6 +4,7 @@ import type { Period, Thikr } from './data.ts'
 import { afterSalah } from './after-salah.ts'
 import type { SalahAthkarTimes, SalahLast } from '../../../types'
 import type { Fard } from '../../shared/pray/names.ts'
+import { ATHKAR_TITLE } from '../../shared/athkar/titles.ts'
 
 export type AthkarSet = Period | 'afterSalah'
 export type ReaderThikr = Pick<Thikr, 'id' | 'times' | 'text' | 'evening' | 'note'> & { periods?: Thikr['periods'] }
@@ -52,11 +53,7 @@ export const EVENING_FROM = 17
 // Wait after a thikr's last count before the next one shows.
 export const ADVANCE_MS = 650
 
-export const TITLE: Record<AthkarSet, string> = {
-  afterSalah: 'أَذْكَارُ بَعْدَ الصَّلَاةِ',
-  morning: 'أَذْكَارُ الصَّبَاحِ',
-  evening: 'أَذْكَارُ الْمَسَاءِ',
-}
+export const TITLE: Record<AthkarSet, string> = ATHKAR_TITLE
 
 export const END = 'تَقَبَّلَ اللَّهُ 🤲'
 
