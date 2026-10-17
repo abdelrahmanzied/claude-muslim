@@ -252,6 +252,14 @@ test('the heading shows the full avatar beside مسلم and /muslim at the left 
   expect(svg).toContain('<svg width="55.5" height="52" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 30" shape-rendering="crispEdges">')
 })
 
+test('the heading avatar is the chosen look: one short dark beard, the closed smile, no open mouth', () => {
+  const top = paneSvg(paneModel(feeds, NOW, 240, 'orange')).split('<div class="pane-top">')[1]?.split('</svg>')[0] ?? ''
+  expect(top).toContain('fill="#4A342A"')
+  expect(top).not.toContain('#7A5A4A')
+  expect(top).not.toContain('#E8736A')
+  expect(top).toContain('<path fill="#1F1E1D" d="M13 16h4v1h-4zM12 15h1v1h-1zM17 15h1v1h-1z"/>')
+})
+
 const sheet = (list: 'reciter' | 'surah' | 'segment', count = 20) => {
   const model = paneModel(feeds, NOW, 360, 'orange')
   const rows = Array.from({ length: Math.min(8, count) }, (_, i) => ({ value: String(i), label: list === 'segment' ? `الربع ${i + 1} - الآيات ١–٧` : `سورة ${i + 1}`, number: String(i + 1), selected: i === 1 }))
