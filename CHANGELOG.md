@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `/muslim autoupdate on | off` turns Claude Code's background update of the `claude-muslim` marketplace on or off; alone it shows the state, and `/muslim` has an Auto-update row. The first time muslim runs it turns auto-update on by itself (changing only `extraKnownMarketplaces["claude-muslim"].autoUpdate` in your user `settings.json`, never creating the entry and never writing a file that is not valid JSON), records that in the store and never does it again, so `off` stays off. Honors `CLAUDE_CONFIG_DIR`. Listed in `/muslim help`.
+
 - `/muslim update` updates muslim from inside a session: it runs `claude plugin update muslim@claude-muslim --json` (only this plugin, 2-minute limit), replies `muslim vX → vY. Reloading plugins.` with the changelog link, `muslim vX is the latest.`, or `Not updated: <reason>` with the shell command to run, and reloads plugins by itself after an update (a toast asks you to run `/reload-plugins` if that is refused). Needs `claude` on your PATH. Listed in `/muslim help`.
 
 - The installed plugin now lives in `plugin/` (manifest, `hooks/`, `src/`, `types/`, `tests/`, README, LICENSE). Add the marketplace with `--sparse .claude-plugin plugin` so only `plugin/` is downloaded and installed, without `docs/`, `scripts/` and the dev-only root files (tests ship inside `plugin/`). No behaviour change. The README is split into a short root README, `plugin/README.md` (features and commands) and `CONTRIBUTING.md`. The author name is now Abdelrahman Abozied, with contact and homepage links in the manifests.

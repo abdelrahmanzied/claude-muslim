@@ -43,7 +43,7 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 
 ## Update
 
-Inside a session, run `/muslim update`: it updates only muslim, tells you the new version and reloads plugins. Or from a shell:
+Inside a session, run `/muslim update`: it updates only muslim, tells you the new version and reloads plugins. Claude Code can also update muslim in the background: muslim turns that on for you the first time it runs, and `/muslim autoupdate off` turns it off for good. Or from a shell:
 
 ```bash
 claude plugin marketplace update claude-muslim

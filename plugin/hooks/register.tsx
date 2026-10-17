@@ -4,6 +4,7 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import { readOptions } from '../src/config.ts'
 import { PLUGIN, VERSION } from '../src/constants.ts'
+import { AUTOUPDATE_USAGE, autoUpdateState, changedReply, noEntry, notChanged, parseSettings, settingsPath, shouldSeed, stateText, statusReply, unreadable, withAutoUpdate, type AutoUpdateState } from '../src/autoupdate.ts'
 import { failedToRun, parseUpdate, updateReply, UPDATE_ARGV, UPDATE_TIMEOUT_MS, type UpdateResult } from '../src/update.ts'
 import { install as installAthkar } from '../src/features/athkar/install.tsx'
 import { muslimHelp } from '../src/help.ts'
@@ -55,6 +56,50 @@ async function runUpdate($: EngineInterface): Promise<UpdateResult> {
   } catch (error) {
     return failedToRun(error)
   }
+}
+
+// The user's settings.json: CLAUDE_CONFIG_DIR, else HOME or USERPROFILE.
+async function userSettingsFile($: EngineInterface): Promise<string | undefined> {
+  return settingsPath({ config: await $.env.get('CLAUDE_CONFIG_DIR'), home: await $.env.get('HOME'), profile: await $.env.get('USERPROFILE') })
+}
+
+async function readAutoUpdate($: EngineInterface): Promise<AutoUpdateState | 'unknown'> {
+  try {
+    return autoUpdateState(await $.settings.read({ source: 'user' }))
+  } catch {
+    return 'unknown'
+  }
+}
+
+// Changes only extraKnownMarketplaces["claude-muslim"].autoUpdate; a missing entry or a file
+// that is not valid JSON is never written. Returns the reason it did not write, or undefined.
+async function writeAutoUpdate($: EngineInterface, value: boolean): Promise<string | undefined> {
+  try {
+    const path = await userSettingsFile($)
+    if (!path) return notChanged('could not find your home folder')
+    const parsed = parseSettings(await $.fs.read(path))
+    if (!parsed.ok) return unreadable(parsed.reason)
+    const text = withAutoUpdate(parsed.data, value)
+    if (text === undefined) return noEntry
+    await $.fs.write(path, text)
+    return undefined
+  } catch (error) {
+    return notChanged(error instanceof Error ? error.message.split('\n')[0]! : 'could not read or write your settings')
+  }
+}
+
+// The first run turns auto-update on once and records it, so a later "off" stays off.
+// Nothing here may fail the session: any problem just means "try again next start".
+async function seedAutoUpdate($: EngineInterface) {
+  try {
+    if (await $.store.get('autoUpdateSeeded')) return
+    const path = await userSettingsFile($)
+    if (!path) return
+    const parsed = parseSettings(await $.fs.read(path))
+    if (!parsed.ok || autoUpdateState(parsed.data) === 'missing') return
+    if (shouldSeed(parsed.data) && (await writeAutoUpdate($, true)) !== undefined) return
+    await $.store.set('autoUpdateSeeded', true)
+  } catch {}
 }
 
 // A command cannot run another from its own hook, so the reload comes from a timer.
@@ -157,6 +202,8 @@ export const register: Register = (on, options) => {
     // A reload fires this again: ask for a redraw so the salah timer re-arms.
     $.clock.after(0, () => $.ui.invalidate('ui.render'))
 
+    await seedAutoUpdate($)
+
     return next(e)
   })
 
@@ -195,6 +242,12 @@ export const register: Register = (on, options) => {
       if (reply.reload) reloadPlugins($)
       return { text: reply.text }
     }
+    if (word === 'autoupdate') {
+      if (words.length > 2 || (feature !== '' && feature !== 'on' && feature !== 'off')) return { text: AUTOUPDATE_USAGE }
+      if (feature === '') return { text: statusReply(await readAutoUpdate($)) }
+      const failed = await writeAutoUpdate($, feature === 'on')
+      return { text: failed ?? changedReply(feature === 'on') }
+    }
     if (word === 'help') return { text: muslimHelp(feature) }
     if (word !== '') return next(e).catch(() => ({ text: muslimHelp() }))
 
@@ -206,6 +259,7 @@ export const register: Register = (on, options) => {
     const reciter = isCatalog(catalog) ? (catalog.reciters.find(r => r.key === reciterKey) ?? defaultReciter(catalog)).label : 'Muhammad Siddiq Al-Minshawi — murattal'
     const surface = await $.session.surface()
     const reciterLabel = await settingsArabic($, surface ?? 'desktop', reciter)
+    const autoUpdate = await readAutoUpdate($)
     const rows = [
       ['Tashkeel', `${onOff(settings.tashkeel)} — desktop only; the terminal never shows diacritics`, '`/muslim tashkeel on` · `off`'],
       ['Thikr', onOff(settings.thikr), '`/thikr on` · `off` · all options: `/thikr help`'],
@@ -234,6 +288,7 @@ export const register: Register = (on, options) => {
           ['Color', 'The main color in every feature', settings.color],
           ['Tashkeel', 'Arabic diacritics on desktop; the terminal never shows them', onOff(settings.tashkeel)],
           ['Terminal Arabic', 'How Arabic shows in this terminal', terminal || 'terminal only'],
+          ['Auto-update', 'Claude Code updates muslim in the background', stateText(autoUpdate)],
         ]),
       ].join('\n'),
     }

@@ -10,11 +10,12 @@ const FEATURES = { thikr: THIKR_COMMANDS, athkar: ATHKAR_COMMANDS, salah: SALAH_
 
 export const MUSLIM_COMMANDS: readonly HelpRow[] = [
   ['/muslim', 'The version, every feature\'s state and the shared settings', ''],
-  ['/muslim help', 'Every command table, or one feature\'s', '`<feature>`: thikr, athkar, salah, quran, color, tashkeel, terminal-arabic, update'],
+  ['/muslim help', 'Every command table, or one feature\'s', '`<feature>`: thikr, athkar, salah, quran, color, tashkeel, terminal-arabic, update, autoupdate'],
   ['/muslim color', 'The main color in every feature', '`orange` (default, Claude\'s) · `green` · `yellow` · `blue`'],
   ['/muslim tashkeel', 'Arabic diacritics on desktop; the terminal never shows them', '`on` (default) · `off`'],
   ['/muslim terminal-arabic', 'Choose how Arabic shows in this terminal, for every feature', ''],
   ['/muslim update', 'Update muslim from GitHub and reload plugins; only this plugin, nothing else', ''],
+  ['/muslim autoupdate', 'The background update of muslim by Claude Code, on after the first run; alone it shows the state', '`on` · `off`'],
   ['/muslim pane', 'Open the Muslim pane on desktop: today\'s prayers, the Quran player and the athkar progress; a plain text summary in the terminal', ''],
   // DEMO BEGIN: shared demo help.
   ['/muslim demo', 'Play thikr, athkar, /salah demo (athan and athkar after salah) and the Muslim pane tour (desktop) in order; thikr uses tokens and leaves a message in the transcript', ''],
@@ -22,7 +23,7 @@ export const MUSLIM_COMMANDS: readonly HelpRow[] = [
   // DEMO END
 ]
 
-const SHARED = { color: 2, tashkeel: 3, 'terminal-arabic': 4, update: 5 } as const
+const SHARED = { color: 2, tashkeel: 3, 'terminal-arabic': 4, update: 5, autoupdate: 6 } as const
 
 export const isFeature = (word: string): word is keyof typeof FEATURES => Object.hasOwn(FEATURES, word)
 
