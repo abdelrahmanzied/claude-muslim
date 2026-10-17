@@ -20,9 +20,9 @@ The plugin imports the shipped support catalog to filter unavailable surahs. The
 
 For a large file with a matching read, it fetches `ayat_timing?surah=S&read=R` and a Range prefix of at most 128 KiB. It rejects an ignored or inconsistent Range before consuming the body and bounds the body length. `cbrStream()` supplies the bitrate and audio start; duration is rounded from `(size - audioStart) * 8000 / bitrate`. A non-CBR prefix or failed prefix leaves duration unknown, matching playback's optional-duration path; the run reports unknown durations and failed requests. This tool never downloads a full MP3 or decodes audio.
 
-`src/features/quran/support.ts` is pure classification and data types. It delegates timing correction and the conservative size/time estimate to `timedSegments()`, including its existing `CLIP_ERROR`, rather than duplicating playback logic.
+`plugin/src/features/quran/support.ts` is pure classification and data types. It delegates timing correction and the conservative size/time estimate to `timedSegments()`, including its existing `CLIP_ERROR`, rather than duplicating playback logic.
 
-The generated `src/features/quran/reciter-support.ts` exports `QURAN_SUPPORT_VERSION = 1` and `QURAN_SUPPORT: Readonly<Record<string, RecordingSupport>>`. For example, the format is:
+The generated `plugin/src/features/quran/reciter-support.ts` exports `QURAN_SUPPORT_VERSION = 1` and `QURAN_SUPPORT: Readonly<Record<string, RecordingSupport>>`. For example, the format is:
 
 ```ts
 "112:112": {

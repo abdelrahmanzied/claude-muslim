@@ -1,7 +1,7 @@
 # Salah — prayer times
 
 Prayer times for the user's city, calculated on their machine with
-[athan library](../../../src/features/salah/athan/VENDOR.md) (from [adhan-js](https://github.com/batoulapps/adhan-js)). No location service and no prayer-times API.
+[athan library](../../../plugin/src/features/salah/athan/VENDOR.md) (from [adhan-js](https://github.com/batoulapps/adhan-js)). No location service and no prayer-times API.
 
 ## Flow
 
@@ -77,7 +77,7 @@ Replies are short markdown: a bold title line first (`**Muslim › Salah**`, `**
 
 ## Settings
 
-Main-color accents follow the plugin-wide `/muslim color orange | green | yellow | blue` setting through `src/shared/color/`, default Claude orange. Other colors stay as they are.
+Main-color accents follow the plugin-wide `/muslim color orange | green | yellow | blue` setting through `plugin/src/shared/color/`, default Claude orange. Other colors stay as they are.
 
 Terminal Arabic: the footer line and the minaret label follow the shared per-terminal setting (`/muslim terminal-arabic`, see the [terminal guide](../../terminal/terminal-arabic.md)). The desktop footer and athan card keep logical text.
 
@@ -107,10 +107,10 @@ Surfaces, the athan moment's look and what salah never does: [salah design](sala
 | `place.ts` | the saved place's one-setting format |
 | `review.ts` | the review form's rows |
 | `minaret.ts` | the minaret's rows, frame timing and when it is due |
-| `card.ts`, `athan-card.tsx` | desktop athan content and Client, using the shared card in `src/shared/card/` around a photo in `assets/`, with the embedded font in `card-font.ts` |
+| `card.ts`, `athan-card.tsx` | desktop athan content and Client, using the shared card in `plugin/src/shared/card/` around a photo in `assets/`, with the embedded font in `card-font.ts` |
 | `today.ts` | the times and settings tables for `/salah`, and the method in effect |
 
-Shared with thikr, in `src/shared/pray/`: `names.ts` (prayer names in English and Arabic, the `Prayer` type) and `line.ts` (the prayer line, countdown, Arabic digits). Neither feature imports the other's folder.
+Shared with thikr, in `plugin/src/shared/pray/`: `names.ts` (prayer names in English and Arabic, the `Prayer` type) and `line.ts` (the prayer line, countdown, Arabic digits). Neither feature imports the other's folder.
 
 The desktop athan uses the same shared card and open size as the athkar band. Only one card shows at a time: the athan takes the band's place until closed or expired, then the band returns with the reading kept. The terminal reader and minaret are unchanged.
 
@@ -142,7 +142,7 @@ Terminal checklist (each reply opens with its title, tables render):
 
 ## Last prayer signal for athkar
 
-Alongside `salahWindow`, salah publishes `salahLast: { pray: Fard; at: number } | null` through `$.state`, declared in `types/index.d.ts`. Its regular tick writes only when the value changes. It names the latest obligatory prayer at or before now **today in the configured place's timezone**, excluding sunrise and yesterday's Isha. Before Fajr or with no place, the atom is null. Tracking runs whenever a place is saved, independently of `salahShow` and `salahAthan`. With `/salah show off`, the ticker stays at 30 seconds and only `salahLast` keeps publishing: no prayer line, countdown window signal or new athan minaret/card. Athkar reads it to replace its one reading slot when the prayer time changes and offer after-salah from `at + IN_MS`, with no offer expiry. The desktop start action writes `salahAfterSalahStart: { pray: Fard; at: number } | null`, also declared in `types/index.d.ts`. It closes both card and minaret before writing; athkar accepts only the current prayer's identity and opens that reading immediately. Salah never imports athkar. The real button is absent with athkar off; the demo always shows it but uses transient signals only. Demos publish neither real prayer signal.
+Alongside `salahWindow`, salah publishes `salahLast: { pray: Fard; at: number } | null` through `$.state`, declared in `plugin/types/index.d.ts`. Its regular tick writes only when the value changes. It names the latest obligatory prayer at or before now **today in the configured place's timezone**, excluding sunrise and yesterday's Isha. Before Fajr or with no place, the atom is null. Tracking runs whenever a place is saved, independently of `salahShow` and `salahAthan`. With `/salah show off`, the ticker stays at 30 seconds and only `salahLast` keeps publishing: no prayer line, countdown window signal or new athan minaret/card. Athkar reads it to replace its one reading slot when the prayer time changes and offer after-salah from `at + IN_MS`, with no offer expiry. The desktop start action writes `salahAfterSalahStart: { pray: Fard; at: number } | null`, also declared in `plugin/types/index.d.ts`. It closes both card and minaret before writing; athkar accepts only the current prayer's identity and opens that reading immediately. Salah never imports athkar. The real button is absent with athkar off; the demo always shows it but uses transient signals only. Demos publish neither real prayer signal.
 
 The after-salah flow is specified in [athkar spec](../athkar/athkar.md#athkar-after-salah).
 
@@ -152,7 +152,7 @@ Prayer bounds reuse a pure daily calculation cache, refreshed on the first read 
 
 ## Muslim pane
 
-The [Muslim pane](../muslim-pane/muslim-pane.md) shows this feature on its own card. This feature connects what that card shows (and what its buttons ask of it) through `src/shared/panel/signal.ts`; see the pane spec for the table.
+The [Muslim pane](../muslim-pane/muslim-pane.md) shows this feature on its own card. This feature connects what that card shows (and what its buttons ask of it) through `plugin/src/shared/panel/signal.ts`; see the pane spec for the table.
 
 
 ### Muslim pane settings connector

@@ -3,9 +3,13 @@
   "version": "0.2.0",
   "description": "A Claude Code mod for Muslim developers.",
   "author": {
-    "name": "Abdelrahman Zied"
+    "name": "Abdelrahman Abozied",
+    "email": "me@abdelrahman.ai",
+    "url": "https://abdelrahman.ai"
   },
   "repository": "https://github.com/abdelrahmanzied/claude-muslim",
+  "homepage": "https://github.com/abdelrahmanzied/claude-muslim",
+  "supportUrl": "https://github.com/abdelrahmanzied/claude-muslim/issues",
   "license": "MIT",
   "keywords": [
     "muslim",

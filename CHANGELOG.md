@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- The installed plugin now lives in `plugin/` (manifest, `hooks/`, `src/`, `types/`, `tests/`, README, LICENSE). Add the marketplace with `--sparse .claude-plugin plugin` so only `plugin/` is downloaded and installed, without `docs/`, `scripts/` and the dev-only root files (tests ship inside `plugin/`). No behaviour change. The README is split into a short root README, `plugin/README.md` (features and commands) and `CONTRIBUTING.md`. The author name is now Abdelrahman Abozied, with contact and homepage links in the manifests.
+
 - Docs: the Quran design keeps only what is Quran's own and points to the Muslim pane design for the rest; athkar and pane docs note the after-salah wait, the shared titles and the athkar title menu. CLAUDE.md now requires every shared design-system change to update `DESIGN.md` or the desktop pane design in the same commit.
 
 - Athkar: after-salah no longer cuts off a morning or evening reading you are counting; it waits until that reading is done or closed. The athan card's start button still opens it at once.

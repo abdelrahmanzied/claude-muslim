@@ -4,7 +4,7 @@ A docked pane titled «☾ Muslim» (the crescent at the start) on Claude Deskto
 
 ## Command
 
-- `/muslim pane` opens the pane (desktop). In the terminal it replies with the daily cards and settings as plain text, Arabic through `src/shared/arabic`.
+- `/muslim pane` opens the pane (desktop). In the terminal it replies with the daily cards and settings as plain text, Arabic through `plugin/src/shared/arabic`.
 
 The desktop drawing uses transparent outlined secondary actions, a text-only «ابدأ»/«أكمل» action, a neutral underline for the selected settings tab and text-color hover overlays; the design doc defines both palettes. Geometry, settings behavior and the terminal fallback are unchanged.
 
@@ -28,23 +28,23 @@ Wheel and trackpad scrolling belongs to the pane body. When the cards fit, or th
 
 ## How the pane gets its data and performs actions
 
-The pane never imports another feature. `src/shared/panel/signal.ts` holds transient module values (no saved state, no `$.state`): each feature connects, from its own hooks, a reader for what the pane shows and a starter for what the pane may ask of it, and the pane calls them.
+The pane never imports another feature. `plugin/src/shared/panel/signal.ts` holds transient module values (no saved state, no `$.state`): each feature connects, from its own hooks, a reader for what the pane shows and a starter for what the pane may ask of it, and the pane calls them.
 
 | Card | Data | Action |
 | --- | --- | --- |
-| Prayer | salah connects `panelSalah(options, now)` (pure, `src/features/salah/panel.ts`: today's times for the saved place, method and adjustments, and the next pray) when it installs | the Athan row: `$.config.set({ key: 'muslim.salahAthan' })` by the pane |
-| Quran | Quran connects a reader of the selected reciter, surah, quarter, elapsed, total and progress from the player's model, on each footer or Muslim-pane draw and before each Muslim-pane input | `quran-toggle`, `quran-prev`, `quran-next`, `quran-repeat-surah`, `quran-repeat-segment` use the player's own handlers; `quran-reciter`, `quran-surah`, `quran-segment` carry a value the owner validates and apply through the same pick `/quran` uses. Quran also connects a reader of the list options (`readQuranOptions(list, query)`: value, label, number, selected), so the pane never imports the Quran feature. The open list (which, query, highlight, scroll, drag) lives in `$.state` (`PluginState['muslim'].panePicker`); the shared pure list logic is `src/shared/picker/` |
+| Prayer | salah connects `panelSalah(options, now)` (pure, `plugin/src/features/salah/panel.ts`: today's times for the saved place, method and adjustments, and the next pray) when it installs | the Athan row: `$.config.set({ key: 'muslim.salahAthan' })` by the pane |
+| Quran | Quran connects a reader of the selected reciter, surah, quarter, elapsed, total and progress from the player's model, on each footer or Muslim-pane draw and before each Muslim-pane input | `quran-toggle`, `quran-prev`, `quran-next`, `quran-repeat-surah`, `quran-repeat-segment` use the player's own handlers; `quran-reciter`, `quran-surah`, `quran-segment` carry a value the owner validates and apply through the same pick `/quran` uses. Quran also connects a reader of the list options (`readQuranOptions(list, query)`: value, label, number, selected), so the pane never imports the Quran feature. The open list (which, query, highlight, scroll, drag) lives in `$.state` (`PluginState['muslim'].panePicker`); the shared pure list logic is `plugin/src/shared/picker/` |
 | Athkar | athkar connects on band draws and Muslim-pane render/input, only while on; `PanelAthkar` carries the shown `set` (`morning`, `evening`, `after-salah`), title, fraction inputs, progress, done and `canUndo` | `athkar-set` carries a public set name validated by athkar; `athkar-reset` and `athkar-undo` use the shown set. `athkar-open` unhides, opens and lights that set; `athkar-finish` fills its counts through the shared finish operation without opening or unhiding the band. The pane imports only the signal bus |
 
 A reload clears the connections; each feature connects again on its next draw (the module asks for a redraw at start). The Muslim render and input hooks continue the hook chain first, so Quran and athkar can connect without a footer or band draw and refresh its closures with the current input context. Quran navigation happens before queued catalog/recording work; initialization skips a redundant pane-open call. An unplaced/refused open shows the existing short unavailable toast. Other presses whose feature is not connected show a short toast.
 
 While the pane is open a clock redraws it every second while the Quran plays and once a minute otherwise (the countdown); the clock stops when the pane closes.
 
-The Client uses its current region size on render and pointer input; the API already redraws it on resize. It has no size polling timer or size messages. The pane's `ui.scroll` hook consumes person-origin Desktop requests whose clamped offset equals the last rendered offset, without `next` or invalidation (the API's way to leave a window undrawn). Real movement is passed through. `src/shared/scroll/` holds the pure decision (`skipPaneScroll`); unit and engine tests cover both Quran rows, wheel directions, missing pointer coordinates, overflow, edges, and flickering Client row measurements.
+The Client uses its current region size on render and pointer input; the API already redraws it on resize. It has no size polling timer or size messages. The pane's `ui.scroll` hook consumes person-origin Desktop requests whose clamped offset equals the last rendered offset, without `next` or invalidation (the API's way to leave a window undrawn). Real movement is passed through. `plugin/src/shared/scroll/` holds the pure decision (`skipPaneScroll`); unit and engine tests cover both Quran rows, wheel directions, missing pointer coordinates, overflow, edges, and flickering Client row measurements.
 
 ## Notes
 
-- Religious text is authored data and never generated: the athkar title comes from the athkar data (tashkeel follows the `tashkeel` setting), prayer names from `src/shared/pray/names.ts`. The confirmation «أتممتُها» is Arabic UI chrome, not religious text. The Athan row reads «الأذان» (Arabic UI chrome). The UI chrome («ابدأ»، «أكمل»، «إعادة»، the countdown `بعد ١ س ١٢ د`) is UI text.
+- Religious text is authored data and never generated: the athkar title comes from the athkar data (tashkeel follows the `tashkeel` setting), prayer names from `plugin/src/shared/pray/names.ts`. The confirmation «أتممتُها» is Arabic UI chrome, not religious text. The Athan row reads «الأذان» (Arabic UI chrome). The UI chrome («ابدأ»، «أكمل»، «إعادة»، the countdown `بعد ١ س ١٢ د`) is UI text.
 - Prayer times are calculated locally, no network.
 
 Desktop owns tab grouping and focus. This build exposes no group/placement argument or unconditional activation method. The installed Desktop renders the session's mod panes in one dock and permits a focus request from another pane of the same plugin. Engine tests verify first/repeated opens, coarse input, missing catalog/footer, pending preparation and unplaced results; native activation/paint still needs a live Desktop check.
@@ -63,7 +63,7 @@ The open card, selected tab, face and page live in session state `muslim.paneSet
 | الصلاة | `salahAthan` | Switch; the same value as the daily Athan row. `/salah athan` |
 | الصلاة | `salahPlace` | City row opens Salah's existing question, city resolution, config save and review flow. `/salah city` |
 | الصلاة | `salahMethod` | All 20 manifest options, auto first. `/salah method` |
-| الصلاة | `salahAdjust` | Six signed whole-minute steppers, including sunrise. Uses the shared `readAdjust` / `writeAdjust` format in `src/config.ts`. `/salah adjust` |
+| الصلاة | `salahAdjust` | Six signed whole-minute steppers, including sunrise. Uses the shared `readAdjust` / `writeAdjust` format in `plugin/src/config.ts`. `/salah adjust` |
 | الأذكار | `athkar` | Reader switch. `/athkar on` or `off` |
 | الأذكار | `athkarStyle` | Sky / Frame pills (no preview box). `/athkar style` |
 | الذكر | `thikr` | Switch. `/thikr on` or `off` |
@@ -81,9 +81,9 @@ Both `/muslim pane` and a terminal Pane append a settings section grouped in the
 
 ## Demo
 
-`/muslim pane demo` (desktop) plays a 10-second tour of the pane; on a terminal it replies with one line that the pane demo is desktop only. `/muslim demo` ends with the same tour as its fourth step `pane` (after `salah`; skipped on a terminal), connected through `src/shared/demo/signal.ts` and reporting its end after the cards fold back. The scenes and timing are pure (`src/features/muslim-pane/demo.ts`); the small runner and its module-local state live in `install.tsx` (marked `DEMO` blocks).
+`/muslim pane demo` (desktop) plays a 10-second tour of the pane; on a terminal it replies with one line that the pane demo is desktop only. `/muslim demo` ends with the same tour as its fourth step `pane` (after `salah`; skipped on a terminal), connected through `plugin/src/shared/demo/signal.ts` and reporting its end after the cards fold back. The scenes and timing are pure (`plugin/src/features/muslim-pane/demo.ts`); the small runner and its module-local state live in `install.tsx` (marked `DEMO` blocks).
 
 - The pane opens (if it was closed) with every card folded, then unfolds prayer (0.6 s), Quran (2.0 s) and athkar (3.6 s); settings stays folded. The athkar fill to done («أتممتَ وردك ✓») by 7.4 s, then athkar, Quran and prayer fold back (8.2, 8.8, 9.4 s). At 10 s the pane is closed again if it was closed before, otherwise it draws its real view.
 - Fixed feeds, never the real ones: prayer is Fajr at 05:00 (as `/salah demo`) with a countdown from 48 minutes running down; Quran looks playing («يتلى الآن», the avatar talking through the Quran feature's `avatarSvg`, time and progress advancing) with no audio, catalog or network; athkar is the morning set with its authored title.
 - While it plays, pointer and keys do nothing. The demo only drives drawing: it never writes settings, `$.store`, `paneFolds`, `paneAthkarMenu` or any other state, and adds no `$.state` value. Closing the pane ends it (and lets `/muslim demo` go on). A repeat request restarts it.
-- `tests/muslim-pane/size.test.ts` checks every demo frame against the Client tree limit.
+- `plugin/tests/muslim-pane/size.test.ts` checks every demo frame against the Client tree limit.

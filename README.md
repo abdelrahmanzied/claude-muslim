@@ -1,44 +1,27 @@
 # claude-muslim
 
-A Claude Code mod for Muslim developers. While Claude works, its working line carries a short thikr, in Claude's own font and colors, in the terminal and the desktop app.
+A Claude Code mod for Muslim developers. While Claude works, its working line carries a short thikr, in Claude's own font and colors, in the terminal and the desktop app. It also brings morning, evening and after-salah athkar, prayer times with an athan moment, a Quran recitation player and a Muslim pane.
 
-## Features
-
-### Thikr line (`/thikr`)
-
-A thikr phrase joins Claude's working line (the spinner). Claude's step, timer and hints stay as they are.
-
-| Moment | Phrases |
-| --- | --- |
-| Starting a request | بسم الله · توكلت على الله · رب اشرح لي صدري ويسر لي أمري · رب يسر ولا تعسر |
-| Thinking and tools | سبحان الله · الحمد لله · لا إله إلا الله · الله أكبر · … · اللهم صل على محمد |
-| Writing the answer | رب زدني علما · اللهم علمنا ما ينفعنا |
-| Long waits (compacting, subagents, long commands) | لا إله إلا أنت سبحانك إني كنت من الظالمين · … |
-| End of a turn | تَمَّ بِحَمْدِ اللَّهِ |
-| Usage limit reached | حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ |
-
-**Salawat mode:** `/thikr mode salawat` shows one salawat on the Prophet ﷺ for each whole request, a different one each request.
-
-### Morning and evening athkar (`/athkar`)
-
-A reader above the prompt for the morning athkar (05:00–17:00) and the evening athkar (17:00–05:00), from Hisn al-Muslim. Click, Space or Enter to count; right click or Backspace to take one back; ← → to move. It moves on by itself after each thikr, and your reading is saved for the day. On desktop it sits on a sky that follows the time of day. Details: [docs/features/athkar/athkar.md](docs/features/athkar/athkar.md).
-
-### Prayer times (`/salah`)
-
-The next prayer under the prompt (`☾ العصر ١٥:٥٩`) all day, or only the minutes before it (20 by default), with a live mm:ss countdown (`☾ العصر ١٩:٤٢`) and, when it comes in, a small minaret that rises above the prompt for about 3 seconds, then folds to one line with a × (on the desktop app, a photo card that folds to a slim row after a minute); it closes by itself after 15 minutes, and the footer shows `حان وقت صلاة …` (no toast, no OS notification). Calculated on your machine; on first use the mod offers the city of your time zone, or any city you type in any language, then shows today's times so you can match them to your mosque. While Claude works inside that window, the thikr turn opens with `حَيَّ عَلَى الصَّلَاةِ · العصر بعد ١٠ د`. Details: [docs/features/salah/salah.md](docs/features/salah/salah.md).
-
-### Quran recitation (`/quran`)
-
-A desktop pane player with searchable Hafs recordings, available surahs and quarters for large recordings. Playback is explicit, with stop, previous/next and mutually exclusive surah or quarter repeat. The footer button toggles the pane; your recording choice is remembered. Details: [docs/features/quran/quran.md](docs/features/quran/quran.md).
+Every feature and command is in [plugin/README.md](plugin/README.md). To work on the mod, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Install
 
-Pick whichever fits where you are. All three install the same mod, at the user scope, so it runs in every project, in the terminal and in the Claude desktop app.
+Only the `plugin/` folder is installed; `--sparse` also keeps the download to that folder. All of these install the same mod, at the user scope, so it runs in every project, in the terminal and in the Claude desktop app.
+
+**Inside a Claude Code session in the terminal:**
+
+```
+/plugin marketplace add abdelrahmanzied/claude-muslim --sparse .claude-plugin plugin
+```
+
+```
+/plugin install muslim@claude-muslim
+```
 
 **From your shell** (outside Claude):
 
 ```bash
-claude plugin marketplace add abdelrahmanzied/claude-muslim
+claude plugin marketplace add abdelrahmanzied/claude-muslim --sparse .claude-plugin plugin
 ```
 
 ```bash
@@ -47,72 +30,18 @@ claude plugin install muslim@claude-muslim
 
 Then start Claude Code, or run `/reload-plugins` in a session that is already open.
 
-**Inside a Claude Code session in the terminal:**
-
-```
-/plugin install muslim --marketplace abdelrahmanzied/claude-muslim
-```
-
-Answer `y` to add the marketplace, then pick the user scope.
-
 **Inside any session, desktop app or terminal:** paste this prompt to Claude. It installs the mod, or updates it if it is already installed.
 
 ```text
 Set up the Claude Code plugin "muslim" for all my sessions (user scope):
-1. Run `claude plugin marketplace list`. If `claude-muslim` is not listed, run `claude plugin marketplace add abdelrahmanzied/claude-muslim`; otherwise run `claude plugin marketplace update claude-muslim`.
+1. Run `claude plugin marketplace list`. If `claude-muslim` is not listed, run `claude plugin marketplace add abdelrahmanzied/claude-muslim --sparse .claude-plugin plugin`; otherwise run `claude plugin marketplace update claude-muslim`.
 2. Run `claude plugin list`. If `muslim@claude-muslim` is not installed, run `claude plugin install muslim@claude-muslim --scope user`; otherwise run `claude plugin update muslim@claude-muslim`.
 3. Show me what each step printed, then tell me to run /reload-plugins.
 ```
 
 Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows the installed version and your settings.
 
-## Use
-
-| Command | What it does |
-| --- | --- |
-| `/thikr` | Show the current settings |
-| `/thikr help` | Table of every `/thikr` command |
-| `/thikr on` · `off` | Turn the thikr line on or off |
-| `/thikr speed auto` | Each phrase stays for its reading time: 1 s + 0.5 s per word (default) |
-| `/thikr speed <1-60>` | Every phrase stays the same number of seconds |
-| `/thikr end on` · `off` | تَمَّ بِحَمْدِ اللَّهِ at the end of a turn |
-| `/thikr mode all` · `salawat` | Every group in turn, or one salawat per request |
-| `/thikr demo` | Play every moment by itself in a real 30 s turn (it uses tokens and leaves a message in the transcript): a phrase every 1.5 s, then the end-of-turn word and the usage-limit line for 3 s; no setting or saved state changes |
-| `/athkar` | Show today's athkar status and help, and show the athkar again if hidden |
-| `/athkar help` | Table of every `/athkar` command |
-| `/athkar on` · `off` | Turn the athkar on or off |
-| `/athkar morning reset` · `evening reset` | Read that period again from the start |
-| `/athkar style sky` · `frame` | The look on desktop: a sky that follows the time of day (default), or plain. The terminal always shows the frame |
-| `/athkar demo` · `demo sky` · `demo frame` | Play the looks in motion, for videos or to preview them (sky 33.2 s on desktop; frame 24.2 s on either surface); nothing is saved |
-| `/muslim color` · `color orange` · `green` · `yellow` · `blue` | Show or change the main color of the whole mod (default: Claude orange) |
-| `/salah` | Place, method and mode, then today's prayer times |
-| `/salah help` | Table of every `/salah` command |
-| `/salah city` · `city <name or lat, lng>` | Pick your city by question, or by name in any language |
-| `/salah adjust` | Match today's times to your mosque, a minute at a time |
-| `/salah method <name>` | `auto` (your country's own) or a named method |
-| `/salah show always` · `<minutes>` · `off` | Show the next pray all day, only that many minutes before it (e.g. `show 20`), or hide it |
-| `/salah athan on` · `off` | `حان وقت صلاة …` when a prayer comes in |
-| `/salah demo` | Preview Fajr at 05:00 without a city: desktop 5 s open, 3 s folded; terminal 3.01 s rise, 3 s folded; real athan state stays untouched, nothing is saved |
-| `/quran` | Open the Muslim pane at the Quran player (desktop); on a terminal, show the status |
-| `/quran help` | Table of every `/quran` command |
-| `/quran play <surah>` | Play an available surah by number or Arabic name |
-| `/quran stop` | Stop playback or pending preparation |
-| `/quran next` · `/quran prev` | Adjacent quarter when split, otherwise the next or previous available surah |
-| `/quran repeat` · `/quran repeat segment` | Toggle surah or current-quarter repeat; mutually exclusive |
-| `/quran retry` | Refresh recording size and timing metadata |
-| `/quran reciter` · `/quran reciter <number or name>` | List recordings or remember a choice |
-| `/muslim` | Version, each feature's main state and the shared settings; a hint points to help |
-| `/muslim tashkeel on` · `off` | Show or hide Arabic diacritics on desktop (the terminal never shows them) |
-| `/muslim terminal-arabic` | Choose how Arabic shows in this terminal |
-| `/muslim help` · `help <feature>` | Command tables of every feature, or one (`thikr`, `athkar`, `salah`, `quran`) |
-| `/muslim pane demo` | Desktop: a 10 s tour of the Muslim pane (cards unfold, the Quran card plays without sound, athkar fill to done, then everything folds back and the pane returns to how it was); nothing is saved; a terminal says it is desktop only |
-| `/muslim demo` | Play the thikr, athkar, salah and Muslim pane (desktop) demos in order: thikr in a real turn (about 30 s; it uses tokens and leaves a message in the transcript), its 3 s usage-limit hold, athkar (desktop sky 33.2 s; terminal frame 24.2 s), then the salah athan moment (`/salah demo`), then the Muslim pane tour on desktop; 0.1 s between demos, no setting or saved state changes; no city needed; another request while playing says so |
-
-Shared and feature settings are also in `/config`; Quran remembers its recording in the local store to avoid reloading playback. The shared `color` setting changes existing main-color accents across athkar, salah, Quran, thikr's usage-limit line and the terminal Arabic survey label. Orange text follows Claude's theme; other choices use light/dark shades.
-
 ## Update
-
-**From your shell:**
 
 ```bash
 claude plugin marketplace update claude-muslim
@@ -122,175 +51,12 @@ claude plugin marketplace update claude-muslim
 claude plugin update muslim@claude-muslim
 ```
 
-Then restart Claude Code, or run `/reload-plugins` in an open session.
-
-**Inside any session, desktop app or terminal:** paste the same prompt from [Install](#install). It updates the mod when it is already installed.
-
-`/muslim` shows the version you are running and your settings; `CHANGELOG.md` lists what changed.
+Then restart Claude Code, or run `/reload-plugins` in an open session. Pasting the prompt above does the same. `/muslim` shows the version you are running; [CHANGELOG.md](CHANGELOG.md) lists what changed.
 
 ## Uninstall
 
 ```bash
 claude plugin uninstall muslim@claude-muslim
-```
-
-## Known issues
-
-- Some terminals don't join Arabic letters or show them right to left. The desktop app and most modern terminals do.
-
-## Develop and release
-
-### Run your copy
-
-A dev copy replaces the installed `muslim@claude-muslim` in that session only. It can be any of these:
-
-- `--plugin-dir`
-- `CLAUDE_CODE_PLUGIN_DIRS`
-- a session's `~/.claude/dev-mods/<session-id>/muslim` link
-
-The debug log then says `Plugin "muslim" from --plugin-dir overrides installed version`, and only `muslim@inline` loads. There is no conflict and no double hooks. Every other session keeps running the installed copy.
-
-In a terminal, from the worktree:
-
-```bash
-claude --plugin-dir .
-```
-
-In the desktop app, link the worktree into the session's dev-mods folder:
-
-```bash
-ln -s <worktree> ~/.claude/dev-mods/<session-id>/muslim
-```
-
-Or ask Claude in that session to load `/plugin-authoring` and link it. Edits load after the turn ends, or on `/reload-plugins`.
-
-Tested on Claude Code 2.1.296.
-
-### Check
-
-Install the dev dependency (TypeScript) once:
-
-```bash
-npm install
-```
-
-Then validate, test and type-check in one go:
-
-```bash
-npm run check
-```
-
-`.claude-plugin/types/` is written by Claude Code when it loads the mod. `tsc` needs it, so load the mod once first.
-
-The pre-push hook runs the same check. Enable it once per clone:
-
-```bash
-git config core.hooksPath .githooks
-```
-
-### Work on several features at once
-
-Use one worktree and one session per feature. Sessions don't load each other's code.
-
-- The link belongs to that session ID. It survives restarting or resuming that session. A new session needs a new link.
-- Old `dev-mods/<id>` folders stay behind. You can delete them.
-- The installed copy is at user scope, so it is active in every session with no dev copy. Usually you don't need to disable it, because the dev copy already overrides it.
-- To disable it for one folder only, run this from that folder:
-
-```bash
-claude plugin disable muslim@claude-muslim --scope local
-```
-
-Disabling it at user scope affects all sessions.
-
-What dev sessions share:
-
-- Options. They live in `~/.claude/settings.json` under `pluginConfigs["muslim@inline"]`. All dev copies share them. The installed copy has its own entry.
-- `$.store`, such as the athkar daily progress. It is kept across sessions, so it is likely shared by all copies named `muslim`.
-
-Don't put `CLAUDE_CODE_PLUGIN_DIRS` in the `env` block of `~/.claude/settings.json` for this. It applies to every session, so all sessions would run that one worktree.
-
-### Try it as a user
-
-Open a session with no dev link, for example in the main worktree. It runs the installed copy.
-
-```bash
-claude plugin list
-```
-
-That shows the installed version. `/muslim` shows the running version. Keep feature branches unversioned; use the debug log to confirm which copy loaded.
-
-Updates arrive only after the version changes on GitHub `main` and the user runs `claude plugin update`.
-
-### Test the installed form before pushing (untested)
-
-A folder marketplace is read live. Our `marketplace.json` source is `./`. But the name `claude-muslim` is already taken by the GitHub marketplace. Remove it first:
-
-```bash
-claude plugin marketplace remove claude-muslim
-```
-
-```bash
-claude plugin marketplace add <folder>
-```
-
-Afterwards, remove the folder one and add the GitHub one back.
-
-### Release
-
-Users get an update only when the version changes. For each release:
-
-1. Bump `version` in `.claude-plugin/plugin.json` and `VERSION` in `src/constants.ts`.
-2. Add an entry to `CHANGELOG.md`.
-3. Merge to `main`.
-4. Tag it:
-
-```bash
-claude plugin tag .
-```
-
-5. Push `main`. This is the step that makes it reach users.
-6. Check that it arrives:
-
-```bash
-claude plugin update muslim@claude-muslim
-```
-
-Then run `/reload-plugins`.
-
-### When the wrong code loads
-
-Nothing warns you about these:
-
-- No dev link in the session. The installed copy runs, with the same commands.
-- A link points at the wrong worktree. Check with `ls -l ~/.claude/dev-mods/*/muslim`.
-- A dev-mods folder holds a copied folder instead of a link. The code is stale.
-- `CLAUDE_CODE_PLUGIN_DIRS` is set in global settings.
-- An old marketplace has the same plugin name (`muslim-mod-dev`). Remove it:
-
-```bash
-claude plugin marketplace remove muslim-mod-dev
-```
-
-- You forgot the version bump. Users never get the update.
-
-## Project layout
-
-```
-.claude-plugin/
-  plugin.json        mod manifest (name: muslim)
-  marketplace.json   makes this repo installable as a marketplace
-hooks/
-  hooks.json         names the hooks module
-  register.tsx       entry point: wires every feature
-src/
-  constants.ts       shared constants
-  config.ts          typed userConfig options
-  features/<name>/   one folder per feature: install.tsx (hooks), phrases, pure logic
-types/
-  index.d.ts         $.state contract
-tests/               *.test.ts, run by `claude plugin test .`
-docs/features/       one folder per feature: spec, design, content
 ```
 
 ## License

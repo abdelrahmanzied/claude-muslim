@@ -3,9 +3,10 @@
   "private": true,
   "scripts": {
     "typecheck": "tsc -p .",
-    "test": "claude plugin test .",
-    "validate": "claude plugin validate .",
-    "check": "npm run validate && npm run test && npm run typecheck"
+    "test": "claude plugin test plugin",
+    "validate": "claude plugin validate . && claude plugin validate plugin",
+    "license": "node -e \"const f=require('fs');if(!f.readFileSync('LICENSE').equals(f.readFileSync('plugin/LICENSE'))){console.error('LICENSE and plugin/LICENSE differ');process.exit(1)}\"",
+    "check": "npm run license && npm run validate && npm run test && npm run typecheck"
   },
   "devDependencies": {
     "typescript": "^5.9.3"

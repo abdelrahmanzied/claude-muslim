@@ -6,7 +6,7 @@ The [recording catalog design](quran-catalog.md) covers developer audits and the
 
 ## Visual means
 
-The player is drawn only inside the Muslim pane's «القرآن الكريم» card (one Client, design and geometry in [muslim-pane-design.md](../muslim-pane/muslim-pane-design.md)); there is no standalone Quran pane. This feature builds the pure model (`pane.ts`, `card.ts`) and the segment label (`label.ts`) and passes them through the panel signal; the avatar (`avatarSvg`, 96 wide) lives in `src/shared/quran-avatar/`. Shared color helpers supply main accents.
+The player is drawn only inside the Muslim pane's «القرآن الكريم» card (one Client, design and geometry in [muslim-pane-design.md](../muslim-pane/muslim-pane-design.md)); there is no standalone Quran pane. This feature builds the pure model (`pane.ts`, `card.ts`) and the segment label (`label.ts`) and passes them through the panel signal; the avatar (`avatarSvg`, 96 wide) lives in `plugin/src/shared/quran-avatar/`. Shared color helpers supply main accents.
 
 **Visual means and why:** native controls cannot draw the selected design's typography, radius, fill and spacing consistently, so the picker fields, optional segment picker and player live in one picture. The terminal and other surfaces get the text status of `/quran` (see Surfaces).
 
@@ -14,7 +14,7 @@ The player is drawn only inside the Muslim pane's «القرآن الكريم» 
 
 The card's geometry, type scale, palette and picker sheet are the Muslim pane's ([muslim-pane-design.md](../muslim-pane/muslim-pane-design.md)). What stays Quran's own:
 
-- **Avatar as state.** The Quran avatar (`src/shared/quran-avatar/`) is the player's face and its state indicator. It moves only while playback is active (from the audio request, since the API has no audible-start event) and is still when stopped, preparing or failed, and under reduced motion. Negative animation delays follow the elapsed clock, so redraws keep the phase. It draws pixel runs as paths to stay inside the Client tree limit.
+- **Avatar as state.** The Quran avatar (`plugin/src/shared/quran-avatar/`) is the player's face and its state indicator. It moves only while playback is active (from the audio request, since the API has no audible-start event) and is still when stopped, preparing or failed, and under reduced motion. Negative animation delays follow the elapsed clock, so redraws keep the phase. It draws pixel runs as paths to stay inside the Client tree limit.
 - **Controls.** Play/stop is the only filled control, so the main action is unmistakable. Previous/next dim when nothing remains in that direction. Repeat is one state, `off` | `surah` | `segment`: pressing one turns the other off, pressing the lit one turns repeat off, so what is lit is exactly what will happen. The segment repeat is always drawn (no reflow) but dimmed and not hit on a whole surah; a stale segment repeat resets when a whole surah starts.
 - **Quiet hints, never toasts.** «الوقت تقريبي» under the times, because the clock is approximate. Unavailable surahs and errors are dim text inside the card, with «إعادة المحاولة» on failure.
 - **Lists.** Reciter, surah and segment lists show everything with no pages. Search is Arabic-normalized substring (article letters kept); Arabic or Latin digits pick exact surah or reciter numbers. Segments are named by one formatter, `الربع ٥ - الآيات ١٥–٢٤`. The segment list appears only once a large recording has valid timing metadata.
@@ -22,7 +22,7 @@ The card's geometry, type scale, palette and picker sheet are the Muslim pane's 
 
 **No footer item.** The footer is one shared slot sized by Desktop and holds only `☾ Muslim` and salah's prayer line. Quran's `SessionMode` hook only reconnects the panel feeds and returns `next(e)` unchanged.
 
-**`/quran` per surface.** With no arguments: on Desktop it opens the Muslim pane (`$.ui.open({ id: 'muslim', title: '☾ Muslim', focus: true })`), unfolds the Quran card if the shared `paneFolds` state has it folded (Quran writes that one key and does not import the pane) and silently inspects the selected surah; the reply is «Muslim pane opened at القرآن الكريم (desktop only).». Anywhere else it replies with a text status: «القرآن الكريم» heading, reciter, surah, segment label if split, elapsed / total, playing or stopped, then `Playback runs in the Claude desktop app.`; Arabic goes through `src/shared/arabic`. `play`, `stop`, `next`, `prev`, `reciter`, `repeat`, `repeat segment` and `help` work on every surface.
+**`/quran` per surface.** With no arguments: on Desktop it opens the Muslim pane (`$.ui.open({ id: 'muslim', title: '☾ Muslim', focus: true })`), unfolds the Quran card if the shared `paneFolds` state has it folded (Quran writes that one key and does not import the pane) and silently inspects the selected surah; the reply is «Muslim pane opened at القرآن الكريم (desktop only).». Anywhere else it replies with a text status: «القرآن الكريم» heading, reciter, surah, segment label if split, elapsed / total, playing or stopped, then `Playback runs in the Claude desktop app.`; Arabic goes through `plugin/src/shared/arabic`. `play`, `stop`, `next`, `prev`, `reciter`, `repeat`, `repeat segment` and `help` work on every surface.
 
 **Why:** listening is an explicit activity with choices and controls; the Pane keeps those together without interrupting Claude's transcript. No AbovePrompt band or automatic opening at startup. Whole-track natural ends continue to the next available surah with the same recording, stopping when none remains. Split segments continue within the surah and then to the next available surah; previous/next skip unavailable surahs when crossing surah boundaries. Salah’s athan moment does not interrupt recitation.
 
@@ -49,7 +49,7 @@ Its text forms are: 1 → «سورة واحدة غير متاحة لهذا ال�
 | AbovePrompt | All surfaces | No Quran band |
 | Stopped | Muslim pane's Quran card | No redraw timer; per-clip watchdog ends when its play promise settles; play starts from beginning |
 
-Desktop is the supported v1 surface, a stated scope exception to the shared cross-platform playback goal. Terminal Arabic follows `src/shared/arabic` and the saved per-terminal mode; desktop and other surfaces keep source text as authored. Use simple Latin digits consistently for result numbering and time, as permitted by the feature spec. Audio plays only when the user starts it.
+Desktop is the supported v1 surface, a stated scope exception to the shared cross-platform playback goal. Terminal Arabic follows `plugin/src/shared/arabic` and the saved per-terminal mode; desktop and other surfaces keep source text as authored. Use simple Latin digits consistently for result numbering and time, as permitted by the feature spec. Audio plays only when the user starts it.
 
 ## Settings exception
 

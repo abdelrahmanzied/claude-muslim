@@ -16,11 +16,11 @@ The design principles for every drawn desktop pane in this mod (today the Muslim
 
 ## 3. Look
 
-- **Transparent**: no panel fill. It follows the app's light or dark scheme, and every color is a token (`--text`, `--muted`, `--line`, feature-specific surface/state tokens, `--accent`); the accent is the plugin-wide main color from `src/shared/color/`.
-- **Tajawal** throughout, embedded from `src/shared/font/`.
+- **Transparent**: no panel fill. It follows the app's light or dark scheme, and every color is a token (`--text`, `--muted`, `--line`, feature-specific surface/state tokens, `--accent`); the accent is the plugin-wide main color from `plugin/src/shared/color/`.
+- **Tajawal** throughout, embedded from `plugin/src/shared/font/`.
 - **Type scale:** 24px the plugin name «مسلم», 20px the big fact (next prayer), 16px card titles, 14px body and buttons, 12px meta, descriptions and the athkar row's compact buttons. Settings tab labels are 11px so the tabs fit at 240px.
 - **Tajawal sits high.** Text beside an icon or a switch gets `line-height:1; transform:translateY(.12em)` so icon, text and control share one center line. Check every icon + text row for this.
-- **Icons:** each feature has one standard icon (DESIGN.md §3 Icons, `src/shared/icon/`), 20px in the main color on its card header and 20px on its settings tab. Small row icons (bell, check ring) stay free.
+- **Icons:** each feature has one standard icon (DESIGN.md §3 Icons, `plugin/src/shared/icon/`), 20px in the main color on its card header and 20px on its settings tab. Small row icons (bell, check ring) stay free.
 
 ## 4. Cards
 
@@ -46,7 +46,7 @@ The design principles for every drawn desktop pane in this mod (today the Muslim
 
 ## 7. Terminal
 
-A pane is a desktop surface. The terminal gets a text body for the same data (DESIGN.md §1.6), through `src/shared/arabic` for any Arabic.
+A pane is a desktop surface. The terminal gets a text body for the same data (DESIGN.md §1.6), through `plugin/src/shared/arabic` for any Arabic.
 
 ## 8. Before shipping a pane change
 

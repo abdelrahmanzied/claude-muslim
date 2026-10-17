@@ -2,11 +2,11 @@
 
 The religious text shown by the athkar feature: 26 morning and evening athkar, 11 athkar after salah, and the fixed titles, closing greeting and done rows, each with its count and source. The code is the source of truth for what is displayed; this file must stay identical to it (see the rule in CLAUDE.md). Arabic is authored with tashkeel and is never generated or reworded. Hadith references are the ones listed on sunnah.com for each Hisn al-Muslim number.
 
-Sources in the code: `src/features/athkar/data.ts`, `src/features/athkar/after-salah.ts`, `src/features/athkar/logic.ts`, and the titles in `src/shared/athkar/titles.ts` (shared with the Muslim pane).
+Sources in the code: `plugin/src/features/athkar/data.ts`, `plugin/src/features/athkar/after-salah.ts`, `plugin/src/features/athkar/logic.ts`, and the titles in `plugin/src/shared/athkar/titles.ts` (shared with the Muslim pane).
 
 ## أذكار الصباح والمساء — Morning and evening athkar
 
-Hisn al-Muslim chapter 27 (`src/features/athkar/data.ts`, `ATHKAR`). 26 items.
+Hisn al-Muslim chapter 27 (`plugin/src/features/athkar/data.ts`, `ATHKAR`). 26 items.
 
 ### 1. 75
 
@@ -290,7 +290,7 @@ Hisn al-Muslim chapter 27 (`src/features/athkar/data.ts`, `ATHKAR`). 26 items.
 
 ## أذكار بعد الصلاة — Athkar after salah
 
-Hisn al-Muslim chapter 25 (`src/features/athkar/after-salah.ts`, `AFTER_SALAH`). 11 items. The order follows Sheikh Ibn Baz's fatwa, [binbaz.org.sa/fatwas/9879](https://binbaz.org.sa/fatwas/9879); the text stays from Hisn al-Muslim chapter 25. Ayat al-Kursi and the three Quls reuse the text of the morning and evening athkar above.
+Hisn al-Muslim chapter 25 (`plugin/src/features/athkar/after-salah.ts`, `AFTER_SALAH`). 11 items. The order follows Sheikh Ibn Baz's fatwa, [binbaz.org.sa/fatwas/9879](https://binbaz.org.sa/fatwas/9879); the text stays from Hisn al-Muslim chapter 25. Ayat al-Kursi and the three Quls reuse the text of the morning and evening athkar above.
 
 ### 1. 66-istighfar
 
@@ -391,7 +391,7 @@ Hisn al-Muslim chapter 25 (`src/features/athkar/after-salah.ts`, `AFTER_SALAH`).
 
 Other Arabic religious text shown by the athkar reader (UI labels are not listed).
 
-### Athkar titles (`ATHKAR_TITLE`, `src/shared/athkar/titles.ts`)
+### Athkar titles (`ATHKAR_TITLE`, `plugin/src/shared/athkar/titles.ts`)
 
 - afterSalah:
 
@@ -405,13 +405,13 @@ Other Arabic religious text shown by the athkar reader (UI labels are not listed
 
 > أَذْكَارُ الْمَسَاءِ
 
-### Closing greeting (`END`, `src/features/athkar/logic.ts`)
+### Closing greeting (`END`, `plugin/src/features/athkar/logic.ts`)
 
 A short du’a shown as a closing greeting to the reader after morning, evening and after-salah readings, not one of the athkar. No source citation is needed. The words are followed by one space and 🤲; terminal display strips tashkeel through the shared Arabic path and retains the emoji.
 
 > تَقَبَّلَ اللَّهُ 🤲
 
-### Done row (`END_NOTE`, `src/features/athkar/logic.ts`)
+### Done row (`END_NOTE`, `plugin/src/features/athkar/logic.ts`)
 
 - afterSalah:
 

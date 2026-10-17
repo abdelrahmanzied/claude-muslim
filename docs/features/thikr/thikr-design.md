@@ -28,13 +28,13 @@ Thikr is text only. This follows the shared text-only requirement.
 
 The shared `/muslim demo` connects a transient signal to this same feature-local starter through a demo-only setup hook. It passes no engine handle across files and writes no state. It tracks its main turn id so unrelated or subagent completions cannot end the demo hold, and signals the shared runner when that hold has ended, so athkar starts after it. Its prompt names the command that started it: `/thikr demo` or `/muslim demo`.
 
-`/thikr demo` uses the same surfaces and the same text-only means. Claude's Spinner draws only while Claude works, so the demo submits a fixed prompt that starts a real turn (it uses tokens and leaves a message in the transcript), in which Claude runs three timed `sleep` steps. The real Spinner, the terminal `TurnDuration` and the `AbovePrompt` usage-limit row play with the real Arabic and color code, just faster. It adds no drawing, animation or color of its own, writes no settings, store or saved state (its armed and playing state is module-local), and when no demo is armed its hooks pass through. Prompt, scenes and timing: `src/features/thikr/demo.ts`; runner: the marked `DEMO` blocks in `install.tsx`.
+`/thikr demo` uses the same surfaces and the same text-only means. Claude's Spinner draws only while Claude works, so the demo submits a fixed prompt that starts a real turn (it uses tokens and leaves a message in the transcript), in which Claude runs three timed `sleep` steps. The real Spinner, the terminal `TurnDuration` and the `AbovePrompt` usage-limit row play with the real Arabic and color code, just faster. It adds no drawing, animation or color of its own, writes no settings, store or saved state (its armed and playing state is module-local), and when no demo is armed its hooks pass through. Prompt, scenes and timing: `plugin/src/features/thikr/demo.ts`; runner: the marked `DEMO` blocks in `install.tsx`.
 
 ## Text
 
 - Terminal rendering and tashkeel behavior follow the shared [terminal Arabic guide](../../terminal/terminal-arabic.md). The shared [Arabic check](../../terminal/terminal-arabic.md#design) is terminal-only and hidden during surveys.
 
-- Phrases are authored with tashkeel in `src/features/thikr/phrases.ts`; the desktop-only [`/muslim tashkeel` setting](../../terminal/terminal-arabic.md#tashkeel) controls desktop display.
+- Phrases are authored with tashkeel in `plugin/src/features/thikr/phrases.ts`; the desktop-only [`/muslim tashkeel` setting](../../terminal/terminal-arabic.md#tashkeel) controls desktop display.
 - Every phrase fits one line at 80 columns next to Claude's own text.
 - Claude's text and ours are separate runs joined by ` · `, so each keeps its own direction.
 - Claude's own numbers (timer, tokens) are never converted.

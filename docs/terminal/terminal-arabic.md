@@ -1,6 +1,6 @@
 # Terminal Arabic
 
-This is the shared reference for Arabic shown by every feature on a terminal surface. Each feature routes its own Arabic text through `src/shared/arabic`; Claude's text and desktop rendering are left alone.
+This is the shared reference for Arabic shown by every feature on a terminal surface. Each feature routes its own Arabic text through `plugin/src/shared/arabic`; Claude's text and desktop rendering are left alone.
 
 ## Modes and defaults
 
@@ -68,11 +68,11 @@ There is one file per plugin install source. For example, `--plugin-dir` uses an
 
 To ask again for one terminal, remove its property from `arabicTerminals`. To reset every terminal, remove the `arabicTerminals` property (or the install source's store file). Then open Claude Code again in that terminal.
 
-Session state is declared in `types/index.d.ts`: `arabicSurveyManualTerminal` identifies the terminal whose survey was explicitly reopened, and `arabicTerminalMode` caches the current terminal's mode for thikr renders. Automatic survey visibility is reload-safe because an answer is not saved until a choice is made; after a module reload during the session, the missing terminal entry still makes the survey eligible. The old global `userConfig` field `arabicFix` was removed.
+Session state is declared in `plugin/types/index.d.ts`: `arabicSurveyManualTerminal` identifies the terminal whose survey was explicitly reopened, and `arabicTerminalMode` caches the current terminal's mode for thikr renders. Automatic survey visibility is reload-safe because an answer is not saved until a choice is made; after a module reload during the session, the missing terminal entry still makes the survey eligible. The old global `userConfig` field `arabicFix` was removed.
 
 ## Using the shared treatment in a feature
 
-At draw time, each feature should first check that `e.surface === 'terminal'`, read the environment variables above through `$.env.get`, resolve the ID with the pure `terminalIdFromEnv(env)` function, look up the saved mode in `arabicTerminals` or use `defaultArabicMode(termId)`, then pass its authored display text through `terminalArabic(surface, mode, text)` from `src/shared/arabic/terminal.ts`. `terminalArabic` itself returns the input unchanged for non-terminal surfaces. Keep any helper that reads `$` in the same source file as the hook, as required by `CLAUDE.md`; the pure mode, ID, and transform functions are shared.
+At draw time, each feature should first check that `e.surface === 'terminal'`, read the environment variables above through `$.env.get`, resolve the ID with the pure `terminalIdFromEnv(env)` function, look up the saved mode in `arabicTerminals` or use `defaultArabicMode(termId)`, then pass its authored display text through `terminalArabic(surface, mode, text)` from `plugin/src/shared/arabic/terminal.ts`. `terminalArabic` itself returns the input unchanged for non-terminal surfaces. Keep any helper that reads `$` in the same source file as the hook, as required by `CLAUDE.md`; the pure mode, ID, and transform functions are shared.
 
 ## Tashkeel
 
@@ -80,7 +80,7 @@ At draw time, each feature should first check that `e.surface === 'terminal'`, r
 
 ## Athkar in the terminal
 
-The athkar reader always draws the Frame look in the terminal. The Sky look is desktop only: `athkarStyle` applies to the desktop app, and `/athkar style` in a terminal answers that and changes nothing. The plugin-wide main color (`color`, `/muslim color`, default Claude orange) applies on both, from `src/shared/color/`. Its Arabic follows the shared treatment above, like every feature.
+The athkar reader always draws the Frame look in the terminal. The Sky look is desktop only: `athkarStyle` applies to the desktop app, and `/athkar style` in a terminal answers that and changes nothing. The plugin-wide main color (`color`, `/muslim color`, default Claude orange) applies on both, from `plugin/src/shared/color/`. Its Arabic follows the shared treatment above, like every feature.
 
 ## Decisions and limits
 
