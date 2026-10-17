@@ -1,0 +1,38 @@
+name: General feedback
+description: Tell us what you think.
+labels:
+  - feedback
+title: "[feedback] "
+body:
+  - type: textarea
+    id: feedback
+    attributes:
+      label: Your feedback
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: muslim version
+      description: Shown by `/muslim`.
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options:
+        - terminal
+        - desktop
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: true

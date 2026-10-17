@@ -1,0 +1,53 @@
+name: Content correction
+description: A mistake in the Quran, athkar, thikr or a translation.
+labels:
+  - content
+title: "[content] "
+body:
+  - type: textarea
+    id: where
+    attributes:
+      label: Where is it?
+      description: The feature and the item (for example athkar, morning, number 3).
+    validations:
+      required: true
+  - type: textarea
+    id: wrong
+    attributes:
+      label: What is wrong?
+      description: Quote the text as shown, and say what it should be.
+    validations:
+      required: true
+  - type: textarea
+    id: source
+    attributes:
+      label: Source
+      description: A book, page or link that shows the correct text.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: muslim version
+      description: Shown by `/muslim`.
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options:
+        - terminal
+        - desktop
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: true

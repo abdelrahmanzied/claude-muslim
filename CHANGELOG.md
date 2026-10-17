@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- GitHub issue forms in `.github/ISSUE_TEMPLATE/`: bug report, feature request, idea, content correction (Quran, athkar, thikr, translations) and general feedback, each asking for the muslim version, the surface and the OS; blank issues are off. They use the labels `bug`, `enhancement`, `idea`, `content` and `feedback`.
+
 - `/muslim autoupdate on | off` turns Claude Code's background update of the `claude-muslim` marketplace on or off; alone it shows the state, and `/muslim` has an Auto-update row. The first time muslim runs it turns auto-update on by itself (changing only `extraKnownMarketplaces["claude-muslim"].autoUpdate` in your user `settings.json`, never creating the entry and never writing a file that is not valid JSON), records that in the store and never does it again, so `off` stays off. Honors `CLAUDE_CONFIG_DIR`. Listed in `/muslim help`.
 
 - `/muslim update` updates muslim from inside a session: it runs `claude plugin update muslim@claude-muslim --json` (only this plugin, 2-minute limit), replies `muslim vX → vY. Reloading plugins.` with the changelog link, `muslim vX is the latest.`, or `Not updated: <reason>` with the shell command to run, and reloads plugins by itself after an update (a toast asks you to run `/reload-plugins` if that is refused). Needs `claude` on your PATH. Listed in `/muslim help`.

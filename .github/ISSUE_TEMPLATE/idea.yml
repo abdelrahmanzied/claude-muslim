@@ -1,0 +1,39 @@
+name: Idea
+description: A rough idea you want to share.
+labels:
+  - idea
+title: "[idea] "
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: Rough is fine.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: muslim version
+      description: Shown by `/muslim`.
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options:
+        - terminal
+        - desktop
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: true

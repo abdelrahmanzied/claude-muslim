@@ -15,6 +15,10 @@ Rules for the code, docs and tests are in [CLAUDE.md](CLAUDE.md) and [DESIGN.md]
 - Commits, PRs and issues use `me@abdelrahman.ai`.
 - Every change adds a note under `## Unreleased` in [CHANGELOG.md](CHANGELOG.md). Never bump the version in a branch; versions change only for a release on main, after confirming the number.
 
+## Issues
+
+Issues use the forms in `.github/ISSUE_TEMPLATE/`: bug report (`bug`), feature request (`enhancement`), idea (`idea`), content correction for Quran, athkar, thikr and translations (`content`) and general feedback (`feedback`). Blank issues are off. The labels `idea`, `content` and `feedback` must exist in the repository's labels.
+
 ## Run your copy
 
 A dev copy replaces the installed `muslim@claude-muslim` in that session only. It can be any of these:
