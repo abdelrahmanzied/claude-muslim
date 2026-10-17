@@ -44,6 +44,6 @@ Only `plugin/` is installed (`.claude-plugin/marketplace.json` has `source: "./p
 npm run check
 ```
 
-It runs a `LICENSE` / `plugin/LICENSE` equality check, `claude plugin validate .` and `claude plugin validate plugin`, `claude plugin test plugin` and `tsc -p .` (TypeScript is a dev dependency: `npm install` once). The pre-push hook runs it too; enable it once per clone with `git config core.hooksPath .githooks`. No CI: the API types `tsc` needs are written only when Claude Code loads the mod.
+It runs a `LICENSE` / `plugin/LICENSE` equality check, `claude plugin validate .` and `claude plugin validate plugin`, `claude plugin test plugin` and `tsc -p .` (TypeScript is a dev dependency: `npm install` once). The pre-push hook runs it too; enable it once per clone with `git config core.hooksPath .githooks`. CI (`.github/workflows/ci.yml`, job `check`) runs `npm run check` on every pull request and on pushes to `main`, with Claude Code pinned by `CLAUDE_CODE_VERSION`. The API types `tsc` needs come from the built-in `/plugin-authoring` skill's types file, which Claude Code writes with no login; raise the pin when the mod needs a newer Claude Code.
 
 API reference: `plugin/.claude-plugin/types/claude-code/index.d.ts` (written by Claude Code on load; grep for the event or noun).

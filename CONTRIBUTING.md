@@ -23,7 +23,7 @@ git config core.hooksPath .githooks
 npm run check
 ```
 
-The plugin is in `plugin/`; everything else is for development. `npm run check` needs `plugin/.claude-plugin/types/`, which Claude Code writes when it loads the mod, so load it once first.
+The plugin is in `plugin/`; everything else is for development. `npm run check` needs `plugin/.claude-plugin/types/`, which Claude Code writes when it loads the mod, so load it once first. CI runs the same `npm run check` on every pull request.
 
 ## Run your copy
 
