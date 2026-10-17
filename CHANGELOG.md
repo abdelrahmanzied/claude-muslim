@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `/muslim feedback [text]` starts a Claude turn that asks what kind it is (bug, feature request, idea, content correction or feedback), drafts the GitHub issue in the matching form's shape with the muslim version, surface and OS filled in, shows the whole draft and files it with `gh issue create` only after your explicit yes. Without `gh`, or when it is not signed in, it gives a link to the issue form with the fields filled in instead. Nothing is sent without the yes. Listed in `/muslim help`.
+
 - GitHub issue forms in `.github/ISSUE_TEMPLATE/`: bug report, feature request, idea, content correction (Quran, athkar, thikr, translations) and general feedback, each asking for the muslim version, the surface and the OS; blank issues are off. They use the labels `bug`, `enhancement`, `idea`, `content` and `feedback`.
 
 - `/muslim autoupdate on | off` turns Claude Code's background update of the `claude-muslim` marketplace on or off; alone it shows the state, and `/muslim` has an Auto-update row. The first time muslim runs it turns auto-update on by itself (changing only `extraKnownMarketplaces["claude-muslim"].autoUpdate` in your user `settings.json`, never creating the entry and never writing a file that is not valid JSON), records that in the store and never does it again, so `off` stays off. Honors `CLAUDE_CONFIG_DIR`. Listed in `/muslim help`.

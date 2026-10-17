@@ -41,6 +41,10 @@ Set up the Claude Code plugin "muslim" for all my sessions (user scope):
 
 Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows the installed version and your settings.
 
+## Feedback
+
+`/muslim feedback` helps you report a bug, ask for a feature, share an idea, correct the text of the Quran, athkar or thikr, or just send feedback. Claude drafts the GitHub issue, shows it to you and sends it only after you say yes.
+
 ## Update
 
 Inside a session, run `/muslim update`: it updates only muslim, tells you the new version and reloads plugins. Claude Code can also update muslim in the background: muslim turns that on for you the first time it runs, and `/muslim autoupdate off` turns it off for good. Or from a shell:

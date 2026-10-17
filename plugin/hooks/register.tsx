@@ -5,6 +5,7 @@ import type { EngineInterface, Register } from 'claude-code'
 import { readOptions } from '../src/config.ts'
 import { PLUGIN, VERSION } from '../src/constants.ts'
 import { AUTOUPDATE_USAGE, autoUpdateState, changedReply, noEntry, notChanged, parseSettings, settingsPath, shouldSeed, stateText, statusReply, unreadable, withAutoUpdate, type AutoUpdateState } from '../src/autoupdate.ts'
+import { FEEDBACK_SUBMIT_MS, feedbackPrompt } from '../src/feedback.ts'
 import { failedToRun, parseUpdate, updateReply, UPDATE_ARGV, UPDATE_TIMEOUT_MS, type UpdateResult } from '../src/update.ts'
 import { install as installAthkar } from '../src/features/athkar/install.tsx'
 import { muslimHelp } from '../src/help.ts'
@@ -100,6 +101,21 @@ async function seedAutoUpdate($: EngineInterface) {
     if (shouldSeed(parsed.data) && (await writeAutoUpdate($, true)) !== undefined) return
     await $.store.set('autoUpdateSeeded', true)
   } catch {}
+}
+
+// The host refuses a submit made while the command still runs, so the turn starts from a timer
+// just after the reply. A refused or dropped submit gets a toast, never a silent nothing.
+async function startFeedback($: EngineInterface, text: string) {
+  const prompt = feedbackPrompt({
+    version: VERSION,
+    surface: await $.session.surface(),
+    os: (await $.env.get('OS')) === 'Windows_NT' ? 'Windows' : undefined,
+    text,
+  })
+  const failed = () => $.ui.toast('Could not start the feedback. Run /muslim feedback again.')
+  $.clock.after(FEEDBACK_SUBMIT_MS, () => {
+    $.prompt.submit({ text: prompt }).then(result => result.drop === undefined || failed(), failed)
+  })
 }
 
 // A command cannot run another from its own hook, so the reload comes from a timer.
@@ -247,6 +263,10 @@ export const register: Register = (on, options) => {
       if (feature === '') return { text: statusReply(await readAutoUpdate($)) }
       const failed = await writeAutoUpdate($, feature === 'on')
       return { text: failed ?? changedReply(feature === 'on') }
+    }
+    if (word === 'feedback') {
+      await startFeedback($, e.args.trim().slice('feedback'.length))
+      return { text: 'Feedback: Claude will ask what kind it is and show you a draft. Nothing is sent until you say yes.' }
     }
     if (word === 'help') return { text: muslimHelp(feature) }
     if (word !== '') return next(e).catch(() => ({ text: muslimHelp() }))

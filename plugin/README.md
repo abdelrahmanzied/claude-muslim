@@ -119,6 +119,7 @@ A docked «☾ Muslim» pane on the desktop app that gathers today's prayers, th
 | `/muslim tashkeel on` · `off` | Show or hide Arabic diacritics on desktop (the terminal never shows them) |
 | `/muslim update` | Update muslim from GitHub (only this plugin) and reload plugins; says the new version, or that you have the latest |
 | `/muslim autoupdate` · `on` · `off` | Show or set Claude Code's background update of muslim; it turns on by itself the first time muslim runs, so `off` stays off |
+| `/muslim feedback` · `feedback <text>` | Report a bug or send a request, idea, content correction or feedback as a GitHub issue; Claude drafts it and sends it only after your yes |
 | `/muslim pane` | Open the Muslim pane on desktop; a plain text summary in the terminal |
 | `/muslim terminal-arabic` | Choose how Arabic shows in this terminal |
 | `/muslim help` · `help <feature>` | Command tables of every feature, or one (`thikr`, `athkar`, `salah`, `quran`) or one shared command (`color`, `tashkeel`, `terminal-arabic`) |

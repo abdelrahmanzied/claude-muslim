@@ -17,7 +17,7 @@ Rules for the code, docs and tests are in [CLAUDE.md](CLAUDE.md) and [DESIGN.md]
 
 ## Issues
 
-Issues use the forms in `.github/ISSUE_TEMPLATE/`: bug report (`bug`), feature request (`enhancement`), idea (`idea`), content correction for Quran, athkar, thikr and translations (`content`) and general feedback (`feedback`). Blank issues are off. The labels `idea`, `content` and `feedback` must exist in the repository's labels.
+Issues use the forms in `.github/ISSUE_TEMPLATE/`: bug report (`bug`), feature request (`enhancement`), idea (`idea`), content correction for Quran, athkar, thikr and translations (`content`) and general feedback (`feedback`). Blank issues are off. `/muslim feedback` files issues in the same shapes (its kinds, labels and field ids live in `plugin/src/feedback.ts`; change them together with the forms). The labels `idea`, `content` and `feedback` must exist in the repository's labels.
 
 ## Run your copy
 
