@@ -79,7 +79,7 @@ test('pane note names the surah without reader-duration text; root is transparen
   const segments = timedSegments(Array.from({ length: 286 }, (_, i) => ({ ayah: i + 1, start_time: i * 1000, end_time: (i + 1) * 1000 })), 2, AUDIO_LIMIT_BYTES * 2)
   const quarter = paneModel(fixtureCatalog, fixtureCatalog.reciters[0]!, 2, null, 0, 420, 1, 0, true, null, { segments, selectedSegment: 0, durationMs: 286000, loading: null })
   const svg = paneSvg(quarter, pickerInitial(quarter))
-  expect(svg).toContain('المقطع <bdi dir="ltr">١</bdi> من <bdi dir="ltr">٢٠</bdi> داخل سورة البقرة')
+  expect(svg).toContain('الربع <bdi dir="ltr">١</bdi>، الآيات <bdi dir="ltr">١–٢٥</bdi> داخل سورة البقرة')
   expect(svg).not.toContain('مدة المقطع حسب القارئ')
   expect(svg).not.toContain('داخل هذه السورة')
   expect(svg).toContain('<bdi dir="ltr">/quran</bdi>')
@@ -151,7 +151,9 @@ test('pane widths stay finite and in range when a closing or expanded pane repor
     expect(safeWidth(bad)).toBe(480)
     const bounded = paneModel(fixtureCatalog, fixtureCatalog.reciters[0]!, 18, null, 0, columnsWidth(bad), 1, 0, false, null)
     expect(Number.isFinite(bounded.width) && bounded.width >= 240 && bounded.width <= 1200).toBe(true)
-    expect(paneSvg(bounded, pickerInitial(bounded), null)).not.toMatch(/NaN|width="0"|undefined/)
+    // Cut the embedded font out by index: the test runtime's regex gives up on a long base64 run, which may hold "NaN".
+    const drawing = paneSvg(bounded, pickerInitial(bounded), null).split(';base64,').map((part, i) => i === 0 ? part : part.slice(part.search(/[^A-Za-z0-9+/=]/))).join(';asset')
+    expect(drawing).not.toMatch(/NaN|width="0"|undefined/)
   }
   expect(paneModel(fixtureCatalog, fixtureCatalog.reciters[0]!, 18, null, 0, NaN, 1, 0, false, null).width).toBe(240)
   expect(columnsWidth(5000)).toBe(1200)

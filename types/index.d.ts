@@ -48,6 +48,9 @@ export type QuranPlaying = { moshafKey: string; surah: number; startedAt: number
 export type PaneSettings = { open: boolean; category: 'prayer' | 'athkar' | 'thikr' | 'general'; face: 'main' | 'methods' | 'adjust' | 'city'; page: number }
 // A copy button that just copied: its command and the time (ms since the epoch) its «تم النسخ» confirmation ends.
 export type PaneCopied = { command: string; until: number }
+// The Muslim pane's open Quran picker: which list, the typed query, the highlighted row, the first visible row and a
+// scrollbar drag in progress (`cell` is the pane pixels one pointer row stood for at the press; null when unknown).
+export type PanePicker = { list: 'reciter' | 'surah' | 'segment'; query: string; highlight: number; scroll: number; drag: { y: number; scroll: number; cell: number | null } | null }
 export type PaneOptimistic = Partial<Record<'tashkeel' | 'thikr' | 'athkar' | 'salahAthan', boolean>>
 
 declare module 'claude-code' {
@@ -65,6 +68,8 @@ declare module 'claude-code' {
       paneOptimistic: PaneOptimistic
       // The copy button's transient confirmation; expires at `until`.
       paneCopied: PaneCopied | null
+      // The Quran card's open picker, or null.
+      panePicker: PanePicker | null
       // Which daily cards are folded to their title row.
       paneFolds: { prayer: boolean; quran: boolean; athkar: boolean } | null
 

@@ -19,18 +19,18 @@ const feeds = {
     next: { pray: 'asr' as const, at: NOW + 4_320_000, clock: '15:42' },
     isAthan: true,
   },
-  quran: { reciter: 'محمد صديق المنشاوي', surah: 'سورة البقرة', part: 'المقطع ٣ من ١٦', elapsed: '12:03', total: '41:20', progress: 0.29, isPlaying: true, canPrev: true, canNext: true },
+  quran: { reciter: 'محمد صديق المنشاوي', surah: 'سورة البقرة', part: 'الربع ٥، الآيات ١٥–٢٤ (١ من ٢)', segmented: true, status: 'يتلى الآن', isLive: true, elapsed: '12:03', total: '41:20', progress: 0.29, isPlaying: true, canPrev: true, canNext: true, repeat: 'off' as const, avatar: '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="90" viewBox="0 0 96 90"></svg>' },
   athkar: { title: 'أَذْكَارُ الْمَسَاءِ', done: 4, total: 12, progress: 0.33, isDone: false },
 }
 
 test('the picture draws the three cards at the fixed pane height', () => {
   const svg = paneSvg(paneModel(feeds, NOW, 360, 'orange'))
-  expect(svg).toContain(`height="${PANE_HEIGHT}"`)
+  expect(svg).toContain(`height="${PANE_HEIGHT + 16}"`)
   expect(svg).toContain('الصلاة القادمة')
   expect(svg).toContain('العصر')
   expect(svg).toContain('<div class="nx-in ar" dir="rtl">بعد ١ س ١٢ د</div>')
   expect(svg).toContain('Munich')
-  expect(svg).toContain('افتح المصحف');expect(svg).not.toContain('Open full player')
+  expect(svg).not.toContain('افتح المصحف')
   expect(svg).toContain('أَذْكَارُ الْمَسَاءِ')
   expect(svg.match(/class="pr done"/g)?.length).toBe(2)
   expect(svg.match(/class="pr next"/g)?.length).toBe(1)
@@ -93,8 +93,8 @@ test('the main color comes from the shared palette, in both themes', () => {
 })
 
 test('hover lights the hovered target only, and text is escaped', () => {
-  const hovered = paneSvg(paneModel(feeds, NOW, 360, 'orange'), 'quran-open')
-  expect(hovered).toContain('wide dbtn hot')
+  const hovered = paneSvg(paneModel(feeds, NOW, 360, 'orange'), 'quran-pick-reciter')
+  expect(hovered).toContain('hot')
   const bad = paneSvg(paneModel({ ...feeds, salah: { ...feeds.salah, city: '<b>&' } }, NOW, 360, 'orange'))
   expect(bad).toContain('&lt;b&gt;&amp;')
   expect(paneAlt(paneModel(feeds, NOW, 360, 'orange'))).toContain('سورة البقرة')
@@ -239,4 +239,50 @@ test('the heading shows the full avatar beside مسلم and /muslim at the left 
   expect(svg).toContain('<span>مُسلِم</span>')
   expect(svg).toContain('<div class="pane-command" dir="ltr"><bdi dir="ltr">/muslim</bdi></div>')
   expect(svg).toContain('<svg width="38.4" height="36" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 30" shape-rendering="crispEdges">')
+})
+
+const sheet = (list: 'reciter' | 'surah' | 'segment', count = 20) => {
+  const model = paneModel(feeds, NOW, 360, 'orange')
+  const rows = Array.from({ length: Math.min(8, count) }, (_, i) => ({ value: String(i), label: list === 'segment' ? `الربع ${i + 1}، الآيات ١–٧` : `سورة ${i + 1}`, number: String(i + 1), selected: i === 1 }))
+  model.picker = { list, query: '', highlight: 1, scroll: 0, count, rows, dragging: false }
+  return model
+}
+
+test('the Quran card is the player: title, start-from, reciter, times, five controls and a 96 wide avatar', () => {
+  const svg = paneSvg(paneModel(feeds, NOW, 360, 'orange'))
+  for (const text of ['يتلى الآن', 'سورة البقرة', 'ابدأ من', 'الربع <bdi dir="ltr">٥</bdi>، الآيات', 'محمد صديق المنشاوي', 'الوقت تقريبي', 'المقطع', 'السورة']) expect(svg).toContain(text)
+  for (const label of ['aria-label="اختيار السورة"', 'aria-label="اختيار القارئ"', 'aria-label="Previous"', 'aria-label="Next"', 'aria-label="تكرار المقطع"', 'aria-label="تكرار السورة"']) expect(svg).toContain(label)
+  expect(svg).toContain('width="96"')
+  expect(svg).toContain('.a-avatar{width:96px;height:90px')
+  expect(svg).not.toContain('افتح المصحف')
+})
+
+test('a whole recording hides the start-from line and disables segment repeat', () => {
+  const whole = paneSvg(paneModel({ ...feeds, quran: { ...feeds.quran, segmented: false, part: '' } }, NOW, 360, 'orange'))
+  expect(whole).not.toContain('ابدأ من')
+  expect(whole).toMatch(/aria-pressed="false" aria-disabled="true" aria-label="تكرار المقطع"/)
+  expect(whole).toContain(`height="${PANE_HEIGHT}"`)
+})
+
+test('no «·» ever stands beside Arabic digits in the card', () => {
+  const svg = paneSvg(paneModel(feeds, NOW, 360, 'orange'))
+  expect(svg).not.toMatch(/[٠-٩]\s*·|·\s*[٠-٩]/)
+})
+
+test('an open picker draws the sheet with head, search, rows, footer count and the hint', () => {
+  for (const [list, title, placeholder] of [['reciter', 'اختر القارئ', 'ابحث عن قارئ أو رقم'], ['surah', 'اختر السورة', 'ابحث عن سورة أو رقمها'], ['segment', 'ابدأ من', 'ابحث عن موضع أو آية']] as const) {
+    const svg = paneSvg(sheet(list))
+    expect(svg).toContain(title)
+    expect(svg).toContain('رجوع')
+    expect(svg).toContain(placeholder)
+    expect(svg).toContain('Use ↑ ↓ for scrolling')
+    expect(svg).toContain('٢ / ٢٠')
+    expect(svg).toContain(`height="${PANE_HEIGHT + 504 - 300}"`)
+  }
+  expect(paneSvg(sheet('segment'))).not.toMatch(/[٠-٩]\s*·|·\s*[٠-٩]/)
+})
+
+test('a short list has no scrollbar and a long one has', () => {
+  expect(paneSvg(sheet('reciter', 3))).not.toContain('class="sbar')
+  expect(paneSvg(sheet('reciter', 30))).toContain('class="sbar')
 })

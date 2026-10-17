@@ -7,11 +7,13 @@ import { TAJAWAL_FAMILY, tajawalFontFaceCss } from '../../shared/font/index.ts'
 import { accentHex } from '../../shared/color/index.ts'
 import { FEATURE_ICONS } from '../../shared/icon/index.ts'
 import {
-  ATHAN_H, ATHAN_TOP, BAR_TOP, CITY_H, CITY_TOP, CONTROLS_CY, FIELD_H, HEAD_H, HEAD_TOP, KBTN_W, KROW_H, KROW_TOP, KFINISH_W, KROW_GAP, NX_H, NX_TOP, OPEN_H, OPEN_TOP,
-  AVATAR_H, PAD, RECITER_TOP, TOP_H, TOP_Y, ROWS_TOP, ROW_H, SIDE, SURAH_TOP, TIMES_TOP, cardRects, type PaneAct,
+  ATHAN_H, ATHAN_TOP, CITY_H, CITY_TOP, CONTROL_SPECS, FOLDED_H, HEAD_H, HEAD_TOP, KBTN_W, KROW_H, KROW_TOP, KFINISH_W, KROW_GAP, NX_H, NX_TOP, Q_AVATAR_H, Q_AVATAR_W, Q_BAR_BASE, Q_CONTROLS_BASE, Q_CONTROLS_H, Q_HERO_H, Q_HERO_TOP,
+  Q_RECITER_BASE, Q_RECITER_H, Q_SEG_H, Q_SEG_LEFT, Q_SEG_TOP, Q_TIMES_BASE, Q_TIMES_H, Q_TITLE_H, Q_TITLE_TOP, SHEET_BACK_W, SHEET_BAR_LEFT, SHEET_BAR_W, SHEET_BORDER, SHEET_FOOT_H, SHEET_FOOT_TOP, SHEET_H, SHEET_HEAD_H, SHEET_HEAD_TOP,
+  SHEET_MIN_THUMB, SHEET_ROWS_H, SHEET_ROWS_LEFT, SHEET_ROWS_RIGHT, SHEET_ROWS_TOP, SHEET_ROW_H, SHEET_SEARCH_H, SHEET_SEARCH_TOP, AVATAR_H, PAD, TOP_H, TOP_Y, ROWS_TOP, ROW_H, SIDE, cardRects, controlScale, quranOffset, type PaneAct,
 } from './layout.ts'
 import { SETTINGS_TOP, SETTINGS_BODY_TOP, TABS_H, TAB_INSET, TAB_PAD, LIST_CHOICE_H, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, EXTRA_TOP, ADJUST_NOTE_TOP, categoryTabs, settingsBody, type SettingRow, type SettingsTarget } from './settings.ts'
-import type { PaneModel } from './model.ts'
+import { quranLayout, type PaneModel } from './model.ts'
+import { arabicDigits } from '../../shared/pray/line.ts'
 import { avatar } from './avatar.ts'
 
 const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -19,11 +21,13 @@ const ltr = (text: string) => `<bdi dir="ltr">${escape(text)}</bdi>`
 
 // Colors live here only: dark by default, light under the app's color scheme (the same mechanism as the Quran pane; Claude Code's own theme row is not read, it can differ from the Desktop's).
 const VARS = {
-  dark: '--line:rgba(238,237,232,.13);--line-soft:rgba(238,237,232,.07);--text:#eeede8;--text-2:#c6c3bb;--muted:#a6a299;--dim:#969289;--hover:rgba(238,237,232,.04);--active:rgba(238,237,232,.07);--on:#faf9f5;--on-accent:#1f1e1d',
-  light: '--line:rgba(41,40,36,.14);--line-soft:rgba(41,40,36,.07);--text:#292824;--text-2:#514e47;--muted:#736f66;--dim:#817c72;--hover:rgba(41,40,36,.04);--active:rgba(41,40,36,.07);--on:#ffffff;--on-accent:#ffffff',
+  dark: '--line:rgba(238,237,232,.13);--line-soft:rgba(238,237,232,.07);--text:#eeede8;--text-2:#c6c3bb;--muted:#a6a299;--dim:#969289;--hover:rgba(238,237,232,.04);--active:rgba(238,237,232,.07);--on:#faf9f5;--on-accent:#1f1e1d;--sheet:#1f1e1d;--sheet-line:#393733;--sheet-dim:#98948b;--sheet-soft:#c6c3bb;--sheet-shadow:0 10px 30px #0008',
+  light: '--line:rgba(41,40,36,.14);--line-soft:rgba(41,40,36,.07);--text:#292824;--text-2:#514e47;--muted:#736f66;--dim:#817c72;--hover:rgba(41,40,36,.04);--active:rgba(41,40,36,.07);--on:#ffffff;--on-accent:#ffffff;--sheet:#fdfcf9;--sheet-line:#d9d6cd;--sheet-dim:#79766c;--sheet-soft:#46443e;--sheet-shadow:0 10px 30px #302f2a24',
 }
 export const paletteCss = (root: string, color: PaneModel['color']): string => {
-  const dark = `${VARS.dark};--accent:${accentHex(color, true)}`, light = `${VARS.light};--accent:${accentHex(color, false)}`
+  // Soft accent washes for the picker's highlighted and chosen rows.
+  const wash = ';--accent-20:color-mix(in srgb,var(--accent) 20%,transparent);--accent-34:color-mix(in srgb,var(--accent) 34%,transparent);--accent-44:color-mix(in srgb,var(--accent) 44%,transparent)'
+  const dark = `${VARS.dark};--accent:${accentHex(color, true)}${wash}`, light = `${VARS.light};--accent:${accentHex(color, false)}${wash}`
   // Light only: a soft drop shadow lifts the pixel-art avatar off the light card; .theme-dark cancels it even when the OS is light.
   const a = `${root} .pane-top svg`, shadow = 'filter:drop-shadow(0 1px 1.5px rgba(31,30,29,.35))'
   return `${root}{${dark}}@media (prefers-color-scheme: light){${root}{${light}}}@media (prefers-color-scheme: light){${a}{${shadow}}}${root}.theme-light{${light}}${root}.theme-light .pane-top svg{${shadow}}${root}.theme-dark{${dark}}${root}.theme-dark .pane-top svg{filter:none}`
@@ -44,6 +48,10 @@ const PATHS = {
   book: '<path d="M12 6c-2-1.5-5-2-8-2v13c3 0 6 .5 8 2 2-1.5 5-2 8-2V4c-3 0-6 .5-8 2zM12 6v13"/>',
   play: '<path d="M8 5.5l10.5 6.5L8 18.5z" fill="currentColor" stroke="none"/>',
   stop: '<rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor" stroke="none"/>',
+  back: '<path d="m10 6 6 6-6 6M16 12H4"/>',
+  search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/>',
+  repeat: '<path d="m17 2 4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3"/>',
+  repeatseg: '<path d="m17 2 4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3M11 10h1v4"/>',
   prev: '<path d="M7 6v12"/><path d="M18 6.5v11L10 12z"/>',
   next: '<path d="M17 6v12"/><path d="M6 6.5v11L14 12z"/>',
 } as const
@@ -76,10 +84,6 @@ const CSS = `
 .pr.done{color:var(--dim)}.pr.done .ic{color:var(--dim)}
 .pr.next{background:var(--hover);color:var(--accent);font-weight:500}.pr.next .ic{color:var(--accent)}
 .note{position:absolute;left:${SIDE}px;right:${SIDE}px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);font-size:12px;direction:ltr}
-.drow{display:flex;align-items:center;gap:12px;height:${FIELD_H}px;white-space:nowrap}
-.drow .ic{color:var(--text-2);width:18px;height:18px}
-.drow .who{min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:14px;line-height:1;transform:translateY(.12em)}
-.drow .who.off{color:var(--dim)}
 .athan{display:flex;align-items:center;gap:12px;height:${ATHAN_H}px;border-top:1px solid var(--line-soft);border-radius:0 0 11px 11px;padding-top:2px}
 .athan .ic{color:var(--text-2);width:18px;height:18px}
 .athan>span:not(.tog){line-height:1;transform:translateY(.12em)}
@@ -93,7 +97,6 @@ const CSS = `
 .pbar{height:5px;border-radius:99px;background:var(--line);overflow:hidden;flex:1;min-width:0}
 .pbar i{display:block;height:100%;background:var(--accent);border-radius:inherit}
 .bar{position:absolute;left:${SIDE}px;right:${SIDE}px;direction:ltr}
-.tm{position:absolute;left:${SIDE}px;right:${SIDE}px;display:flex;justify-content:space-between;direction:ltr;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
 .cb{position:absolute;border-radius:50%;background:transparent;box-shadow:inset 0 0 0 1px var(--line);display:grid;place-items:center;color:var(--text-2)}
 .cb .ic{width:18px;height:18px}
 .cb.hot{background:var(--hover)}
@@ -101,11 +104,56 @@ const CSS = `
 .cb.pl.hot{filter:brightness(1.08)}
 .cb.pl .ic{width:22px;height:22px}
 .cb.off{opacity:.35}
+.a-hero{position:absolute;top:${Q_HERO_TOP}px;left:${SIDE}px;right:${SIDE}px;height:${Q_HERO_H}px;display:flex;gap:8px;align-items:flex-start;justify-content:space-between}
+.a-info{position:relative;flex:1;min-width:0;height:${Q_HERO_H}px}
+.a-status{position:absolute;top:0;right:0;left:0;height:28px;font-size:12px;color:var(--muted);display:flex;align-items:center;white-space:nowrap}
+.a-status.live{color:var(--accent)}
+.a-status>span,.a-title>span{line-height:1;transform:translateY(.12em)}
+.a-title{position:absolute;top:${Q_TITLE_TOP - Q_HERO_TOP}px;right:0;left:0;height:${Q_TITLE_H}px;display:flex;align-items:center;gap:3px;min-width:0;border-radius:8px;font-size:20px;font-weight:700;white-space:nowrap}
+.a-title>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.a-title .ic{width:13px;height:13px;color:var(--muted)}
+.a-avatar{width:${Q_AVATAR_W}px;height:${Q_AVATAR_H}px;flex:none}.a-avatar svg{display:block}
+.below-seg{position:absolute;right:${SIDE}px;left:${Q_SEG_LEFT}px;top:${Q_SEG_TOP}px;height:${Q_SEG_H}px;display:flex;align-items:center;gap:6px;border-radius:8px;font-size:13px;color:var(--text-2);white-space:nowrap}
+.below-seg small{font-size:12px;color:var(--muted);flex:none}
+.below-seg .ic{width:12px;height:12px;color:var(--muted);flex:none}
+.segment-label{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.a-reciter{position:absolute;right:${SIDE}px;left:${SIDE}px;height:${Q_RECITER_H}px;display:flex;gap:8px;align-items:center;border-radius:8px;color:var(--text-2);font-size:14px}
+.a-reciter .ic{width:16px;height:16px;flex:none}
+.a-reciter .name{min-width:0;flex:1;line-height:14px}
+.a-reciter .name.off{color:var(--dim)}
+.a-reciter .tail{width:12px;height:12px;color:var(--muted)}
+.a-title.hot,.below-seg.hot,.a-reciter.hot{background:var(--hover)}
+.a-times{position:absolute;left:${SIDE}px;right:${SIDE}px;height:${Q_TIMES_H}px;display:grid;grid-template-columns:48px 1fr 48px;align-items:center;direction:ltr;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.a-times .total{text-align:right}.a-times .quiet{font-size:10px;text-align:center;direction:rtl}
+.cb.rep .ic{width:16px;height:16px}
+.cb.rep.on{color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.cb-label{position:absolute;width:48px;font-size:10px;line-height:13px;text-align:center;color:var(--muted)}
+.sheet{position:absolute;left:${PAD}px;right:${PAD}px;height:${SHEET_H}px;background:var(--sheet);border:${SHEET_BORDER}px solid var(--sheet-line);border-radius:12px;z-index:4;box-shadow:var(--sheet-shadow);overflow:hidden;color:var(--text)}
+.sheet-head{position:absolute;top:${SHEET_HEAD_TOP}px;right:12px;left:12px;height:${SHEET_HEAD_H}px;display:flex;align-items:center;gap:8px;font-size:16px}
+.sheet-head>span:not(.back){flex:1;line-height:1;transform:translateY(.12em)}
+.sheet-head>.ic{color:var(--accent)}
+.back{width:${SHEET_BACK_W}px;height:${SHEET_HEAD_H}px;border-radius:8px;box-shadow:inset 0 0 0 1px var(--line);font-size:14px;display:flex;gap:5px;align-items:center;justify-content:center}
+.back .ic{width:14px;height:14px}.back.hot{background:var(--hover)}
+.search{position:absolute;left:12px;right:12px;top:${SHEET_SEARCH_TOP}px;height:${SHEET_SEARCH_H}px;display:flex;align-items:center;padding:0 10px;border:1px solid var(--sheet-line);border-radius:8px;font-size:14px;white-space:nowrap;overflow:hidden;gap:4px}
+.search .ic{width:16px;height:16px;color:var(--muted);margin-inline-end:3px}.placeholder{color:var(--sheet-dim)}.caret{height:17px;width:1px;background:var(--accent);flex:none}
+.rows{position:absolute;top:${SHEET_ROWS_TOP}px;right:${SHEET_ROWS_RIGHT}px;left:${SHEET_ROWS_LEFT}px;height:${SHEET_ROWS_H}px;overflow:hidden}
+.orow{position:absolute;height:${SHEET_ROW_H}px;right:0;left:0;border-radius:5px;display:flex;align-items:center;gap:8px;padding:0 10px;font-size:14px;white-space:nowrap;overflow:hidden}
+.orow .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}.orow .num{flex:none;min-width:22px;color:var(--muted)}
+.orow .tick{color:var(--accent);width:16px;text-align:center;flex:none}
+.orow.hot{background:var(--accent-20)}
+.orow.chosen{background:var(--accent-34);border-inline-start:3px solid var(--accent)}
+.orow.chosen.hot{background:var(--accent-44)}
+.sbar{position:absolute;top:${SHEET_ROWS_TOP}px;left:${SHEET_BAR_LEFT}px;width:${SHEET_BAR_W}px;height:${SHEET_ROWS_H}px}
+.sbar:before{content:'';position:absolute;left:6px;width:6px;top:0;bottom:0;border-radius:4px;background:var(--sheet-line)}
+.thumb{position:absolute;left:6px;width:6px;min-height:${SHEET_MIN_THUMB}px;border-radius:4px;background:var(--accent)}
+.sfoot{position:absolute;top:${SHEET_FOOT_TOP}px;right:0;left:0;height:${SHEET_FOOT_H}px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-top:1px solid var(--sheet-line);font-size:12px;color:var(--sheet-soft);gap:8px}
+.sfoot .count{font-size:11px;color:var(--sheet-dim);white-space:nowrap}.sfoot .hint{white-space:nowrap;direction:ltr}
+.nores{position:absolute;top:0;right:0;padding:15px;font-size:14px;color:var(--muted)}
+@media(max-width:420px){.a-title{font-size:16px}.a-times{grid-template-columns:40px 1fr 40px}.sfoot{padding:0 8px;gap:4px}.sfoot .hint{font-size:11px}}
 .dbtn{display:flex;align-items:center;justify-content:center;background:transparent;box-shadow:inset 0 0 0 1px var(--line);color:var(--text);border-radius:10px;font-weight:500;text-align:center;white-space:nowrap}
 .dbtn.tertiary{box-shadow:none;color:var(--text-2)}
 .dbtn.hot{background:var(--hover);color:var(--text)}
 .dbtn.off{opacity:.45}
-.wide{position:absolute;left:${SIDE}px;right:${SIDE}px;height:${OPEN_H}px}
 .krow{display:flex;align-items:center;gap:${KROW_GAP}px;height:${KROW_H}px;font-size:14px}
 .krow .ic{color:var(--text-2);width:18px;height:18px}
 .krow .dbtn{width:${KBTN_W}px;height:${KROW_H - 4}px;flex:none;padding-inline:10px;font-size:14px}
@@ -118,7 +166,7 @@ const header = (name: keyof typeof PATHS, title: string, value: string, isFolded
   `<div class="in dh" style="top:${HEAD_TOP}px" role="button" aria-expanded="${!isFolded}">${icon(name, 'hi')}<span class="ar">${escape(title)}</span><span class="dv"${isLtr ? ' dir="ltr"' : ''}>${value}</span><span class="fold${isHot ? ' hot' : ''}">${icon(isFolded ? 'chevl' : 'chev')}</span></div>`
 
 const prayerCard = (m: PaneModel, hover: PaneAct | null): string => {
-  const p = m.prayer, r = cardRects(m.folds)
+  const p = m.prayer, r = cardRects(m.folds, m.settings.state, m.settings.options, quranLayout(m))
   if (m.folds.prayer) return `<section class="dcard" style="top:${r.prayerY}px;height:${r.prayerH}px">${header('sujoodreal', 'الصلاة', '', true, hover === 'fold-prayer')}</section>`
   let body: string
   if (!p.isSet) {
@@ -132,27 +180,65 @@ const prayerCard = (m: PaneModel, hover: PaneAct | null): string => {
   return `<section class="dcard" style="top:${r.prayerY}px;height:${r.prayerH}px">${header('sujoodreal', 'الصلاة', '', false, hover === 'fold-prayer')}${body}${athan}${city}</section>`
 }
 
+// Digit runs and ayah ranges stay left-to-right inside Arabic text.
+const ltrDigits = (escaped: string) => escaped.replace(/[٠-٩]+(?:–[٠-٩]+)?/g, run => `<bdi dir="ltr">${run}</bdi>`)
+
 const quranCard = (m: PaneModel, hover: PaneAct | null): string => {
-  const q = m.quran, r = cardRects(m.folds)
-  if (m.folds.quran) return `<section class="dcard" style="top:${r.quranY}px;height:${r.quranH}px">${header('qpane', 'القرآن', q.isAvailable ? escape(q.part) : '', true, hover === 'fold-quran')}</section>`
-  const ok = q.isAvailable
+  const q = m.quran, layout = quranLayout(m), r = cardRects(m.folds, m.settings.state, m.settings.options, layout)
+  // Folded, the header says which segment is playing; open, «ابدأ من» does.
+  if (m.folds.quran) return `<section class="dcard" style="top:${r.quranY}px;height:${r.quranH}px">${header('qpane', 'القرآن', q.isAvailable ? ltrDigits(escape(q.part)) : '', true, hover === 'fold-quran')}</section>`
+  const ok = q.isAvailable, segmented = ok && q.segmented, off = quranOffset(segmented)
+  const cls = (act: PaneAct, extra = '', disabled = false) => `${extra}${hover === act ? ' hot' : ''}${disabled ? ' off' : ''}`
+  const label = ok ? ltrDigits(escape(q.part)) : ''
+  const hero = `<div class="a-hero"><div class="a-info"><div class="a-status${ok && q.isLive ? ' live' : ''}"><span>${ok ? escape(q.status) : 'متوقف'}</span></div>`
+    + `<div class="a-title ${cls('quran-pick-surah')}" role="button" aria-haspopup="listbox" aria-label="اختيار السورة"><span class="ar">${ok ? escape(q.surah) : '—'}</span>${icon('chev')}</div></div><div class="a-avatar">${ok ? q.avatar : ''}</div></div>`
+  const start = segmented ? `<div class="below-seg ${cls('quran-pick-segment')}" role="button" aria-haspopup="listbox" aria-label="ابدأ من"><small>ابدأ من</small><span class="segment-label">${label}</span>${icon('chev')}</div>` : ''
+  const reciter = `<div class="a-reciter ${cls('quran-pick-reciter')}" style="top:${Q_RECITER_BASE + off}px" role="button" aria-haspopup="listbox" aria-label="اختيار القارئ">${icon('mic')}<span class="name ar${ok ? '' : ' off'}">${ok ? escape(q.reciter) : '—'}</span>${icon('chev', 'tail')}</div>`
+  const bar = `<div class="bar" style="top:${Q_BAR_BASE + off}px"><div class="pbar"><i style="width:${ok ? Math.round(q.progress * 1000) / 10 : 0}%"></i></div></div>`
+  const times = `<div class="a-times" style="top:${Q_TIMES_BASE + off}px"><bdi dir="ltr">${ok ? escape(q.elapsed) : '--:--'}</bdi><span class="quiet">الوقت تقريبي</span><bdi class="total" dir="ltr">${ok ? escape(q.total) : '--:--'}</bdi></div>`
+  const mid = Q_CONTROLS_BASE + off + Q_CONTROLS_H / 2, s = controlScale(m.width)
   const on = ok && q.isPlaying
-  const cls = (act: PaneAct, extra = '', off = false) => `${extra}${hover === act ? ' hot' : ''}${off ? ' off' : ''}`
-  const circle = (act: 'quran-prev' | 'quran-toggle' | 'quran-next', r: number, dx: number, name: keyof typeof PATHS, label: string, off: boolean) =>
-    `<div class="cb ${cls(act, act === 'quran-toggle' ? 'pl' : '', off)}" role="button" aria-label="${label}" style="width:${r * 2}px;height:${r * 2}px;top:${CONTROLS_CY - r}px;left:calc(50% + ${dx - r}px)">${icon(name)}</div>`
-  return `<section class="dcard" style="top:${r.quranY}px;height:${r.quranH}px">${header('qpane', 'القرآن', ok ? escape(q.part) : '', false, hover === 'fold-quran')}`
-    + `<div class="in drow" style="top:${RECITER_TOP}px">${icon('mic')}<span class="ar who${ok ? '' : ' off'}">${ok ? escape(q.reciter) : '—'}</span></div>`
-    + `<div class="in drow" style="top:${SURAH_TOP}px">${icon('book')}<span class="ar who${ok ? '' : ' off'}">${ok ? escape(q.surah) : '—'}</span></div>`
-    + `<div class="bar" style="top:${BAR_TOP}px"><div class="pbar"><i style="width:${ok ? Math.round(q.progress * 1000) / 10 : 0}%"></i></div></div>`
-    + `<div class="tm" style="top:${TIMES_TOP}px"><span>${ok ? escape(q.elapsed) : '--:--'}</span><span>${ok ? escape(q.total) : '--:--'}</span></div>`
-    + circle('quran-prev', 20, -62, 'prev', 'Previous', !ok || !q.canPrev)
-    + circle('quran-toggle', 26, 0, on ? 'stop' : 'play', on ? 'Stop' : 'Play', !ok)
-    + circle('quran-next', 20, 62, 'next', 'Next', !ok || !q.canNext)
-    + `<div class="wide dbtn${hover === 'quran-open' ? ' hot' : ''}" role="button" style="top:${OPEN_TOP}px">افتح المصحف</div></section>`
+  const controls = CONTROL_SPECS.map(c => {
+    const left = `calc(50% + ${Math.round((c.dx * s - c.r) * 100) / 100}px)`, top = mid + c.dy - c.r
+    const size = `width:${c.r * 2}px;height:${c.r * 2}px;top:${top}px;left:${left}`
+    if (c.act === 'quran-repeat-segment' || c.act === 'quran-repeat-surah') {
+      const isSegment = c.act === 'quran-repeat-segment'
+      const pressed = ok && q.repeat === (isSegment ? 'segment' : 'surah'), disabled = !ok || isSegment && !segmented
+      return `<div class="cb rep ${cls(c.act, pressed ? 'on' : '', disabled)}" role="button" aria-pressed="${pressed}" aria-disabled="${disabled}" aria-label="${isSegment ? 'تكرار المقطع' : 'تكرار السورة'}" style="${size}">${icon(isSegment ? 'repeatseg' : 'repeat')}</div>`
+        + `<span class="cb-label" style="top:${top + c.r * 2 + 3}px;left:calc(50% + ${Math.round((c.dx * s - 24) * 100) / 100}px)">${isSegment ? 'المقطع' : 'السورة'}</span>`
+    }
+    const name = c.act === 'quran-prev' ? 'prev' : c.act === 'quran-next' ? 'next' : on ? 'stop' : 'play'
+    const disabled = !ok || c.act === 'quran-prev' && !q.canPrev || c.act === 'quran-next' && !q.canNext
+    const aria = c.act === 'quran-prev' ? 'Previous' : c.act === 'quran-next' ? 'Next' : on ? 'Stop' : 'Play'
+    return `<div class="cb ${cls(c.act, c.act === 'quran-toggle' ? 'pl' : '', disabled)}" role="button" aria-label="${aria}" style="${size}">${icon(name)}</div>`
+  }).join('')
+  const sheet = m.picker ? quranSheet(m, r.quranY, hover) : ''
+  return `<section class="dcard" style="top:${r.quranY}px;height:${r.quranH}px">${header('qpane', 'القرآن', '', false, hover === 'fold-quran')}${hero}${start}${reciter}${bar}${times}${controls}</section>${sheet}`
+}
+
+// The open picker: a sheet over the card with the list's head, a search box, eight rows, a scrollbar and a footer.
+const quranSheet = (m: PaneModel, quranY: number, hover: PaneAct | null): string => {
+  const p = m.picker!
+  const title = p.list === 'reciter' ? 'اختر القارئ' : p.list === 'surah' ? 'اختر السورة' : 'ابدأ من'
+  const placeholder = p.list === 'reciter' ? 'ابحث عن قارئ أو رقم' : p.list === 'surah' ? 'ابحث عن سورة أو رقمها' : 'ابحث عن موضع أو آية'
+  const hoverRow = hover?.startsWith('quran-row:') ? Number(hover.slice(10)) : null
+  const rows = p.rows.map((o, i) => {
+    const hot = hoverRow !== null ? hoverRow === i : p.scroll + i === p.highlight
+    const text = p.list === 'segment' ? ltrDigits(escape(o.label)) : escape(o.label)
+    return `<div class="orow${o.selected ? ' chosen' : ''}${hot ? ' hot' : ''}" role="option" aria-selected="${o.selected}" style="top:${i * SHEET_ROW_H}px">${o.number ? `<span class="num"><bdi dir="ltr">${escape(o.number)}</bdi></span>` : ''}<span class="lbl">${text}</span><span class="tick">${o.selected ? '✓' : ''}</span></div>`
+  }).join('')
+  const thumbH = Math.max(SHEET_MIN_THUMB, SHEET_ROWS_H * 8 / Math.max(1, p.count)), max = p.count - 8
+  const bar = p.count > 8 ? `<div class="sbar" role="scrollbar" aria-label="موضع القائمة" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="${max}" aria-valuenow="${p.scroll}"><div class="thumb" style="height:${Math.round(thumbH * 10) / 10}px;top:${Math.round(p.scroll / max * (SHEET_ROWS_H - thumbH) * 10) / 10}px"></div></div>` : ''
+  const query = p.query ? escape(p.query).replace(/[0-9٠-٩]+/g, digits => `<bdi dir="ltr">${digits}</bdi>`) : `<span class="placeholder">${placeholder}</span>`
+  const count = p.count ? `<bdi dir="ltr">${arabicDigits(String(p.highlight + 1))} / ${arabicDigits(String(p.count))}</bdi>` : '<bdi dir="ltr">٠ / ٠</bdi>'
+  return `<div class="sheet" style="top:${quranY}px" role="region" aria-label="${title}"><div class="sheet-head">${icon(p.list === 'reciter' ? 'mic' : 'qpane')}<span class="ar">${title}</span><span class="back${hover === 'quran-back' ? ' hot' : ''}" role="button" aria-label="رجوع">${icon('back')}رجوع</span></div>`
+    + `<div class="search" role="searchbox" aria-label="${placeholder}">${icon('search')}${query}<i class="caret"></i></div>`
+    + `<div class="rows" role="listbox" aria-label="${title}">${rows}${p.count ? '' : '<div class="nores">لا توجد نتائج</div>'}</div>${bar}`
+    + `<div class="sfoot"><span class="count">${count}</span><span class="hint" dir="ltr">Use ↑ ↓ for scrolling</span></div></div>`
 }
 
 const athkarCard = (m: PaneModel, hover: PaneAct | null): string => {
-  const k = m.athkar, r = cardRects(m.folds)
+  const k = m.athkar, r = cardRects(m.folds, m.settings.state, m.settings.options, quranLayout(m))
   const head = (folded: boolean) => header('horizon', k.isAvailable ? k.title : 'أذكار', k.isAvailable ? ltr(k.fraction) : '', folded, hover === 'fold-athkar')
   if (m.folds.athkar) return `<section class="dcard" style="top:${r.athkarY}px;height:${r.athkarH}px">${head(true)}</section>`
   const row = k.isAvailable
@@ -201,7 +287,7 @@ const settingRow = (row: SettingRow, y: number): string => {
   return `<span class="setting-label" style="top:${y}px;max-width:calc(100% - ${inline}px)"><span>${escape(row.label)}</span></span><span class="setting-hint" style="top:${y+HINT_TOP}px">${escape(row.hint)}</span>${row.extra?.controls.length?`<span class="setting-extra" style="top:${y+EXTRA_TOP+7}px">${escape(row.extra.label)}</span>`:''}`
 }
 const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
-  const model=m.settings, s=model.state, r=cardRects(m.folds,s,model.options), b=settingsBody(m.width,model)
+  const model=m.settings, s=model.state, r=cardRects(m.folds,s,model.options,quranLayout(m)), b=settingsBody(m.width,model)
   let content=header('gearteeth','الإعدادات','٤ أقسام',!s.open,hover==='settings:fold')
   if (s.open) {
     content+=`<div class="settings-tabs" role="tablist" aria-label="الإعدادات">${categoryTabs(m.width).map(c=>`<div class="setting-tab${hover===`settings:tab:${c.category}`?' hot':''}" style="left:${c.x0-PAD-TAB_INSET-1}px;top:${c.y0-SETTINGS_TOP-1}px;width:${c.x1-c.x0}px;height:${c.y1-c.y0}px" role="tab" aria-selected="${s.category===c.category}" aria-label="${c.label}">${icon(c.icon)}<span>${c.label}</span></div>`).join('')}</div>`
@@ -234,7 +320,7 @@ const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
 const paneTop = `<div class="pane-top">${avatar(AVATAR_H)}<span>مُسلِم</span></div><div class="pane-command" dir="ltr">${ltr('/muslim')}</div>`
 
 export const paneSvg = (m: PaneModel, hover: PaneAct | null = null): string => {
-  const width = m.width, height = cardRects(m.folds, m.settings.state, m.settings.options).height
+  const width = m.width, height = cardRects(m.folds, m.settings.state, m.settings.options, quranLayout(m)).height
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" class="dp${m.theme ? ` theme-${m.theme}` : ''}" dir="rtl"><style>${tajawalFontFaceCss()}${paletteCss('.dp', m.color)}${CSS}${SETTINGS_CSS}</style>${paneTop}${prayerCard(m, hover)}${quranCard(m, hover)}${athkarCard(m, hover)}${settingsCard(m, hover)}</div></foreignObject></svg>`
 }
 

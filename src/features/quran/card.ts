@@ -3,14 +3,13 @@ import type { QuranPlaying, QuranRepeat } from '../../../types/index.d.ts'
 import type { Catalog, Reciter } from './catalog.ts'
 import { avatarSvg } from './avatar.ts'
 import type { Segment } from './segments.ts'
+import { segmentLabel } from './label.ts'
 import { formatTime } from './player.ts'
 
 export const CARD_HEIGHT = 446
 export type CardAction = 'prev' | 'toggle' | 'next' | 'repeat' | 'repeat-segment' | 'retry'
 export type CardModel = { width: number; playing: boolean; repeat: QuranRepeat; avatarElapsedMs: number; status: string; title: string; reciter: string; elapsed: string; total: string; progress: number; next: string; generation: number; segmentLabel?: string; segmented?: boolean; canNext?: boolean; canPrev?: boolean; preparing?: boolean; theme?: 'light' | 'dark'; color?: Accent }
 export type TrackSelection = { segments: Segment[]; selectedSegment: number; durationMs: number | null; loading: 'checking' | 'preparing' | null }
-const digits = (n: number) => String(n).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[Number(d)]!)
-const segmentLabel = (segment: Segment, index: number) => `المقطع ${digits(index + 1)} · الآيات ${digits(segment.firstAyah)}–${digits(segment.lastAyah)}`
 export function cardModel(catalog: Catalog, reciter: Reciter, selected: number, playing: QuranPlaying | null | undefined, now: number, width: number, generation: number, selection?: TrackSelection, repeat: QuranRepeat = 'off'): CardModel {
   const surah = playing?.surah ?? selected
   const active = playing ? catalog.reciters.find(r => r.key === playing.moshafKey) ?? reciter : reciter
@@ -25,10 +24,10 @@ export function cardModel(catalog: Catalog, reciter: Reciter, selected: number, 
     status: playing ? 'يتلى الآن' : selection?.loading === 'checking' ? 'جارٍ فحص حجم التسجيل' : selection?.loading === 'preparing' ? 'جارٍ تجهيز المقطع' : 'متوقف', title: `سورة ${catalog.surahs[surah - 1]!.name}`,
     reciter: `${active.name} · حفص عن عاصم`, elapsed: formatTime(elapsed), total: formatTime(duration),
     progress: duration !== null && duration > 0 ? Math.max(0, Math.min(1, elapsed / duration)) : 0,
-    segmentLabel: segment ? segmentLabel(segment, index) : '',
+    segmentLabel: segment ? segmentLabel(selection!.segments, index) : '',
     segmented: !!segment, canPrev: segment && index > 0 || surah > 1, canNext: segment && index < selection!.segments.length - 1 || surah < 114, preparing: !!selection?.loading,
     // 'surah' repeat covers the whole surah: quarters still advance, then it starts over; 'segment' replays this quarter.
-    next: repeat === 'segment' && segment ? `تكرار: ${segmentLabel(segment, index)}` : segment && index < selection!.segments.length - 1 ? `التالي: ${catalog.surahs[surah - 1]!.name} · المقطع ${digits(index + 2)} · الآيات ${digits(selection!.segments[index + 1]!.firstAyah)}–${digits(selection!.segments[index + 1]!.lastAyah)}` : repeat === 'surah' ? `تكرار: سورة ${catalog.surahs[surah - 1]!.name}` : surah < 114 ? `التالي تلقائي: ${catalog.surahs[surah]!.name}` : 'بعد سورة الناس يتوقف التشغيل', generation,
+    next: repeat === 'segment' && segment ? `تكرار: ${segmentLabel(selection!.segments, index)}` : segment && index < selection!.segments.length - 1 ? `التالي: ${catalog.surahs[surah - 1]!.name} · ${segmentLabel(selection!.segments, index + 1)}` : repeat === 'surah' ? `تكرار: سورة ${catalog.surahs[surah - 1]!.name}` : surah < 114 ? `التالي تلقائي: ${catalog.surahs[surah]!.name}` : 'بعد سورة الناس يتوقف التشغيل', generation,
   }
 }
 export const CONTROLS_Y = 287

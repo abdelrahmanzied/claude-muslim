@@ -17,9 +17,11 @@ The shipped `QURAN_SUPPORT` catalog is keyed by the selected recording's `recite
 
 Switching recordings or restoring a stored selection that is unavailable chooses the next higher available surah, otherwise the next lower. Switching while playing follows normal surah replacement; a stopped selection stays stopped. There is no toast. Manual next/previous and natural auto-advance skip unavailable surahs without wrapping; quarter navigation keeps its existing rules. The card's automatic-next hint names the same available target.
 
+A segment is named everywhere (pane fields and options, the card's next/repeat lines, the Muslim pane) by one formatter, `src/features/quran/label.ts`: `الربع ٥، الآيات ١٥–٢٤` with Arabic digits and the Arabic comma (never «·» beside Arabic digits), plus ` (١ من ٢)` when one quarter is cut into consecutive segments. The same player also lives in the Muslim pane's Quran card (see the muslim-pane spec); it uses the same picks and controls through the panel signal.
+
 Repeat is one of three session states: off, `surah` or `segment` (`PluginState['muslim'].quranRepeat`; reset to off at session start). The card has two exclusive buttons: «السورة» (`/quran repeat` or the surah button) and «المقطع» (`/quran repeat segment` or the quarter button). Pressing one turns the other off; pressing the active one turns repeat off.
 - `surah`: a whole file replays from the start; a split surah plays every quarter in order, then starts again from the first quarter. The hint names the next quarter, and on the last quarter (or a whole file) it reads «تكرار: سورة …».
-- `segment`: the current quarter replays forever and the next quarter is never prefetched (the same quarter stays ready so the replay is gapless). The hint reads «تكرار: المقطع … · الآيات …».
+- `segment`: the current quarter replays forever and the next quarter is never prefetched (the same quarter stays ready so the replay is gapless). The hint reads «تكرار: الربع …، الآيات …».
 - The quarter button is always drawn but inactive (dim, `aria-disabled`, no hover, not clickable) while the selected surah plays whole, and `/quran repeat segment` then says it needs a split surah. If a whole surah starts while `segment` is on, repeat falls back to off; a stale `segment` on a whole surah reads as off.
 
 Stop leaves repeat on; manual navigation never triggers it.

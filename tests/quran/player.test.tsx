@@ -331,7 +331,7 @@ test('segment repeat replays the same quarter forever and never reads the next o
   expect(ranges.ranges.slice(start).some(r => r.startsWith(`${third}-`))).toBe(false)
   const mounted = await $.ui.mount(pane('desktop'))
   expect((await mounted.find({ type: 'Client', key: 'quran-card' }))?.props.props).toMatchObject({ repeat: 'segment' })
-  expect(String((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source)).toContain('تكرار: المقطع ٢')
+  expect(String((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source)).toMatch(/تكرار: الربع [٠-٩]+، الآيات/)
   // Quarter repeat off again: the quarters advance.
   await $.command.run(run('repeat segment'))
   expect(clock.state.quranRepeat).toBe('off')

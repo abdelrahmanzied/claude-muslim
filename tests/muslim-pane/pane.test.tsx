@@ -4,7 +4,7 @@ import { settingsBoxes, TITLE_HIT_H, paneHeight } from '../../src/features/musli
 import { CLOSED_SETTINGS, COPIED_MS, type SettingsState } from '../../src/features/muslim-pane/settings.ts'
 import type { On, PaneOpenArgs, UiOpenResult } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
-import { cardRects, ATHAN_TOP, ATHKAR_Y, CONTROLS_CY, KROW_TOP, OPEN_TOP, PANE_HEIGHT, PRAYER_Y, QURAN_Y } from '../../src/features/muslim-pane/layout.ts'
+import { cardRects, ATHAN_TOP, ATHKAR_Y, KROW_TOP, PANE_HEIGHT, Q_CONTROLS_BASE, Q_CONTROLS_H, Q_TITLE_TOP, PRAYER_Y, QURAN_Y } from '../../src/features/muslim-pane/layout.ts'
 import type { PaneModel } from '../../src/features/muslim-pane/model.ts'
 
 const MUNICH = 'Munich; 48.1351, 11.582; Europe/Berlin; DE'
@@ -73,7 +73,7 @@ test('the athan row changes the salah setting itself', { options: { salahPlace: 
   expect(sets).toEqual([{ key: 'muslim.salahAthan', value: false }])
 })
 
-test('Open full player works before the footer or catalog has loaded; unavailable controls remain inactive', { options: { salahPlace: MUNICH } }, async ($, on) => {
+test('before the footer or catalog has loaded, the Quran controls and pickers stay inactive', { options: { salahPlace: MUNICH } }, async ($, on) => {
   const opened = engine(on, 'desktop')
   on('http.fetch', async () => ({ value: { ok: false, status: 503, headers: {}, text: '' } }))
   const toasts: string[] = []
@@ -85,29 +85,12 @@ test('Open full player works before the footer or catalog has loaded; unavailabl
     await ui.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: Math.floor(fine.x), y: Math.floor(fine.y), fine })
   }
   // No footer draw or catalog: playback is inactive, navigation still works.
-  await click(QURAN_Y + CONTROLS_CY)
-  expect(toasts).toEqual([])
-  await click(QURAN_Y + OPEN_TOP + 15)
-  expect(opened).toEqual([{ id: 'quran', title: '۞ القرآن الكريم', focus: true }])
+  await click(QURAN_Y + Q_CONTROLS_BASE + 14 + Q_CONTROLS_H / 2)
+  await click(QURAN_Y + Q_TITLE_TOP + 16)
   expect(toasts).toEqual([])
   // Athkar not connected: its button is not a target.
   await click(ATHKAR_Y + KROW_TOP + 18)
   expect(toasts).toHaveLength(0)
-})
-
-test('with the features drawn, Quran Open opens the Quran pane and athkar Open lights the reader', { options: { salahPlace: MUNICH } }, async ($, on) => {
-  const opened = engine(on, 'desktop', undefined, { 'quran.catalog': { ...fixtureCatalog, fetchedAt: NOON } })
-  on('http.fetch', { init: { method: 'HEAD' } }, async () => ({ value: { ok: true, status: 200, headers: { 'content-length': '1000000' }, text: '' } }))
-  await $.ui.mount(modes('desktop'))
-  await $.ui.mount(band('desktop'))
-  const ui = await $.ui.mount(pane('desktop'))
-  await ui.resize({ columns: 50, rows: 40, in: 'muslim-pane' })
-  const click = async (y: number) => {
-    const fine = { x: 25, y: y * 40 / PANE_HEIGHT }
-    await ui.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: Math.floor(fine.x), y: Math.floor(fine.y), fine })
-  }
-  await click(QURAN_Y + OPEN_TOP + 15)
-  expect(opened.map(o => o.id)).toContain('quran')
 })
 
 test('the terminal gets a plain text summary instead of a pane', { options: { salahPlace: MUNICH } }, async ($, on) => {
@@ -181,67 +164,6 @@ test('pressing a card title folds it and unfolds it again, kept in the session',
   const r = cardRects((await model()).folds)
   await click(r.prayerY + 20, r.height)
   expect((await model()).folds.prayer).toBe(false)
-})
-
-// Desktop's dock owns all mod-pane tabs. The test observes API requests;
-// the native host's tab activation and painting still need a live check.
-for (const alreadyOpen of [false, true]) test(`Open full player requests the Quran tab in front (${alreadyOpen ? 'existing tab' : 'first open'}) with a coarse pointer`, async ($, on) => {
-  const opened = engine(on, 'desktop', undefined, { 'quran.catalog': { ...fixtureCatalog, fetchedAt: NOON } })
-  const panes = [
-    { id: 'muslim', title: '☾ Muslim', isPlaced: true, isShown: true, isFocused: true },
-    ...(alreadyOpen ? [{ id: 'quran', title: 'القرآن الكريم', isPlaced: true, isShown: false, isFocused: false }] : []),
-  ]
-  on('ui.panes', async () => ({ value: panes }))
-  on('http.fetch', { init: { method: 'HEAD' } }, async () => ({ value: { ok: true, status: 200, headers: { 'content-length': '1000000' }, text: '' } }))
-  const closed: string[] = []
-  on('ui.close', async (_$, e) => { closed.push(e.id); return { value: undefined } })
-  const ui = await $.ui.mount(pane('desktop'))
-  await ui.resize({ columns: 50, rows: 40, in: 'muslim-pane' })
-  const click = () => ui.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: 25, y: Math.floor((QURAN_Y + OPEN_TOP + 21) * 40 / PANE_HEIGHT) })
-  await click()
-  await click()
-  expect(opened).toEqual([
-    { id: 'quran', title: '۞ القرآن الكريم', focus: true },
-    { id: 'quran', title: '۞ القرآن الكريم', focus: true },
-  ])
-  expect(closed).toEqual([])
-  expect(panes[0]!.id).toBe('muslim')
-})
-
-test('Open full player raises the tab before queued Quran preparation finishes', async ($, on) => {
-  let raised!: () => void
-  const opened = engine(on, 'desktop', e => { if (e.focus) raised(); return { isPlaced: true } }, { 'quran.catalog': { ...fixtureCatalog, fetchedAt: NOON } })
-  let release!: () => void, started!: () => void
-  const held = new Promise<void>(resolve => { release = resolve })
-  const preparing = new Promise<void>(resolve => { started = resolve })
-  const front = new Promise<void>(resolve => { raised = resolve })
-  on('http.fetch', { init: { method: 'HEAD' } }, async () => {
-    started()
-    await held
-    return { value: { ok: true, status: 200, headers: { 'content-length': '1000000' }, text: '' } }
-  })
-  const ui = await $.ui.mount(pane('desktop'))
-  await ui.resize({ columns: 50, rows: 40, in: 'muslim-pane' })
-  const command = $.command.run({ command: 'quran', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
-  await preparing
-  const click = ui.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: 25, y: Math.floor((QURAN_Y + OPEN_TOP + 21) * 40 / PANE_HEIGHT) })
-  try {
-    await front
-    expect(opened).toEqual([{ id: 'quran', title: '۞ القرآن الكريم' }, { id: 'quran', title: '۞ القرآن الكريم', focus: true }])
-  } finally { release() }
-  await command
-  await click
-  expect(opened).toHaveLength(2)
-})
-
-test('an unplaced Quran pane is reported instead of treated as a successful press', async ($, on) => {
-  engine(on, 'desktop', () => ({ isPlaced: false, reason: 'no pane surface' }))
-  const toasts: string[] = []
-  on('ui.toast', async (_$, e) => { toasts.push(e.text); return { value: undefined } })
-  const ui = await $.ui.mount(pane('desktop'))
-  await ui.resize({ columns: 50, rows: 40, in: 'muslim-pane' })
-  await ui.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: 25, y: Math.floor((QURAN_Y + OPEN_TOP + 21) * 40 / PANE_HEIGHT) })
-  expect(toasts).toEqual(['Quran is not ready yet. /quran'])
 })
 
 for (const style of ['sky', 'frame'] as const) {

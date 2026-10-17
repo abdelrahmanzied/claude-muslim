@@ -3,7 +3,8 @@
 // that is off or not drawn yet leaves its card with a quiet note instead.
 
 import { DEFAULT_SETTINGS, terminalSettings, type SettingsModel } from './settings.ts'
-import { NO_FOLDS, type Folds } from './layout.ts'
+import { NO_FOLDS, NO_QURAN, type Folds, type QuranLayout } from './layout.ts'
+import type { PickerView } from './picker.ts'
 import type { Accent } from '../../shared/color/index.ts'
 import { ARABIC } from '../../shared/pray/names.ts'
 import { arabicDigits } from '../../shared/pray/line.ts'
@@ -33,7 +34,13 @@ export type PaneModel = {
   prayer: PrayerCard
   quran: QuranCard
   athkar: AthkarCard
+  // The Quran card's open list; null when none is open (or the card is folded).
+  picker: PickerView | null
 }
+
+// What the Quran card's height and targets depend on.
+export const quranLayout = (m: Pick<PaneModel, 'quran' | 'picker'>): QuranLayout =>
+  !m.quran.isAvailable ? NO_QURAN : { segmented: m.quran.segmented, picker: m.picker ? { list: m.picker.list, count: m.picker.count, scroll: m.picker.scroll } : null }
 
 export const PANE_MIN_WIDTH = 240
 export const PANE_MAX_WIDTH = 1200
@@ -80,7 +87,7 @@ export const athkarCard = (athkar: PanelAthkar | null): AthkarCard => athkar ===
 
 export const quranCard = (quran: PanelQuran | null): QuranCard => quran === null ? { isAvailable: false } : { ...quran, isAvailable: true, progress: Math.max(0, Math.min(1, quran.progress)) }
 
-export const paneModel = (feeds: { salah: PanelSalah | null; quran: PanelQuran | null; athkar: PanelAthkar | null }, now: number, width: number, color: Accent, theme?: 'light' | 'dark', folds: Folds = NO_FOLDS, settings: SettingsModel = DEFAULT_SETTINGS): PaneModel => ({
+export const paneModel = (feeds: { salah: PanelSalah | null; quran: PanelQuran | null; athkar: PanelAthkar | null }, now: number, width: number, color: Accent, theme?: 'light' | 'dark', folds: Folds = NO_FOLDS, settings: SettingsModel = DEFAULT_SETTINGS, picker: PickerView | null = null): PaneModel => ({
   width,
   settings,
   folds,
@@ -89,6 +96,7 @@ export const paneModel = (feeds: { salah: PanelSalah | null; quran: PanelQuran |
   prayer: prayerCard(feeds.salah, now),
   quran: quranCard(feeds.quran),
   athkar: athkarCard(feeds.athkar),
+  picker: feeds.quran && !folds.quran ? picker : null,
 })
 
 // The terminal fallback: the same three cards as plain lines. `show` is the

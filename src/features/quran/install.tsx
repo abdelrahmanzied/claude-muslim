@@ -10,9 +10,11 @@ import { formatTime, nextPlaybackItem, parseCommand, repeatMode, toggleRepeat, t
 import { isAvailable, nearestAvailable, nextAvailable, UNAVAILABLE_ERROR } from './availability.ts'
 import { quranHelp } from './help.ts'
 import { isCardMessage, pointerPixels, pointerSlack } from './card.ts'
-import { connectPanelAction, connectQuran, type PanelQuran } from '../../shared/panel/signal.ts'
+import { connectPanelAction, connectQuran, connectQuranOptions, type PanelList, type PanelOption, type PanelQuran } from '../../shared/panel/signal.ts'
 import { skipPaneScroll } from '../../shared/scroll/index.ts'
-import { arabicDigits, columnsWidth, isPickMessage, paneHit, paneModel, pickerInitial, paneHeight } from './pane.ts'
+import { columnsWidth, isPickMessage, options as listOptions, paneHit, paneModel, pickerInitial, paneHeight, type List } from './pane.ts'
+import { segmentLabel } from './label.ts'
+import { avatarSvg } from './avatar.ts'
 
 const QURAN_DEBUG = false
 type Preparing = { moshafKey: string; surah: number; stage: 'checking' | 'preparing' }
@@ -531,8 +533,8 @@ async function togglePlayback($: EngineInterface): Promise<void> {
   } catch (error) { await fail($, error) }
 }
 
-// What the Muslim pane shows of the player; null until the catalog has been fetched once.
-async function panelQuran($: EngineInterface): Promise<PanelQuran | null> {
+// The player's model as the Muslim card sees it; null until the catalog has been fetched once.
+async function panelModel($: EngineInterface, width = 480) {
   const raw = await $.store.get('quran.catalog')
   if (!isCatalog(raw)) return null
   const reciter = await chosen($, raw)
@@ -540,19 +542,60 @@ async function panelQuran($: EngineInterface): Promise<PanelQuran | null> {
   const surah = nearestAvailable(reciter.key, stored) ?? stored
   const playing = (await $.state.get(playingRef)).value
   const selection = trackSelection(reciter, surah)
-  const model = paneModel(raw, reciter, surah, playing, await $.clock.now(), 480, runtime.generation, view.focusRevision, false, null, selection, repeatMode((await $.state.get(repeatRef)).value))
+  const repeat = repeatMode((await $.state.get(repeatRef)).value)
+  const model = paneModel(raw, reciter, surah, playing, await $.clock.now(), width, runtime.generation, view.focusRevision, false, null, selection, repeat)
+  return { raw, reciter, playing, selection, model }
+}
+// What the Muslim pane shows of the player.
+async function panelQuran($: EngineInterface): Promise<PanelQuran | null> {
+  const state = await panelModel($)
+  if (!state) return null
+  const { raw, reciter, playing, selection, model } = state
   const active = playing ? raw.reciters.find(r => r.key === playing.moshafKey) ?? reciter : reciter
   const index = playing?.segmentIndex ?? selection.selectedSegment
   return {
-    reciter: active.name,
+    reciter: active.label.replace(' — ', ' · '),
     surah: model.title,
-    part: selection.segments.length ? `المقطع ${arabicDigits(index + 1)} من ${arabicDigits(selection.segments.length)}` : '',
+    part: selection.segments.length ? segmentLabel(selection.segments, index) : '',
+    segmented: selection.segments.length > 0,
+    status: model.status,
+    isLive: model.playing,
     elapsed: model.elapsed,
     total: model.total,
     progress: model.progress,
     isPlaying: model.playing || !!model.preparing,
     canPrev: model.canPrev !== false,
     canNext: model.canNext !== false,
+    repeat: model.repeat,
+    avatar: avatarSvg(model.playing, model.avatarElapsedMs, 96),
+  }
+}
+// The rows of one list for the Muslim card's pickers: the Quran pane's own options and search.
+async function panelOptions($: EngineInterface, list: PanelList, query: string): Promise<PanelOption[]> {
+  const state = await panelModel($)
+  if (!state) return []
+  return listOptions(state.model, list, query).map(o => ({ value: o.value, label: o.label, number: list === 'segment' ? '' : o.number, selected: o.selected }))
+}
+// One list pick, from the Quran pane or the Muslim card: the same checks and the same actions.
+async function pick($: EngineInterface, list: List, value: string): Promise<void> {
+  if (!isPickMessage({ act: 'pick', list, value })) return
+  // Dispatch surah picks before catalog refresh so known gaps do no network work.
+  if (list === 'surah') {
+    const surah = Number(value)
+    if (Number.isInteger(surah) && surah >= 1 && surah <= 114 && String(surah) === value) await paneAction($, { kind: 'play', value })
+    return
+  }
+  const c = await catalog($)
+  if (list === 'reciter') {
+    const index = c.reciters.findIndex(r => r.key === value)
+    if (index >= 0) await paneAction($, { kind: 'reciter', value: String(index + 1) })
+  } else {
+    const reciter = await chosen($, c)
+    const current = (await $.state.get(surahRef)).value ?? 1
+    const index = Number(value)
+    if (runtime.plan?.moshafKey === reciter.key && runtime.plan.surah === current && Number.isInteger(index) && runtime.plan.segments[index]) {
+      await paneAction($, { kind: 'play', value: String(current), segmentIndex: index })
+    }
   }
 }
 // Connect on footer/pane draws (Quran adds nothing to the footer) and again in the Muslim press's own context.
@@ -561,12 +604,12 @@ function connectToPanel($: EngineInterface): void {
   connectPanelAction('quran-toggle', () => togglePlayback($))
   connectPanelAction('quran-prev', () => paneAction($, { kind: 'prev' }))
   connectPanelAction('quran-next', () => paneAction($, { kind: 'next' }))
-  connectPanelAction('quran-open', async () => {
-    // Navigation must not wait for playback work. Reopen the same id with a
-    // focus request so Desktop raises its existing tab in the mod-pane dock.
-    await open($, true)
-    await dispatch($, { kind: 'open' }, false, true)
-  })
+  connectQuranOptions((list, query) => panelOptions($, list, query))
+  connectPanelAction('quran-reciter', value => pick($, 'reciter', value ?? ''))
+  connectPanelAction('quran-surah', value => pick($, 'surah', value ?? ''))
+  connectPanelAction('quran-segment', value => pick($, 'segment', value ?? ''))
+  connectPanelAction('quran-repeat-surah', () => paneAction($, { kind: 'repeat' }))
+  connectPanelAction('quran-repeat-segment', () => paneAction($, { kind: 'repeat-segment' }))
 }
 
 export const install = (on: On, options: Options) => {
@@ -597,25 +640,7 @@ export const install = (on: On, options: Options) => {
   on('ui.message', { element: 'quran-card' }, async ($, e) => {
     if (e.surface !== 'desktop') return {}
     if (isPickMessage(e.data)) {
-      const pickMessage = e.data
-      // Dispatch surah picks before catalog refresh so known gaps do no network work.
-      if (pickMessage.list === 'surah') {
-        const surah = Number(pickMessage.value)
-        if (Number.isInteger(surah) && surah >= 1 && surah <= 114 && String(surah) === pickMessage.value) await paneAction($, { kind: 'play', value: pickMessage.value })
-        return {}
-      }
-      const c = await catalog($)
-      if (pickMessage.list === 'reciter') {
-        const index = c.reciters.findIndex(r => r.key === pickMessage.value)
-        if (index >= 0) await paneAction($, { kind: 'reciter', value: String(index + 1) })
-      } else if (pickMessage.list === 'segment') {
-        const reciter = await chosen($, c)
-        const current = (await $.state.get(surahRef)).value ?? 1
-        const index = Number(pickMessage.value)
-        if (runtime.plan?.moshafKey === reciter.key && runtime.plan.surah === current && Number.isInteger(index) && runtime.plan.segments[index]) {
-          await paneAction($, { kind: 'play', value: String(current), segmentIndex: index })
-        }
-      }
+      await pick($, e.data.list, e.data.value)
       return {}
     }
     if (!isCardMessage(e.data)) return {}

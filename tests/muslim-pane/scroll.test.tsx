@@ -1,6 +1,6 @@
 import type { On, UiScrollInput } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
-import { PANE_HEIGHT, QURAN_Y, RECITER_TOP, SURAH_TOP } from '../../src/features/muslim-pane/layout.ts'
+import { PANE_HEIGHT, QURAN_Y, Q_RECITER_BASE, Q_TITLE_TOP } from '../../src/features/muslim-pane/layout.ts'
 
 const pane = (surface: 'desktop' | 'terminal', offset = 0, bodyRows = 40) => ({
   plugin: 'muslim', component: 'Pane' as const, requestId: 'muslim', surface,
@@ -19,12 +19,12 @@ const wheel = (by: number, row?: number): UiScrollInput => ({
   origin: { kind: 'person' }, ...(row === undefined ? {} : { pointer: { column: 25, row } }),
 })
 
-test('wheel over either passive Quran row leaves a fitting pane undrawn, with or without coordinates', async ($, on) => {
+test('wheel over the Quran title or reciter row leaves a fitting pane undrawn, with or without coordinates', async ($, on) => {
   const forwarded = setup(on)
   const ui = await $.ui.mount(pane('desktop'))
   await ui.resize({ columns: 50, rows: 40, in: 'muslim-pane' })
   const before = await ui.drawn({ in: 'muslim-pane' })
-  for (const top of [RECITER_TOP, SURAH_TOP]) {
+  for (const top of [Q_RECITER_BASE + 14, Q_TITLE_TOP]) {
     const row = (QURAN_Y + top + 18) * 40 / PANE_HEIGHT
     await ui.pointer({ in: 'muslim-pane', type: 'move', x: 25, y: Math.floor(row) })
     for (const by of [1, -1, 8, -8, 0.2, -0.2]) {

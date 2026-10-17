@@ -102,7 +102,7 @@ test('settings picture draws only the open category, escapes city text and keeps
   const model=paneModel({salah:null,quran:null,athkar:null},0,320,'orange')
   model.settings=make('prayer');model.settings.options.salahPlace={name:'<bad>&',latitude:1,longitude:2,timeZone:'UTC',country:'ZZ'}
   const svg=paneSvg(model)
-  expect(svg).toContain('&lt;bad&gt;&amp;');expect(svg).not.toContain('القارئ')
+  expect(svg).toContain('&lt;bad&gt;&amp;')
   expect(svg).not.toContain('تعديل المواقيت</strong>');expect(svg).not.toContain('Preview')
   expect(svg).toContain(`height="${paneHeight(model.folds,model.settings.state,model.settings.options)}"`)
 })

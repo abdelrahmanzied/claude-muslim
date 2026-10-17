@@ -1,10 +1,12 @@
 import type { EngineInterface, On } from 'claude-code'
 import type { Options } from '../../config.ts'
-import type { PaneOptimistic } from '../../../types/index.d.ts'
+import type { PaneOptimistic, PanePicker } from '../../../types/index.d.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
-import { readAthkar, readQuran, readSalah, runPanelAction } from '../../shared/panel/signal.ts'
-import { NO_FOLDS, hitOfCells, isFolds, isPaneMessage, keyAct, type Enabled, type Folds, type PaneAct } from './layout.ts'
-import { paneModel, textLines, widthOf, type PaneModel } from './model.ts'
+import { readAthkar, readQuran, readQuranOptions, readSalah, runPanelAction, type PanelAction, type PanelOption } from '../../shared/panel/signal.ts'
+import { pointerPixels } from '../../shared/card/pointer.ts'
+import { NO_FOLDS, cardRects, hitOfCells, isFolds, isPaneMessage, keyAct, paneHeight, quranRowOf, type Enabled, type Folds, type PaneAct, type PaneMessage } from './layout.ts'
+import { paneModel, quranLayout, textLines, widthOf, type PaneModel } from './model.ts'
+import { dragBar, dragCell, isPanePicker, openPicker, pickerKey, pickerView, pressBar, type PickerView } from './picker.ts'
 import { CATEGORIES, COPIED_MS, changeCategory, copiedAt, isSwitchField, loadSettings, optimisticOptions, settingsBody, type SettingsState } from './settings.ts'
 import { skipPaneScroll } from '../../shared/scroll/index.ts'
 
@@ -69,10 +71,24 @@ async function arabicMode($: EngineInterface, surface: string): Promise<ArabicMo
   return cached?.terminalId === id ? cached.mode : isArabicMode(saved) ? saved : defaultArabicMode(id)
 }
 
-// What the three cards show right now: whatever the features have connected.
+const pickerRef = { plugin: 'muslim', key: 'panePicker' } as const
+async function readPicker($: EngineInterface): Promise<PanePicker | null> {
+  const saved = (await $.state.get(pickerRef)).value
+  return isPanePicker(saved) ? saved : null
+}
+async function writePicker($: EngineInterface, picker: PanePicker | null): Promise<void> {
+  await $.state.set(pickerRef, picker)
+  $.ui.invalidate('ui.render')
+}
+
+// What the three cards show right now: whatever the features have connected, and the Quran card's open list.
 async function modelNow($: EngineInterface, options: Options, columns: unknown): Promise<PaneModel> {
   const now = await $.clock.now()
-  return paneModel({ salah: readSalah(now), quran: await readQuran(), athkar: await readAthkar() }, now, widthOf(columns), options.color, undefined, await readFolds($), { state: await readSettings($), options: optimisticOptions(options, (await $.state.get(optimisticRef)).value), terminalMode: 'per-terminal setup', copied: copiedAt((await $.state.get(copiedRef)).value, now) })
+  const folds = await readFolds($), quran = await readQuran(), picker = await readPicker($)
+  // A segment list only means something for a split surah; a folded card shows no list.
+  let view: PickerView | null = null
+  if (picker && quran && !folds.quran && (picker.list !== 'segment' || quran.segmented)) view = pickerView(picker, await readQuranOptions(picker.list, picker.query))
+  return paneModel({ salah: readSalah(now), quran, athkar: await readAthkar() }, now, widthOf(columns), options.color, undefined, folds, { state: await readSettings($), options: optimisticOptions(options, (await $.state.get(optimisticRef)).value), terminalMode: 'per-terminal setup', copied: copiedAt((await $.state.get(copiedRef)).value, now) }, view)
 }
 
 const enabledOf = (m: PaneModel): Enabled => ({
@@ -80,6 +96,7 @@ const enabledOf = (m: PaneModel): Enabled => ({
   quran: m.quran.isAvailable,
   canPrev: m.quran.isAvailable && m.quran.canPrev,
   canNext: m.quran.isAvailable && m.quran.canNext,
+  segmented: m.quran.isAvailable && m.quran.segmented,
   athkar: m.athkar.isAvailable,
   athkarFinish: m.athkar.isAvailable && !m.athkar.isDone,
 })
@@ -99,8 +116,61 @@ async function press($: EngineInterface, options: Options, act: PaneAct): Promis
     if (deny) $.ui.toast(`Not changed: ${deny}`)
     return
   }
-  const took = await runPanelAction(act === 'quran-toggle' ? 'quran-toggle' : act === 'quran-prev' ? 'quran-prev' : act === 'quran-next' ? 'quran-next' : act === 'quran-open' ? 'quran-open' : act === 'athkar-finish' ? 'athkar-finish' : 'athkar-open')
+  if (act === 'quran-pick-reciter' || act === 'quran-pick-surah' || act === 'quran-pick-segment') {
+    const list = act === 'quran-pick-reciter' ? 'reciter' : act === 'quran-pick-surah' ? 'surah' : 'segment'
+    const rows = await readQuranOptions(list, '')
+    if (!rows.length) { $.ui.toast('Quran is not ready yet. /quran'); return }
+    await writePicker($, openPicker(list, rows.length, rows.findIndex(o => o.selected)))
+    return
+  }
+  if (act === 'quran-back') { await writePicker($, null); return }
+  const row = quranRowOf(act)
+  if (row !== null) {
+    const picker = await readPicker($)
+    if (!picker) return
+    const option = (await readQuranOptions(picker.list, picker.query))[picker.scroll + row]
+    if (option) await choose($, picker, option)
+    return
+  }
+  const action: PanelAction | null = act === 'quran-toggle' || act === 'quran-prev' || act === 'quran-next' || act === 'quran-repeat-surah' || act === 'quran-repeat-segment' || act === 'athkar-open' || act === 'athkar-finish' ? act : null
+  if (!action) return
+  const took = await runPanelAction(action)
   if (!took) $.ui.toast((act === 'athkar-open' || act === 'athkar-finish') ? 'Athkar are off. /athkar on' : 'Quran is not ready yet. /quran')
+}
+
+// A row chosen: the list closes first, then the Quran feature makes the pick it validates itself.
+async function choose($: EngineInterface, picker: PanePicker, option: PanelOption): Promise<void> {
+  await writePicker($, null)
+  const took = await runPanelAction(picker.list === 'reciter' ? 'quran-reciter' : picker.list === 'surah' ? 'quran-surah' : 'quran-segment', option.value)
+  if (!took) $.ui.toast('Quran is not ready yet. /quran')
+}
+
+// A key with a list open: the list takes it.
+async function pickerKeyPress($: EngineInterface, key: string): Promise<void> {
+  const picker = await readPicker($)
+  if (!picker) return
+  const rows = await readQuranOptions(picker.list, picker.query)
+  const result = pickerKey(picker, key, rows.length)
+  if (result.choose !== null) { const option = rows[result.choose]; if (option) await choose($, picker, option) }
+  else if (result.picker !== picker) await writePicker($, result.picker)
+}
+
+// A press on the scrollbar moves the list there and starts a drag; the rest of the drag arrives as `drag` messages.
+async function barPress($: EngineInterface, model: PaneModel, message: Extract<PaneMessage, { act: 'pointer' }>): Promise<void> {
+  const picker = await readPicker($)
+  if (!picker || !model.picker) return
+  const layout = quranLayout(model)
+  const height = paneHeight(model.folds, model.settings.state, model.settings.options, layout)
+  const y = pointerPixels(message.width, message.x, message.y, message.columns, message.rows, height).y
+  await writePicker($, pressBar(picker, model.picker.count, cardRects(model.folds, model.settings.state, model.settings.options, layout).quranY, y, dragCell(height, message.rows)))
+}
+async function dragPress($: EngineInterface, folds: Folds, message: Extract<PaneMessage, { act: 'drag' }>): Promise<void> {
+  const picker = await readPicker($)
+  if (!picker?.drag) return
+  const count = (await readQuranOptions(picker.list, picker.query)).length
+  const next = dragBar(picker, count, cardRects(folds).quranY, message.y, NaN, message.end)
+  // A move that changes nothing draws nothing: every redraw swaps a whole picture on the host.
+  if (next.scroll !== picker.scroll || next.highlight !== picker.highlight || next.drag !== picker.drag) await writePicker($, next)
 }
 
 async function settingsPress($: EngineInterface, options: Options, act: PaneAct): Promise<void> {
@@ -218,11 +288,16 @@ export const install = (on: On, options: Options) => {
     // Refresh action closures with this press's engine context, not a footer draw's.
     try { await next(e) } catch { /* no hook beneath */ }
     const message = e.data
+    if (message.act === 'drag') { await dragPress($, await readFolds($), message); return {} }
     let act: PaneAct | null
     if (message.act === 'pointer') {
       if (message.button !== 'left') return {}
       const model = await modelNow($, options, message.columns)
-      act = hitOfCells(message.width, message.x, message.y, message.columns, message.rows, message.coarse, enabledOf(model), model.folds, model.settings)
+      act = hitOfCells(message.width, message.x, message.y, message.columns, message.rows, message.coarse, enabledOf(model), model.folds, model.settings, quranLayout(model))
+      if (act === 'quran-scroll') { await barPress($, model, message); return {} }
+    } else if ((await readPicker($)) && (await modelNow($, options, 50)).picker) {
+      await pickerKeyPress($, message.key)
+      return {}
     } else act = keyAct(message.key)
     if (act) await press($, options, act)
     return {}

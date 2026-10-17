@@ -4,6 +4,10 @@ import { isAvailable, nearestAvailable, nextAvailable, unavailableNote, unavaila
 import { formatTime } from './player.ts'
 import { normalizeName, searchReciters, searchSurahs, type Catalog, type Reciter } from './catalog.ts'
 import { tajawalFontFaceCss } from '../../shared/font/index.ts'
+import { VISIBLE_ROWS, beginPickerDrag as beginDrag, dragCell, dragPicker as dragBy, moveHighlight, pickerScrollbar as scrollbar, scrollPicker, typeQuery, type PickerDrag, type PickerScrollbar } from '../../shared/picker/index.ts'
+import { arabicDigits, segmentLabel } from './label.ts'
+export { VISIBLE_ROWS, arabicDigits, dragCell, moveHighlight, scrollPicker, typeQuery }
+export type { PickerDrag, PickerScrollbar }
 
 export const PANE_MIN_WIDTH = 240
 export const PANE_MAX_WIDTH = 1200
@@ -27,13 +31,11 @@ export const FIELD_HEIGHT = 46
 export const CARD_TOP = 293
 export const SEGMENT_EXTRA = 118
 export const PANE_HEIGHT = CARD_TOP + CARD_HEIGHT + 12
-export const VISIBLE_ROWS = 8
 export const ROW_HEIGHT = 34
 export type List = 'reciter' | 'surah' | 'segment'
 export type PaneModel = CardModel & { reciters: Reciter[]; surahs: Catalog['surahs']; selectedReciter: string; selectedSurah: number; focusRevision: number; isFocused: boolean; error: string; selection?: TrackSelection }
 export type PickerState = { open: List | null; query: string; highlight: number; scroll: number; focusRevision: number; wasFocused: boolean }
 export type Option = { value: string; label: string; number: string; selected: boolean; detail?: string }
-export const arabicDigits = (value: number): string => String(value).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[Number(d)]!)
 export function paneModel(catalog: Catalog, reciter: Reciter, selected: number, playing: QuranPlaying | null | undefined, now: number, width: number, generation: number, focusRevision: number, isFocused: boolean, error: string | null | undefined, selection?: TrackSelection, repeat: QuranRepeat = 'off', theme?: Theme): PaneModel {
   selected = nearestAvailable(reciter.key, selected) ?? selected
   const card = cardModel(catalog, reciter, selected, playing, now, safeWidth(width, PANE_MIN_WIDTH), generation, selection, repeat)
@@ -47,7 +49,13 @@ export function paneModel(catalog: Catalog, reciter: Reciter, selected: number, 
 }
 export const pickerInitial = (model: PaneModel): PickerState => ({ open: null, query: '', highlight: 0, scroll: 0, focusRevision: model.focusRevision, wasFocused: model.isFocused })
 export function options(model: PaneModel, list: List, query: string): Option[] {
-  if (list === 'segment') return (model.selection?.segments ?? []).map((s, i) => ({ value: String(i), label: `الآيات ${arabicDigits(s.firstAyah)}–${arabicDigits(s.lastAyah)}`, number: arabicDigits(i + 1), detail: `ربع الحزب ${arabicDigits(s.quarter)} · ${formatTime(s.durationMs)}`, selected: i === model.selection?.selectedSegment })).filter(o => normalizeName(`${o.label} ${o.number} ${o.detail}`, false).includes(normalizeName(query.replace(/[0-9]/g, d => arabicDigits(Number(d))), false)))
+  if (list === 'segment') {
+    const segments = model.selection?.segments ?? []
+    // A number searches the quarter and the ayat the segment holds, as the label shows them.
+    const q = normalizeName(query.replace(/[0-9]/g, d => arabicDigits(Number(d))), false), digits = query.trim().replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 1632))
+    return segments.map((s, i) => ({ value: String(i), label: segmentLabel(segments, i), number: arabicDigits(i + 1), detail: formatTime(s.durationMs), selected: i === model.selection?.selectedSegment }))
+      .filter((o, i) => /^\d+$/.test(digits) ? Number(digits) === segments[i]!.quarter || Number(digits) >= segments[i]!.firstAyah && Number(digits) <= segments[i]!.lastAyah : normalizeName(o.label, false).includes(q))
+  }
   return list === 'reciter' ? searchReciters(query, model.reciters).map(r => ({ value: r.key, label: r.label.replace(' — ', ' · '), number: '', selected: r.key === model.selectedReciter }))
     : searchSurahs(query, model.surahs).filter(s => isAvailable(model.selectedReciter, s.id)).map(s => ({ value: String(s.id), label: s.name, number: arabicDigits(s.id), selected: s.id === model.selectedSurah }))
 }
@@ -63,39 +71,6 @@ export const pickerFooterTop = (list: List, unavailableCount = 0): number => 56 
 export const pickerOverlayHeight = (list: List, unavailableCount = 0): number => pickerFooterTop(list, unavailableCount) + PICKER_FOOTER
 export const PICKER_HINT = 'Use ↑ ↓ for scrolling'
 export const overlayTop = (list: List): number => fieldTop(list) + FIELD_HEIGHT + 8
-export function moveHighlight(state: PickerState, count: number, delta: number): PickerState {
-  const highlight = Math.max(0, Math.min(Math.max(0, count - 1), state.highlight + delta))
-  const scroll = Math.max(0, Math.min(Math.max(0, count - VISIBLE_ROWS), highlight < state.scroll ? highlight : highlight >= state.scroll + VISIBLE_ROWS ? highlight - VISIBLE_ROWS + 1 : state.scroll))
-  return { ...state, highlight, scroll }
-}
-export function typeQuery(state: PickerState, key: string): PickerState {
-  const query = key === 'backspace' ? Array.from(state.query).slice(0, -1).join('') : state.query + key
-  return { ...state, query: query.slice(0, 120), highlight: 0, scroll: 0 }
-}
-export type PickerScrollbar = { top: number; height: number; thumbTop: number; thumbHeight: number; maxScroll: number }
-// `cell` is the pane pixels one reported row stood for when the bar was pressed. It is frozen for the whole drag: the host's row count can change by one while the picture is swapped, and following it would move the list under a pointer that did not.
-export type PickerDrag = { y: number; scroll: number; cell: number }
-export const dragCell = (height: number, rows: number): number => Number.isFinite(height) && Number.isFinite(rows) && rows > 0 ? height / rows : NaN
-export function pickerScrollbar(state: PickerState, count: number): PickerScrollbar | null {
-  if (!state.open || count <= VISIBLE_ROWS) return null
-  const top = overlayTop(state.open) + 56, height = VISIBLE_ROWS * pickerRowHeight(state.open)
-  const maxScroll = count - VISIBLE_ROWS, thumbHeight = Math.max(24, height * VISIBLE_ROWS / count)
-  return { top, height, thumbHeight, maxScroll, thumbTop: top + Math.max(0, Math.min(maxScroll, state.scroll)) / maxScroll * (height - thumbHeight) }
-}
-export function beginPickerDrag(state: PickerState, count: number, y: number, cell = NaN): { picker: PickerState; drag: PickerDrag } | null {
-  const bar = pickerScrollbar(state, count)
-  if (!bar || !Number.isFinite(y)) return null
-  const target = y >= bar.thumbTop && y <= bar.thumbTop + bar.thumbHeight ? state.scroll
-    : Math.round((y - bar.top - bar.thumbHeight / 2) / (bar.height - bar.thumbHeight) * bar.maxScroll)
-  const picker = scrollPicker(state, count, target - state.scroll)
-  return { picker, drag: { y, scroll: picker.scroll, cell } }
-}
-export function dragPicker(state: PickerState, count: number, drag: PickerDrag, y: number): PickerState {
-  const bar = pickerScrollbar(state, count)
-  if (!bar || ![drag.y, drag.scroll, y].every(Number.isFinite)) return state
-  const target = Math.round(drag.scroll + (y - drag.y) / (bar.height - bar.thumbHeight) * bar.maxScroll)
-  return scrollPicker(state, count, target - state.scroll)
-}
 export type PaneHit = { act: 'field'; list: List } | { act: 'row'; index: number } | { act: 'scrollbar' } | { act: 'panel' } | { act: 'close' } | { act: 'control'; action: CardAction } | null
 export type PointerSlack = { x: number; y: number }
 // Distance from a point to the nearest point of [lo, hi]; 0 inside it.
@@ -146,13 +121,15 @@ export function openPicker(model: PaneModel, state: PickerState, list: List): Pi
 }
 const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 const number = (text: string) => `<bdi dir="ltr">${escape(text)}</bdi>`
+// Digit runs and ayah ranges stay left-to-right inside Arabic text.
+const ltrDigits = (escaped: string) => escaped.replace(/[٠-٩]+(?:–[٠-٩]+)?/g, run => `<bdi dir="ltr">${run}</bdi>`)
 export function paneSvg(model: PaneModel, state: PickerState, hover: CardAction | null = null): string {
   const selected = model.reciters.find(r => r.key === model.selectedReciter) ?? model.reciters[0]!
   const lists: List[] = model.selection?.segments.length ? ['reciter', 'surah', 'segment'] : ['reciter', 'surah']
   const fields = lists.map(list => {
     const label = list === 'reciter' ? 'القارئ' : list === 'surah' ? 'السورة' : 'ابدأ من'
     const segment = list === 'segment' ? options(model, list, '').find(o => o.selected) : undefined
-    const value = list === 'reciter' ? escape(selected.label.replace(' — ', ' · ')) : list === 'surah' ? `${number(arabicDigits(model.selectedSurah))} · ${escape(model.surahs[model.selectedSurah - 1]!.name)}` : segment ? `المقطع ${number(segment.number)} · ${escape(segment.label)}` : ''
+    const value = list === 'reciter' ? escape(selected.label.replace(' — ', ' · ')) : list === 'surah' ? `${number(arabicDigits(model.selectedSurah))} · ${escape(model.surahs[model.selectedSurah - 1]!.name)}` : segment ? ltrDigits(escape(segment.label)) : ''
     return `<div class="field-label" style="top:${fieldTop(list) - 26}px">${label}</div><div class="field" role="combobox" aria-expanded="${state.open === list}" style="top:${fieldTop(list)}px"><span class="value">${value}</span><span class="arrow">▾</span></div>`
   }).join('')
   let dropdown = ''
@@ -160,7 +137,7 @@ export function paneSvg(model: PaneModel, state: PickerState, hover: CardAction 
     const matches = options(model, state.open, state.query)
     const note = state.open === 'surah' ? unavailableNote(unavailableSurahs(model.selectedReciter).length) : ''
     const unavailable = note ? `<div class="unavailable-note" style="top:${56 + VISIBLE_ROWS * pickerRowHeight(state.open)}px">${escape(note).replace(/[٠-٩]+/g, digits => number(digits))}</div>` : ''
-    const rows = matches.slice(state.scroll, state.scroll + VISIBLE_ROWS).map((o, i) => `<div class="option ${o.selected ? 'selected' : ''} ${state.highlight === state.scroll + i ? 'hot' : ''}" role="option" aria-selected="${o.selected}" style="top:${56 + i * pickerRowHeight(state.open!)}px;height:${pickerRowHeight(state.open!)}px"><span>${o.number ? `${number(o.number)} · ` : ''}${escape(o.label)}${o.detail ? `<small>${escape(o.detail)}</small>` : ''}</span><span class="check">${o.selected ? '✓' : ''}</span></div>`).join('')
+    const rows = matches.slice(state.scroll, state.scroll + VISIBLE_ROWS).map((o, i) => `<div class="option ${o.selected ? 'selected' : ''} ${state.highlight === state.scroll + i ? 'hot' : ''}" role="option" aria-selected="${o.selected}" style="top:${56 + i * pickerRowHeight(state.open!)}px;height:${pickerRowHeight(state.open!)}px"><span>${o.number && state.open !== 'segment' ? `${number(o.number)} · ` : ''}${state.open === 'segment' ? ltrDigits(escape(o.label)) : escape(o.label)}${o.detail ? `<small>${escape(o.detail)}</small>` : ''}</span><span class="check">${o.selected ? '✓' : ''}</span></div>`).join('')
     const bar = pickerScrollbar(state, matches.length)
     const scrollbar = bar ? `<div class="scrollbar" role="scrollbar" aria-label="موضع القائمة" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="${bar.maxScroll}" aria-valuenow="${state.scroll}" style="top:56px;height:${bar.height}px"><div class="thumb" style="top:${bar.thumbTop - bar.top}px;height:${bar.thumbHeight}px"></div></div>` : ''
     const placeholder = state.open === 'reciter' ? 'ابحث عن قارئ' : state.open === 'surah' ? 'ابحث عن سورة أو رقمها' : 'ابحث عن مقطع أو آية'
@@ -173,7 +150,7 @@ export function paneSvg(model: PaneModel, state: PickerState, hover: CardAction 
   const fonts = tajawalFontFaceCss()
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${model.width}" height="${paneHeight(model)}" viewBox="0 0 ${model.width} ${paneHeight(model)}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" class="pane${model.theme ? ` theme-${model.theme}` : ''}" dir="rtl"><style>${fonts}${paletteCss('.pane', model.color)}${ORNAMENT_CSS}
 *{box-sizing:border-box}.pane{position:relative;width:100%;height:100%;background:transparent;border:0;overflow:hidden;color:var(--q-text);font-family:Tajawal,sans-serif;font-weight:400;direction:rtl;text-align:right;user-select:none}.mushaf{position:absolute;right:20px;top:15px;height:36px;display:flex;align-items:center;gap:9px;color:var(--q-title);max-width:${heading.titleMaxWidth}px;font-size:${heading.titleSize}px;font-weight:700}.mushaf span{line-height:1;transform:translateY(.12em);min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.mushaf svg{color:var(--q-accent);flex-shrink:0}.command{position:absolute;left:20px;top:24px;line-height:18px;font-size:${heading.labelSize}px;white-space:nowrap;color:var(--q-dim)}.field-label{position:absolute;right:20px;left:20px;font-size:12px;color:var(--q-dim);line-height:18px}.field{position:absolute;left:20px;right:20px;height:${FIELD_HEIGHT}px;border:1px solid var(--q-line);border-radius:9px;background:transparent;padding:0 12px;font-size:14px;display:flex;align-items:center;justify-content:space-between;gap:10px}.field .value{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.arrow{color:var(--q-muted)}.player{position:absolute;left:20px;top:${paneCardTop(model)}px}.pane .quran{font-family:Tajawal,sans-serif;font-weight:400;text-align:right;direction:rtl}.dropdown{position:absolute;left:20px;right:20px;height:348px;border:1px solid var(--q-line);border-radius:10px;background:var(--q-dropdown-bg);z-index:5;box-shadow:var(--q-shadow);overflow:hidden}.search{position:absolute;left:8px;right:8px;top:8px;height:38px;padding:9px 10px;border:1px solid var(--q-line);border-radius:7px;background:transparent;font-size:14px;white-space:nowrap;overflow:hidden}.placeholder{color:var(--q-dim)}.caret{color:var(--q-accent)}.option{position:absolute;left:20px;right:6px;height:${ROW_HEIGHT}px;padding:8px 10px;border-radius:5px;display:flex;gap:8px;align-items:center;justify-content:space-between;font-size:14px;white-space:nowrap;overflow:hidden}.option>span:first-child{overflow:hidden;text-overflow:ellipsis}.scrollbar{position:absolute;left:4px;width:14px;z-index:1;border-radius:4px;background:linear-gradient(to right,transparent 3px,var(--q-scrollbar) 3px,var(--q-scrollbar) 11px,transparent 11px)}.thumb{position:absolute;left:4px;width:6px;border-radius:3px;background:var(--q-accent)}.unavailable-note{position:absolute;left:12px;right:12px;height:34px;display:flex;align-items:center;gap:4px;color:var(--q-dim);font-size:12px;pointer-events:none}.option.hot{background:color-mix(in srgb,var(--q-accent) 20%,transparent)}.option.selected{border-right:3px solid var(--q-accent);background:color-mix(in srgb,var(--q-accent) 34%,transparent)}.option.selected.hot{background:color-mix(in srgb,var(--q-accent) 44%,transparent)}.check{color:var(--q-accent)}.picker-footer{position:absolute;left:0;right:0;height:${PICKER_FOOTER}px;border-top:1px solid var(--q-line)}.picker-count{position:absolute;right:12px;left:auto;top:0;height:${PICKER_FOOTER - 1}px;display:flex;align-items:center;direction:rtl;text-align:right;white-space:nowrap;color:var(--q-dim);font-size:11px;line-height:14px}.picker-hint{position:absolute;left:12px;right:auto;top:0;height:${PICKER_FOOTER - 1}px;display:flex;align-items:center;direction:ltr;text-align:left;white-space:nowrap;color:var(--q-soft);font-size:12px;line-height:16px}.no-results{position:absolute;top:64px;right:18px;color:var(--q-dim);font-size:13px}.error{position:absolute;top:${paneCardTop(model) + CARD_HEIGHT + 6}px;line-height:18px;left:20px;right:20px;font-size:12px;color:var(--q-dim)}.option small{display:block;font-size:10px;color:var(--q-label);line-height:14px}.segment-note{position:absolute;top:${fieldTop('segment') + FIELD_HEIGHT + 8}px;left:20px;right:20px;font-size:11px;color:var(--q-dim);line-height:20px}.retry{position:absolute;left:20px;top:${paneRetryTop(model)}px;height:34px;width:140px;border:1px solid var(--q-line);border-radius:8px;color:var(--q-soft);font-size:12px;display:grid;place-items:center}bdi{unicode-bidi:isolate;direction:ltr}
-</style>${mushaf}${command}${ornament(65, 20)}${fields}${model.selection?.segments.length ? `<div class="segment-note">المقطع ${number(arabicDigits((model.selection.selectedSegment ?? 0) + 1))} من ${number(arabicDigits(model.selection.segments.length))} داخل سورة ${escape(model.surahs[model.selectedSurah - 1]!.name)}</div>` : ''}<div class="player">${player}</div>${model.error ? `<div class="error">${escape(model.error)}</div><div class="retry" role="button" aria-label="إعادة المحاولة">إعادة المحاولة</div>` : ''}${dropdown}</div></foreignObject></svg>`
+</style>${mushaf}${command}${ornament(65, 20)}${fields}${model.selection?.segments.length ? `<div class="segment-note">${ltrDigits(escape(segmentLabel(model.selection.segments, model.selection.selectedSegment ?? 0)))} داخل سورة ${escape(model.surahs[model.selectedSurah - 1]!.name)}</div>` : ''}<div class="player">${player}</div>${model.error ? `<div class="error">${escape(model.error)}</div><div class="retry" role="button" aria-label="إعادة المحاولة">إعادة المحاولة</div>` : ''}${dropdown}</div></foreignObject></svg>`
 }
 
 export type PickMessage = { act: 'pick'; list: List; value: string }
@@ -182,9 +159,14 @@ export function isPickMessage(value: unknown): value is PickMessage {
   const m = value as Record<string, unknown>
   return m.act === 'pick' && (m.list === 'reciter' || m.list === 'surah' || m.list === 'segment') && typeof m.value === 'string' && (m.list === 'reciter' ? /^\d+:\d+$/.test(m.value) : /^\d+$/.test(m.value))
 }
-
-export function scrollPicker(state: PickerState, count: number, delta: number): PickerState {
-  const scroll = Math.max(0, Math.min(Math.max(0, count - VISIBLE_ROWS), state.scroll + delta))
-  const highlight = Math.max(scroll, Math.min(Math.max(0, count - 1), scroll + VISIBLE_ROWS - 1, state.highlight))
-  return { ...state, scroll, highlight }
+// The Quran pane's own geometry for the shared scrollbar: it is the open list's rows, below its field.
+const barGeometry = (list: List) => ({ top: overlayTop(list) + 56, height: VISIBLE_ROWS * pickerRowHeight(list) })
+export function pickerScrollbar(state: PickerState, count: number): PickerScrollbar | null {
+  return state.open ? scrollbar(state, count, barGeometry(state.open)) : null
+}
+export function beginPickerDrag(state: PickerState, count: number, y: number, cell = NaN): { picker: PickerState; drag: PickerDrag } | null {
+  return state.open ? beginDrag(state, count, barGeometry(state.open), y, cell) : null
+}
+export function dragPicker(state: PickerState, count: number, drag: PickerDrag, y: number): PickerState {
+  return state.open ? dragBy(state, count, barGeometry(state.open), drag, y) : state
 }
