@@ -1,4 +1,3 @@
-import { accentText, type Accent } from '../../shared/color/index.ts'
 import type { EngineInterface, On } from 'claude-code'
 import type { Options } from '../../config.ts'
 import type { QuranPlaying } from '../../../types/index.d.ts'
@@ -7,12 +6,13 @@ import { audioUrl, CATALOG_MS, defaultReciter, filterReciters, isCatalog, matchR
 import { contentRangeTotal, decodeBase64, durationMs } from './mp3.ts'
 import { AUDIO_LIMIT_BYTES, CLIP_ERROR, SIZE_ERROR, TIMING_ERROR, cachedPlan, fileSize, lowerHeaders, makePlan, planKey, rangeHeader, readCache, timedSegments, timingRead, trimCache, sameRecording, withSegmentCut, type Checkpoint, type RecordingPlan, type Segment } from './segments.ts'
 import { SegmentScanner, SEGMENT_LEAD_MS, cbrByte, cbrCheckpoint, cbrStream, encodeBase64, seekCheckpoint } from './segment-mp3.ts'
-import { chipSize, chipText } from './footer.ts'
 import { formatTime, nextPlaybackItem, parseCommand, repeatMode, toggleRepeat, type Command } from './player.ts'
 import { isAvailable, nearestAvailable, nextAvailable, UNAVAILABLE_ERROR } from './availability.ts'
 import { quranHelp } from './help.ts'
-import { isCardMessage, pointerPixels, pointerSlack } from './card.ts'
-import { PANE_HEIGHT, columnsWidth, isPickMessage, isPickerMessage, pickerWheelDelta, paneHit, paneModel, pickerInitial, paneHeight, type PickerMessage } from './pane.ts'
+import { connectPanelAction, connectQuran, connectQuranOptions, type PanelList, type PanelOption, type PanelQuran } from '../../shared/panel/signal.ts'
+import { isPickMessage, options as listOptions, paneModel, type List } from './pane.ts'
+import { segmentLabel } from './label.ts'
+import { avatarSvg } from '../../shared/quran-avatar/index.ts'
 
 const QURAN_DEBUG = false
 type Preparing = { moshafKey: string; surah: number; stage: 'checking' | 'preparing' }
@@ -27,7 +27,6 @@ const surahRef = { plugin: 'muslim', key: 'quranSurah' } as const
 // Handles cannot survive reload; only these ephemeral resources stay here.
 const runtime: { controller?: AbortController; prefetch?: PrefetchTarget & { controller: AbortController; source: Promise<PreparedSegment> }; plan?: RecordingPlan; preparing?: Preparing; selectedSegment: number; reads?: unknown; timer?: { cancel(): void }; catalog?: Promise<Catalog>; queue: Promise<unknown>; probe: number; generation: number; stopEpoch: number; debugQueue: Promise<unknown>; cacheQueue: Promise<unknown>; clip?: { generation: number; surah: number } } = { selectedSegment: 0, queue: Promise.resolve(), probe: 0, generation: 0, stopEpoch: 0, debugQueue: Promise.resolve(), cacheQueue: Promise.resolve() }
 
-const view: { focusRevision: number; picker: PickerMessage | null; wheel: number; offset: number; wheelAt: number } = { focusRevision: 0, picker: null, wheel: 0, offset: 0, wheelAt: -Infinity }
 
 async function writeDebug($: EngineInterface, message: string): Promise<void> {
   try {
@@ -351,8 +350,6 @@ async function play($: EngineInterface, reciter: Reciter, surah: number, fromCom
   runtime.clip = { generation: token, surah }
   runtime.preparing = { moshafKey: reciter.key, surah, stage: 'checking' }
   runtime.selectedSegment = index
-  view.picker = null
-  ++view.focusRevision
   if (runtime.plan?.moshafKey !== reciter.key || runtime.plan.surah !== surah || refresh) runtime.plan = undefined
   await $.state.set(surahRef, surah)
   await $.state.set(errorRef, null)
@@ -427,20 +424,24 @@ function trackSelection(reciter: Reciter, surah: number) {
   const preparing = runtime.preparing?.moshafKey === reciter.key && runtime.preparing.surah === surah ? runtime.preparing : undefined
   return { segments: plan?.segments.map(segment => ({ ...segment })) ?? [], selectedSegment: runtime.selectedSegment, durationMs: plan?.durationMs ?? null, loading: preparing?.stage ?? null }
 }
-async function open($: EngineInterface): Promise<void> {
-  const surface = await $.session.surface()
-  await $.ui.open({ id: 'quran', title: await arabic($, surface ?? 'desktop', 'القرآن الكريم') })
+// /quran on the desktop: the Muslim pane, with the Quran card unfolded.
+const paneFoldsRef = { plugin: 'muslim', key: 'paneFolds' } as const
+async function showCard($: EngineInterface): Promise<void> {
+  const folds = (await $.state.get(paneFoldsRef)).value
+  if (folds?.quran) await $.state.set(paneFoldsRef, { ...folds, quran: false })
+  const placed = await $.ui.open({ id: 'muslim', title: '☾ Muslim', focus: true })
+  if (!placed.isPlaced) throw new Error(placed.reason)
   $.ui.invalidate('ui.render')
 }
-// The docked pane narrows the chat column and already shows the title and time, so the footer chip shrinks to its glyph while it is open.
-async function isPaneOpen($: EngineInterface): Promise<boolean> {
-  try { return (await $.ui.panes()).some(pane => pane.id === 'quran') } catch { return false }
-}
-async function togglePane($: EngineInterface): Promise<void> {
-  try {
-    if ((await $.ui.panes()).some(pane => pane.id === 'quran')) await $.ui.close({ id: 'quran' })
-    else { await dispatch($, { kind: 'open' }, false); $.ui.invalidate('ui.render') }
-  } catch (error) { await fail($, error) }
+// /quran off the desktop: where the player stands, in text.
+async function statusText($: EngineInterface, surface: string): Promise<string> {
+  const state = await panelQuran($)
+  if (!state) return 'Quran catalog is not ready yet. Try /quran again.'
+  const say = (text: string) => arabic($, surface, text)
+  const lines = [`Reciter: ${await say(state.reciter)}`, `Surah: ${await say(state.surah)}`]
+  if (state.part) lines.push(`Segment: ${await say(state.part)}`)
+  lines.push(`Time: ${state.elapsed} / ${state.total}`, `Status: ${state.isPlaying ? 'playing' : 'stopped'}`, 'Playback runs in the Claude desktop app.')
+  return lines.join('\n')
 }
 async function action($: EngineInterface, command: Command, fromCommand: boolean): Promise<string> {
   const generation = runtime.generation
@@ -454,7 +455,6 @@ async function action($: EngineInterface, command: Command, fromCommand: boolean
     $.ui.invalidate('ui.render')
     return `Quran repeat ${repeat === 'off' ? 'off' : repeat === 'surah' ? 'on' : 'on: current quarter'}.`
   }
-  if (command.kind === 'open' || command.kind === 'play') await open($)
   const c = await catalog($)
   await $.state.set(errorRef, null)
   $.ui.invalidate('ui.render')
@@ -462,8 +462,13 @@ async function action($: EngineInterface, command: Command, fromCommand: boolean
   const playing = (await $.state.get(playingRef)).value
   const current = await selectedSurah($, reciter)
   if (generation !== runtime.generation) return 'Quran stopped.'
-  if (command.kind === 'open' && (playing || runtime.plan?.moshafKey === reciter.key && runtime.plan.surah === current)) return 'Quran player opened (desktop only).'
-  if (command.kind === 'open') { await play($, reciter, current, fromCommand, 'command', 0, 'inspect'); return 'Quran player opened (desktop only).' }
+  if (command.kind === 'open') {
+    const surface = await $.session.surface() ?? 'desktop'
+    if (surface !== 'desktop') return statusText($, surface)
+    await showCard($)
+    if (!playing && !(runtime.plan?.moshafKey === reciter.key && runtime.plan.surah === current)) await play($, reciter, current, fromCommand, 'command', 0, 'inspect')
+    return 'Muslim pane opened at القرآن الكريم (desktop only).'
+  }
   if (command.kind === 'reciter') {
     if (!command.value) return '**Quran › Reciters**\n\n' + (await Promise.all(c.reciters.map(async (r, i) => `${i + 1}. ${await arabic($, await $.session.surface() ?? 'desktop', r.label)}`))).join('\n')
     const choice = matchReciter(command.value, c.reciters)
@@ -538,124 +543,108 @@ async function togglePlayback($: EngineInterface): Promise<void> {
   } catch (error) { await fail($, error) }
 }
 
-async function mainColor($: EngineInterface, color: Accent): Promise<string> {
-  if (color === 'orange') return accentText(color, undefined)
-  const theme = (await $.config.list()).find(row => row.key === 'theme')
-  return accentText(color, theme?.value)
+// The player's model as the Muslim card sees it; null until the catalog has been fetched once.
+async function panelModel($: EngineInterface, width = 480) {
+  const raw = await $.store.get('quran.catalog')
+  if (!isCatalog(raw)) return null
+  const reciter = await chosen($, raw)
+  const stored = (await $.state.get(surahRef)).value ?? 1
+  const surah = nearestAvailable(reciter.key, stored) ?? stored
+  const playing = (await $.state.get(playingRef)).value
+  const selection = trackSelection(reciter, surah)
+  const repeat = repeatMode((await $.state.get(repeatRef)).value)
+  const model = paneModel(raw, reciter, surah, playing, await $.clock.now(), width, runtime.generation, 0, false, null, selection, repeat)
+  return { raw, reciter, playing, selection, model }
+}
+// What the Muslim pane shows of the player.
+async function panelQuran($: EngineInterface): Promise<PanelQuran | null> {
+  const state = await panelModel($)
+  if (!state) return null
+  const { raw, reciter, playing, selection, model } = state
+  const active = playing ? raw.reciters.find(r => r.key === playing.moshafKey) ?? reciter : reciter
+  const index = playing?.segmentIndex ?? selection.selectedSegment
+  return {
+    reciter: active.label.replace(' — ', ' · '),
+    surah: model.title,
+    part: selection.segments.length ? segmentLabel(selection.segments, index) : '',
+    segmented: selection.segments.length > 0,
+    status: model.status,
+    isLive: model.playing,
+    elapsed: model.elapsed,
+    total: model.total,
+    progress: model.progress,
+    isPlaying: model.playing || !!model.preparing,
+    canPrev: model.canPrev !== false,
+    canNext: model.canNext !== false,
+    repeat: model.repeat,
+    avatar: avatarSvg(model.playing, model.avatarElapsedMs, 96),
+  }
+}
+// The rows of one list for the Muslim card's pickers: the Quran feature's own options and search.
+async function panelOptions($: EngineInterface, list: PanelList, query: string): Promise<PanelOption[]> {
+  const state = await panelModel($)
+  if (!state) return []
+  return listOptions(state.model, list, query).map(o => ({ value: o.value, label: o.label, number: list === 'segment' ? '' : o.number, selected: o.selected }))
+}
+// One list pick, from the Muslim card: the same checks and the same actions.
+async function pick($: EngineInterface, list: List, value: string): Promise<void> {
+  if (!isPickMessage({ act: 'pick', list, value })) return
+  // Dispatch surah picks before catalog refresh so known gaps do no network work.
+  if (list === 'surah') {
+    const surah = Number(value)
+    if (Number.isInteger(surah) && surah >= 1 && surah <= 114 && String(surah) === value) await paneAction($, { kind: 'play', value })
+    return
+  }
+  const c = await catalog($)
+  if (list === 'reciter') {
+    const index = c.reciters.findIndex(r => r.key === value)
+    if (index >= 0) await paneAction($, { kind: 'reciter', value: String(index + 1) })
+  } else {
+    const reciter = await chosen($, c)
+    const current = (await $.state.get(surahRef)).value ?? 1
+    const index = Number(value)
+    if (runtime.plan?.moshafKey === reciter.key && runtime.plan.surah === current && Number.isInteger(index) && runtime.plan.segments[index]) {
+      await paneAction($, { kind: 'play', value: String(current), segmentIndex: index })
+    }
+  }
+}
+// Connect on footer/pane draws (Quran adds nothing to the footer) and again in the Muslim press's own context.
+function connectToPanel($: EngineInterface): void {
+  connectQuran(() => panelQuran($))
+  connectPanelAction('quran-toggle', () => togglePlayback($))
+  connectPanelAction('quran-prev', () => paneAction($, { kind: 'prev' }))
+  connectPanelAction('quran-next', () => paneAction($, { kind: 'next' }))
+  connectQuranOptions((list, query) => panelOptions($, list, query))
+  connectPanelAction('quran-reciter', value => pick($, 'reciter', value ?? ''))
+  connectPanelAction('quran-surah', value => pick($, 'surah', value ?? ''))
+  connectPanelAction('quran-segment', value => pick($, 'segment', value ?? ''))
+  connectPanelAction('quran-repeat-surah', () => paneAction($, { kind: 'repeat' }))
+  connectPanelAction('quran-repeat-segment', () => paneAction($, { kind: 'repeat-segment' }))
 }
 
-export const install = (on: On, options: Options) => {
-  // Registered before salah: this outer hook prepends Quran to salah's tree.
-  on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
-    const theirs = await next(e)
-    if (e.surface !== 'desktop') return theirs
-    const { Box, Text, Button } = $.ui.resolve(e)
-    const playing = (await $.state.get(playingRef)).value
-    const raw = await $.store.get('quran.catalog')
-    const name = playing && isCatalog(raw) ? raw.surahs[playing.surah - 1]!.name : 'القرآن'
-    const time = playing ? formatTime(Math.max(0, await $.clock.now() - playing.startedAt)) : null
-    // Desktop draws a Button from its label alone and ignores the Text inside, so the label is the visible chip text.
-    // The Text repeats it, in the main color, for a Desktop that draws the children.
-    const chip = chipText(chipSize(e.viewport?.columns, await isPaneOpen($)), name, time)
-    return <Box gap={1}>
-      <Button key="quran-footer" label={chip} plain onPress={() => { void togglePane($) }}><Text color={await mainColor($, options.color)}>{chip}</Text></Button>
-      {theirs}
-    </Box>
+export const install = (on: On, _options: Options) => {
+  on('command.run', { command: 'muslim', args: /^\s*pane\s*$/ }, ($, e, next) => {
+    connectToPanel($)
+    return next(e)
   })
-  on('command.run', { command: 'quran' }, async ($, e) => ({ text: await dispatch($, parseCommand(e.args)) }))
+  on('ui.render', { component: 'Pane', requestId: 'muslim' }, ($, e, next) => {
+    connectToPanel($)
+    return next(e)
+  })
+  on('ui.message', { element: 'muslim-pane' }, ($, e, next) => {
+    connectToPanel($)
+    return next(e)
+  })
+  // Quran has no footer chip (the footer is ☾ Muslim and the prayer line); its draws still connect the panel feeds.
+  on('ui.render', { component: 'SessionMode' }, ($, e, next) => {
+    connectToPanel($)
+    return next(e)
+  })
+  on('command.run', { command: 'quran' }, async ($, e) => (connectToPanel($), { text: await dispatch($, parseCommand(e.args)) }))
   on('ui.render', { component: 'CommandOutput', props: { command: 'quran' } }, async ($, e, next) => {
     const error = (await $.state.get(commandErrorRef)).value
     if (!error) return next(e)
     const { Text } = $.ui.resolve(e)
     return <Text dimColor>{error}</Text>
-  })
-  on('ui.message', { element: 'quran-card' }, async ($, e) => {
-    if (e.surface !== 'desktop') return {}
-    if (isPickerMessage(e.data)) {
-      if (e.data.focusRevision === view.focusRevision) view.picker = e.data
-      return {}
-    }
-    if (isPickMessage(e.data)) {
-      view.picker = null
-      const pickMessage = e.data
-      // Dispatch surah picks before catalog refresh so known gaps do no network work.
-      if (pickMessage.list === 'surah') {
-        const surah = Number(pickMessage.value)
-        if (Number.isInteger(surah) && surah >= 1 && surah <= 114 && String(surah) === pickMessage.value) await paneAction($, { kind: 'play', value: pickMessage.value })
-        return {}
-      }
-      const c = await catalog($)
-      if (pickMessage.list === 'reciter') {
-        const index = c.reciters.findIndex(r => r.key === pickMessage.value)
-        if (index >= 0) await paneAction($, { kind: 'reciter', value: String(index + 1) })
-      } else if (pickMessage.list === 'segment') {
-        const reciter = await chosen($, c)
-        const current = (await $.state.get(surahRef)).value ?? 1
-        const index = Number(pickMessage.value)
-        if (runtime.plan?.moshafKey === reciter.key && runtime.plan.surah === current && Number.isInteger(index) && runtime.plan.segments[index]) {
-          await paneAction($, { kind: 'play', value: String(current), segmentIndex: index })
-        }
-      }
-      return {}
-    }
-    if (!isCardMessage(e.data)) return {}
-    const message = e.data
-    if (message.act === 'size') return {}
-    let buttonAction: 'prev' | 'toggle' | 'next' | 'repeat' | 'repeat-segment' | 'retry' | null = null
-    if (message.act === 'pointer') {
-      if (message.button !== 'left' || message.generation !== runtime.generation) return {}
-      const raw = await $.store.get('quran.catalog')
-      if (!isCatalog(raw)) return {}
-      const c = await chosen($, raw)
-      const playing = (await $.state.get(playingRef)).value
-      const selected = (await $.state.get(surahRef)).value ?? 1
-      const model = paneModel(raw, c, selected, playing, await $.clock.now(), message.width, runtime.generation, view.focusRevision, true, (await $.state.get(errorRef)).value, view.wheel, trackSelection(c, selected), repeatMode((await $.state.get(repeatRef)).value))
-      const pixels = pointerPixels(message.width, message.x, message.y, message.columns, message.rows, paneHeight(model))
-      const hit = paneHit(model, pickerInitial(model), pixels.x, pixels.y, pointerSlack(message.width, message.columns, message.rows, paneHeight(model), message.coarse === true))
-      buttonAction = hit?.act === 'control' ? hit.action : null
-    } else buttonAction = message.key === 'left' ? 'prev' : message.key === 'right' ? 'next' : message.key === 'return' || message.key === ' ' ? 'toggle' : null
-    if (buttonAction === 'toggle') await togglePlayback($)
-    else if (buttonAction) await paneAction($, { kind: buttonAction })
-    return {}
-  }).catch(async ($) => { await fail($, new Error('Quran control unavailable')); return {} })
-  on('ui.focus', { requestId: 'quran' }, async ($, e, next) => {
-    if (e.element !== 'quran-card') { view.picker = null; ++view.focusRevision; $.ui.invalidate('ui.render') }
-    return next(e)
-  })
-  on('ui.close', { id: 'quran' }, async ($, e, next) => {
-    view.picker = null
-    ++view.focusRevision
-    const closed = await next(e)
-    $.ui.invalidate('ui.render')
-    return closed
-  })
-  on('ui.scroll', { component: 'Pane', requestId: 'quran' }, async ($, e, next) => {
-    const delta = pickerWheelDelta(view.picker, e, view.focusRevision, view.offset)
-    if (!delta) return next(e)
-    const now = await $.clock.now()
-    if (now - view.wheelAt < 120) return {}
-    view.wheelAt = now
-    view.wheel += delta
-    $.ui.invalidate('ui.render')
-    return {}
-  })
-  on('ui.render', { component: 'Pane', requestId: 'quran' }, async ($, e) => {
-    const { Box, Text } = $.ui.resolve(e)
-    if (e.surface !== 'desktop') return <Text dimColor>{await arabic($, e.surface, 'مشغّل القرآن متاح على تطبيق Claude للديسكتوب')}</Text>
-    const { Client } = $.ui.resolve(e)
-    view.offset = e.props.scroll?.offset ?? 0
-    const playing = (await $.state.get(playingRef)).value
-    const error = (await $.state.get(errorRef)).value
-    const raw = await $.store.get('quran.catalog')
-    if (!isCatalog(raw)) return <Text dimColor>{error ?? 'Loading Quran catalog…'}</Text>
-    const reciter = await chosen($, raw)
-    const stored = (await $.state.get(surahRef)).value ?? 1
-    const surah = nearestAvailable(reciter.key, stored) ?? stored
-    const model = paneModel(raw, reciter, surah, playing, await $.clock.now(), columnsWidth(e.props.bodyColumns), runtime.generation, view.focusRevision, e.props.isFocused, error, view.wheel, trackSelection(reciter, surah), repeatMode((await $.state.get(repeatRef)).value))
-    model.color = options.color
-    return <Client key="quran-card" module="./client.tsx" width="100%" props={model} />
-  }).catch(async ($, e) => {
-    const { Text } = $.ui.resolve(e)
-    return <Text dimColor>Quran player unavailable. Use /quran again.</Text>
   })
 }

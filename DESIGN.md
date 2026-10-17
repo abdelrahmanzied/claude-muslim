@@ -9,9 +9,10 @@ The shared base every feature follows, and the index to each feature's own desig
 | Thikr line | `/thikr` | [thikr spec](docs/features/thikr/thikr.md) | [thikr design](docs/features/thikr/thikr-design.md): text only | [thikr content](docs/features/thikr/thikr-content.md) |
 | Morning, evening and after-salah athkar | `/athkar` | [athkar spec](docs/features/athkar/athkar.md) | [athkar design](docs/features/athkar/athkar-design.md): a drawn reader (Client module, desktop Svg sky) | [athkar content](docs/features/athkar/athkar-content.md) |
 | Salah | `/salah` | [salah spec](docs/features/salah/salah.md) | [salah design](docs/features/salah/salah-design.md): text, richer athan moment | [salah content](docs/features/salah/salah-content.md) |
-| Quran | `/quran` | [quran spec](docs/features/quran/quran.md) | [quran design](docs/features/quran/quran-design.md): desktop footer chip and a full Client-drawn pane with searchable dropdowns | none |
+| Quran | `/quran` | [quran spec](docs/features/quran/quran.md) | [quran design](docs/features/quran/quran-design.md): the player is the Muslim pane's Quran card (no pane of its own, no footer item); `/quran` opens it, or prints a text status on a terminal | none |
+| Muslim pane | `/muslim pane` | [muslim-pane spec](docs/features/muslim-pane/muslim-pane.md) | [muslim-pane design](docs/features/muslim-pane/muslim-pane-design.md): a docked desktop pane of three daily cards (prayers, Quran player, athkar progress) and one folded settings card with non-scrolling tabs, a Client-drawn picture; text in the terminal | none |
 
-Platform docs that are not features live in `docs/<platform>/`: terminal Arabic (the shared guide and the `/muslim terminal-arabic` check) is [docs/terminal/terminal-arabic.md](docs/terminal/terminal-arabic.md).
+Platform docs that are not features live in `docs/<platform>/`: terminal Arabic (the shared guide and the `/muslim terminal-arabic` check) is [docs/terminal/terminal-arabic.md](docs/terminal/terminal-arabic.md); the principles of every drawn desktop pane are [docs/desktop/pane-design.md](docs/desktop/pane-design.md).
 
 Everything below is shared by every feature. A feature's doc may add to it, never contradict it.
 
@@ -39,7 +40,7 @@ Pick the lightest surface that does the job. Each comes from the mod API (`/plug
 | Notification | `$.ui.notify` | Not used: OS banners show in meetings and screen shares; use a band row or a toast | — |
 | Command reply | `command.run` → `{ text }` | Status, help, changing settings | `/thikr` |
 
-Richer surfaces (Pane, Image, Svg, Raster, Client modules) are chosen per feature in its design doc, not here. Passive content does not get a Pane.
+Richer surfaces (Pane, Image, Svg, Raster, Client modules) are chosen per feature in its design doc, not here. Passive content does not get a Pane. Every drawn pane follows the [desktop pane design](docs/desktop/pane-design.md): what the Desktop owns, the fixed picture, look, cards, words, settings rows.
 
 Desktop cards above the prompt use `src/shared/card/` for their size, frame, ×, hover, lighting and input. Each feature supplies its content. Only one of these cards shows at a time: the athan card takes the athkar band's place until it closes or expires. Terminal surfaces are unchanged.
 
@@ -47,7 +48,7 @@ The shared card in `src/shared/card/card.ts` also holds the leave, key-rest, idl
 
 ## 3. Color
 
-The main color is one plugin-wide setting: `/muslim color orange | green | gold | blue`, default Claude orange. Every feature takes it from `src/shared/color/`; features never define their own palette. Orange text keeps the `claude` theme key so every Claude theme stays exact. Other main colors use the shared light/dark hex shade for the current theme; drawn surfaces use the shared hex palette. Text that is not already in the main color and Claude's own text and spinner keep their colors.
+The main color is one plugin-wide setting: `/muslim color orange | green | yellow | blue`, default Claude orange. Every feature takes it from `src/shared/color/`; features never define their own palette. Orange text keeps the `claude` theme key so every Claude theme stays exact. Other main colors use the shared light/dark hex shade for the current theme; drawn surfaces use the shared hex palette. Text that is not already in the main color and Claude's own text and spinner keep their colors.
 
 | Role | Theme key | Use |
 | --- | --- | --- |
@@ -58,9 +59,26 @@ The main color is one plugin-wide setting: `/muslim color orange | green | gold 
 
 Never use `error` or `warning` for religious text.
 
+### Icons
+
+One icon per feature, the same everywhere a drawn surface marks it: the Muslim pane's card headers, its settings tabs, and any later desktop surface. A feature never draws a second icon for itself. The standard set lives once in `src/shared/icon/` as 24×24 line fragments (stroke `currentColor`, the main color where the surface tints it), copied verbatim from the approved catalog. Each fills the 24×24 box (about 3 to 21 on both axes) so the set reads at the same weight at 20px; a drawing that sits low or small is redrawn, not scaled per surface:
+
+| Mark | Icon | Key |
+| --- | --- | --- |
+| Muslim as a whole | the full avatar, 36px tall and approximately 38.4px wide (desktop pane heading), `☾` on text surfaces | `avatar.ts`, `☾` |
+| عام (general settings) | منزلقات | `sliders` |
+| الصلاة | سجود واقعي | `sujoodreal` |
+| القرآن | مصحف pane القرآن | `qpane` |
+| الأذكار | شروق وغروب (both periods) | `horizon` |
+| الذكر | حبّات Spinner | `spinbeads` |
+| الإعدادات (settings as a whole) | ترس بأسنان | `gearteeth` |
+
+Inside a card, small row icons that describe a row rather than a feature (a bell, a microphone, a check ring) stay free. A new feature adds its row here and to `src/shared/icon/` before it is drawn anywhere. Text surfaces (terminal, Spinner, SessionMode, band rows) use text glyphs, never these drawings.
+
 ## 4. Typography and Arabic
 
 - **Font and size:** Claude's. We cannot and do not change them.
+- **Drawn panes:** use the fixed 12/14/16/20/24px type scale, with the plugin name largest.
 - **Tashkeel:** desktop-only setting, on by default; terminal display always strips tashkeel regardless of this setting.
 - **Direction:** a line that starts with Arabic is read right to left by the surface. When Claude's own Latin text or numbers sit in the same line, keep them as a separate run (e.g. a separator `·`), and never convert Claude's numbers.
 - **Our numbers** (counts, times we compute) use Arabic-Indic digits (`١٥:٢٤`, `٢/٣`) inside Arabic lines.
@@ -69,7 +87,7 @@ Never use `error` or `warning` for religious text.
 
 ## 5. Voice
 
-- Arabic for religious content; English for UI chrome (commands, help, settings) until languages land (issue #1).
+- Arabic for religious content; English for UI chrome (commands, help, settings) until languages land (issue #1). Drawn desktop panes are the exception: their labels, descriptions and buttons are Arabic ([pane design §5](docs/desktop/pane-design.md#5-words)).
 - Commands answer in one short line: what changed (`speed 3s`), or why not (`Speed is auto, or a whole number of seconds from 1 to 60.`).
 - No exclamation marks, emoji or praise in UI text.
 
@@ -91,9 +109,9 @@ Never use `error` or `warning` for religious text.
 
 ## 8. Demo
 
-Quran's demo is deferred to a separate task and is not part of the current shared sequence. Each other feature has its own demo subcommand and `src/features/<feature>/demo.ts` for pure scenes and timing (no `$`, plain unit tests). Its small engine runner stays in `install.ts(x)` with its atoms. A demo plays the real UI on demand and only drives drawing: no settings, store or saved-state changes. Salah uses `/salah demo`; thikr uses `/thikr demo`, which starts a real turn of its own because the Spinner draws only while Claude works.
+Quran's demo is deferred to a separate task and is not part of the current shared sequence (the Muslim pane has its own tour, `/muslim pane demo`). Each other feature has its own demo subcommand and `src/features/<feature>/demo.ts` for pure scenes and timing (no `$`, plain unit tests). Its small engine runner stays in `install.ts(x)` with its atoms. A demo plays the real UI on demand and only drives drawing: no settings, store or saved-state changes. Salah uses `/salah demo`; thikr uses `/thikr demo`, which starts a real turn of its own because the Spinner draws only while Claude works.
 
-`/muslim demo` plays the thikr demo, the no-argument athkar demo, then `/salah demo` (the athan moment followed by athkar after salah). Its command passes through demo-only setup hooks, which connect transient signals to each feature's own starter and engine handle. Later clock callbacks send those signals; no self-command is dispatched (`$.command.run` skips the caller in this build). `/muslim demo` only knows the order. It never holds, copies or hard-codes a demo's length or values: each demo works on its own, and when `/muslim demo` started it, it reports its own end through the signal (thikr after its usage-limit hold, athkar after its folded scene, salah after its after-salah folded done row). The next demo starts 0.1 s after that report. Started this way, the thikr prompt says `/muslim demo` instead of `/thikr demo`. Athkar uses its default look (sky on desktop, frame in the terminal; a configured desktop frame is respected). No city is needed. Nothing from one demo overlaps the next, and no demo writes real session atoms, settings or saved state. Salah selects its disposable moment through one guard in each existing render path. Closing or expiring it starts the Fajr after-salah scenes through a transient signal to athkar; its real reader builders draw those scenes. The completion callback returns to salah only after the folded done row, then any real athan returns untouched. The reply names the sequence and says thikr uses tokens and leaves a transcript message. A repeat while playing says `Muslim demo: already playing.`; a later request plays again. The order, the start delay and the gap: `src/demo.ts`; transient signals: `src/shared/demo/signal.ts`; the runner and module-local lifetime: marked `DEMO` blocks in `hooks/register.tsx` and each feature's `install.tsx`. Removing demo blocks and the two salah render selectors removes no core behavior.
+`/muslim demo` plays the thikr demo, the no-argument athkar demo, then `/salah demo` (the athan moment followed by athkar after salah), then the Muslim pane tour (`/muslim pane demo`, desktop only, skipped on a terminal; it reports its end after the cards fold back). Its command passes through demo-only setup hooks, which connect transient signals to each feature's own starter and engine handle. Later clock callbacks send those signals; no self-command is dispatched (`$.command.run` skips the caller in this build). `/muslim demo` only knows the order. It never holds, copies or hard-codes a demo's length or values: each demo works on its own, and when `/muslim demo` started it, it reports its own end through the signal (thikr after its usage-limit hold, athkar after its folded scene, salah after its after-salah folded done row). The next demo starts 0.1 s after that report. Started this way, the thikr prompt says `/muslim demo` instead of `/thikr demo`. Athkar uses its default look (sky on desktop, frame in the terminal; a configured desktop frame is respected). No city is needed. Nothing from one demo overlaps the next, and no demo writes real session atoms, settings or saved state. Salah selects its disposable moment through one guard in each existing render path. Closing or expiring it starts the Fajr after-salah scenes through a transient signal to athkar; its real reader builders draw those scenes. The completion callback returns to salah only after the folded done row, then any real athan returns untouched. The reply names the sequence and says thikr uses tokens and leaves a transcript message. A repeat while playing says `Muslim demo: already playing.`; a later request plays again. The order, the start delay and the gap: `src/demo.ts`; transient signals: `src/shared/demo/signal.ts`; the runner and module-local lifetime: marked `DEMO` blocks in `hooks/register.tsx` and each feature's `install.tsx`. Removing demo blocks and the two salah render selectors removes no core behavior.
 
 ## 9. Code shape for a new feature
 
@@ -117,6 +135,8 @@ Wire it in `hooks/register.tsx` (`install<Feature>(on, settings)`), register its
 - [ ] Spec added to `docs/features/<feature>/<feature>.md` (moments, phrases with sources, settings).
 - [ ] Phrases reviewed by a person; sources noted. Religious text shown is listed in `docs/features/<feature>/<feature>-content.md` with count and source.
 - [ ] Off switch in `/config` and the command; off leaves Claude untouched.
+- [ ] One icon from the standard set (§3 Icons), the same on every drawn surface.
+- [ ] A drawn desktop pane follows [docs/desktop/pane-design.md](docs/desktop/pane-design.md) and its checks.
 - [ ] Main color via the shared module, other colors via theme keys; desktop tashkeel setting respected and terminal tashkeel stripped.
 - [ ] Tests on `terminal` and `desktop`; `claude plugin validate`, `claude plugin test`, `tsc` pass.
 - [ ] Demo subcommand and pure `demo.ts` for the feature's real UI; no settings, store or saved-state changes.

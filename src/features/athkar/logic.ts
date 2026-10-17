@@ -4,6 +4,7 @@ import type { Period, Thikr } from './data.ts'
 import { afterSalah } from './after-salah.ts'
 import type { SalahAthkarTimes, SalahLast } from '../../../types'
 import type { Fard } from '../../shared/pray/names.ts'
+import { ATHKAR_TITLE } from '../../shared/athkar/titles.ts'
 
 export type AthkarSet = Period | 'afterSalah'
 export type ReaderThikr = Pick<Thikr, 'id' | 'times' | 'text' | 'evening' | 'note'> & { periods?: Thikr['periods'] }
@@ -18,7 +19,7 @@ export type Reading = {
   index: number
   // Counts so far, by thikr id.
   counts: Record<string, number>
-  // Every thikr was counted to its end.
+  // Every thikr was counted or explicitly confirmed complete.
   isDone: boolean
   // × hid the band; the reading is kept.
   isHidden: boolean
@@ -42,6 +43,8 @@ export type Act =
   | { act: 'next' }
   | { act: 'previous' }
   | { act: 'hide' }
+  | { act: 'finish' }
+  | { act: 'resume' }
 
 // Without prayer times, morning athkar are read 05:00 to 17:00, the evening ones 17:00 to 05:00.
 export const MORNING_FROM = 5
@@ -50,11 +53,7 @@ export const EVENING_FROM = 17
 // Wait after a thikr's last count before the next one shows.
 export const ADVANCE_MS = 650
 
-export const TITLE: Record<AthkarSet, string> = {
-  afterSalah: 'أَذْكَارُ بَعْدَ الصَّلَاةِ',
-  morning: 'أَذْكَارُ الصَّبَاحِ',
-  evening: 'أَذْكَارُ الْمَسَاءِ',
-}
+export const TITLE: Record<AthkarSet, string> = ATHKAR_TITLE
 
 export const END = 'تَقَبَّلَ اللَّهُ 🤲'
 
@@ -136,7 +135,7 @@ export const readDay = (raw: unknown, day: string): Day => {
   const stored = raw as Partial<Day>
   if (stored.day !== day) return emptyDay(day)
 
-  return { day, morning: readReading(stored.morning), evening: readReading(stored.evening), afterSalah: readAfterSalah(stored.afterSalah) }
+  return { day, morning: completed('morning', readReading(stored.morning)), evening: completed('evening', readReading(stored.evening)), afterSalah: readAfterSalah(stored.afterSalah) }
 }
 
 const readReading = (raw: unknown): Reading => {
@@ -151,13 +150,16 @@ const readReading = (raw: unknown): Reading => {
   }
 }
 
+// Older builds could finish with skipped counts. Keep saved completion consistent.
+const completed = <R extends Reading>(period: AthkarSet, reading: R): R => reading.isDone ? finishReading(period, reading) : reading
+
 const readAfterSalah = (raw: unknown): AfterSalahReading => {
   if (!raw || typeof raw !== 'object') return emptyAfterSalah()
   const r = raw as Partial<AfterSalahReading>
   const prayers: readonly string[] = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']
-  if (r.pray == null && r.at == null) return { ...readReading(raw), pray: null, at: null }
+  if (r.pray == null && r.at == null) return completed('afterSalah', { ...readReading(raw), pray: null, at: null })
   if (!r.pray || !prayers.includes(r.pray) || typeof r.at !== 'number' || !Number.isFinite(r.at)) return emptyAfterSalah()
-  return { ...readReading(raw), pray: r.pray, at: r.at }
+  return completed('afterSalah', { ...readReading(raw), pray: r.pray, at: r.at })
 }
 
 // One slot, replaced by each new prayer time; losing prayer times selects the general list.
@@ -174,8 +176,12 @@ export const offerStart = (last: SalahLast, requested?: SalahLast | null) =>
 export const setAt = (now: Date, day: Day, last: SalahLast | null, chosen?: AthkarSet, requested?: SalahLast | null, times?: SalahAthkarTimes | null): AthkarSet => {
   if (chosen) return chosen
   const slot = day.afterSalah
-  return last && now.getTime() >= offerStart(last, requested) && !slot.isDone && !slot.isHidden
-    ? 'afterSalah' : periodOn(now, times)
+  const period = periodOn(now, times)
+  // Unless asked for from the athan card, after-salah waits while a morning or evening reading is being counted.
+  const isAsked = !!last && requested?.at === last.at && requested.pray === last.pray
+  const isBusy = (r: Reading) => hasBegun(r) && !r.isDone && !r.isHidden
+  return last && now.getTime() >= offerStart(last, requested) && !slot.isDone && !slot.isHidden && (isAsked || !isBusy(day[period]))
+    ? 'afterSalah' : period
 }
 
 const isNumbers = (value: unknown): value is Record<string, number> =>
@@ -216,8 +222,34 @@ const withCount = (reading: Reading, thikr: ReaderThikr, n: number): Reading => 
   counts: { ...reading.counts, [thikr.id]: n },
 })
 
-// One step of the reader. Counting past the end moves on; the last thikr's
-// last count, once moved on from, finishes the period.
+export const incomplete = (period: AthkarSet, reading: Reading) => listFor(period, reading).filter(t => !isComplete(t, reading))
+
+// The only explicit finish operation: shared by the band and the pane.
+export const finishReading = <R extends Reading>(period: AthkarSet, reading: R): R => ({
+  ...reading,
+  counts: { ...reading.counts, ...Object.fromEntries(listFor(period, reading).map(t => [t.id, timesOf(t)])) },
+  isDone: true,
+})
+
+// The question belongs to the view, never Reading or the saved day.
+export const asksToFinish = (period: AthkarSet, reading: Reading, act: Act) =>
+  !reading.isDone && reading.index >= listFor(period, reading).length - 1 && incomplete(period, reading).length > 0
+  && (act.act === 'next' || (act.act === 'count' && isComplete(currentOf(period, reading), reading)))
+
+export type FinishQuestion = { day: string; period: AthkarSet; focus: 'finish' | 'resume'; blockedKey: string | undefined }
+export const countKey = (key: string) => key === ' ' ? 'space' : key
+
+// The host supplies key presses only, without key-up or repeat metadata.
+// Never infer a release from a timeout: explicitly selecting a choice clears
+// the entry-key latch. A different activation key is also a fresh choice.
+export const questionKey = (q: FinishQuestion, key: string): { question?: FinishQuestion; act?: Act } => {
+  if (key === 'right' || key === 'backspace') return {}
+  if (key === 'tab' || key === 'left') return { question: { ...q, focus: q.focus === 'finish' ? 'resume' : 'finish', blockedKey: undefined } }
+  if ((key === 'return' || countKey(key) === 'space') && countKey(key) !== q.blockedKey) return { act: { act: q.focus } }
+  return { question: q }
+}
+
+// One step of the reader. Only a fully counted set finishes on next.
 export const step = (period: AthkarSet, reading: Reading, act: Act): Reading => {
   const list = listFor(period, reading)
   const last = list.length - 1
@@ -225,6 +257,8 @@ export const step = (period: AthkarSet, reading: Reading, act: Act): Reading => 
   const n = countOf(thikr, reading)
   const times = timesOf(thikr)
 
+  if (act.act === 'finish') return finishReading(period, reading)
+  if (act.act === 'resume') return { ...reading, index: Math.max(0, list.findIndex(t => !isComplete(t, reading))) }
   if (act.act === 'hide') return { ...reading, isHidden: true }
   if (reading.isDone) return act.act === 'back' || act.act === 'previous' ? { ...reading, isDone: false } : reading
 
@@ -234,7 +268,7 @@ export const step = (period: AthkarSet, reading: Reading, act: Act): Reading => 
     case 'next':
       if (reading.index < last) return { ...reading, index: reading.index + 1 }
 
-      return isComplete(thikr, reading) ? { ...reading, isDone: true } : reading
+      return incomplete(period, reading).length === 0 ? { ...reading, isDone: true } : reading
     case 'previous':
       return { ...reading, index: Math.max(0, reading.index - 1) }
     case 'back':
@@ -254,7 +288,7 @@ export const shouldAdvance = (period: AthkarSet, before: Reading, after: Reading
 export const isAct = (value: unknown): value is Act => {
   if (!value || typeof value !== 'object') return false
   const { act } = value as { act?: unknown }
-  return act === 'count' || act === 'back' || act === 'next' || act === 'previous' || act === 'hide'
+  return act === 'count' || act === 'back' || act === 'next' || act === 'previous' || act === 'hide' || act === 'finish' || act === 'resume'
 }
 
 const DIGITS = '٠١٢٣٤٥٦٧٨٩'

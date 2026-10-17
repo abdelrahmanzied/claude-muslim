@@ -4,11 +4,11 @@ A Quran recitation player in Claude Desktop. Small recordings play as whole remo
 
 ## Flow
 
-1. `/quran` opens the pane titled «القرآن الكريم». On first need, fetch the reciters and surah names from MP3Quran v3. Show only complete (114 surahs) Hafs recordings (`rewaya_id === 1`). Each moshaf is a separate choice, including murattal and mujawwad by the same reciter.
-2. The whole desktop pane is Client-drawn. Rounded dropdown fields show the current reciter/moshaf and surah; clicking opens an overlay with a search box and eight visible option rows. The full catalog is available without pages or a 64-option cap. Printable Arabic/Latin keys filter, Backspace deletes, Up/Down moves the highlight and scrolls, Enter or a row click picks. The Client pointer API has no wheel event. The Pane hook can route forwarded ticks using coordinates or Client overlay hover, but current Desktop dispatch depends on its own viewport moving; full comfortable bidirectional wheel scrolling remains unresolved. Empty queries show all available choices. Field toggles, outside clicks and reported focus loss close the panel; picks clear and close it. The hook validates every posted pick against the cached catalog. Arabic substring matching ignores tashkeel, hamza forms and spaces but retains article letters. Latin and Arabic-Indic digits match exact surah or reciter-list numbers. Picking a surah checks its size: small recordings play, while large recordings reveal the searchable «ابدأ من» field and wait for a segment choice; picking a reciter saves it and restarts the playing surah, moving to an available surah if needed. Default remains Minshawi's Hafs murattal (`https://cdn.mp3quran.net/audio/muhammad-minshawi/r1/`), else the first complete Hafs recording; initial surah is 1.
-3. The docked pane shows a now-playing player drawn straight on the pane (no card): status, large SVG surah title, the avatar, reciter and Hafs attribution, a progress bar filling left to right, and separate LTR approximate elapsed and total times. The desktop Client renders it as Svg/foreignObject HTML/CSS, with clickable 40px previous/next circles, a 59px filled play/stop circle, two 34px repeat circles (quarter at the left end of the row, surah at the right end), Arabic captions and hover feedback; a dim next/repeat line sits below a rosette rule. Dropdowns overlay the player; a large recording adds 118px for the quarter selector. The pane also grows to fit wrapped errors and a retry control. Layout and colors for both themes are in [quran design](quran-design.md). Tajawal is embedded at weights 400/700, all Arabic is right-aligned RTL, and our numbers inside Arabic lines use Arabic-Indic digits with LTR isolation. Playback uses the audio API’s default gain. Loudness is controlled by the OS.
+1. The player lives only in the Muslim pane's «القرآن الكريم» card; there is no separate Quran pane. `/quran` with no arguments opens the Muslim pane on Desktop at that card (unfolding it if folded) and prepares the selected surah; on a terminal or any other surface it replies with a text status (reciter, surah, segment label if split, elapsed/total, playing or stopped, then `Playback runs in the Claude desktop app.`, Arabic through `src/shared/arabic`). On first need, fetch the reciters and surah names from MP3Quran v3. Show only complete (114 surahs) Hafs recordings (`rewaya_id === 1`). Each moshaf is a separate choice, including murattal and mujawwad by the same reciter.
+2. The card is Client-drawn by the Muslim pane. The reciter, surah and segment fields open an in-card sheet with a search box and eight visible option rows. The full catalog is available without pages or a 64-option cap. Printable Arabic/Latin keys filter, Backspace deletes, Up/Down moves the highlight and scrolls, the scrollbar drags, Enter or a row click picks. Details of the card are in the Muslim pane spec and design.
+3. The card shows a now-playing player: status, surah title, the avatar, reciter, a progress bar filling left to right, and separate LTR approximate elapsed and total times, with previous/next, play/stop and the two repeat controls (segment, surah).
 4. Playback starts directly in the hook flow without awaiting the clip, using the same controller that Stop and replacement actions abort. Each clip also gets a 200ms watchdog created beside the play call; after a generation change it aborts inside its own timer callback, even if direct abort already marked the signal. The watchdog cancels when that clip settles. This follows the live invocation-context hypothesis; audible behavior must be checked on Desktop. Size checking and large-recording clip preparation precede playback. Whole-track duration lookup remains best effort and independent. Stop bypasses the action queue so a pending catalog refresh cannot delay it; an interrupted pending play does not start later. The pane toggle reads current playback state when pressed. Starting another track aborts the current one. Stop ends playback. A whole track’s natural end advances to the next available surah with the same recording; when none remains it stops and clears playback. A split segment advances to the next segment, then the next available surah. Next/Previous stay within the selected surah’s segments, then skip unavailable surahs without wrapping. A per-play generation and controller identity guard prevent a stopped, replaced or reloaded clip from advancing. Previous/next stay at 1/114 with a short reply. Controls remain available while stopped; play starts the selected whole track or quarter from its beginning.
-5. Desktop has a shared-main-color «۞» symbol inside the native footer Button before salah’s prayer line, in the footer's mode labels (the Desktop decides whether that is before the model or on a row of its own under the model controls; see [quran design](quran-design.md)). Idle it reads «القرآن»; while playing it reads the authored surah name and approximate elapsed time. The chip sheds words as the chat column narrows (the Desktop footer shrinks its own items, and the API has no size prop for ours): the full text from 60 columns, «۞ mm:ss» (or «۞ القرآن» idle) from 40, and «۞» alone below that or whenever the docked pane is open (the pane already shows the title and time). The Button's label is the visible text, because Desktop draws a Button from its label alone. Pressing toggles the `quran` pane using the engine’s pane list and close API. Closing the pane does not stop audio. Quran adds no AbovePrompt band and no terminal footer label.
+5. Quran has no footer item on any surface: the Desktop footer holds only `☾ Muslim` and salah's prayer line, so the player is reached from `/quran` or the Muslim pane's Quran card. Closing the pane does not stop audio. Quran adds no AbovePrompt band.
 6. While playing, a clock timer invalidates the drawing once per second; stopped playback has no Quran redraw timer. Elapsed is `clock.now() - startedAt`, approximate wall-clock time including startup/buffering, not the decoder's position. Total is `--:--` until found. Times use `mm:ss`, or `h:mm:ss` from one hour.
 
 ## Recording availability
@@ -17,9 +17,11 @@ The shipped `QURAN_SUPPORT` catalog is keyed by the selected recording's `recite
 
 Switching recordings or restoring a stored selection that is unavailable chooses the next higher available surah, otherwise the next lower. Switching while playing follows normal surah replacement; a stopped selection stays stopped. There is no toast. Manual next/previous and natural auto-advance skip unavailable surahs without wrapping; quarter navigation keeps its existing rules. The card's automatic-next hint names the same available target.
 
+A segment is named everywhere (pane fields and options, the card's next/repeat lines, the Muslim pane) by one formatter, `src/features/quran/label.ts`: `الربع ٥ - الآيات ١٥–٢٤` with Arabic digits and the Arabic comma (never «·» beside Arabic digits), plus ` (١ من ٢)` when one quarter is cut into consecutive segments. The same player also lives in the Muslim pane's Quran card (see the muslim-pane spec); it uses the same picks and controls through the panel signal.
+
 Repeat is one of three session states: off, `surah` or `segment` (`PluginState['muslim'].quranRepeat`; reset to off at session start). The card has two exclusive buttons: «السورة» (`/quran repeat` or the surah button) and «المقطع» (`/quran repeat segment` or the quarter button). Pressing one turns the other off; pressing the active one turns repeat off.
 - `surah`: a whole file replays from the start; a split surah plays every quarter in order, then starts again from the first quarter. The hint names the next quarter, and on the last quarter (or a whole file) it reads «تكرار: سورة …».
-- `segment`: the current quarter replays forever and the next quarter is never prefetched (the same quarter stays ready so the replay is gapless). The hint reads «تكرار: المقطع … · الآيات …».
+- `segment`: the current quarter replays forever and the next quarter is never prefetched (the same quarter stays ready so the replay is gapless). The hint reads «تكرار: الربع … - الآيات …».
 - The quarter button is always drawn but inactive (dim, `aria-disabled`, no hover, not clickable) while the selected surah plays whole, and `/quran repeat segment` then says it needs a split surah. If a whole surah starts while `segment` is on, repeat falls back to off; a stale `segment` on a whole surah reads as off.
 
 Stop leaves repeat on; manual navigation never triggers it.
@@ -32,7 +34,7 @@ Runtime help follows the shared `Command | Description | Options` table; `/musli
 
 | Command | Does |
 | --- | --- |
-| `/quran` | Open the desktop player pane |
+| `/quran` | Desktop: open the Muslim pane at its Quran card. Terminal: text status (reciter, surah, time, state) |
 | `/quran play <surah>` | Play with the current reciter; number 1–114 or Arabic name (الكهف / كهف) |
 | `/quran stop` | Stop playback or pending preparation |
 | `/quran repeat` | Toggle whole-surah repeat (turns quarter repeat off) |
@@ -45,7 +47,7 @@ Runtime help follows the shared `Command | Description | Options` table; `/musli
 
 Names ignore tashkeel, hamza forms, leading `ال` and spaces. A reciter name shared by multiple recordings is ambiguous: use the full recording label or list number. Labels preserve the source's authored Arabic: `<reciter name> — <moshaf name after ' - ' if present>`. `/muslim help` includes Quran, `/muslim help quran` shows its table, and `/muslim` has a Quran row for current reciter.
 
-Replies are short except the requested catalog/help. Catalog and network failures appear as one dim error line in the pane and as a command reply. Pane actions run silently and redraw the pane; Quran never shows toasts. Since audio completes asynchronously, a play rejection updates Quran's visible command output only when playback was started by a slash command. Playback started from the pane reports errors only in the pane. No exception escapes the feature's hooks. Duration failures remain silent.
+Replies are short except the requested catalog/help. Catalog and network failures appear as one dim error line in the Muslim pane's Quran card and as a command reply. Card actions run silently and redraw the pane; Quran never shows toasts. Since audio completes asynchronously, a play rejection updates Quran's visible command output only when playback was started by a slash command. Playback started from the card reports errors only in the card. No exception escapes the feature's hooks. Duration failures remain silent.
 
 ## Data and permission
 
@@ -91,7 +93,7 @@ Range requests fetch at most 2MiB into temporary files, verify status 206, Conte
 
 ## Limits
 
-- Desktop is the only supported v1 playback surface. Commands are accepted everywhere; the non-desktop pane shows only «مشغّل القرآن متاح على تطبيق Claude للديسكتوب». All terminal Arabic uses the shared path; desktop text stays as authored.
+- Desktop is the only supported v1 playback surface. Commands are accepted everywhere; on other surfaces `/quran` replies with a text status ending `Playback runs in the Claude desktop app.`. All terminal Arabic uses the shared path; desktop text stays as authored.
 - No seeking, pause/resume, persistent audio cache, separate ayah playback, gapless quarter sequencing or looping. No claim of inaudible quarter boundaries.
 - Prayer time and salah’s athan moment leave recitation playing; no interaction with salah.
 - A module reload orphans a playing clip by losing the AbortController. The mod cannot stop that clip; it ends with the surah. `session.start` clears stale playback tracking and never resumes or advances it. Avoid changing other userConfig while playing.
@@ -99,11 +101,11 @@ Range requests fetch at most 2MiB into temporary files, verify status 206, Conte
 
 ## Embedded font
 
-Tajawal Regular and Bold (google/fonts, OFL in `fonts/OFL.txt`) are embedded via `@font-face` as lossless WOFF2 data URIs in `fonts-embedded.ts`. Full TTF base64 totals about 160 KB and cannot fit this build’s 100 KB Client tree limit; full WOFF2 versions retain every glyph at about 56 KB combined. No font network request is needed.
+Tajawal Regular and Bold (google/fonts, OFL in `src/shared/font/fonts/OFL.txt`) are embedded via `@font-face` as WOFF2 data URIs in `src/shared/font/tajawal-embedded.ts` (shared with the Muslim pane). Full TTF base64 totals about 160 KB and cannot fit this build’s 100 KB Client tree limit; WOFF2 subsets (Basic Latin, Latin-1, the Arabic blocks, punctuation, arrows and shapes, every layout feature kept) are about 48 KB combined, which leaves room for the full Muslim pane. No font network request is needed.
 
 ## Design
 
-[Quran design](quran-design.md): one full Client-drawn pane with embedded Tajawal, dropdown overlays and hit-tested controls; storage exception and surface fallback.
+[Quran design](quran-design.md): the player drawn inside the Muslim pane's Quran card, the text status on other surfaces; storage exception and surface fallback.
 
 [Recording catalogs](quran-catalog.md): developer support audit, generated availability metadata, the shipped availability behavior, accepted v1 timing drift, and automatic support refresh tracked in issue #13.
 
@@ -111,12 +113,11 @@ Tajawal Regular and Bold (google/fonts, OFL in `fonts/OFL.txt`) are embedded via
 
 | File | Holds |
 | --- | --- |
-| `install.tsx` | Hooks, catalog persistence, playback, duration probing, pane |
+| `install.tsx` | Hooks, `/quran` per surface, catalog persistence, playback, duration probing, feeds for the Muslim pane |
 | `avatar.ts` | Embedded vector avatar with playback-linked motion and still pose |
-| `card.ts` | Pure Client model, SVG/HTML/CSS picture, message validation and circular hit testing |
-| `client.tsx` | Desktop drawing thread, local dropdown state, region size, focus/typing, hover and posts |
-| `pane.ts` | Pure full-pane model, option windows, dropdown geometry and HTML/CSS/SVG |
-| `fonts-embedded.ts`, `fonts/OFL.txt` | Full Tajawal WOFF2 data and OFL licence |
+| `card.ts` | Pure player model (status, times, progress, repeat, avatar clock) |
+| `pane.ts` | Pure model for the Muslim pane's card feed, option lists and pick-message validation |
+| `src/shared/font/` (`tajawal-embedded.ts`, `fonts/OFL.txt`, `index.ts`; shared with the Muslim pane) | Full Tajawal WOFF2 data and OFL licence |
 | `catalog.ts` | Filtering, labels, command name matching, uncapped substring/number search, URL building |
 | `mp3.ts` | Pure frame, ID3, Xing/CBR, Content-Range and base64 parsing |
 | `quarter-boundaries.ts` | Shipped map version 1: 114 surahs, 240 quarters, 313 surah×quarter intersections, 6,236 ayahs; numeric ranges only, extracted from the AlQuran Cloud quarter map during research |
@@ -126,10 +127,19 @@ Tajawal Regular and Bold (google/fonts, OFL in `fonts/OFL.txt`) are embedded via
 | `player.ts` | Command parser, generation-safe next-surah rule, time formatting, text progress bar |
 | `help.ts` | Help table, shared with `/muslim help` |
 
-The desktop pane places the Mushaf book icon beside its custom Tajawal heading. The selected 120px embossed Quran avatar sits inside the player and moves only while playback state is active; stop or failure returns it to a still pose. Both dropdowns retain search and keyboard navigation, with a thin left-side scrollbar for dragging in either direction or clicking the track. Short filtered lists hide it. The custom heading text uses an optical baseline adjustment while its Mushaf icon and command label keep their positions. The Pane’s `ui.scroll` hook routes forwarded mouse/trackpad ticks, but native Desktop testing has not established reliable bidirectional wheel scrolling.
+The Quran card keeps the Mushaf book icon beside the heading «القرآن الكريم». The selected embossed Quran avatar sits inside the player and moves only while playback state is active; stop or failure returns it to a still pose. The lists retain search and keyboard navigation, with a drag scrollbar. The Muslim pane's `ui.scroll` hook never routes wheel ticks to a list.
 
 ## To verify live
 
-Open the pane in Desktop, select Minshawi and Al-Kahf, listen for continuous whole-track playback, stop, switch reciter while playing, verify the footer chip opens/closes the pane, test natural-end advancement and stopping after surah 114. Verify pane controls never show toasts and playback errors stay inside the pane unless started by a slash command. Check no acoustic overlap on fast switching and search across both full lists, Enter/row selection, keyboard scrolling and readable dropdowns in narrow panes and each theme. Temporarily enable diagnostics to check the watchdog for both initial and auto-advanced clips, and the drawn card and hover feedback against the mockup. Confirm the terminal fallback and Arabic modes. Check open/close, focus loss and embedded Tajawal in the full pane. Engine tests exercise hooks and trees; they do not prove sound or native paint.
+Open the Muslim pane in Desktop, select Minshawi and Al-Kahf, listen for continuous whole-track playback, stop, switch reciter while playing, verify `/quran` opens the pane at the Quran card and unfolds it, test natural-end advancement and stopping after surah 114. Verify card controls never show toasts and playback errors stay inside the card unless started by a slash command. Check no acoustic overlap on fast switching and search across both full lists, Enter/row selection, keyboard scrolling and readable sheets in narrow panes and each theme. Temporarily enable diagnostics to check the watchdog for both initial and auto-advanced clips. Confirm the terminal fallback (`/quran` status) and Arabic modes. Engine tests exercise hooks and trees; they do not prove sound or native paint.
 
-Native Desktop validation on macOS confirmed both drag scrollbars reach the last rows and return to the first rows while the Pane remains stationary. Surah search for 18 returns Al-Kahf and hides the scrollbar. Desktop pointer events are whole cells, so clicks on a field, the retry button or a control count anywhere the cell overlaps the target (a click on the field's bottom edge opens it); the open dropdown still owns its pixels. Drag input is quantized by the host cell coordinates. The pixels one reported row stands for are frozen when the bar is pressed, so a row count that flickers by one while the picture is swapped cannot move the list under a still pointer, and a move that changes nothing redraws nothing. A report of the list shaking up and down during a drag on Desktop (macOS laptop) is covered by these two rules in tests; the host-side causes (the pane window moving under the held pointer) are not provable offline and need a live check. Engine tests also cover release outside the Client, search and selection after dragging. This validates the drag control, not mouse-wheel behavior or other operating systems.
+## Muslim pane
+
+The [Muslim pane](../muslim-pane/muslim-pane.md) is where this feature is drawn, on its «القرآن الكريم» card. This feature connects what that card shows (and what its buttons ask of it) through `src/shared/panel/signal.ts`; see the pane spec for the table.
+
+`/quran` on Desktop does `$.ui.open({ id: 'muslim', title: '☾ Muslim', focus: true })`, unfolds the Quran card if the shared `paneFolds` state has it folded (Quran writes only that key and does not import the pane), and then does the silent inspection of the selected surah, retaining existing playback and selection. Quran connects on Muslim pane draws and input, so navigation works after a module reload. Desktop owns the shared mod-pane dock and focus grant; native tab activation remains a live verification step.
+
+
+### Muslim pane settings connector
+
+Quran also connects a read-only recording/selection/repeat feed, a catalog-load action, a recording-key selection action and an explicit session-repeat action. The pane routes through the existing Quran selection and repeat logic; reciter remains in `quran.reciter` and repeat in session state.

@@ -24,7 +24,7 @@ Prayer times for the user's city, calculated on their machine with
      updated every second; for 15 minutes once it is in, `حان وقت صلاة العصر`.
    - minutes (default 20, any whole number from 1 to 720): empty until that many minutes before a prayer, then the countdown; `حان وقت صلاة …` for 15 minutes, then empty again.
    - `off`: nothing, and the line is cleared.
-   - When a prayer comes in and `salahAthan` is on, the athan moment shows once per prayer, never during a survey, and not for a prayer first seen more than 2 minutes late (a late start). It has three stages:
+   - When a prayer comes in and `salahAthan` is on, the athan moment shows once per prayer, never during a survey, and not for a prayer first seen more than 15 minutes late (the same window the footer keeps «حان وقت»; a late tick or a reload still shows it, once). A moment that starts late still ends 15 minutes after the prayer's time. If the footer shows the call while the moment has not started, the footer's draw asks for a tick at once. It has three stages:
      1. **Show:** desktop opens the lit shared card over the Haram photo, with the call and time in Arabic digits; terminal plays the rising Unicode minaret (~3 seconds).
      2. **Fold:** after 1 minute (`FOLD_MS`), desktop uses the shared folded row (24px content height, the same as athkar): call and time on one line over the photo, shared × on the left. Pressing anywhere except × or the after-salah button reopens it with the athkar band's shared rest rules: leave folds after 1 second, enter cancels that wait, keys with the pointer off fold 3 seconds after the last key, and no input folds after 90 seconds. A focus move elsewhere in `AbovePrompt` (`plugin` other than `muslim`) folds immediately unless it arrives within 600 ms of a pointer press on the card. Reopening and later input renew the 90-second `foldsAt` deadline. These rules also apply once the pointer has entered the initially open card; an untouched first appearance still folds after 1 minute. The folded state is persisted through the existing atom. Terminal folds as soon as the rise finishes to one row above the prompt: `☾`, the call through the shared terminal Arabic path in the main color, and a × Button at the end; it stays folded.
      3. **Close:** × closes the moment at any stage on either surface; otherwise both disappear at the prayer timestamp plus the shared duration (`CARD_MS = IN_MS`, currently 15 minutes). Reopening never extends that deadline. Neither closing nor expiry announces the same prayer again.
@@ -77,7 +77,7 @@ Replies are short markdown: a bold title line first (`**Muslim › Salah**`, `**
 
 ## Settings
 
-Main-color accents follow the plugin-wide `/muslim color orange | green | gold | blue` setting through `src/shared/color/`, default Claude orange. Other colors stay as they are.
+Main-color accents follow the plugin-wide `/muslim color orange | green | yellow | blue` setting through `src/shared/color/`, default Claude orange. Other colors stay as they are.
 
 Terminal Arabic: the footer line and the minaret label follow the shared per-terminal setting (`/muslim terminal-arabic`, see the [terminal guide](../../terminal/terminal-arabic.md)). The desktop footer and athan card keep logical text.
 
@@ -149,3 +149,12 @@ The after-salah flow is specified in [athkar spec](../athkar/athkar.md#athkar-af
 Salah also owns the read-through `salahAthkarTimes` state contract: current and previous calendar date keys in the saved place’s time zone, today’s Fajr, Sunrise, Maghrib and Isha, and tomorrow’s Fajr (epoch milliseconds). Each read computes from the current clock, configured method and adjustments, without waiting for the ticker or writing during rendering. With no place it returns null. Athkar uses these bounds for Fajr/Maghrib periods, a Fajr day turnover, its next period boundary timer and prayer-based sky phases refreshed each minute; show off does not disable them.
 
 Prayer bounds reuse a pure daily calculation cache, refreshed on the first read after the place’s date changes; a settings reload drops the cache.
+
+## Muslim pane
+
+The [Muslim pane](../muslim-pane/muslim-pane.md) shows this feature on its own card. This feature connects what that card shows (and what its buttons ask of it) through `src/shared/panel/signal.ts`; see the pane spec for the table.
+
+
+### Muslim pane settings connector
+
+Salah connects `salah-city` during Muslim pane input. It runs the same `askCity`, resolution, `savePlace` and review path as `/salah city`, using the current press context; config denials show a toast.

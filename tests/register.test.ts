@@ -31,7 +31,7 @@ test('/muslim help shows every feature\'s table; with a feature, only its own', 
   expect(all).toContain('| `/thikr speed` | How long each phrase stays |')
   expect(all).toContain('/salah city')
   expect(all).toContain('| `/muslim terminal-arabic` |')
-  expect(all).toContain('| `/muslim demo` | Play thikr, athkar and /salah demo (athan and athkar after salah) in order; thikr uses tokens and leaves a message in the transcript | — |')
+  expect(all).toContain('| `/muslim demo` | Play thikr, athkar, /salah demo (athan and athkar after salah) and the Muslim pane tour (desktop) in order; thikr uses tokens and leaves a message in the transcript | — |\n| `/muslim pane demo` | Tour the Muslim pane on desktop: cards unfold, play and fold back; nothing is saved | — |')
   expect(all).toContain('| `/muslim tashkeel` | Arabic diacritics on desktop; the terminal never shows them | `on` (default) · `off` |')
   expect((await $.command.run(muslim('help terminal-arabic'))).text).toContain('| `/muslim terminal-arabic` | Choose how Arabic shows in this terminal, for every feature | — |')
   expect(salah?.split('\n')[0]).toBe('**Muslim › Salah › Help**')
@@ -91,7 +91,7 @@ test('the old arabic-fix subcommand no longer handles or changes settings', asyn
   expect(writes).toEqual([])
 })
 
-for (const color of ['orange', 'green', 'gold', 'blue']) {
+for (const color of ['orange', 'green', 'yellow', 'blue']) {
   test(`/muslim color reads and writes ${color}`, { options: { color } }, async ($, on) => {
     mock.store(on)
     on('session.surface', async () => ({ value: 'desktop' }))
@@ -101,16 +101,22 @@ for (const color of ['orange', 'green', 'gold', 'blue']) {
     expect((await $.command.run(muslim(`color ${color}`))).text).toBe(`Color ${color}`)
     expect(writes).toEqual([expect.objectContaining({ key: 'muslim.color', value: color })])
     expect((await $.command.run(muslim(''))).text).toContain(`| Color | The main color in every feature | ${color} |`)
-    expect((await $.command.run(muslim('help color'))).text).toContain('| `/muslim color` | The main color in every feature |')
+    expect((await $.command.run(muslim('help color'))).text).toContain('| `/muslim color` | The main color in every feature | `orange` (default, Claude\'s) · `green` · `yellow` · `blue` |')
   })
 }
 test('/muslim color refuses unknown names and extra arguments', async ($, on) => {
   const writes: unknown[] = []
   on('config.set', async (_$, e) => (writes.push(e), { value: e.value }))
   for (const args of ['color red', 'color green extra', 'color Orange']) {
-    expect((await $.command.run(muslim(args))).text).toBe('Usage: /muslim color orange | green | gold | blue')
+    expect((await $.command.run(muslim(args))).text).toBe('Usage: /muslim color orange | green | yellow | blue')
   }
   expect(writes).toEqual([])
+})
+test('/muslim color gold writes yellow, its new name', async ($, on) => {
+  const writes: unknown[] = []
+  on('config.set', async (_$, e) => (writes.push(e), { value: e.value }))
+  expect((await $.command.run(muslim('color gold'))).text).toBe('Color yellow')
+  expect(writes).toEqual([expect.objectContaining({ key: 'muslim.color', value: 'yellow' })])
 })
 test('/muslim color reports a denied write', async ($, on) => {
   on('config.set', async () => ({ deny: 'locked' }))

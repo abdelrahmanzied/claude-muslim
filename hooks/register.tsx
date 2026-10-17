@@ -14,6 +14,8 @@ import { isCatalog, defaultReciter } from '../src/features/quran/catalog.ts'
 import { nearestAvailable } from '../src/features/quran/availability.ts'
 import { terminalArabic, defaultArabicMode, isArabicMode, terminalIdFromEnv } from '../src/shared/arabic/terminal.ts'
 import { install as installThikr } from '../src/features/thikr/install.tsx'
+import { install as installMuslimPane } from '../src/features/muslim-pane/install.tsx'
+import { pendingSwitches } from '../src/features/muslim-pane/settings.ts'
 
 // $ stays in same-file helpers; Arabic transformation itself is shared pure logic.
 async function settingsArabic($: EngineInterface, surface: string, text: string): Promise<string> {
@@ -89,9 +91,14 @@ export const register: Register = (on, options) => {
   const settings = readOptions(options)
 
   on('session.start', async ($, e, next) => {
+    // Runs on config reload too. Clear confirmed switches outside ui.render.
+    const optimisticRef = { plugin: 'muslim', key: 'paneOptimistic' } as const
+    const optimistic = await $.state.get(optimisticRef)
+    const pending = pendingSwitches(settings, optimistic.value)
+    if (Object.keys(pending).length !== Object.keys(optimistic.value ?? {}).length) await $.state.set(optimisticRef, pending, { ifVersion: optimistic.version })
     await $.command.register({
       name: 'muslim',
-      description: `Show ${PLUGIN} version, terminal Arabic setup, and help`,
+      description: `Show ${PLUGIN} version, terminal Arabic setup, the Muslim pane, and help`,
     })
     await $.command.register({
       name: 'thikr',
@@ -141,10 +148,12 @@ export const register: Register = (on, options) => {
     }
     // DEMO END
     if (word === 'color') {
-      if (words.length > 2 || (feature !== '' && !isAccent(feature))) return { text: 'Usage: /muslim color orange | green | gold | blue' }
-      if (feature === '') return { text: `Color ${settings.color}. Usage: /muslim color orange | green | gold | blue` }
-      const { deny } = await $.config.set({ key: 'muslim.color', value: feature })
-      return { text: deny ? `Not changed: ${deny}` : `Color ${feature}` }
+      // "gold" is the old name of "yellow".
+      const pick = feature === 'gold' ? 'yellow' : feature
+      if (words.length > 2 || (pick !== '' && !isAccent(pick))) return { text: 'Usage: /muslim color orange | green | yellow | blue' }
+      if (pick === '') return { text: `Color ${settings.color}. Usage: /muslim color orange | green | yellow | blue` }
+      const { deny } = await $.config.set({ key: 'muslim.color', value: pick })
+      return { text: deny ? `Not changed: ${deny}` : `Color ${pick}` }
     }
     if (word === 'tashkeel') {
       const value = feature
@@ -207,7 +216,8 @@ export const register: Register = (on, options) => {
 
   installThikr(on, settings)
   installAthkar(on, settings)
-  // First registered SessionMode hook is outermost: Quran prepends to salah.
+  // First registered SessionMode hook is outermost: the pane chip prepends to Quran's, which prepends to salah's.
+  installMuslimPane(on, settings)
   installQuran(on, settings)
   installSalah(on, settings)
   installArabicFix(on, settings)

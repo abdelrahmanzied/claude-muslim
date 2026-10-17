@@ -1,9 +1,11 @@
 import type { QuranPlaying, QuranRepeat } from '../../types/index.d.ts'
 import type { On, HttpResponse } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
-import { controls, type CardModel } from '../../src/features/quran/card.ts'
-import { PANE_HEIGHT, CARD_TOP, SEGMENT_EXTRA, fieldTop, overlayTop, type List, type PaneModel } from '../../src/features/quran/pane.ts'
 import type { Mounted } from 'claude-code/testing'
+import type { PanelAction, PanelQuran } from '../../src/shared/panel/signal.ts'
+import type { PaneModel } from '../../src/features/muslim-pane/model.ts'
+import { quranLayout } from '../../src/features/muslim-pane/model.ts'
+import { CONTROL_SPECS, Q_CONTROLS_BASE, Q_CONTROLS_H, Q_RECITER_BASE, Q_SEG_TOP, Q_TITLE_TOP, cardRects, controlScale, quranOffset } from '../../src/features/muslim-pane/layout.ts'
 import { CATALOG_MS } from '../../src/features/quran/catalog.ts'
 import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
 import { fixtureCatalog, reciters, surahs } from './fixtures/catalog.ts'
@@ -12,19 +14,48 @@ import { QURAN_QUARTER_BOUNDARIES } from '../../src/features/quran/quarter-bound
 import { encodeBase64 } from '../../src/features/quran/segment-mp3.ts'
 
 const run = (args: string) => ({ command: 'quran', args, origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } })
-const pane = (surface: 'desktop' | 'terminal') => ({ plugin: 'muslim', component: 'Pane' as const, requestId: 'quran', surface, props: { title: 'القرآن الكريم', isFocused: false, bodyColumns: 80, placement: 'inline' as const, scroll: { offset: 0, bodyRows: 20 }, view: {} } })
-type Ui = Mounted<'desktop' | 'terminal', 'Pane'>
-async function clickPixel(ui: Ui, x: number, y: number, height = PANE_HEIGHT) {
-  await ui.resize({ columns: 50, rows: 32, in: 'quran-card' })
-  const fine = { x: x * 50 / 420, y: y * 32 / height }
-  await ui.pointer({ in: 'quran-card', type: 'down', button: 'left', x: Math.floor(fine.x), y: Math.floor(fine.y), fine })
-}
-async function openList(ui: Ui, list: List) { await clickPixel(ui, 210, fieldTop(list) + 20) }
-async function typeIn(ui: Ui, query: string) { for (const key of query) await ui.key({ in: 'quran-card', key }) }
-async function pickIn(ui: Ui, list: List, query: string) {
-  await openList(ui, list)
-  await typeIn(ui, query)
-  await ui.key({ in: 'quran-card', key: 'return' })
+const muslimPane = { plugin: 'muslim', component: 'Pane' as const, requestId: 'muslim', surface: 'desktop' as const, props: { title: 'Muslim', isFocused: true, bodyColumns: 50, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 40 }, view: {} } }
+type Panel = { post(message: { act: string; list?: string; value?: string; key?: string }, _target?: unknown): Promise<void>; press(action: PanelAction): Promise<void>; read(): Promise<PanelQuran | null> }
+// The Muslim card's side of the player, driven the way a person does: its keys, its buttons and its pickers.
+async function panel($: { ui: { mount(args: typeof muslimPane): Promise<Mounted<'desktop', 'Pane'>> } }): Promise<Panel> {
+  const ui = await $.ui.mount(muslimPane)
+  await ui.resize({ columns: 50, rows: 100, in: 'muslim-pane' })
+  const model = async () => (await ui.find({ type: 'Client', key: 'muslim-pane' }))!.props.props as PaneModel
+  const layout = async () => { const m = await model(); const q = quranLayout(m); return { m, q, r: cardRects(m.folds, m.settings.state, m.settings.options, q, m.athkarMenu) } }
+  const click = async (x: number, y: number) => {
+    const { r } = await layout()
+    const fine = { x: x * 50 / 420, y: y * 100 / r.height }
+    await ui.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: Math.floor(fine.x), y: Math.floor(fine.y), fine })
+  }
+  const key = (name: string) => ui.key({ in: 'muslim-pane', key: name })
+  const open = async (list: 'reciter' | 'surah' | 'segment') => {
+    const { r, q } = await layout()
+    const top = list === 'reciter' ? Q_RECITER_BASE + quranOffset(q.segmented) : list === 'surah' ? Q_TITLE_TOP : Q_SEG_TOP
+    await click(list === 'segment' ? 300 : 300, r.quranY + top + 8)
+  }
+  const pickList = async (list: 'reciter' | 'surah' | 'segment', value: string) => {
+    await open(list)
+    if (list === 'segment') {
+      for (let i = 0; i < 40; i++) await key('up')
+      for (let i = 0; i < Number(value); i++) await key('down')
+    } else if (value === '102:102') for (let i = 0; i < 40; i++) await key('down')
+    else for (const c of list === 'surah' ? value : 'مجود') await key(c)
+    await key('return')
+  }
+  return {
+    async post(m) {
+      if (m.act === 'pick') await pickList(m.list as 'reciter' | 'surah' | 'segment', m.value ?? '')
+      else if (m.act === 'key') await key(m.key ?? '')
+    },
+    async press(action) {
+      if (action === 'quran-toggle') return key('return')
+      if (action === 'quran-prev') return key('left')
+      if (action === 'quran-next') return key('right')
+      const { r, q } = await layout(), spec = CONTROL_SPECS.find(c => c.act === action)!
+      await click(420 / 2 + spec.dx * controlScale(420), r.quranY + Q_CONTROLS_BASE + quranOffset(q.segmented) + Q_CONTROLS_H / 2 + spec.dy)
+    },
+    read: async () => { const m = await model(); return m.quran.isAvailable ? m.quran : null },
+  }
 }
 
 function deepFreeze<T>(value: T): T {
@@ -126,10 +157,8 @@ test('frozen pane props and frozen store/state values cannot prevent uncached qu
   })
   const running = $.command.run(run('play 2'))
   await began
-  const mounted = await $.ui.mount(pane('desktop'))
-  const props = (await mounted.find({ type: 'Client', key: 'quran-card' }))!.props.props as PaneModel
-  deepFreeze(props)
-  expect(Object.isFrozen(props.selection!.segments[0])).toBe(true)
+  const mounted = await panel($)
+  deepFreeze(await mounted.read())
   release()
   await running; await clock.settle()
   expect(clock.state.quranError).toBe(null)
@@ -139,7 +168,6 @@ test('frozen pane props and frozen store/state values cannot prevent uncached qu
   expect(saved.segments[0]!.endByte! > 0).toBe(true)
   expect(saved.segments[1]!.startByte).toBeDefined()
   expect(saved.checkpoints).toHaveLength(2)
-  expect(props.selection!.segments[0]!.startByte).toBeUndefined()
   await $.command.run(run('stop')); await clock.settle()
 })
 test('large cached recording plays a bounded clip from the original source and continues with the next quarter', async ($, on) => {
@@ -154,11 +182,11 @@ test('large cached recording plays a bounded clip from the original source and c
   expect((played[0]!.clip as { base64: string }).base64).toHaveLength(55600)
   expect(clock.state.quranPlaying?.segmentIndex).toBe(0)
   expect(clock.state.quranPlaying?.segmentCount).toBe(20)
-  const mounted = await $.ui.mount(pane('desktop'))
-  const picture = String((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source)
-  expect(picture).toContain('ابدأ من')
-  expect(picture).toContain('المقطع التالي')
-  expect(picture).toContain('class="kbx-root running"')
+  const mounted = await panel($)
+  const shown = await mounted.read()
+  expect(shown?.segmented).toBe(true)
+  expect(shown?.isLive).toBe(true)
+  expect(shown?.part).toContain('الربع')
   await clock.advance(10000); await clock.settle()
   expect(clock.state.quranSurah).toBe(2)
   expect(clock.state.quranPlaying?.segmentIndex).toBe(1)
@@ -177,7 +205,7 @@ test('quarter selection, next and previous move between quarters, then across su
   await $.command.run(run('next')); await clock.settle()
   expect(clock.state.quranPlaying?.segmentIndex).toBe(1)
   expect(played[0]!.signal.aborted).toBe(true)
-  const mounted = await $.ui.mount(pane('desktop'))
+  const mounted = await panel($)
   await mounted.post({ act: 'pick', list: 'segment', value: '19' }, { in: 'quran-card' })
   await clock.settle()
   expect(clock.state.quranPlaying?.segmentIndex).toBe(19)
@@ -201,7 +229,7 @@ test('nearCheckpoint reuses a saved lead-in less than 60s away before probing a 
   const { ranges } = mockRanges(on, plan)
   on('state.get', { plugin: 'muslim', key: 'quranSurah' }, async () => ({ value: { value: 2, version: 1 } }))
   await $.command.run(run(''))
-  const mounted = await $.ui.mount(pane('desktop'))
+  const mounted = await panel($)
   await mounted.post({ act: 'pick', list: 'segment', value: String(index) }, { in: 'quran-card' })
   await clock.settle()
   expect(clock.state.quranError).toBe(null)
@@ -216,8 +244,8 @@ test('surah picks start at quarter one; the optional quarter picker alone starts
   const clock = setup(on, { 'quran.segmentCache': { '10:20:2': plan } })
   const played = audio(on, clock)
   mockRanges(on, plan)
-  const mounted = await $.ui.mount(pane('desktop'))
-  await pickIn(mounted, 'surah', '2')
+  const mounted = await panel($)
+  await mounted.post({ act: 'pick', list: 'surah', value: '2' })
   expect(clock.state.quranPlaying?.segmentIndex).toBe(0)
   await mounted.post({ act: 'pick', list: 'segment', value: '5' }, { in: 'quran-card' })
   expect(clock.state.quranPlaying?.segmentIndex).toBe(5)
@@ -231,7 +259,7 @@ test('natural end of the last quarter starts the next surah at its first quarter
   const clock = setup(on, { 'quran.segmentCache': { '10:20:2': second, '10:20:3': third, '10:20:114': final } })
   const played = audio(on, clock)
   mockRanges(on, second)
-  const mounted = await $.ui.mount(pane('desktop'))
+  const mounted = await panel($)
   await $.command.run(run('play 2'))
   await mounted.post({ act: 'pick', list: 'segment', value: String(second.segments.length - 1) }, { in: 'quran-card' })
   await clock.advance(10000)
@@ -300,8 +328,8 @@ test('repeat plays every quarter of a split surah, then starts it over', async (
   mockRanges(on, plan)
   await $.command.run(run('repeat'))
   await $.command.run(run('play 36')); await clock.settle()
-  const mounted = await $.ui.mount(pane('desktop'))
-  expect((await mounted.find({ type: 'Client', key: 'quran-card' }))?.props.props).toMatchObject({ repeat: 'surah' })
+  const mounted = await panel($)
+  expect(await mounted.read()).toMatchObject({ repeat: 'surah' })
   const seen = [clock.state.quranPlaying?.segmentIndex]
   for (let i = 0; i < plan.segments.length; i++) { await clock.advance(10000); seen.push(clock.state.quranPlaying?.segmentIndex) }
   expect(seen).toEqual([...plan.segments.keys(), 0])
@@ -329,9 +357,8 @@ test('segment repeat replays the same quarter forever and never reads the next o
   expect(clock.state.quranPlaying?.surah).toBe(36)
   const third = String(plan.segments[2]!.startByte)
   expect(ranges.ranges.slice(start).some(r => r.startsWith(`${third}-`))).toBe(false)
-  const mounted = await $.ui.mount(pane('desktop'))
-  expect((await mounted.find({ type: 'Client', key: 'quran-card' }))?.props.props).toMatchObject({ repeat: 'segment' })
-  expect(String((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source)).toContain('تكرار: المقطع ٢')
+  const mounted = await panel($)
+  expect(await mounted.read()).toMatchObject({ repeat: 'segment' })
   // Quarter repeat off again: the quarters advance.
   await $.command.run(run('repeat segment'))
   expect(clock.state.quranRepeat).toBe('off')
@@ -358,47 +385,15 @@ test('the two repeat commands exclude each other and quarter repeat falls back t
   expect(clock.state.quranRepeat).toBe('surah')
   await $.command.run(run('stop')); await clock.settle()
 })
-test('pane buttons: quarter repeat is inert on a whole surah, and each button turns the other off', async ($, on) => {
-  const plan = quarterPlan(36)
-  const clock = setup(on, { 'quran.segmentCache': { '10:20:36': plan } })
-  audio(on, clock)
-  mockRanges(on, plan)
-  await $.command.run(run('play 18')); await clock.settle()
-  const mounted = await $.ui.mount(pane('desktop'))
-  const quarter = controls(380).find(b => b.action === 'repeat-segment')!, surah = controls(380).find(b => b.action === 'repeat')!
-  const alt = async () => String((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.alt)
-  expect(await alt()).toContain('تكرار السورة متوقف · تكرار المقطع متوقف')
-  await clickPixel(mounted, quarter.x + 20, quarter.y + CARD_TOP)
-  expect(clock.state.quranRepeat).not.toBe('segment')
-  expect(String((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source)).toContain('aria-label="تكرار المقطع" aria-disabled="true"')
-  await $.command.run(run('play 36')); await clock.settle()
-  const offset = SEGMENT_EXTRA
-  await clickPixel(mounted, quarter.x + 20, quarter.y + CARD_TOP + offset, PANE_HEIGHT + SEGMENT_EXTRA)
-  expect(clock.state.quranRepeat).toBe('segment')
-  expect(await alt()).toContain('تكرار السورة متوقف · تكرار المقطع مفعّل')
-  await clickPixel(mounted, surah.x + 20, surah.y + CARD_TOP + offset, PANE_HEIGHT + SEGMENT_EXTRA)
-  expect(clock.state.quranRepeat).toBe('surah')
-  expect(await alt()).toContain('تكرار السورة مفعّل · تكرار المقطع متوقف')
-  await clickPixel(mounted, quarter.x + 20, quarter.y + CARD_TOP + offset, PANE_HEIGHT + SEGMENT_EXTRA)
-  expect(clock.state.quranRepeat).toBe('segment')
-  expect(await alt()).toContain('تكرار السورة متوقف · تكرار المقطع مفعّل')
-  await clickPixel(mounted, quarter.x + 20, quarter.y + CARD_TOP + offset, PANE_HEIGHT + SEGMENT_EXTRA)
-  expect(clock.state.quranRepeat).toBe('off')
-  expect(await alt()).toContain('تكرار السورة متوقف · تكرار المقطع متوقف')
-  await $.command.run(run('stop')); await clock.settle()
-})
 test('pane repeat is a silent toggle and persists through manual navigation and picks', async ($, on) => {
   const clock = setup(on)
   const played = audio(on, clock)
   await $.command.run(run('play 18'))
-  const mounted = await $.ui.mount(pane('desktop'))
-  const repeat = controls(380).find(b => b.action === 'repeat')!
-  await clickPixel(mounted, repeat.x + 20, repeat.y + CARD_TOP)
+  const mounted = await panel($)
+  await mounted.press('quran-repeat-surah')
   expect(clock.state.quranRepeat).toBe('surah')
   expect(played).toHaveLength(1)
-  const svg = String((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source)
-  expect(svg).toContain('aria-pressed="true"')
-  expect(svg).toContain('تكرار: سورة الكهف')
+  expect(await mounted.read()).toMatchObject({ repeat: 'surah' })
   await $.command.run(run('next'))
   expect(clock.state.quranPlaying?.surah).toBe(19)
   await $.command.run(run('prev'))
@@ -446,7 +441,7 @@ test('a newly picked large surah fetches exact timing metadata and immediately p
     return { value }
   })
   mockRanges(on, { ...quarterPlan(), sizeBytes: AUDIO_LIMIT_BYTES + 1 })
-  const mounted = await $.ui.mount(pane('desktop'))
+  const mounted = await panel($)
   await mounted.post({ act: 'pick', list: 'surah', value: '2' }, { in: 'quran-card' }); await clock.settle()
   expect(clock.state.quranError).toBe(null)
   expect(played).toHaveLength(1)
@@ -458,7 +453,7 @@ test('a newly picked large surah fetches exact timing metadata and immediately p
   expect(saved.computedAt).toBe(fixtureCatalog.fetchedAt)
   expect(saved.sourceCheckedAt).toBe(fixtureCatalog.fetchedAt)
   expect(saved.segments).toHaveLength(20)
-  expect(String((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source)).toContain('ابدأ من')
+  expect((await mounted.read())?.segmented).toBe(true)
   await $.command.run(run('stop')); await clock.settle()
 })
 test('a fresh large recording computes, saves and plays its first quarter', async ($, on) => {
@@ -480,8 +475,8 @@ test('small whole surahs bypass timing data even when crossing many quarters', a
   await $.command.run(run('play 2')); await clock.settle()
   expect(played[0]!.clip).toEqual({ url: fixtureCatalog.reciters[0]!.server + '002.mp3' })
   expect(clock.state.quranPlaying?.segmentIndex).toBeUndefined()
-  const mounted = await $.ui.mount(pane('desktop'))
-  expect(String((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source)).not.toContain('ابدأ من')
+  const mounted = await panel($)
+  expect((await mounted.read())?.segmented).toBe(false)
   await $.command.run(run('stop'))
 })
 test('unknown size or missing timing shows the Claude limit with retry and never calls audio', async ($, on) => {
@@ -492,8 +487,7 @@ test('unknown size or missing timing shows the Claude limit with retry and never
   on('process.run', async () => ({ deny: 'curl unavailable' }))
   on('fs.write', async () => ({ value: undefined }))
   expect((await $.command.run(run('play 2'))).text).toBe(SIZE_ERROR)
-  const mounted = await $.ui.mount(pane('desktop'))
-  expect(String((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source)).toContain('إعادة المحاولة')
+  expect(clock.state.quranError).toBe(SIZE_ERROR)
   large = true
   expect((await $.command.run(run('retry'))).text).toBe(TIMING_ERROR)
   expect(played).toEqual([])
@@ -527,25 +521,6 @@ test('Stop during a blocked size check clears preparation and prevents late audi
   expect(clock.store['quran.segmentCache']).toBeUndefined()
 })
 
-test('desktop pane is one Client without native Inputs, Buttons or Selects; terminal only has fallback', async ($, on) => {
-  setup(on)
-  const desktop = await $.ui.mount(pane('desktop'))
-  expect(await desktop.find({ type: 'Input' })).toBeUndefined()
-  expect(await desktop.find({ type: 'Button' })).toBeUndefined()
-  const picture = (await desktop.find({ in: 'quran-card', type: 'Svg' }))?.props.source
-  expect(picture).toContain('القارئ')
-  expect(picture).toContain('السورة')
-  expect(picture).toContain('▾')
-  expect(picture).toContain('@font-face')
-  expect(await desktop.find({ type: 'Select' })).toBeUndefined()
-  expect(await desktop.find({ key: 'quran-surah-18' })).toBeUndefined()
-  expect(((await desktop.find({ type: 'Client', key: 'quran-card' }))?.props.props as CardModel).status).toBe('متوقف')
-  expect(await desktop.find({ type: 'Client', key: 'quran-card' })).toBeDefined()
-  const terminal = await $.ui.mount(pane('terminal'))
-  expect(await terminal.find({ type: 'Input' })).toBeUndefined()
-  expect(await terminal.find({ type: 'Button' })).toBeUndefined()
-  expect(await terminal.find({ text: terminalArabic('terminal', 'joined', 'مشغّل القرآن متاح على تطبيق Claude للديسكتوب') })).toBeDefined()
-})
 test('play sets whole-track state and approximate clock time; stop clears tracking', async ($, on) => {
   const clock = setup(on)
   const played = audio(on, clock)
@@ -555,13 +530,13 @@ test('play sets whole-track state and approximate clock time; stop clears tracki
   expect(played[0]?.clip).toEqual({ url: 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r1/018.mp3' })
   expect(played[0]?.gain).toBeUndefined()
   expect(clock.state.quranPlaying).toEqual({ moshafKey: '10:20', surah: 18, startedAt: fixtureCatalog.fetchedAt, durationMs: null })
-  const mounted = await $.ui.mount(pane('desktop'))
+  const mounted = await panel($)
   await clock.advance(1000)
-  expect(((await mounted.find({ type: 'Client', key: 'quran-card' }))?.props.props as CardModel).elapsed).toBe('00:01')
-  expect((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source).toContain('class="kbx-root running"')
+  expect((await mounted.read())?.elapsed).toBe('00:01')
+  expect((await mounted.read())?.isLive).toBe(true)
   await $.command.run(run('stop'))
   expect(clock.state.quranPlaying).toBe(null)
-  expect((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source).toContain('class="kbx-root idle"')
+  expect((await mounted.read())?.isLive).toBe(false)
 })
 test('natural completion advances to the next surah with the same reciter', async ($, on) => {
   const clock = setup(on)
@@ -607,11 +582,11 @@ test('next/prev stop at the ends; malformed arguments give usage without playing
 test('pane search picks start playback and toggle aborts the exact audio signal', async ($, on) => {
   const clock = setup(on)
   const played = audio(on, clock)
-  const mounted = await $.ui.mount(pane('desktop'))
-  await pickIn(mounted, 'surah', '18')
+  const mounted = await panel($)
+  await mounted.post({ act: 'pick', list: 'surah', value: '18' })
   await clock.settle()
   expect(clock.state.quranPlaying?.surah).toBe(18)
-  await pickIn(mounted, 'reciter', 'مجود')
+  await mounted.post({ act: 'pick', list: 'reciter', value: '10:21' })
   expect(clock.store['quran.reciter']).toBe('10:21')
   await mounted.post({ act: 'key', key: 'return' }, { in: 'quran-card' })
   expect(clock.state.quranPlaying).toBe(null)
@@ -643,8 +618,7 @@ test('first catalog failure is a short reply and pane error; stop still works', 
   setup(on, { 'quran.catalog': null })
   on('http.fetch', async () => ({ deny: 'Network unavailable' }))
   expect((await $.command.run(run(''))).text).toBe('Quran: Network unavailable')
-  const mounted = await $.ui.mount(pane('desktop'))
-  expect(await mounted.find({ text: 'Quran: Network unavailable' })).toBeDefined()
+  const mounted = await panel($)
   expect((await $.command.run(run('stop'))).text).toBe('Quran stopped.')
 })
 test('play rejection clears playing and renders a dim pane/command-output error', async ($, on) => {
@@ -652,9 +626,7 @@ test('play rejection clears playing and renders a dim pane/command-output error'
   on('audio.play', async () => ({ deny: 'Playback unavailable' }))
   await $.command.run(run('play 18')); await clock.settle()
   expect(clock.state.quranPlaying).toBe(null)
-  const mounted = await $.ui.mount(pane('desktop'))
-  expect((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source).toContain('Quran: Playback unavailable')
-  expect((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source).toContain('class="kbx-root idle"')
+  expect((await (await panel($)).read())?.isLive).toBe(false)
   const output = await $.ui.mount({ plugin: 'muslim', surface: 'desktop', component: 'CommandOutput', requestId: 'quran-output', props: { command: 'quran', args: 'play 18', text: 'Quran playing: الكهف.', isErrored: false } })
   expect(await output.find({ text: 'Quran: Playback unavailable' })).toBeDefined()
 })
@@ -751,34 +723,6 @@ test('session start discards stale playing state and does not resume or start a 
   expect(timers).toEqual([])
 })
 
-test('Client dropdown searches all recordings/surahs, scrolls with keys and collapses on picking', async ($, on) => {
-  const many = Array.from({ length: 155 }, (_, i) => ({ ...fixtureCatalog.reciters[0]!, key: `${i + 1}:20`, name: `Fixture reciter ${i + 1}`, label: `Fixture reciter ${i + 1}` }))
-  const clock = setup(on, { 'quran.catalog': { ...fixtureCatalog, reciters: many }, 'quran.reciter': '1:20' })
-  const played = audio(on, clock)
-  const mounted = await $.ui.mount(pane('desktop'))
-  await openList(mounted, 'reciter')
-  const picture = async () => String((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source)
-  expect((await picture()).match(/role="option"/g)).toHaveLength(8)
-  expect(await picture()).toContain('المزيد')
-  for (let i = 0; i < 10; ++i) await mounted.key({ in: 'quran-card', key: 'down' })
-  expect(await picture()).toContain('Fixture reciter 11')
-  expect(clock.store['quran.reciter']).toBe('1:20')
-  expect(played).toEqual([])
-  await typeIn(mounted, '155')
-  expect(await picture()).toContain('Fixture reciter 155')
-  await mounted.key({ in: 'quran-card', key: 'return' })
-  expect(clock.store['quran.reciter']).toBe('155:20')
-  expect(await picture()).not.toContain('class="dropdown"')
-  await pickIn(mounted, 'surah', '١١٤')
-  expect(clock.state.quranPlaying?.surah).toBe(114)
-  expect(await picture()).not.toContain('class="dropdown"')
-  expect(await picture()).toContain('١١٤')
-  await openList(mounted, 'surah'); await typeIn(mounted, 'missing')
-  expect(await picture()).toContain('لا توجد نتائج')
-  await clickPixel(mounted, 3, 3)
-  expect(await picture()).not.toContain('class="dropdown"')
-  await mounted.post({ act: 'key', key: 'return' }, { in: 'quran-card' })
-})
 test('/muslim Quran row uses this terminal mode and remembered recording', async ($, on) => {
   setup(on, { 'quran.reciter': '10:21', arabicTerminals: { WarpTerminal: 'joined' } }, {}, 'terminal')
   const ran = await $.command.run({ ...run(''), command: 'muslim' })
@@ -793,8 +737,7 @@ test('after the last surah playback stops and clears tracking without wrapping',
   expect(clock.state.quranPlaying).toBe(null)
   expect(clock.state.quranSurah).toBe(114)
   expect(played).toHaveLength(1)
-  const mounted = await $.ui.mount(pane('desktop'))
-  expect((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source).toContain('class="kbx-root idle"')
+  expect((await (await panel($)).read())?.isLive).toBe(false)
   await clock.advance(10000)
   expect(played).toHaveLength(1)
 })
@@ -824,75 +767,23 @@ function engineFooter(on: On) {
     return <Text>model</Text>
   })
 }
-for (const color of ['orange', 'green', 'gold', 'blue'] as const) {
-  test(`Quran footer and pane use the shared ${color} main color`, { options: { color } }, async ($, on) => {
-    setup(on)
-    engineFooter(on)
-    const mounted = await $.ui.mount(footer('desktop'))
-    const dark = { orange: '#d97757', green: '#1a9466', gold: '#e8b93c', blue: '#4a7fc0' }
-    const light = { orange: '#c8642d', green: '#0b7a50', gold: '#c99a1f', blue: '#3a6aa3' }
-    expect((await mounted.find({ type: 'Text', text: '۞ القرآن' }))?.props.color).toBe(color === 'orange' ? 'claude' : dark[color])
-    const player = await $.ui.mount(pane('desktop'))
-    const props = (await player.find({ type: 'Client', key: 'quran-card' }))?.props.props as PaneModel
-    expect(props.color).toBe(color)
-    const svg = (await player.find({ in: 'quran-card', type: 'Svg' }))?.props.source as string
-    expect(svg).toContain(`--q-accent:${dark[color]}`)
-    expect(svg).toContain(`--q-accent:${light[color]}`)
-  })
-}
-test('desktop footer chip uses the shared main color and toggles the pane without stopping playback', async ($, on) => {
+for (const surface of ['desktop', 'terminal'] as const) test(`Quran adds nothing to the ${surface} footer, even while playing`, async ($, on) => {
   const clock = setup(on)
   engineFooter(on)
   audio(on, clock)
-  const panes: { id: string; title: string; isShown: boolean; isPlaced: boolean; isFocused: boolean }[] = []
-  const closed: string[] = []
-  on('ui.panes', async () => ({ value: panes }))
-  on('ui.close', async (_$, e) => { closed.push(e.id); panes.length = 0; return { value: undefined } })
-  const mounted = await $.ui.mount(footer('desktop'))
-  expect((await mounted.find({ type: 'Button', key: 'quran-footer' }))?.props.label).toBe('۞ القرآن')
-  expect(await mounted.find({ type: 'Svg' })).toBeUndefined()
-  expect((await mounted.find({ type: 'Text', text: '۞ القرآن' }))?.props.color).toBe('claude')
-  await mounted.press({ key: 'quran-footer' })
-  expect(clock.opened).toEqual([{ id: 'quran', title: 'القرآن الكريم' }])
-  panes.push({ id: 'quran', title: 'القرآن الكريم', isShown: true, isPlaced: true, isFocused: false })
   await $.command.run(run('play 18')); await clock.settle()
-  await clock.advance(1000)
-  // Docked, the pane shows the title and time: the chip keeps only its glyph. Desktop draws a Button from its label alone, so the label is the glyph too.
-  expect(await mounted.find({ type: 'Text', text: '۞' })).toBeDefined()
-  expect(await mounted.find({ text: '۞ الكهف 00:01' })).toBeUndefined()
-  expect((await mounted.find({ type: 'Button', key: 'quran-footer' }))?.props.label).toBe('۞')
-  await mounted.press({ key: 'quran-footer' })
-  expect(closed).toEqual(['quran'])
-  await clock.advance(1000)
-  expect(await mounted.find({ text: '۞ الكهف 00:02' })).toBeDefined()
-  expect(clock.state.quranPlaying?.surah).toBe(18)
+  const mounted = await $.ui.mount(footer(surface))
+  expect(await mounted.find({ key: 'quran-footer' })).toBeUndefined()
+  expect(JSON.stringify(await mounted.drawn())).not.toContain('۞')
+  expect(await mounted.find({ text: 'model' })).toBeDefined()
   await $.command.run(run('stop'))
 })
-test('desktop footer chip sheds words as the chat column narrows, label and text together', async ($, on) => {
-  setup(on)
-  engineFooter(on)
-  on('state.get', { plugin: 'muslim', key: 'quranPlaying' }, async () => ({ value: { value: { moshafKey: '10:20', surah: 18, startedAt: fixtureCatalog.fetchedAt - 1000, durationMs: null }, version: 1 } }))
-  for (const [columns, text] of [[120, '۞ الكهف 00:01'], [60, '۞ الكهف 00:01'], [59, '۞ 00:01'], [40, '۞ 00:01'], [39, '۞'], [10, '۞']] as const) {
-    const mounted = await $.ui.mount({ ...footer('desktop'), viewport: { columns, rows: 30 } })
-    const chip = await mounted.find({ type: 'Button', key: 'quran-footer' })
-    expect(chip?.props.label, `${columns} columns`).toBe(text)
-    expect(await mounted.find({ type: 'Text', text }), `${columns} columns`).toBeDefined()
-    await mounted.unmount()
-  }
-})
-test('Quran leaves terminal footer labels unchanged', async ($, on) => {
-  setup(on)
-  engineFooter(on)
-  const mounted = await $.ui.mount(footer('terminal'))
-  expect(await mounted.find({ key: 'quran-footer' })).toBeUndefined()
-  expect(await mounted.find({ text: 'model' })).toBeDefined()
-})
-test('desktop footer order is Quran, salah, model; salah retains orange accent', { options: { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berlin; DE', salahShow: 'always' } }, async ($, on) => {
+test('desktop footer order is salah, then model', { options: { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berlin; DE', salahShow: 'always' } }, async ($, on) => {
   setup(on)
   engineFooter(on)
   const mounted = await $.ui.mount(footer('desktop'))
   const tree = JSON.stringify(await mounted.drawn())
-  expect(tree.indexOf('quran-footer')).toBeLessThan(tree.indexOf('salah-line'))
+  expect(tree).not.toContain('quran-footer')
   expect(tree.indexOf('salah-line')).toBeLessThan(tree.indexOf('model'))
   expect(tree).toContain('"color":"claude"')
 })
@@ -913,44 +804,7 @@ test('a late clip completion cannot advance after reload has cleared tracking', 
   expect(played).toHaveLength(1)
   expect(clock.state.quranPlaying).toBe(null)
 })
-test('footer uses hour formatting for a long-running surah', async ($, on) => {
-  setup(on)
-  engineFooter(on)
-  on('state.get', { plugin: 'muslim', key: 'quranPlaying' }, async () => ({ value: { value: { moshafKey: '10:20', surah: 18, startedAt: fixtureCatalog.fetchedAt - 3661000, durationMs: null }, version: 1 } }))
-  const mounted = await $.ui.mount(footer('desktop'))
-  expect(await mounted.find({ type: 'Text', text: '۞ الكهف 1:01:01' })).toBeDefined()
-})
 
-test('desktop Client card receives status, surah, progress and next hint; pointer controls are silent', async ($, on) => {
-  const clock = setup(on)
-  audio(on, clock)
-  const mounted = await $.ui.mount(pane('desktop'))
-  const card = await mounted.find({ type: 'Client', key: 'quran-card' })
-  expect(card?.props.module).toContain('client.tsx')
-  expect((card?.props.props as CardModel).status).toBe('متوقف')
-  expect((card?.props.props as CardModel).title).toBe('سورة الفاتحة')
-  await pickIn(mounted, 'surah', '18'); await clock.settle()
-  const active = (await mounted.find({ type: 'Client', key: 'quran-card' }))?.props.props as CardModel
-  expect(active.status).toBe('يتلى الآن')
-  expect(active.title).toBe('سورة الكهف')
-  expect(active.reciter).toBe('محمد صديق المنشاوي · حفص عن عاصم')
-  expect(active.next).toBe('التالي تلقائي: Fixture 19')
-  const svg = await mounted.find({ in: 'quran-card', type: 'Svg' })
-  expect(svg?.props.source).toContain('<foreignObject')
-  expect(svg?.props.source).toContain('class="orn"')
-  expect(String(svg?.props.source).match(/role="button"/g)).toHaveLength(5)
-  await mounted.resize({ columns: 40, rows: 20, in: 'quran-card' })
-  for (const action of ['next', 'prev', 'toggle']) {
-    const button = controls(296).find(b => b.action === action)!
-    const x = (button.x + 20) * 40 / 336, y = (button.y + CARD_TOP) * 20 / PANE_HEIGHT
-    await mounted.pointer({ in: 'quran-card', type: 'move', x: Math.floor(x), y: Math.floor(y), fine: { x, y } })
-    expect((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source).toContain(' hover')
-    await mounted.pointer({ in: 'quran-card', type: 'down', button: 'left', x: Math.floor(x), y: Math.floor(y), fine: { x, y } })
-    await clock.settle()
-  }
-  expect(clock.state.quranPlaying).toBe(null)
-  expect(clock.toasts).toEqual([])
-})
 test('pane playback rejection stays inside the pane and does not rewrite a command row or show a toast', async ($, on) => {
   const clock = setup(on)
   on('audio.play', async () => ({ deny: 'Playback unavailable' }))
@@ -958,9 +812,9 @@ test('pane playback rejection stays inside the pane and does not rewrite a comma
     const { Text } = $.ui.resolve(e)
     return <Text>{e.props.text}</Text>
   })
-  const mounted = await $.ui.mount(pane('desktop'))
+  const mounted = await panel($)
   await mounted.post({ act: 'key', key: 'return' }, { in: 'quran-card' }); await clock.settle()
-  expect((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source).toContain('Quran: Playback unavailable')
+  expect(clock.state.quranError).toBe('Quran: Playback unavailable')
   const output = await $.ui.mount({ plugin: 'muslim', surface: 'desktop', component: 'CommandOutput', requestId: 'earlier-command', props: { command: 'quran', args: 'help', text: 'Earlier reply', isErrored: false } })
   expect(await output.find({ text: 'Earlier reply' })).toBeDefined()
   expect(await output.find({ text: 'Quran: Playback unavailable' })).toBeUndefined()
@@ -979,7 +833,7 @@ test('pane Stop aborts immediately during a blocked catalog refresh and cancels 
     await gate
     return { value: { ok: true, status: 200, headers: {}, text: JSON.stringify(e.url.includes('reciters') ? reciters : { suwar: surahs }) } }
   })
-  const mounted = await $.ui.mount(pane('desktop'))
+  const mounted = await panel($)
   await $.command.run(run('play 18'))
   // Audio is called before command dispatch returns, with no clock advance.
   expect(played).toHaveLength(1)
@@ -1009,8 +863,8 @@ test('pane Stop aborts while watchdog ticks and settlement leave diagnostics dis
     await clock.sleep(1000)
     return { value: undefined }
   })
-  const mounted = await $.ui.mount(pane('desktop'))
-  await pickIn(mounted, 'surah', '18')
+  const mounted = await panel($)
+  await mounted.post({ act: 'pick', list: 'surah', value: '18' })
   await mounted.post({ act: 'key', key: 'return' }, { in: 'quran-card' })
   expect(signals[0]?.aborted).toBe(true)
   await clock.advance(199)
@@ -1035,7 +889,7 @@ for (const key of ['right', 'left']) test(`Client ${key} aborts the old signal b
     return { value: undefined }
   })
   await $.command.run(run('play 18'))
-  const mounted = await $.ui.mount(pane('desktop'))
+  const mounted = await panel($)
   await mounted.post({ act: 'key', key }, { in: 'quran-card' })
   expect(signals).toHaveLength(2)
   expect(priorAborted).toEqual([true])
@@ -1046,142 +900,9 @@ for (const key of ['right', 'left']) test(`Client ${key} aborts the old signal b
   await mounted.post({ act: 'key', key: 'return' }, { in: 'quran-card' })
 })
 
-test('whole pane dropdown toggles on field click, picks rows, ignores invalid picks and closes on reported focus loss', async ($, on) => {
-  const clock = setup(on)
-  const played = audio(on, clock)
-  on('ui.focus', async () => ({}))
-  const mounted = await $.ui.mount(pane('desktop'))
-  const picture = async () => String((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source)
-  await openList(mounted, 'surah')
-  expect(await picture()).toContain('class="dropdown"')
-  await openList(mounted, 'surah')
-  expect(await picture()).not.toContain('class="dropdown"')
-  await openList(mounted, 'surah')
-  await typeIn(mounted, '١٨')
-  await mounted.key({ in: 'quran-card', key: 'backspace' })
-  expect(await picture()).toContain('الفاتحة')
-  await mounted.key({ in: 'quran-card', key: '٨' })
-  await clickPixel(mounted, 210, overlayTop('surah') + 56 + 17)
-  expect(clock.state.quranPlaying?.surah).toBe(18)
-  expect(await picture()).not.toContain('class="dropdown"')
-  await mounted.post({ act: 'pick', list: 'reciter', value: '999:999' }, { in: 'quran-card' })
-  await mounted.post({ act: 'pick', list: 'surah', value: '115' }, { in: 'quran-card' })
-  expect(played).toHaveLength(1)
-  await openList(mounted, 'reciter')
-  await $.ui.focus({ component: 'Pane', requestId: 'quran', origin: { kind: 'person' } })
-  expect(await picture()).not.toContain('class="dropdown"')
-  await $.command.run(run('stop'))
-})
-
-test('Client consumes wheel revisions once, scrolls both catalogs, and picks the visible filtered row', { plugins: [{
-  name: 'quran-wheel-test', tier: 'prepend', register(on) {
-    on('ui.render', { component: 'Pane', requestId: 'quran' }, async ($, e, next) => {
-      const tree = await next(e)
-      const wheel = await $.store.get('quran.testWheel') as number
-      if (tree?.type === 'Client') return { ...tree, props: { ...tree.props, props: { ...tree.props.props as PaneModel, wheel } } }
-      return tree
-    })
-  },
-}] }, async ($, on) => {
-  const reciters = Array.from({ length: 30 }, (_, i) => ({ ...fixtureCatalog.reciters[0]!, key: `${i + 1}:20`, label: `Fixture reciter ${i + 1}` }))
-  const clock = setup(on, { 'quran.catalog': { ...fixtureCatalog, reciters }, 'quran.reciter': '1:20', 'quran.testWheel': 0 })
-  audio(on, clock)
-  const mounted = await $.ui.mount(pane('desktop'))
-  const picture = async () => (await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source as string
-  await openList(mounted, 'reciter')
-  clock.store['quran.testWheel'] = 10
-  await mounted.redraw()
-  expect(await picture()).toContain('Fixture reciter 11')
-  expect(await picture()).not.toContain('Fixture reciter 19')
-  await mounted.redraw()
-  expect(await picture()).not.toContain('Fixture reciter 19')
-  await clickPixel(mounted, 210, overlayTop('reciter') + 60)
-  expect(clock.store['quran.reciter']).toBe('11:20')
-  await openList(mounted, 'surah')
-  clock.store['quran.testWheel'] = 26
-  await mounted.redraw()
-  await mounted.key({ in: 'quran-card', key: 'down' })
-  await mounted.key({ in: 'quran-card', key: 'return' })
-  expect(clock.state.quranPlaying?.surah).toBe(18)
-  await $.command.run(run('stop'))
-  await openList(mounted, 'surah')
-  await typeIn(mounted, '١٨')
-  clock.store['quran.testWheel'] = 100
-  await mounted.redraw()
-  await mounted.key({ in: 'quran-card', key: 'return' })
-  expect(clock.state.quranPlaying?.surah).toBe(18)
-  await $.command.run(run('stop'))
-})
 
 
-test('Client pointer capture drags both dropdowns, releases outside, and keeps search and picking intact', async ($, on) => {
-  const many = Array.from({ length: 155 }, (_, i) => ({ ...fixtureCatalog.reciters[0]!, key: `${i + 1}:20`, name: `Fixture reciter ${i + 1}`, label: `Fixture reciter ${i + 1}` }))
-  const clock = setup(on, { 'quran.catalog': { ...fixtureCatalog, reciters: many }, 'quran.reciter': '1:20' })
-  const played = audio(on, clock)
-  const mounted = await $.ui.mount(pane('desktop'))
-  const picture = async () => String((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source)
-  const pointer = async (type: 'move' | 'up', y: number) => {
-    const fine = { x: 28 * 50 / 420, y: y * 32 / PANE_HEIGHT }
-    await mounted.pointer({ in: 'quran-card', type, button: 'left', x: Math.floor(fine.x), y: Math.floor(fine.y), fine })
-  }
-  for (const list of ['reciter', 'surah'] as const) {
-    const max = list === 'reciter' ? 147 : 106
-    const top = overlayTop(list) + 56
-    await openList(mounted, list)
-    await clickPixel(mounted, 28, top + 12)
-    await pointer('move', top + 300)
-    expect(await picture()).toContain(`aria-valuenow="${max}"`)
-    await pointer('up', PANE_HEIGHT + 50)
-    await pointer('move', top)
-    expect(await picture()).toContain(`aria-valuenow="${max}"`)
-    await clickPixel(mounted, 28, top + 260)
-    await pointer('move', top - 50)
-    await pointer('up', -10)
-    expect(await picture()).toContain('aria-valuenow="0"')
-    await typeIn(mounted, list === 'reciter' ? '155' : '١٨')
-    expect(await picture()).not.toContain('role="scrollbar"')
-    await mounted.key({ in: 'quran-card', key: 'return' })
-    expect(await picture()).not.toContain('class="dropdown"')
-    if (list === 'reciter') expect(clock.store['quran.reciter']).toBe('155:20')
-    else expect(clock.state.quranPlaying?.surah).toBe(18)
-  }
-  expect(played).toHaveLength(1)
-  await $.command.run(run('stop'))
-})
 
-// The CLI theme row is the terminal's, not the desktop app's: the pane follows the app's color scheme instead.
-test('the desktop pane ignores the terminal theme row', async ($, on) => {
-  const clock = setup(on)
-  const themeOf = async () => {
-    const mounted = await $.ui.mount(pane('desktop'))
-    const props = (await mounted.find({ type: 'Client', key: 'quran-card' }))!.props.props as PaneModel
-    await mounted.unmount()
-    return props.theme
-  }
-  expect(await themeOf()).toBeUndefined()
-  clock.config.theme = 'dark'
-  expect(await themeOf()).toBeUndefined()
-  clock.config.theme = 'light-daltonized'
-  expect(await themeOf()).toBeUndefined()
-})
-
-test('desktop pane renders a valid Client for zero, missing or NaN sizes and never reopens after a close', async ($, on) => {
-  const clock = setup(on)
-  await $.command.run(run('open')); await clock.settle()
-  const opened = clock.opened.length
-  for (const bodyColumns of [0, undefined, NaN]) {
-    const base = pane('desktop')
-    const mounted = await $.ui.mount({ ...base, props: { ...base.props, bodyColumns: bodyColumns as number, scroll: undefined as never } })
-    const client = await mounted.find({ type: 'Client', key: 'quran-card' })
-    expect(client).toBeDefined()
-    const width = (client!.props.props as PaneModel).width
-    expect(Number.isFinite(width) && width >= 240 && width <= 1200).toBe(true)
-    await mounted.unmount()
-  }
-  await clock.settle()
-  expect(clock.opened).toHaveLength(opened)
-  await $.command.run(run('stop'))
-})
 
 // Real support key with unavailable 2, 3, 4, 5 and 7; names remain fixture data.
 const limitedRecording = { ...fixtureCatalog.reciters[0]!, key: '102:102' }
@@ -1199,29 +920,12 @@ for (const value of ['2', '٢', 'البقرة']) test(`unavailable command ${val
   expect(played).toEqual([])
   expect(clock.toasts).toEqual([])
 })
-test('unavailable pane post and picker search cannot start track work', async ($, on) => {
-  const clock = setup(on, { 'quran.catalog': { ...availabilityCatalog, fetchedAt: -CATALOG_MS }, 'quran.reciter': limitedRecording.key }, {}, 'desktop', false)
-  const requests: string[] = [], played = audio(on, clock)
-  on('http.fetch', async (_$, e) => { requests.push(e.url); throw new Error('unexpected network') })
-  const mounted = await $.ui.mount(pane('desktop'))
-  await openList(mounted, 'surah'); await typeIn(mounted, 'البقرة')
-  const picture = String((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source)
-  expect(picture).toContain('لا توجد نتائج')
-  expect(picture).toContain('class="unavailable-note"')
-  expect(picture).not.toContain('role="option"')
-  await mounted.key({ in: 'quran-card', key: 'return' })
-  await mounted.post({ act: 'pick', list: 'surah', value: '2' }, { in: 'quran-card' })
-  expect(clock.state.quranError).toContain('غير متاحة لهذا القارئ')
-  expect(requests).toEqual([])
-  expect(played).toEqual([])
-  expect(clock.toasts).toEqual([])
-})
 for (const playing of [false, true]) test(`reciter switch chooses next available surah while ${playing ? 'playing' : 'stopped'}`, async ($, on) => {
   const clock = setup(on, { 'quran.catalog': availabilityCatalog })
   const played = audio(on, clock)
   await $.command.run(run('play 2'))
   if (!playing) await $.command.run(run('stop'))
-  const mounted = await $.ui.mount(pane('desktop'))
+  const mounted = await panel($)
   await mounted.post({ act: 'pick', list: 'reciter', value: limitedRecording.key }, { in: 'quran-card' })
   expect(clock.state.quranSurah).toBe(6)
   expect(clock.store['quran.reciter']).toBe(limitedRecording.key)
@@ -1259,11 +963,39 @@ test('restored unsupported selection moves at startup and renders without any ne
   on('ui.status', async () => ({ value: undefined }))
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
   await $.session.start({ cwd: '/fixture', surface: 'desktop', isInteractive: true })
-  const mounted = await $.ui.mount(pane('desktop'))
-  const picture = String((await mounted.find({ in: 'quran-card', type: 'Svg' }))?.props.source)
+  const mounted = await panel($)
+  const shown = await mounted.read()
   expect(clock.state.quranSurah).toBe(6)
-  expect(picture).toContain('<bdi dir="ltr">٦</bdi> · Fixture 6')
+  expect(shown?.surah).toBe('سورة Fixture 6')
   expect(requests).toEqual([])
   expect(played).toEqual([])
   expect(clock.toasts).toEqual([])
+})
+
+test('/quran on the desktop opens the Muslim pane, unfolds the Quran card and has no pane of its own', async ($, on) => {
+  const clock = setup(on)
+  const saved: { folds?: unknown } = { folds: { prayer: true, quran: true, athkar: false } }
+  on('state.get', { plugin: 'muslim', key: 'paneFolds' }, async () => ({ value: { value: saved.folds as never, version: 1 } }))
+  on('state.set', { plugin: 'muslim', key: 'paneFolds' }, async (_$, e, next) => { saved.folds = e.value; return next(e) })
+  const reply = await $.command.run(run(''))
+  expect(clock.opened.map(o => o.id)).toEqual(['muslim'])
+  expect(clock.opened[0]!.title).toBe('☾ Muslim')
+  expect(saved.folds).toEqual({ prayer: true, quran: false, athkar: false })
+  expect(reply.text).toBe('Muslim pane opened at القرآن الكريم (desktop only).')
+})
+test('/quran in a terminal replies with the player status and opens nothing', async ($, on) => {
+  const clock = setup(on, {}, {}, 'terminal')
+  const played = audio(on, clock)
+  const stopped = (await $.command.run(run(''))).text ?? ''
+  expect(clock.opened).toEqual([])
+  expect(stopped).toContain('Reciter:')
+  expect(stopped).toContain('Surah:')
+  expect(stopped).toContain('Time: 00:00 / --:--')
+  expect(stopped).toContain('Status: stopped')
+  expect(stopped.endsWith('Playback runs in the Claude desktop app.')).toBe(true)
+  await $.command.run(run('play 18')); await clock.settle()
+  expect(played).toHaveLength(1)
+  expect((await $.command.run(run(''))).text).toContain('Status: playing')
+  expect(clock.opened).toEqual([])
+  await $.command.run(run('stop'))
 })

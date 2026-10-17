@@ -2,7 +2,7 @@
 
 The religious text shown by the athkar feature: 26 morning and evening athkar, 11 athkar after salah, and the fixed titles, closing greeting and done rows, each with its count and source. The code is the source of truth for what is displayed; this file must stay identical to it (see the rule in CLAUDE.md). Arabic is authored with tashkeel and is never generated or reworded. Hadith references are the ones listed on sunnah.com for each Hisn al-Muslim number.
 
-Sources in the code: `src/features/athkar/data.ts`, `src/features/athkar/after-salah.ts`, `src/features/athkar/logic.ts`.
+Sources in the code: `src/features/athkar/data.ts`, `src/features/athkar/after-salah.ts`, `src/features/athkar/logic.ts`, and the titles in `src/shared/athkar/titles.ts` (shared with the Muslim pane).
 
 ## أذكار الصباح والمساء — Morning and evening athkar
 
@@ -391,7 +391,7 @@ Hisn al-Muslim chapter 25 (`src/features/athkar/after-salah.ts`, `AFTER_SALAH`).
 
 Other Arabic religious text shown by the athkar reader (UI labels are not listed).
 
-### Athkar titles (`TITLE`, `src/features/athkar/logic.ts`)
+### Athkar titles (`ATHKAR_TITLE`, `src/shared/athkar/titles.ts`)
 
 - afterSalah:
 

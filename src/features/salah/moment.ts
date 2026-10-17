@@ -5,8 +5,13 @@ import type { SalahCard, SalahMinaret } from '../../../types'
 import { CARD_MS, FOLD_MS } from './card.ts'
 import { TOTAL_MS } from './minaret.ts'
 
-// The moment's states when it begins now.
-export const momentState = (pray: SalahCard['pray'], time: string, now: number, prayerAt = now): { card: SalahCard; minaret: SalahMinaret } => ({
-  card: { pray, time, foldsAt: now + FOLD_MS, isFolded: false, until: prayerAt + CARD_MS },
-  minaret: { pray, frame: 1, startedAt: now, foldsAt: now + TOTAL_MS, isFolded: false, until: prayerAt + CARD_MS },
-})
+// The moment's states when it begins now. `at` is the pray's time: a late start
+// still ends 15 minutes after it, when the footer drops the call.
+export const momentState = (pray: SalahCard['pray'], time: string, now: number, at = now): { card: SalahCard; minaret: SalahMinaret } => {
+  const until = Math.max(now + 1, at + CARD_MS)
+
+  return {
+    card: { pray, time, foldsAt: Math.min(now + FOLD_MS, until), isFolded: false, until },
+    minaret: { pray, frame: 1, startedAt: now, foldsAt: Math.min(now + TOTAL_MS, until), isFolded: false, until },
+  }
+}

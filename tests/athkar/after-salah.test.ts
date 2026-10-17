@@ -76,7 +76,10 @@ test('the shared count, advance, progress, undo, last-item completion and reset 
   expect(after.pray).toBe('fajr')
   expect(overall('afterSalah', after)).toBe(1 / 11)
   expect(step('afterSalah', after, { act: 'back' }).counts['70-ikhlas']).toBe(2)
-  const done = step('afterSalah', { ...reading, index: 10, counts: { '70-nas': 3 } }, { act: 'next' })
+  // Only a fully counted set finishes on next; otherwise the reader asks first.
+  expect(step('afterSalah', { ...reading, index: 10, counts: { '70-nas': 3 } }, { act: 'next' }).isDone).toBe(false)
+  const full = Object.fromEntries(listFor('afterSalah', reading).map(t => [t.id, t.times]))
+  const done = step('afterSalah', { ...reading, index: 10, counts: full }, { act: 'next' })
   expect(done.isDone).toBe(true)
   expect(resetHint('afterSalah')).toBe('/athkar after-salah reset → to read again')
 })
@@ -91,4 +94,14 @@ test('every new passage has sizing metrics and fits the same two-line area and f
       expect(bandHeight(model, width)).toBe(77)
     }
   }
+})
+
+test('after-salah waits while a morning reading is being counted, unless asked for from the athan card', () => {
+  const day = emptyDay('2026-10-10')
+  const last = { pray: 'fajr' as const, at: NOW }
+  const busy = { ...day, morning: { ...day.morning, counts: { x: 1 } } }
+  expect(setAt(new Date(NOW + IN_MS), busy, last)).toBe('morning')
+  expect(setAt(new Date(NOW + IN_MS), { ...busy, morning: { ...busy.morning, isDone: true } }, last)).toBe('afterSalah')
+  expect(setAt(new Date(NOW + IN_MS), { ...busy, morning: { ...busy.morning, isHidden: true } }, last)).toBe('afterSalah')
+  expect(setAt(new Date(NOW), busy, last, undefined, last)).toBe('afterSalah')
 })

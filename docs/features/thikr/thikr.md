@@ -47,7 +47,7 @@ Full text with tashkeel: `src/features/thikr/phrases.ts`.
 
 ## Settings
 
-Main-color accents follow the plugin-wide `/muslim color orange | green | gold | blue` setting through `src/shared/color/`, default Claude orange. Other colors stay as they are.
+Main-color accents follow the plugin-wide `/muslim color orange | green | yellow | blue` setting through `src/shared/color/`, default Claude orange. Other colors stay as they are.
 
 Terminal Arabic uses the shared three-mode behavior, and terminal output always strips tashkeel. The desktop-only tashkeel setting follows `/muslim tashkeel`; `/thikr tashkeel` was replaced by `/muslim tashkeel`. See [the Arabic check](../../terminal/terminal-arabic.md#checks) and the single [terminal Arabic reference](../../terminal/terminal-arabic.md).
 

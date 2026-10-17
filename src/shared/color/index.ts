@@ -1,10 +1,10 @@
-export type Accent = 'orange' | 'green' | 'gold' | 'blue'
+export type Accent = 'orange' | 'green' | 'yellow' | 'blue'
 
 // The main color, for a light theme and a dark one.
 export const ACCENTS: Record<Accent, { light: string; dark: string }> = {
   orange: { light: '#c8642d', dark: '#d97757' },
   green: { light: '#0b7a50', dark: '#1a9466' },
-  gold: { light: '#c99a1f', dark: '#e8b93c' },
+  yellow: { light: '#c99a1f', dark: '#e8b93c' },
   blue: { light: '#3a6aa3', dark: '#4a7fc0' },
 }
 

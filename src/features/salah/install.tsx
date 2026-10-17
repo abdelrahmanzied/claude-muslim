@@ -25,6 +25,8 @@ import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, isOnClose, KEY_REST_MS
 import { athanFrame, cardIsFolded, CARD_MS, isOnStart, type AthanCardProps } from './card.ts'
 import { localTime } from './clock.ts'
 import { athkarTimes, clockText, lastPray, lastSalahToday, nextSalah, type Adjust } from './times.ts'
+import { connectSalah, connectPanelAction } from '../../shared/panel/signal.ts'
+import { panelSalah } from './panel.ts'
 import { lineAt, methodOf, settingsTable, showText, timesTable } from './today.ts'
 
 // The engine follows $ only into same-file top-level functions, so the
@@ -196,6 +198,14 @@ const savePlace = async ($: EngineInterface, city: City, options: Options): Prom
   if (deny) await update($, review, () => null)
 
   return deny ? `Not changed: ${deny}` : `**City:** ${city.name} · ${METHODS[methodOf(options, city)].name}\nCheck today's times above the prompt.`
+}
+
+// A pane press uses the same city question, resolution and save/review path
+// as /salah city. Connect from input so the question has that press's context.
+async function panelCity($: EngineInterface, options: Options, guess: Place | undefined): Promise<void> {
+  const city = await askCity($, guess)
+  const result = typeof city === 'string' ? city : await savePlace($, city, options)
+  if (typeof city === 'string' || result.startsWith('Not changed:')) $.ui.toast(result)
 }
 
 // Keeps the pray line's row in step; writes only on a change.
@@ -386,6 +396,8 @@ const begin = async ($: EngineInterface, options: Options, place: Place, timer: 
 }
 
 export const install = (on: On, options: Options) => {
+  // The Muslim pane reads today's times from here; it needs no engine call.
+  connectSalah(now => panelSalah(options, now))
   // Read-through: correct on the first read, at midnight and between ticker ticks.
   // No state writes while drawing; this value is calculated rather than persisted.
   let athkarBounds: { key: string; value: SalahAthkarTimes } | undefined
@@ -403,10 +415,15 @@ export const install = (on: On, options: Options) => {
 
   const arabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
   const guess = guessPlace(systemTimeZone())
+  on('ui.message', { element: 'muslim-pane' }, ($, e, next) => {
+    connectPanelAction('salah-city', () => panelCity($, options, guess))
+    return next(e)
+  })
   // The prayer tracking timer, started once per module load by whichever of the
   // prompt band or the footer is drawn first (a reload, e.g. after any setting
   // change, starts it again; register also asks for a redraw at session.start).
   let hasTicker = false
+  let caught = 0
   let isLineCleared = false
   const timer: Timer = { moment: [], handle: undefined, ms: 0, opens: undefined }
   // The card's photo (base64), read the first time the card is drawn.
@@ -590,8 +607,17 @@ export const install = (on: On, options: Options) => {
     // Read so the timer's writes redraw this; the text itself comes from the
     // clock and these settings, so a line left by the last load never shows.
     await read($, line)
-    const text = lineAt(options, place, await $.clock.now())
+    const now = await $.clock.now()
+    const text = lineAt(options, place, now)
     if (!text) return theirs
+    // The call is drawn from the clock, the moment from the timer's tick: when the
+    // line shows the call and the moment never started (the timer was late or lost
+    // in a reload), run a tick at once. Once per pray; `athanShown` guards the rest.
+    const last = lastPray(place, methodOf(options, place), options.salahAdjust, now)
+    if (options.salahAthan && caught !== last.at && isDue(last.at, now, await read($, athanShown))) {
+      caught = last.at
+      $.clock.after(0, () => void run($, options, place, timer))
+    }
     const { Box, Text } = $.ui.resolve(e)
 
     return (

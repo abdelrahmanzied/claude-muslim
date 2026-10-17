@@ -40,7 +40,7 @@ export const readOptions = (raw: Record<string, unknown>): Options => ({
   athkar: raw.athkar !== false,
   // 'outline' is the old name of 'frame'.
   athkarStyle: raw.athkarStyle === 'frame' || raw.athkarStyle === 'outline' ? 'frame' : 'sky',
-  color: readColor(raw.color),
+  color: readColor(raw.color === 'gold' ? 'yellow' : raw.color),
   salahShow: readShow(raw),
   // "salahAdhan" is the old saved key name (data, read as is).
   salahAthan: (raw.salahAthan ?? raw.salahAdhan) !== false,

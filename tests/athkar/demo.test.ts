@@ -7,7 +7,7 @@ const FINALE_MS = 3200
 
 for (const style of ['sky', 'frame'] as const) {
   test(`${style}: authored scenes, periods, looks, timing and exact boundaries`, () => {
-    const scenes = demoScenes(style, 'gold', FINALE_MS)
+    const scenes = demoScenes(style, 'yellow', FINALE_MS)
     const isSky = style === 'sky'
     expect(scenes.map(s => s.kind)).toEqual([...Array(isSky ? 6 : 4).fill('reading'), 'finale', 'folded'])
     expect(scenes.map(s => s.id)).toEqual(isSky ? ['75', '83', '84', '97', '77', '98', '98', '98'] : ['75', '83', '84', '98', '98', '98'])
@@ -15,24 +15,24 @@ for (const style of ['sky', 'frame'] as const) {
     expect(scenes.map(s => s.countMs)).toEqual(isSky ? [2500, 400, 2500, 800, 2500, 300, 0, 0] : [2500, 400, 2500, 300, 0, 0])
     expect(scenes.map(s => s.sky)).toEqual(isSky ? [...DEMO_SKIES, 'crescent', 'crescent'] : DEMO_SKIES)
     expect(scenes.map(s => s.period)).toEqual(isSky ? ['morning', 'morning', 'morning', 'evening', 'evening', 'evening', 'evening', 'evening'] : Array(6).fill('morning'))
-    expect(scenes.map(s => s.accent)).toEqual(isSky ? Array(8).fill('gold') : ['orange', 'green', 'gold', 'blue', 'orange', 'green'])
+    expect(scenes.map(s => s.accent)).toEqual(isSky ? Array(8).fill('yellow') : ['orange', 'green', 'yellow', 'blue', 'orange', 'green'])
     expect(demoDuration(style, FINALE_MS)).toBe(isSky ? 33_200 : 24_200)
     expect(demoReply(style, FINALE_MS)).toBe(`**Athkar demo:** ${style} · ${isSky ? '8 scenes · 33.2s' : '6 scenes · 24.2s'}`)
     let elapsed = 0
     for (const scene of scenes) {
       expect(scene.startsAt).toBe(elapsed)
       elapsed += scene.duration
-      expect(demoStep(style, 'gold', scene.startsAt, FINALE_MS)).toMatchObject(scene)
-      expect(demoStep(style, 'gold', scene.startsAt + scene.duration - 1, FINALE_MS)).toMatchObject(scene)
-      const step = demoStep(style, 'gold', scene.startsAt, FINALE_MS)!
+      expect(demoStep(style, 'yellow', scene.startsAt, FINALE_MS)).toMatchObject(scene)
+      expect(demoStep(style, 'yellow', scene.startsAt + scene.duration - 1, FINALE_MS)).toMatchObject(scene)
+      const step = demoStep(style, 'yellow', scene.startsAt, FINALE_MS)!
       const list = listFor(step.period)
       expect(currentOf(step.period, step.reading).id).toBe(scene.id)
       expect(step.reading.index).toBe(list.findIndex(t => t.id === scene.id))
       for (const thikr of list.slice(0, step.reading.index)) expect(countOf(thikr, step.reading)).toBe(timesOf(thikr))
     }
     expect(elapsed).toBe(demoDuration(style, FINALE_MS))
-    expect(demoStep(style, 'gold', -1, FINALE_MS)).toBeUndefined()
-    expect(demoStep(style, 'gold', elapsed, FINALE_MS)).toBeUndefined()
+    expect(demoStep(style, 'yellow', -1, FINALE_MS)).toBeUndefined()
+    expect(demoStep(style, 'yellow', elapsed, FINALE_MS)).toBeUndefined()
   })
 
   test(`${style}: every reading counts and moves the glow; id 98 reaches ten`, () => {
@@ -96,23 +96,23 @@ test('sky shows each sky on a distinct reading, including an evening-only short 
 for (const style of ['sky', 'frame'] as const) {
   test(`${style}: after-salah scenes use the real Fajr list, fast counts, finale and folded done`, () => {
     const before = JSON.stringify(listFor('afterSalah', { index: 0, counts: {}, isDone: false, isHidden: false, pray: 'fajr' }))
-    const scenes = demoScenes(style, 'gold', FINALE_MS, 'afterSalah', 'rose')
+    const scenes = demoScenes(style, 'yellow', FINALE_MS, 'afterSalah', 'rose')
     expect(scenes.map(s => s.id)).toEqual(['66-istighfar', '69-tasbih', '70-ikhlas', '70-nas', '70-nas'])
     expect(scenes.map(s => s.duration)).toEqual([1200, 3600, 1200, FINALE_MS, 1200])
-    expect(scenes.every(s => s.period === 'afterSalah' && s.sky === 'rose' && s.accent === 'gold')).toBe(true)
+    expect(scenes.every(s => s.period === 'afterSalah' && s.sky === 'rose' && s.accent === 'yellow')).toBe(true)
     let elapsed = 0
     for (const scene of scenes) {
       expect(scene.startsAt).toBe(elapsed)
-      const first = demoStep(style, 'gold', elapsed, FINALE_MS, 'afterSalah', 'rose')!
+      const first = demoStep(style, 'yellow', elapsed, FINALE_MS, 'afterSalah', 'rose')!
       expect(first).toMatchObject({ ...scene, reading: { pray: 'fajr', at: null } })
       const list = listFor('afterSalah', first.reading)
       const current = currentOf('afterSalah', first.reading)
       expect(current.id).toBe(scene.id)
       for (const t of list.slice(0, first.reading.index)) expect(countOf(t, first.reading)).toBe(t.times)
-      const end = demoStep(style, 'gold', elapsed + scene.duration - 1, FINALE_MS, 'afterSalah')!
+      const end = demoStep(style, 'yellow', elapsed + scene.duration - 1, FINALE_MS, 'afterSalah')!
       if (scene.kind === 'reading') {
         expect(countOf(current, first.reading)).toBe(0)
-        const next = demoStep(style, 'gold', elapsed + scene.countMs, FINALE_MS, 'afterSalah')!
+        const next = demoStep(style, 'yellow', elapsed + scene.countMs, FINALE_MS, 'afterSalah')!
         expect(countOf(current, next.reading)).toBe(1)
         expect(next.progress).toBeGreaterThan(first.progress)
         expect(next.from).toBe(first.progress)
@@ -126,8 +126,8 @@ for (const style of ['sky', 'frame'] as const) {
     }
     expect(elapsed).toBe(10400)
     expect(demoDuration(style, FINALE_MS, 'afterSalah')).toBe(elapsed)
-    expect(demoStep(style, 'gold', -1, FINALE_MS, 'afterSalah')).toBeUndefined()
-    expect(demoStep(style, 'gold', elapsed, FINALE_MS, 'afterSalah')).toBeUndefined()
-    expect(JSON.stringify(listFor('afterSalah', demoStep(style, 'gold', 0, FINALE_MS, 'afterSalah')!.reading))).toBe(before)
+    expect(demoStep(style, 'yellow', -1, FINALE_MS, 'afterSalah')).toBeUndefined()
+    expect(demoStep(style, 'yellow', elapsed, FINALE_MS, 'afterSalah')).toBeUndefined()
+    expect(JSON.stringify(listFor('afterSalah', demoStep(style, 'yellow', 0, FINALE_MS, 'afterSalah')!.reading))).toBe(before)
   })
 }

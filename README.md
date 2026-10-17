@@ -84,7 +84,7 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/athkar morning reset` · `evening reset` | Read that period again from the start |
 | `/athkar style sky` · `frame` | The look on desktop: a sky that follows the time of day (default), or plain. The terminal always shows the frame |
 | `/athkar demo` · `demo sky` · `demo frame` | Play the looks in motion, for videos or to preview them (sky 33.2 s on desktop; frame 24.2 s on either surface); nothing is saved |
-| `/muslim color` · `color orange` · `green` · `gold` · `blue` | Show or change the main color of the whole mod (default: Claude orange) |
+| `/muslim color` · `color orange` · `green` · `yellow` · `blue` | Show or change the main color of the whole mod (default: Claude orange) |
 | `/salah` | Place, method and mode, then today's prayer times |
 | `/salah help` | Table of every `/salah` command |
 | `/salah city` · `city <name or lat, lng>` | Pick your city by question, or by name in any language |
@@ -93,7 +93,7 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/salah show always` · `<minutes>` · `off` | Show the next pray all day, only that many minutes before it (e.g. `show 20`), or hide it |
 | `/salah athan on` · `off` | `حان وقت صلاة …` when a prayer comes in |
 | `/salah demo` | Preview Fajr at 05:00 without a city: desktop 5 s open, 3 s folded; terminal 3.01 s rise, 3 s folded; real athan state stays untouched, nothing is saved |
-| `/quran` | Open the desktop player |
+| `/quran` | Open the Muslim pane at the Quran player (desktop); on a terminal, show the status |
 | `/quran help` | Table of every `/quran` command |
 | `/quran play <surah>` | Play an available surah by number or Arabic name |
 | `/quran stop` | Stop playback or pending preparation |
@@ -105,7 +105,8 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/muslim tashkeel on` · `off` | Show or hide Arabic diacritics on desktop (the terminal never shows them) |
 | `/muslim terminal-arabic` | Choose how Arabic shows in this terminal |
 | `/muslim help` · `help <feature>` | Command tables of every feature, or one (`thikr`, `athkar`, `salah`, `quran`) |
-| `/muslim demo` | Play the thikr, athkar and salah demos in order: thikr in a real turn (about 30 s; it uses tokens and leaves a message in the transcript), its 3 s usage-limit hold, athkar (desktop sky 33.2 s; terminal frame 24.2 s), then the salah athan moment (`/salah demo`); 0.1 s between demos, no setting or saved state changes; no city needed; another request while playing says so |
+| `/muslim pane demo` | Desktop: a 10 s tour of the Muslim pane (cards unfold, the Quran card plays without sound, athkar fill to done, then everything folds back and the pane returns to how it was); nothing is saved; a terminal says it is desktop only |
+| `/muslim demo` | Play the thikr, athkar, salah and Muslim pane (desktop) demos in order: thikr in a real turn (about 30 s; it uses tokens and leaves a message in the transcript), its 3 s usage-limit hold, athkar (desktop sky 33.2 s; terminal frame 24.2 s), then the salah athan moment (`/salah demo`), then the Muslim pane tour on desktop; 0.1 s between demos, no setting or saved state changes; no city needed; another request while playing says so |
 
 Shared and feature settings are also in `/config`; Quran remembers its recording in the local store to avoid reloading playback. The shared `color` setting changes existing main-color accents across athkar, salah, Quran, thikr's usage-limit line and the terminal Arabic survey label. Orange text follows Claude's theme; other choices use light/dark shades.
 

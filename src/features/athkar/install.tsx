@@ -6,14 +6,16 @@ import type { EngineInterface, On } from 'claude-code'
 import type { Day, SalahCard, SalahLast, SalahAthkarTimes } from '../../../types'
 import type { Options } from '../../config.ts'
 import { withTashkeel } from '../../shared/arabic/visual.ts'
+import { connectAthkar, connectPanelAction, type PanelAthkar } from '../../shared/panel/signal.ts'
 import { helpHint, statusTable } from '../../table.ts'
 import { athkarHelp } from './help.ts'
 import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, KEY_REST_MS, LEAVE_MS, LINE_PX, REST_PX } from '../../shared/card/card.ts'
-import { bandHeight, closeArea, pixelOf } from './band.ts'
+import { bandHeight, closeArea, pixelOf, questionAreas } from './band.ts'
 import type { BandModel } from './band.ts'
+import { canUndoReset, resetReading, resetSnapshot, setNamed, undoReset, UNDO_MS, type ResetSnapshot } from './reset.ts'
 import type { AthkarSet } from './logic.ts'
-import { ADVANCE_MS, countOf, currentOf, dayOf, emptyReading, END, listFor, overall, offerStart, nextPeriodAt, setAt, syncAfterSalah, readDay, shouldAdvance, skyOn, step, textOf, timesOf, TITLE } from './logic.ts'
-import type { Act } from './logic.ts'
+import { ADVANCE_MS, asksToFinish, countKey, countOf, currentOf, dayOf, emptyReading, END, listFor, overall, offerStart, nextPeriodAt, questionKey, setAt, syncAfterSalah, readDay, shouldAdvance, skyOn, step, textOf, timesOf, TITLE } from './logic.ts'
+import type { Act, FinishQuestion } from './logic.ts'
 import { lookFor, plain, readerProps, resetHint } from './look.ts'
 import type { Style } from './look.ts'
 
@@ -140,17 +142,20 @@ const glowAtTime = (from: number, to: number, ms: number) => {
 }
 
 const isStyle = (value: string): value is Style => (STYLES as readonly string[]).includes(value)
-const setNamed = (value: string): AthkarSet | undefined => value === 'after-salah' ? 'afterSalah' : value === 'morning' || value === 'evening' ? value : undefined
 const setLabel = (set: AthkarSet) => set === 'afterSalah' ? 'Athkar after salah' : `${set} athkar`
 
 // Manual choices hold; otherwise offer after-salah after the card, then the automatic period.
 const periodOf = (now: Date, day: Day, last: SalahLast | null, requested?: SalahLast | null, bounds?: SalahAthkarTimes | null): AthkarSet => setAt(now, day, last, view.chosen, requested, bounds)
 
+let resetUndo: ResetSnapshot | undefined
+let undoTimer: { cancel: () => void } | undefined
+const dropUndo = () => { resetUndo = undefined; undoTimer?.cancel(); undoTimer = undefined }
+
 const localNow = async ($: EngineInterface) => new Date(await $.clock.now())
 
 // Today's reading as held this session, else as stored, or a fresh day once
 // the day has turned.
-const today = async ($: EngineInterface) => {
+const today = async ($: EngineInterface, persist = true) => {
   const now = await localNow($)
   const { value } = await $.state.get({ plugin: 'muslim', key: 'athkar' })
 
@@ -161,9 +166,10 @@ const today = async ($: EngineInterface) => {
   const day = signal === undefined && hasPrayerTimes ? stored : syncAfterSalah(stored, last)
   if (day !== stored) {
     if (view.chosen === 'afterSalah') view.chosen = undefined
-    await save($, day)
+    if (persist) await save($, day)
   }
   const requested = (await $.state.get({ plugin: 'muslim', key: 'salahAfterSalahStart' })).value
+  if (resetUndo && !canUndoReset(resetUndo, day, periodOf(now, day, last, requested, bounds), now.getTime())) dropUndo()
   return { now, day, last, requested, bounds }
 }
 
@@ -181,26 +187,130 @@ const statusOf = (day: Day, period: AthkarSet) => {
   return `${begun === 0 ? 'not started' : `${reading.index + 1} of ${list.length}`}${reading.isHidden ? ' (hidden)' : ''}`
 }
 
+// What the Muslim pane shows of today's reading, in the period now.
+const panelAthkar = async ($: EngineInterface, tashkeel: boolean): Promise<PanelAthkar> => {
+  const { now, day, last, requested, bounds } = await today($, false)
+  const period = periodOf(now, day, last, requested, bounds)
+  const reading = day[period]
+  const list = listFor(period, reading)
+
+  return {
+    set: period === 'afterSalah' ? 'after-salah' : period,
+    canUndo: canUndoReset(resetUndo, day, period, now.getTime()),
+    title: withTashkeel(TITLE[period], tashkeel),
+    done: list.filter(thikr => countOf(thikr, reading) >= timesOf(thikr)).length,
+    total: list.length,
+    progress: overall(period, reading),
+    isDone: reading.isDone,
+  }
+}
+
+// The Muslim pane's Open: the reader comes back if hidden and opens, lit.
+const openFromPanel = async ($: EngineInterface) => {
+  const { now, day, last, requested, bounds } = await today($)
+  const period = periodOf(now, day, last, requested, bounds)
+  if (view.chosen !== period) view.question = undefined
+  view.chosen = period
+  if (day[period].isHidden) await save($, { ...day, [period]: { ...day[period], isHidden: false } })
+  view.isOpen = true
+  wake($)
+}
+
+// Finish from the pane targets the set shown, including a manual choice.
+const finishFromPanel = async ($: EngineInterface) => {
+  const { now, day, last, requested, bounds } = await today($)
+  const period = periodOf(now, day, last, requested, bounds)
+  await save($, { ...day, [period]: step(period, day[period], { act: 'finish' }) })
+  if (periodOf(now, day, last, requested, bounds) === period) view.question = undefined
+  $.ui.invalidate('ui.render')
+}
+
+// Shared by slash commands and pane picks: same hold, cover and unhide rules.
+const chooseSet = async ($: EngineInterface, selected: AthkarSet) => {
+  dropUndo()
+  const { day } = await today($)
+  const reading = day[selected]
+  if (view.chosen !== selected) { view.isOpen = false; view.question = undefined; view.revision++ }
+  view.chosen = selected
+  if (reading.isHidden) await save($, { ...day, [selected]: { ...reading, isHidden: false } })
+  wake($)
+  return reading
+}
+
+const resetSet = async ($: EngineInterface, selected: AthkarSet, undoable = false) => {
+  dropUndo()
+  const { day, now } = await today($)
+  if (undoable) {
+    resetUndo = resetSnapshot(day, selected, now.getTime())
+    undoTimer = $.clock.after(UNDO_MS, () => { dropUndo(); $.ui.invalidate('ui.render') })
+  }
+  await save($, resetReading(day, selected))
+  if (selected === 'afterSalah') view.chosen = selected
+  view.isOpen = false
+  view.question = undefined
+  view.revision++
+  rest($)
+  $.ui.invalidate('ui.render')
+}
+const resetFromPanel = async ($: EngineInterface) => {
+  const { now, day, last, requested, bounds } = await today($)
+  await resetSet($, periodOf(now, day, last, requested, bounds), true)
+}
+const undoFromPanel = async ($: EngineInterface) => {
+  const { now, day, last, requested, bounds } = await today($)
+  const restored = undoReset(resetUndo, day, periodOf(now, day, last, requested, bounds), now.getTime())
+  dropUndo()
+  if (restored !== day) {
+    view.question = undefined
+    view.revision++
+    await save($, restored)
+  }
+  $.ui.invalidate('ui.render')
+}
+
+const connectPanel = ($: EngineInterface, options: Options) => {
+  connectAthkar(() => panelAthkar($, options.tashkeel))
+  connectPanelAction('athkar-open', () => openFromPanel($))
+  connectPanelAction('athkar-finish', () => finishFromPanel($))
+  connectPanelAction('athkar-set', async value => {
+    const selected = setNamed(value)
+    if (!selected) throw new Error('Unknown athkar set')
+    await chooseSet($, selected)
+  })
+  connectPanelAction('athkar-reset', () => resetFromPanel($))
+  connectPanelAction('athkar-undo', () => undoFromPanel($))
+}
+
 // Moves on after a thikr's last count, unless the reader moved meanwhile.
-const advance = async ($: EngineInterface, period: AthkarSet, index: number, at?: number | null) => {
+const advance = async ($: EngineInterface, period: AthkarSet, index: number, revision: number, at?: number | null) => {
+  if (view.revision !== revision || view.question) return
   const { day } = await today($)
   const reading = day[period]
   const thikr = currentOf(period, reading)
   if ((period === 'afterSalah' && reading.at !== at) || reading.index !== index || reading.isDone || countOf(thikr, reading) < timesOf(thikr)) return
-  await save($, { ...day, [period]: step(period, reading, { act: 'next' }) })
+  await apply($, { act: 'next' }, period)
 }
 
 // One step of today's reading, saved; after a count that ends a thikr, the
 // next one shows by itself.
-const apply = async ($: EngineInterface, act: Act) => {
+const apply = async ($: EngineInterface, act: Act, target?: AthkarSet) => {
   const { now, day, last, requested, bounds } = await today($)
-  const period = periodOf(now, day, last, requested, bounds)
+  const period = target ?? periodOf(now, day, last, requested, bounds)
   const before = day[period]
+  view.revision++
+  if (asksToFinish(period, before, act)) {
+    view.question = { day: day.day, period, focus: 'finish', blockedKey: view.lastKey }
+    view.isOpen = true
+    wake($)
+    return
+  }
+  view.question = undefined
   const after = step(period, before, act)
   await save($, { ...day, [period]: after })
   if (act.act === 'hide') view.chosen = undefined
   if (act.act === 'count' && shouldAdvance(period, before, after)) {
-    $.clock.after(ADVANCE_MS, () => void advance($, period, after.index, after.at))
+    const revision = view.revision
+    $.clock.after(ADVANCE_MS, () => void advance($, period, after.index, revision, after.at))
   }
 }
 
@@ -209,12 +319,18 @@ const apply = async ($: EngineInterface, act: Act) => {
 // anywhere else counts or opens the band.
 type Hit = { x0: number; x1: number; y0: number; y1: number; act: Act }
 
-export const hitsFor = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' | 'finaleMs'>): Hit[] => [{ ...closeArea(m), act: { act: 'hide' } }]
+export const hitsFor = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' | 'finaleMs'> & { width?: number }): Hit[] => [
+  { ...closeArea(m), act: { act: 'hide' } },
+  ...(m.phase === 'question' && m.isActive ? questionAreas(m.width ?? 0).map(a => ({ ...a, act: { act: a.act } })) : []),
+]
 
 // This session's view: past the cover, lit, and when it fades.
 const arabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
 
 const view = {
+  question: undefined as FinishQuestion | undefined,
+  revision: 0,
+  lastKey: undefined as string | undefined,
   isOpen: false,
   isActive: false,
   idle: undefined as { cancel: () => void } | undefined,
@@ -278,6 +394,10 @@ export const install = (on: On, options: Options) => {
   view.isActive = false
   view.isInside = false
   view.chosen = undefined
+  view.question = undefined
+  view.revision++
+  view.lastKey = undefined
+  dropUndo()
 
   on('command.run', { command: 'athkar' }, async ($, e) => {
     const [word = '', value = ''] = e.args.trim().split(/\s+/)
@@ -325,22 +445,12 @@ export const install = (on: On, options: Options) => {
     if (word === 'style' && isStyle(value)) return set('athkarStyle', value, `style ${value}`)
     if (word === 'color') return { text: 'Color is now /muslim color.' }
     if (selected && value === 'reset') {
-      const { day } = await today($)
-      await save($, { ...day, [selected]: { ...day[selected], ...emptyReading() } })
-      if (selected === 'afterSalah') view.chosen = selected
-      view.isOpen = false
-      // Back at the cover, folded: the person has moved on to the prompt.
-      rest($)
+      await resetSet($, selected)
 
       return { text: `${setLabel(selected)} start again from the first` }
     }
     if (selected && value === '') {
-      const { day } = await today($)
-      const reading = day[selected]
-      if (view.chosen !== selected) view.isOpen = false
-      view.chosen = selected
-      if (reading.isHidden) await save($, { ...day, [selected]: { ...reading, isHidden: false } })
-      wake($)
+      const reading = await chooseSet($, selected)
 
       return { text: reading.isDone ? `${setLabel(selected)} are done today: ${resetHint(selected)}` : `${setLabel(selected)} open above the prompt` }
     }
@@ -419,6 +529,9 @@ export const install = (on: On, options: Options) => {
   // DEMO END
   if (!options.athkar) return
 
+  on('ui.render', { component: 'Pane', requestId: 'muslim' }, ($, e, next) => { connectPanel($, options); return next(e) })
+  on('ui.message', { element: 'muslim-pane' }, ($, e, next) => { connectPanel($, options); return next(e) })
+
   on('state.set', { plugin: 'muslim', key: 'salahAfterSalahStart' }, async ($, e, next) => {
     const result = await next(e)
     if (!result.value?.isSet || !e.value) return result
@@ -427,6 +540,7 @@ export const install = (on: On, options: Options) => {
     // This explicit start resumes an unfinished reading, or restarts a finished one.
     const reading = day.afterSalah
     await save($, { ...day, afterSalah: { ...reading, ...(reading.isDone ? emptyReading() : {}), isHidden: false } })
+    dropUndo()
     view.chosen = undefined
     view.pressedAt = Date.now()
     openedRequest = undefined // The next picture opens after its slot transition.
@@ -436,6 +550,15 @@ export const install = (on: On, options: Options) => {
 
   on('ui.message', { element: 'athkar' }, async ($, e) => {
     const m = e.data
+    // Terminal native choice buttons use the same finish/resume operations.
+    if (m && typeof m === 'object' && 'act' in m && (m.act === 'finish' || m.act === 'resume')) {
+      const { now, day, last, requested, bounds } = await today($)
+      if (view.question?.day === day.day && view.question.period === periodOf(now, day, last, requested, bounds) && view.isActive) {
+        await apply($, { act: m.act })
+        wake($)
+      }
+      return {}
+    }
     if (!isCardMessage(m)) return {}
     if (m.act === 'size') {
       region = { columns: m.columns, rows: m.rows }
@@ -476,19 +599,23 @@ export const install = (on: On, options: Options) => {
       view.leave?.cancel()
       view.leave = $.clock.after(KEY_REST_MS, () => rest($))
     }
+    const { now, day, last, requested, bounds } = await today($)
+    const period = periodOf(now, day, last, requested, bounds)
+    const reading = day[period]
+    if (view.question && (view.question.day !== day.day || view.question.period !== period || reading.isDone)) view.question = undefined
+    if (m.act === 'pointer') view.lastKey = undefined
     if (m.act === 'pointer' && m.button === 'left' && lastBand && columns > 0 && rows > 0) {
       // The × sits at the left, so a click is placed from the left edge.
       const { px, py } = pixelOf(lastBand, m.x, m.y, columns, rows)
       const hit = hitsFor(lastBand).find(h => px >= h.x0 && px <= h.x1 && py >= h.y0 && py <= h.y1)
       if (hit) {
+        if ((hit.act.act === 'finish' || hit.act.act === 'resume') && (!view.question || !view.isActive)) return {}
         if (hit.act.act === 'hide') view.isOpen = false
         await apply($, hit.act)
 
         return {}
       }
     }
-    const { now, day, last, requested, bounds } = await today($)
-    const reading = day[periodOf(now, day, last, requested, bounds)]
     const isBack = m.act === 'pointer' ? m.button === 'right' : m.key === 'backspace'
     const isCount = m.act === 'pointer' ? m.button === 'left' : m.key === ' ' || m.key === 'space' || m.key === 'return'
     if (reading.isDone) {
@@ -519,6 +646,19 @@ export const install = (on: On, options: Options) => {
       return {}
     }
     wake($)
+    if (view.question) {
+      if (m.act === 'pointer' && isBack) {
+        view.question = undefined
+        view.revision++
+      } else if (m.act === 'key') {
+        const result = questionKey(view.question, m.key)
+        view.question = result.question
+        if (result.act) await apply($, result.act)
+      }
+      $.ui.invalidate('ui.render')
+      return {}
+    }
+    if (m.act === 'key') view.lastKey = countKey(m.key)
     if (isCount) await apply($, { act: 'count' })
     else if (isBack) await apply($, { act: 'back' })
     else if (m.act === 'key' && m.key === 'left') await apply($, { act: 'next' })
@@ -542,6 +682,7 @@ export const install = (on: On, options: Options) => {
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)
+    connectPanel($, options)
     if (demo && (demo.style === 'frame' || e.surface === 'desktop')) return theirs
     // An earlier build left a debugging line in the status bar: clear it once.
     if (!isStatusCleared) {
@@ -604,7 +745,8 @@ export const install = (on: On, options: Options) => {
     // The shared Arabic path: the tashkeel setting, then this terminal's mode.
     const arabicMode = await arabicModeOf($, e.surface, arabicCache)
     const show = (text: string) => terminalArabic(e.surface, arabicMode, withTashkeel(text, options.tashkeel))
-    const props = readerProps(period, reading, look, show, { isOpen: view.isOpen, isActive: view.isActive, isPicture })
+    if (view.question && (view.question.day !== dayOf(now) || view.question.period !== period || reading.isDone)) view.question = undefined
+    const props = readerProps(period, reading, look, show, { isOpen: view.isOpen, isActive: view.isActive, isPicture, question: view.question })
     // Finished just now, not found finished on a reload: the finale plays once.
     if (props.phase === 'done' && lastPhase !== undefined && lastPhase !== 'done') {
       finishedAt = Date.now()
@@ -615,6 +757,7 @@ export const install = (on: On, options: Options) => {
     const { Box, Client } = $.ui.resolve(e)
 
     if (e.surface !== 'desktop') {
+      lastBand = undefined
       return (
         <Box flexDirection="column">
           <Box key="athkar-band" width="100%">
@@ -643,6 +786,7 @@ export const install = (on: On, options: Options) => {
     const width = Math.round(e.props.bodyColumns * CELL_PX)
     const model: BandModel = {
       phase: props.phase,
+      question: props.question,
       period,
       sky,
       style: options.athkarStyle,

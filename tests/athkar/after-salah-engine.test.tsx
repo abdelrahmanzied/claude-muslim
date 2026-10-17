@@ -57,9 +57,9 @@ for (const surface of ['desktop', 'terminal'] as const) {
     const saved = kept.day
     expect(saved.afterSalah.counts['66-istighfar']).toBe(1)
     expect(saved.afterSalah.pray).toBe(null)
-    // Finish using the shared path on its last item.
+    // Finish using the shared path on its last item, with the whole set counted.
     const list = listFor('afterSalah')
-    kept.day = { ...saved, afterSalah: { ...saved.afterSalah, index: list.length - 1, counts: { [list[list.length - 1]!.id]: 1 } } }
+    kept.day = { ...saved, afterSalah: { ...saved.afterSalah, index: list.length - 1, counts: Object.fromEntries(list.map(t => [t.id, t.times])) } }
     await ui.post({ act: 'key', key: 'left' })
     expect((await $.command.run(run('after-salah'))).text).toContain(resetHint('afterSalah'))
     expect((await $.command.run(run('after-salah reset'))).text).toBe('Athkar after salah start again from the first')

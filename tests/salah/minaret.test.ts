@@ -31,3 +31,9 @@ test('reload restores rise, fold and expiry from absolute deadlines', () => {
   expect(minaretStage(moment, moment.foldsAt)).toEqual({ frame: 7, isFolded: true, isGone: false })
   expect(minaretStage(moment, moment.until).isGone).toBe(true)
 })
+
+test('the moment is due for exactly as long as the footer keeps the call', () => {
+  expect(FRESH_MS).toBe(15 * 60_000)
+  expect(isDue(1000, 1000 + 3 * 60_000, null)).toBe(true)
+  expect(isDue(1000, 1000 + 3 * 60_000, 1000)).toBe(false)
+})

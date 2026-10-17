@@ -1,5 +1,5 @@
 // DEMO BEGIN: transient signals, no engine API or persistent state.
-export type DemoFeature = 'thikr' | 'athkar' | 'salah'
+export type DemoFeature = 'thikr' | 'athkar' | 'salah' | 'pane'
 type DemoPart = DemoFeature | 'afterSalah'
 type Starter = (finished?: () => void) => string | Promise<string>
 const starters = new Map<DemoPart, { start: Starter; cancel?: () => void }>()

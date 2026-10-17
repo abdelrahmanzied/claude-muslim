@@ -524,6 +524,23 @@ for (const surface of ['desktop', 'terminal'] as const) {
   }
 }
 
+// Dhuhr 13:02 in Munich is 11:02:00Z. A reload or a late tick first draws the band 3 or 10 minutes after.
+for (const late of [3, 10]) {
+  test(`the athan card still shows when the first tick comes ${late} minutes after the call, and ends 15 minutes after it`, { options: MUNICH }, async ($, on) => {
+    mock.env(on, {})
+    mock.store(on)
+    const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:02:00Z') + late * 60_000 })
+    engineBand(on)
+    on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
+    const desktop = await $.ui.mount(band('desktop'))
+    await clock.advance(1000)
+    expect(await desktop.find({ in: 'salah-athan', type: 'Svg' })).toBeDefined()
+    expect(await desktop.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
+    await clock.advance((15 - late) * 60_000)
+    expect(await desktop.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
+  })
+}
+
 for (const isFolded of [false, true]) {
   for (const isDark of [false, true]) {
     test(`after-salah control retains the card look, fits the Svg budget and hits independently of ×: ${isFolded ? 'folded' : 'open'} ${isDark ? 'dark' : 'light'}`, () => {

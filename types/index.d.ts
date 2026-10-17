@@ -7,6 +7,8 @@ export type Fard = 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'
 export type UsageLimit = { until: number | null }
 
 // The athkar read today, all three sets; see src/features/athkar/logic.ts.
+// Completion includes explicit confirmation, which fills every count.
+// The end question and its selection live only in the feature module, never $.state.
 export type AthkarReading = {
   index: number
   counts: Record<string, number>
@@ -43,6 +45,14 @@ export type SalahCard = { pray: SalahWindow['pray']; time: string; foldsAt: numb
 export type QuranRepeat = 'off' | 'surah' | 'segment'
 export type QuranPlaying = { moshafKey: string; surah: number; startedAt: number; durationMs: number | null; segmentIndex?: number; segmentCount?: number }
 
+export type PaneSettings = { open: boolean; category: 'prayer' | 'athkar' | 'thikr' | 'general'; face: 'main' | 'methods' | 'adjust' | 'city'; page: number }
+// A copy button that just copied: its command and the time (ms since the epoch) its «تم النسخ» confirmation ends.
+export type PaneCopied = { command: string; until: number }
+// The Muslim pane's open Quran picker: which list, the typed query, the highlighted row, the first visible row and a
+// scrollbar drag in progress (`cell` is the pane pixels one pointer row stood for at the press; null when unknown).
+export type PanePicker = { list: 'reciter' | 'surah' | 'segment'; query: string; highlight: number; scroll: number; drag: { y: number; scroll: number; cell: number | null } | null }
+export type PaneOptimistic = Partial<Record<'tashkeel' | 'thikr' | 'athkar' | 'salahAthan', boolean>>
+
 declare module 'claude-code' {
   interface PluginState {
     muslim: {
@@ -51,6 +61,19 @@ declare module 'claude-code' {
       quranError: string | null
       quranCommandError: string | null
       quranSurah: number
+
+      // Settings hub, one selected tab and its detail/page, kept across reloads.
+      paneSettings: PaneSettings | null
+      // Immediate settings-switch display until config reload confirms it.
+      paneOptimistic: PaneOptimistic
+      // The copy button's transient confirmation; expires at `until`.
+      paneCopied: PaneCopied | null
+      // The Quran card's open picker, or null.
+      panePicker: PanePicker | null
+      // The athkar card's title menu, kept with the pane's UI state.
+      paneAthkarMenu: boolean
+      // Which daily cards are folded to their title row.
+      paneFolds: { prayer: boolean; quran: boolean; athkar: boolean } | null
 
       // Terminal whose picker was opened by /muslim terminal-arabic.
       arabicSurveyManualTerminal: string | null

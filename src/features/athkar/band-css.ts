@@ -10,7 +10,7 @@ button:focus-visible {outline: 2px solid var(--accent); outline-offset: 2px;}
 .band.al-fade:not(.active) {filter: saturate(.3) brightness(1.03) contrast(.94);}
 .band.al-fade:not(.active):hover {filter: saturate(.75);}
 .acc-green {--ring: var(--green); --b-acc: var(--green); --b-soft: var(--green-soft); --b-faint: var(--green-faint);}
-.acc-gold {--ring: var(--gold); --b-acc: var(--gold); --b-soft: var(--gold-soft); --b-faint: var(--gold-faint);}
+.acc-yellow {--ring: var(--yellow); --b-acc: var(--yellow); --b-soft: var(--yellow-soft); --b-faint: var(--yellow-faint);}
 .acc-blue {--ring: var(--blue); --b-acc: var(--blue); --b-soft: var(--blue-soft); --b-faint: var(--blue-faint);}
 .band .text {font-family: var(--font-band, var(--font-ar)); direction: rtl; text-align: right; white-space: pre-line; color: var(--b-ink);}
 .band .hint {font-size: 11.5px; color: var(--b-dim);}
@@ -126,4 +126,13 @@ button:focus-visible {outline: 2px solid var(--accent); outline-offset: 2px;}
 @property --ang {syntax: '<angle>'; initial-value: 0deg; inherits: false;}
 @property --cx {syntax: '<percentage>'; initial-value: -30%; inherits: false;}
 @property --sy {syntax: '<percentage>'; initial-value: 130%; inherits: false;}
+`
+
+export const QUESTION_CSS = `
+.end-question {position:absolute;top:calc(3px + var(--ay, 0px));left:calc(40px + var(--ax, 0px));right:calc(16px + var(--ax, 0px));text-align:center;color:var(--b-ink);font:14px/18px var(--font-band);z-index:3;}
+.end-question strong,.end-question small {display:block;}
+.end-question small {color:var(--b-dim);font-size:11px;line-height:16px;}
+.end-choice {position:absolute;height:30px;display:grid;place-items:center;border-radius:7px;color:var(--b-dim);font:14px/1 var(--font-band);z-index:3;white-space:nowrap;}
+.end-choice.finish {background:var(--ring);color:#fff;}
+.end-choice.selected {outline:1px solid var(--b-ink);outline-offset:1px;}
 `

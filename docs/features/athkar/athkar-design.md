@@ -8,7 +8,7 @@ The athkar reader is the one feature the person sits with, so it is drawn:
 
 - **Client modules** (`src/features/athkar/reader.tsx` in the terminal, `src/features/athkar/card.tsx` on desktop) take clicks and keys and post each count to the hooks module. The desktop uses the shared card in `src/shared/card/` for its size, frame, ×, hover and lighting. The terminal reader is unchanged.
 - **Svg** (desktop only) for the Sky look: a sky that follows the time of day with slow SMIL motion, drawn behind the reader. The terminal always uses the Frame look.
-- **Hex colors** from `src/shared/color/` for the reader's plugin-wide main color (`/muslim color`, default Claude orange; orange, green, gold, blue in light/dark shades), and feature-specific colors for the skies, since a theme key cannot be blended or placed on a sky.
+- **Hex colors** from `src/shared/color/` for the reader's plugin-wide main color (`/muslim color`, default Claude orange; orange, green, yellow, blue in light/dark shades), and feature-specific colors for the skies, since a theme key cannot be blended or placed on a sky.
 
 Everything else (font, size) stays Claude's: the API sets neither, so the reader follows the app's zoom.
 
@@ -85,7 +85,7 @@ Frame keeps its six-scene morning story (24.2 seconds) on both surfaces:
 | --- | --- | --- | --- | --- |
 | Ayat al-Kursi, with its authored note | 75 | morning | 5s | orange |
 | Short thikr | 83 | morning | 4s | green |
-| Long thikr | 84 | morning | 5s | gold |
+| Long thikr | 84 | morning | 5s | yellow |
 | Last thikr, counting to ten | 98 | morning | 4s | blue |
 | Celebration: the real finale | finished | morning | `FINALE_MS` (3.2s) | orange |
 | Finished, folded to one line | finished | morning | 3s | green |
@@ -146,6 +146,14 @@ The band is lit while the person uses it, by mouse or keyboard, and folds by its
 
 Counting by keys with the pointer on the band keeps it open until the pointer leaves (rule 1) or rule 6.
 
+## End question
+
+Before completion, next past the last item checks the whole period. If any item is not fully counted, show «أتممتَ الأذكار؟» and a small muted Arabic-digit count («٨ دون عدّ كامل»), with primary «نعم، أتممتُها» on the right and quiet «أكمل العدّ» on the left. This is UI chrome, not religious text. It uses the same layout, tokens and controls in Sky and Frame: the existing 77px open band and 24px folded row; no finale or completed progress while asking. Choice text shrinks with narrow widths. The folded row shows the question alone and a first press wakes it. Choice rectangles in `band.ts` also drive pointer hit testing; background clicks do nothing. A thin outline shows the selected choice.
+
+The terminal draws the question, muted line and two native text buttons through the shared Arabic display path, and lists the keys. Tab/← selects; Enter/Space activates the selected choice; →/Backspace/right click returns to the last thikr. Since `ClientKeyEvent` has neither release nor repeat metadata, the key that entered the question cannot activate it until an explicit selection key; the other activation key works immediately. No timeout guesses a release.
+
+«أكمل العدّ» finds the first incomplete item. «نعم، أتممتُها» and the pane's ✓ «أتممتُها» share `step(..., { act: 'finish' })`: fill all period counts and set `isDone`, then use the existing finale/done path. The question, selected choice and key latch are transient module view values scoped to day and period, never persisted. Demos retain their existing scenes and timings.
+
 ## End
 
 - The finale (desktop): falling stars, and «تَقَبَّلَ اللَّهُ 🤲» rising centered at a fixed 18px. This short du’a greets the reader on finishing; it is not one of the authored athkar and has no source citation. The chosen closing greeting is an explicit exception to the shared no-emoji voice rule.
@@ -185,8 +193,12 @@ The whole day at a glance: the period, the sky and the after-salah offer, with p
 | Maghrib | min(Maghrib + 1 h, Isha) | evening | blue hour | 18:00–19:00 blue hour |
 | that | next Fajr | evening (after midnight: the day before) | crescent | 19:00–04:00 crescent; day turns at 05:00 |
 
-After each obligatory prayer, the after-salah reading takes the band at prayer + 15 min (or at once from the athan card's start action) until it is done, closed or the next prayer comes; then the row's period returns. Without prayer times there is no offer. Sunrise falls back to Fajr + 1.5 h when missing. On a short day the phases are cut, not scaled: dawn always keeps Fajr to Sunrise; the day phase goes first, then the sunrise phase shortens, and only on a very short day does rose start later than Maghrib − 1 h (see `skyBoundaries` above). Demos keep their authored skies.
+After each obligatory prayer, the after-salah reading takes the band at prayer + 15 min (or at once from the athan card's start action) until it is done, closed or the next prayer comes; then the row's period returns. If the morning or evening reading is being counted at that moment, after-salah waits until it is done or closed, so a reading is never cut off. Without prayer times there is no offer. Sunrise falls back to Fajr + 1.5 h when missing. On a short day the phases are cut, not scaled: dawn always keeps Fajr to Sunrise; the day phase goes first, then the sunrise phase shortens, and only on a very short day does rose start later than Maghrib − 1 h (see `skyBoundaries` above). Demos keep their authored skies.
 
 Salah owns a read-through `salahAthkarTimes` state value: each read calculates current bounds and date keys from the configured place, method and adjustments. It is available before the first ticker publication and cannot retain yesterday’s bounds at midnight or after a settings reload. Athkar reads it for commands, input and drawing. A one-shot redraw wakes at the next Fajr/Maghrib; the existing minute ticker refreshes prayer-based or fixed-hour skies and handles clock changes. Manual choices, after-salah precedence and demos keep their rules.
 
 Prayer bounds reuse a pure daily calculation cache, refreshed on the first read after the place’s date changes; a settings reload drops the cache.
+
+## Muslim pane card
+
+The pane's athkar card (set menu, progress row, «ابدأ/أكمل · ✓ أتممتُها · إعادة») is drawn by the Muslim pane; its look and sizes are in [the pane design](../muslim-pane/muslim-pane-design.md), its behaviour in [athkar.md](athkar.md). It never changes the band's 77px open and 24px folded heights or any religious text.
