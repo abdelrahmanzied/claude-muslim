@@ -176,8 +176,12 @@ export const offerStart = (last: SalahLast, requested?: SalahLast | null) =>
 export const setAt = (now: Date, day: Day, last: SalahLast | null, chosen?: AthkarSet, requested?: SalahLast | null, times?: SalahAthkarTimes | null): AthkarSet => {
   if (chosen) return chosen
   const slot = day.afterSalah
-  return last && now.getTime() >= offerStart(last, requested) && !slot.isDone && !slot.isHidden
-    ? 'afterSalah' : periodOn(now, times)
+  const period = periodOn(now, times)
+  // Unless asked for from the athan card, after-salah waits while a morning or evening reading is being counted.
+  const isAsked = !!last && requested?.at === last.at && requested.pray === last.pray
+  const isBusy = (r: Reading) => hasBegun(r) && !r.isDone && !r.isHidden
+  return last && now.getTime() >= offerStart(last, requested) && !slot.isDone && !slot.isHidden && (isAsked || !isBusy(day[period]))
+    ? 'afterSalah' : period
 }
 
 const isNumbers = (value: unknown): value is Record<string, number> =>

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Athkar: after-salah no longer cuts off a morning or evening reading you are counting; it waits until that reading is done or closed. The athan card's start button still opens it at once.
+
 - Muslim pane: `/muslim pane demo` plays a 10-second tour on desktop (the cards unfold one by one, the Quran card plays without sound, the athkar fill to done, then everything folds back and the pane returns to how it was); `/muslim demo` ends with it (skipped on a terminal). Nothing is saved.
 
 - Quran: the standalone Quran pane («۞ القرآن الكريم» tab) is gone; the player lives only in the Muslim pane's Quran card. `/quran` opens the Muslim pane at that card and unfolds it; on a terminal it replies with a text status (reciter, surah, segment, time, playing or stopped) and `Playback runs in the Claude desktop app.`. The other `/quran` subcommands are unchanged.
