@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Docs: the README and plugin/README.md are short: the animated welcome avatar at the top, one line per feature, install, and five commands to start with; every other command is in `/muslim help`. The welcome picture is `.github/assets/readme-welcome.svg`, a copy of the avatar repo's animated story.
+- Docs: the README and plugin/README.md are short: the animated welcome avatar at the top, a features table, install, five commands to start with, contributing and license; every other command is in `/muslim help`. The welcome picture is `.github/assets/readme-welcome.svg`, a copy of the avatar repo's animated story.
 
 - Fix: the Muslim pane heading's avatar is the still claude-muslim avatar from the avatar repo: the short dark beard (it had an older two-tone beard) and the closed smile (all three mouth frames were drawn on top of each other).
 

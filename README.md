@@ -1,16 +1,30 @@
-<p align="center"><img src=".github/assets/readme-welcome.svg" width="320" alt="The Muslim crab says salam, then counts tasbih"></p>
+<p align="center">
+  <img src=".github/assets/readme-welcome.svg" width="320" alt="The Muslim crab says salam, then counts tasbih">
+</p>
 
 <h1 align="center">claude-muslim</h1>
 
-<p align="center">A Claude Code mod for Muslim developers: thikr while Claude works, athkar, prayer times and the Quran, in the terminal and the desktop app.</p>
+<p align="center">
+  Thikr, athkar, prayer times and the Quran, inside Claude Code.<br>
+  In the terminal and the desktop app.
+</p>
+
+<p align="center">
+  <a href="#features">Features</a> ·
+  <a href="#install">Install</a> ·
+  <a href="#get-started">Get started</a> ·
+  <a href="CHANGELOG.md">Changelog</a>
+</p>
 
 ## Features
 
-- **Thikr line** (`/thikr`): a short thikr in Claude's working line, in its own font and colors, and تَمَّ بِحَمْدِ اللَّهِ when a turn ends.
-- **Athkar** (`/athkar`): the morning, evening and after-salah athkar from Hisn al-Muslim, in a reader above the prompt that counts with you.
-- **Prayer times** (`/salah`): the next prayer under the prompt, a countdown, and an athan moment when it comes in. Calculated on your machine.
-- **Quran** (`/quran`): a recitation player with Hafs recordings (desktop).
-- **Muslim pane** (`/muslim`): today's prayers, the Quran player, athkar progress and every setting in one pane (desktop).
+| | Feature | What it does |
+| :---: | --- | --- |
+| 📿 | **Thikr line** · `/thikr` | A short thikr in Claude's working line while it works, and تَمَّ بِحَمْدِ اللَّهِ when a turn ends. |
+| 🌅 | **Athkar** · `/athkar` | Morning, evening and after-salah athkar from Hisn al-Muslim, in a reader above the prompt that counts with you. |
+| 🕌 | **Prayer times** · `/salah` | The next prayer under the prompt, a countdown, and an athan moment when it comes in. Calculated on your machine. |
+| 📖 | **Quran** · `/quran` | A recitation player with complete Hafs recordings. Desktop. |
+| ☾ | **Muslim pane** · `/muslim` | Today's prayers, the Quran player, athkar progress and every setting in one pane. Desktop. |
 
 ## Install
 
@@ -54,11 +68,15 @@ Set up the Claude Code plugin "muslim" for all my sessions (user scope):
 
 To remove it: `claude plugin uninstall muslim@claude-muslim`.
 
-## More
+> [!NOTE]
+> Some terminals don't join Arabic letters or show them right to left. `/muslim terminal-arabic` picks what works in yours.
 
-- [CHANGELOG.md](CHANGELOG.md): what changed in each version.
-- [CONTRIBUTING.md](CONTRIBUTING.md): how to work on the mod.
-- This repository is the only official source of the `muslim` plugin. Copies elsewhere are not maintained by us.
-- Some terminals don't join Arabic letters or show them right to left; `/muslim terminal-arabic` picks what works in yours.
+## Contributing
 
-MIT License
+Ideas, bugs and fixes are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md). Security problems go to [SECURITY.md](SECURITY.md), never a public issue.
+
+This repository is the only official source of the `muslim` plugin. Copies elsewhere are not maintained by us.
+
+## License
+
+[MIT](LICENSE)
