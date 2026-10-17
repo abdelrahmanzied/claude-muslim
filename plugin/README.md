@@ -117,6 +117,7 @@ A docked «☾ Muslim» pane on the desktop app that gathers today's prayers, th
 | `/quran reciter` · `/quran reciter <number or name>` | List recordings or remember a choice |
 | `/muslim` | Version, each feature's main state and the shared settings; a hint points to help |
 | `/muslim tashkeel on` · `off` | Show or hide Arabic diacritics on desktop (the terminal never shows them) |
+| `/muslim update` | Update muslim from GitHub (only this plugin) and reload plugins; says the new version, or that you have the latest |
 | `/muslim pane` | Open the Muslim pane on desktop; a plain text summary in the terminal |
 | `/muslim terminal-arabic` | Choose how Arabic shows in this terminal |
 | `/muslim help` · `help <feature>` | Command tables of every feature, or one (`thikr`, `athkar`, `salah`, `quran`) or one shared command (`color`, `tashkeel`, `terminal-arabic`) |

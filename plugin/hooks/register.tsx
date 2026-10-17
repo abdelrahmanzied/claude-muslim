@@ -4,6 +4,7 @@ import type { EngineInterface, Register } from 'claude-code'
 
 import { readOptions } from '../src/config.ts'
 import { PLUGIN, VERSION } from '../src/constants.ts'
+import { failedToRun, parseUpdate, updateReply, UPDATE_ARGV, UPDATE_TIMEOUT_MS, type UpdateResult } from '../src/update.ts'
 import { install as installAthkar } from '../src/features/athkar/install.tsx'
 import { muslimHelp } from '../src/help.ts'
 import { helpHint, statusTable } from '../src/table.ts'
@@ -36,6 +37,31 @@ async function settingsArabic($: EngineInterface, surface: string, text: string)
   const saved = await $.store.get('arabicTerminals') as Record<string, unknown> | undefined
   const mode = saved?.[id]
   return terminalArabic(surface, cached?.terminalId === id ? cached.mode : isArabicMode(mode) ? mode : defaultArabicMode(id), text)
+}
+
+// `claude` on PATH; the engine gives no path to its own binary. Without a shell a Windows
+// `claude.cmd` shim does not start, so a failed start retries through `cmd /c` there.
+async function runUpdate($: EngineInterface): Promise<UpdateResult> {
+  const run = (argv: readonly string[]) => $.process.run(argv, { timeoutMs: UPDATE_TIMEOUT_MS })
+  try {
+    let done
+    try {
+      done = await run(UPDATE_ARGV)
+    } catch (error) {
+      if ((await $.env.get('OS')) !== 'Windows_NT') throw error
+      done = await run(['cmd', '/c', ...UPDATE_ARGV])
+    }
+    return parseUpdate(done.stdout, done.stderr, done.exitCode)
+  } catch (error) {
+    return failedToRun(error)
+  }
+}
+
+// A command cannot run another from its own hook, so the reload comes from a timer.
+function reloadPlugins($: EngineInterface) {
+  $.clock.after(500, () => {
+    void $.command.run({ command: 'reload-plugins' }).catch(() => $.ui.toast('muslim updated. Run /reload-plugins to load it.'))
+  })
 }
 
 // DEMO BEGIN: shared runner, transient module values only. It plays the demos in order
@@ -161,6 +187,13 @@ export const register: Register = (on, options) => {
       if (value === '') return { text: `Tashkeel ${settings.tashkeel ? 'on' : 'off'} on desktop; the terminal never shows diacritics. Usage: /muslim tashkeel on | off` }
       const { deny } = await $.config.set({ key: 'muslim.tashkeel', value: value === 'on' })
       return { text: deny ? `Not changed: ${deny}` : `Tashkeel ${value} on desktop; the terminal never shows diacritics` }
+    }
+    if (word === 'update') {
+      if (words.length !== 1) return { text: 'Usage: /muslim update' }
+      $.ui.toast('Updating muslim…', { timeoutMs: 8000 })
+      const reply = updateReply(await runUpdate($), VERSION)
+      if (reply.reload) reloadPlugins($)
+      return { text: reply.text }
     }
     if (word === 'help') return { text: muslimHelp(feature) }
     if (word !== '') return next(e).catch(() => ({ text: muslimHelp() }))

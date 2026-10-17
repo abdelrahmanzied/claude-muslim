@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `/muslim update` updates muslim from inside a session: it runs `claude plugin update muslim@claude-muslim --json` (only this plugin, 2-minute limit), replies `muslim vX → vY. Reloading plugins.` with the changelog link, `muslim vX is the latest.`, or `Not updated: <reason>` with the shell command to run, and reloads plugins by itself after an update (a toast asks you to run `/reload-plugins` if that is refused). Needs `claude` on your PATH. Listed in `/muslim help`.
+
 - The installed plugin now lives in `plugin/` (manifest, `hooks/`, `src/`, `types/`, `tests/`, README, LICENSE). Add the marketplace with `--sparse .claude-plugin plugin` so only `plugin/` is downloaded and installed, without `docs/`, `scripts/` and the dev-only root files (tests ship inside `plugin/`). No behaviour change. The README is split into a short root README, `plugin/README.md` (features and commands) and `CONTRIBUTING.md`. The author name is now Abdelrahman Abozied, with contact and homepage links in the manifests.
 
 - Docs: the Quran design keeps only what is Quran's own and points to the Muslim pane design for the rest; athkar and pane docs note the after-salah wait, the shared titles and the athkar title menu. CLAUDE.md now requires every shared design-system change to update `DESIGN.md` or the desktop pane design in the same commit.
