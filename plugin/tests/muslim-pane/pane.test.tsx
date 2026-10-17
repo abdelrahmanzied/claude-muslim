@@ -645,3 +645,28 @@ test('auto-update keeps a pending value until the real reader catches up, then c
   expect(pending).toBeNull()
   await ui.unmount()
 })
+
+test('pane messages reconcile auto-update only while a boolean press is pending, including drag moves',async($,on)=>{
+  engine(on,'desktop')
+  let pending:boolean|null|undefined, reads=0
+  on('state.get',{plugin:'muslim',key:'paneAutoUpdate'},async()=>({value:{value:pending,version:1}}))
+  on('state.set',{plugin:'muslim',key:'paneAutoUpdate'},async(_$,e,next)=>{pending=e.value;return next(e)})
+  on('settings.read',async()=>{reads++;return {value:{extraKnownMarketplaces:{'claude-muslim':{autoUpdate:true}}}}})
+  const ui=await $.ui.mount(pane('desktop'))
+  const before=reads
+  for(const held of [undefined,null]){
+    pending=held
+    await ui.post({act:'drag',y:10,rows:40,end:false},{in:'muslim-pane'})
+    await ui.post({act:'key',key:'x'},{in:'muslim-pane'})
+    expect(reads).toBe(before)
+  }
+  pending=false
+  await ui.post({act:'drag',y:12,rows:40,end:true},{in:'muslim-pane'})
+  expect(reads).toBe(before+1)
+  expect(pending).toBe(false)
+  pending=true
+  await ui.post({act:'drag',y:12,rows:40,end:true},{in:'muslim-pane'})
+  expect(reads).toBeGreaterThan(before+1)
+  expect(pending).toBeNull()
+  await ui.unmount()
+})

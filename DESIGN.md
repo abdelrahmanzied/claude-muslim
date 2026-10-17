@@ -65,7 +65,7 @@ One icon per feature, the same everywhere a drawn surface marks it: the Muslim p
 
 | Mark | Icon | Key |
 | --- | --- | --- |
-| Muslim as a whole | the full avatar, 36px tall and approximately 38.4px wide (desktop pane heading), `☾` on text surfaces | `avatar.ts`, `☾` |
+| Muslim as a whole | the full avatar, 52px tall and approximately 55.5px wide (desktop pane heading), `☾` on text surfaces | `avatar.ts`, `☾` |
 | عام (general settings) | منزلقات | `sliders` |
 | الصلاة | سجود واقعي | `sujoodreal` |
 | القرآن | مصحف pane القرآن | `qpane` |

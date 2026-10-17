@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- `/muslim` opens the Muslim pane on desktop and keeps the terminal table. The pane adds a footer-button switch, version and Update, background updates, feedback and the end-of-turn switch; the pane tour stays in `/muslim demo`.
+- `/muslim` opens the Muslim pane on desktop and keeps the terminal table. The pane adds a footer-button switch, version and Update, background updates, feedback and the end-of-turn switch; the pane tour stays in `/muslim demo`. Settings put pane access and appearance first, separated from updates and feedback by a rosette rule. The heading avatar is larger, the end-of-turn example stays complete on two lines, and background updates reread settings only while a switch change is pending.
 
 - Issues and `/muslim feedback` about the Muslim pane get the new `pane` label instead of `muslim`. CLAUDE.md says which labels every pull request gets.
 

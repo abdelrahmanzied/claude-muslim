@@ -22,8 +22,8 @@ const ltr = (text: string) => `<bdi dir="ltr">${escape(text)}</bdi>`
 
 // Colors live here only: dark by default, light under the app's color scheme (Claude Code's own theme row is not read, it can differ from the Desktop's).
 const VARS = {
-  dark: '--line:rgba(238,237,232,.13);--line-soft:rgba(238,237,232,.07);--text:#eeede8;--text-2:#c6c3bb;--muted:#a6a299;--dim:#969289;--hover:rgba(238,237,232,.04);--active:rgba(238,237,232,.07);--on:#faf9f5;--on-accent:#1f1e1d;--sheet:#1f1e1d;--sheet-line:#393733;--sheet-dim:#98948b;--sheet-soft:#c6c3bb;--sheet-shadow:0 10px 30px #0008',
-  light: '--line:rgba(41,40,36,.14);--line-soft:rgba(41,40,36,.07);--text:#292824;--text-2:#514e47;--muted:#736f66;--dim:#817c72;--hover:rgba(41,40,36,.04);--active:rgba(41,40,36,.07);--on:#ffffff;--on-accent:#ffffff;--sheet:#fdfcf9;--sheet-line:#d9d6cd;--sheet-dim:#79766c;--sheet-soft:#46443e;--sheet-shadow:0 10px 30px #302f2a24',
+  dark: '--line:rgba(238,237,232,.13);--line-soft:rgba(238,237,232,.07);--ornament-dim:color-mix(in srgb,var(--accent) 60%,transparent);--text:#eeede8;--text-2:#c6c3bb;--muted:#a6a299;--dim:#969289;--hover:rgba(238,237,232,.04);--active:rgba(238,237,232,.07);--on:#faf9f5;--on-accent:#1f1e1d;--sheet:#1f1e1d;--sheet-line:#393733;--sheet-dim:#98948b;--sheet-soft:#c6c3bb;--sheet-shadow:0 10px 30px #0008',
+  light: '--line:rgba(41,40,36,.14);--line-soft:rgba(41,40,36,.07);--ornament-dim:color-mix(in srgb,var(--accent) 60%,transparent);--text:#292824;--text-2:#514e47;--muted:#736f66;--dim:#817c72;--hover:rgba(41,40,36,.04);--active:rgba(41,40,36,.07);--on:#ffffff;--on-accent:#ffffff;--sheet:#fdfcf9;--sheet-line:#d9d6cd;--sheet-dim:#79766c;--sheet-soft:#46443e;--sheet-shadow:0 10px 30px #302f2a24',
 }
 export const paletteCss = (root: string, color: PaneModel['color']): string => {
   // Soft accent washes for the picker's highlighted and chosen rows.
@@ -290,7 +290,9 @@ const SETTINGS_CSS = `
 .settings-body{position:absolute;left:0;right:0}
 .setting-label{position:absolute;right:16px;max-width:calc(100% - 32px);height:${LABEL_H}px;display:flex;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
 .setting-label span{line-height:1;transform:translateY(.12em)}
-.setting-hint{position:absolute;left:16px;right:16px;text-align:right;direction:rtl;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:${HINT_H}px;font-size:12px;color:var(--muted)}
+.setting-hint{position:absolute;left:16px;right:16px;text-align:right;direction:rtl;line-height:${HINT_H}px;font-size:12px;color:var(--muted)}
+.chrome-hint{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hint-line{display:block;white-space:nowrap}.hint-line.chrome-hint{overflow:hidden;text-overflow:ellipsis}
+.setting-divider{position:absolute;left:16px;right:16px;height:18px;display:flex;direction:ltr;gap:10px;align-items:center;color:var(--accent)}.setting-divider .arm{flex:1;height:1px;opacity:.8}.setting-divider .a1{background:linear-gradient(to right,transparent,var(--ornament-dim))}.setting-divider .a2{background:linear-gradient(to left,transparent,var(--ornament-dim))}.setting-divider svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8}
 .setting-extra{position:absolute;right:16px;max-width:calc(100% - 142px);font-size:12px;line-height:14px;color:var(--muted)}
 .sc{position:absolute;display:flex;align-items:center;justify-content:center;gap:4px;border-radius:7px;font-size:14px;color:var(--text-2);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .sc.pill,.sc.value{background:transparent;box-shadow:inset 0 0 0 1px var(--line);padding:3px 6px}
@@ -313,8 +315,12 @@ const settingControl = (t: SettingsTarget, hover: PaneAct | null): string => {
   return `<div class="sc ${c.style}${command ? ' command' : ''}${selected}${hot}${c.done ? ' copied' : ''}${c.disabled ? ' disabled' : ''}${output ? ' output' : ''}" ${attr} aria-disabled="${!!c.disabled}" aria-label="${escape(c.label)}" style="left:${t.x0-PAD}px;top:${t.y0}px;width:${t.x1-t.x0}px;height:${t.y1-t.y0}px;${swatch}">${content}</div>`
 }
 const settingRow = (row: SettingRow, y: number): string => {
+  if (row.kind === 'divider') return `<div class="setting-divider" aria-hidden="true" style="top:${y}px"><span class="arm a1"></span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><path d="m20 4 4 6 7-1 1 7 5 4-5 4-1 7-7-1-4 6-4-6-7 1-1-7-5-4 5-4 1-7 7 1Z"/><path d="m20 11 9 9-9 9-9-9Z"/><circle cx="20" cy="20" r="3"/></svg><span class="arm a2"></span></div>`
   const inline = row.controls[0]?.style === 'switch' ? 82 : row.controls[0]?.style === 'swatch' ? 144 : 32
-  return `<span class="setting-label" style="top:${y}px;max-width:calc(100% - ${inline}px)"><span>${escape(row.label)}</span></span><span class="setting-hint" style="top:${y+HINT_TOP}px">${row.hintLtr ? `<bdi dir="ltr">${escape(row.hint)}</bdi>` : escape(row.hint).replace(/\/muslim/g, '<bdi dir="ltr">/muslim</bdi>')}</span>${row.extra?.controls.length?`<span class="setting-extra" style="top:${y+EXTRA_TOP+7}px">${escape(row.extra.label)}</span>`:''}`
+  // The authored phrase stays on its own short first line at 12px, never cut; only the chrome second line may ellipsize.
+  const hint = row.hintSecondLine ? `<span class="hint-line">${escape(row.hint)}</span><span class="hint-line chrome-hint">${escape(row.hintSecondLine)}</span>`
+    : row.hintLtr ? `<bdi dir="ltr">${escape(row.hint)}</bdi>` : escape(row.hint).replace(/\/muslim/g, '<bdi dir="ltr">/muslim</bdi>')
+  return `<span class="setting-label" style="top:${y}px;max-width:calc(100% - ${inline}px)"><span>${escape(row.label)}</span></span><span class="setting-hint${row.hintSecondLine ? '' : ' chrome-hint'}" style="top:${y+HINT_TOP}px">${hint}</span>${row.extra?.controls.length?`<span class="setting-extra" style="top:${y+EXTRA_TOP+7}px">${escape(row.extra.label)}</span>`:''}`
 }
 const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
   const model=m.settings, s=model.state, r=cardRects(m.folds,s,model.options,quranLayout(m), m.athkarMenu), b=settingsBody(m.width,model)
@@ -330,10 +336,10 @@ const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
       if (s.face==='methods') {
         body+=b.choices.map(c=>`<div class="list-choice${c.control.selected?' on':''}${hover===c.control.id?' hot':''}" style="top:${c.y}px" role="button" aria-pressed="${!!c.control.selected}"><span>${escape(c.label)}<small>${escape(c.note)}</small></span>${c.control.selected?icon('check'):''}</div>`).join('')
         body+=`<span class="settings-page">${escape(String(b.page+1))} / ${b.pages}</span>`
-        body+=`<span class="setting-hint" style="top:510px">كل طرق الحساب العشرين · يُطبّق فورًا</span>`
+        body+=`<span class="setting-hint chrome-hint" style="top:510px">كل طرق الحساب العشرين · يُطبّق فورًا</span>`
       } else if (s.face==='adjust') {
         body+=b.rows.map(({row,y})=>settingRow(row,y)).join('')
-        body+=`<span class="setting-hint" style="top:${ADJUST_NOTE_TOP}px">دقائق صحيحة بالزيادة أو النقصان.<br/>الترتيب: الفجر، الشروق، الظهر، العصر، المغرب، العشاء.</span>`
+        body+=`<span class="setting-hint chrome-hint" style="top:${ADJUST_NOTE_TOP}px">دقائق صحيحة بالزيادة أو النقصان.<br/>الترتيب: الفجر، الشروق، الظهر، العصر، المغرب، العشاء.</span>`
       } else body+=`<div class="command-sheet"><p>يفتح سؤال المدينة في Claude. اكتب اسمها بأي لغة أو خط العرض والطول، أو شغّل الأمر التالي.</p><code>/salah city</code></div>`
 
     }

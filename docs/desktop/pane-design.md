@@ -18,7 +18,7 @@ The design principles for every drawn desktop pane in this mod (today the Muslim
 
 - **Transparent**: no panel fill. It follows the app's light or dark scheme, and every color is a token (`--text`, `--muted`, `--line`, feature-specific surface/state tokens, `--accent`); the accent is the plugin-wide main color from `plugin/src/shared/color/`.
 - **Tajawal** throughout, embedded from `plugin/src/shared/font/`.
-- **Type scale:** 24px the plugin name «مسلم», 20px the big fact (next prayer), 16px card titles, 14px body and buttons, 12px meta, descriptions and the athkar row's compact buttons. Settings tab labels are 11px so the tabs fit at 240px.
+- **Type scale:** 24px the plugin name «مسلم», 20px the big fact (next prayer), 16px card titles, 14px body and buttons, 12px meta, descriptions and the athkar row's compact buttons. Settings tab labels are 11px so the tabs fit at 240px. A two-line religious settings sample may fit its first line down to 10.5px at the 240px minimum, keeping both lines complete and the normal 16px line-height; it returns to 12px when space permits.
 - **Tajawal sits high.** Text beside an icon or a switch gets `line-height:1; transform:translateY(.12em)` so icon, text and control share one center line. Check every icon + text row for this.
 - **Icons:** each feature has one standard icon (DESIGN.md §3 Icons, `plugin/src/shared/icon/`), 20px in the main color on its card header and 20px on its settings tab. Small row icons (bell, check ring) stay free.
 
@@ -32,11 +32,12 @@ The design principles for every drawn desktop pane in this mod (today the Muslim
 ## 5. Words
 
 - **Arabic in the pane.** Labels, descriptions, buttons and notes in a pane are Arabic (the pane is a drawn surface for this mod's users, unlike Claude's own chrome). Latin product names (Terminal, Claude, Spinner) stay Latin inside an Arabic line, and commands are LTR in `<bdi>`.
-- Keep descriptions to one short line at 360px. Settings descriptions remain one line and ellipsize when the pane is narrower, so they never overlap the next control or row. No explanations that repeat the label.
+- Keep chrome descriptions to one short line at 360px; only these may ellipsize as a guard at narrower widths. Arabic religious text must never ellipsize or clip: give it explicit lines and enough fixed row height, preserving the normal gap after its last line. No explanations that repeat the label.
 
 ## 6. Settings rows
 
 - **Order:** the label at the start; its description right under it (12px muted, 4px gap); then the choices (10px under the description). Rows are 28px apart, measured from a row's last shown line to the next label (a hidden optional line adds no height). No subheader over the rows; the first row starts 16px under the tab bar.
+- **Groups:** one rosette rule marks each change of purpose between settings rows within a tab, never a box border. Use the original Quran pane’s eight-point rosette: 18px, `viewBox="0 0 40 40"`, `fill:none`, `stroke:currentColor`, `stroke-width:1.8`, in `--accent`, with an explicit SVG namespace. Two 1px arms at 80% opacity fade from the dimmer accent token `--ornament-dim` beside it to transparent toward the card edges. Model it as a fixed-height data row with no controls or hit target, counted in the same heights used for drawing and hit tests. Keep even space above and below in the row-gap rhythm.
 - **Switches** sit on the label's line at the opposite end, never on a line of their own. They flip at once on press (the value is drawn from `$.state` before the config write and its module reload).
 - **Color dots** sit on the label's line at the opposite end, like a switch, at their small 16px size.
 - **A command is its own button.** When a setting is changed by running a command elsewhere (the terminal check), the button's text is the command itself (no glyph) and one press copies it (`$.ui.copy`, a toast when copying fails). After a copy the button shows «تم النسخ ✓» in the main color for 2 seconds, then the command again. No extra page for one command, no long how-to text.

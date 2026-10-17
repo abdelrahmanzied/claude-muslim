@@ -372,7 +372,9 @@ export const register: Register = (on, options) => {
   })
   on('ui.message', { element: 'muslim-pane' }, async ($, e, next) => {
     connectAutoUpdateToPanel($)
-    await reconcilePaneAutoUpdate($)
+    if (typeof (await $.state.get({ plugin: 'muslim', key: 'paneAutoUpdate' })).value === 'boolean') {
+      await reconcilePaneAutoUpdate($)
+    }
     return next(e)
   })
   installQuran(on, settings)

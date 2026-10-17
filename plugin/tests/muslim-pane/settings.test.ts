@@ -4,7 +4,7 @@ import { stripTashkeel } from '../../src/shared/arabic/visual.ts'
 import { expect, test } from 'claude-code/testing'
 import { readAdjust, readOptions, writeAdjust } from '../../src/config.ts'
 import { cardRects, hitAt, hitOfCells, NO_FOLDS, paneHeight, settingsBoxes, type Enabled } from '../../src/features/muslim-pane/layout.ts'
-import { BODY_TOP, BODY_END, COPIED_LABEL, COPIED_MS, EXTRA_TOP, copiedAt, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, CONTROL_H, ROW_GAP, ROW_H, SWITCH_ROW_H, EXTRA_ROW_H, pendingSwitches, optimisticOptions, TABS_H, SETTINGS_BODY_TOP, CATEGORIES, CLOSED_SETTINGS, DEFAULT_SETTINGS, FACE_HEIGHTS, LIST_SIZE, MAIN_HEIGHTS, METHOD_CHOICES, SETTINGS_TOP, categoryTabs, loadSettings, changeCategory, isSettings, settingsBody, settingsBodyHeight, settingsHeight, settingsOptions, settingsRows, terminalSettings, type SettingsModel, type SettingsState } from '../../src/features/muslim-pane/settings.ts'
+import { BODY_TOP, BODY_END, COPIED_LABEL, COPIED_MS, EXTRA_TOP, copiedAt, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, CONTROL_H, ROW_GAP, ROW_H, SWITCH_ROW_H, TWO_LINE_SWITCH_ROW_H, DIVIDER_H, EXTRA_ROW_H, pendingSwitches, optimisticOptions, TABS_H, SETTINGS_BODY_TOP, CATEGORIES, CLOSED_SETTINGS, DEFAULT_SETTINGS, FACE_HEIGHTS, LIST_SIZE, MAIN_HEIGHTS, mainHeight, METHOD_CHOICES, SETTINGS_TOP, categoryTabs, loadSettings, changeCategory, isSettings, settingsBody, settingsBodyHeight, settingsHeight, settingsOptions, settingsRows, terminalSettings, type SettingsModel, type SettingsState } from '../../src/features/muslim-pane/settings.ts'
 import { paneModel } from '../../src/features/muslim-pane/model.ts'
 import { paneSvg } from '../../src/features/muslim-pane/view.ts'
 const OFF: Enabled = { athan:false,quran:false,canPrev:false,canNext:false,athkar:false }
@@ -158,10 +158,11 @@ test('rows share label/description/control geometry, inline switches and color d
     const m=make(category), b=settingsBody(width,m)
     expect(b.rows[0]!.y).toBe(0)
     for(const {row,y} of b.rows){
+      if(row.kind==='divider') continue
       const controls=b.controls.filter(t=>row.controls.some(c=>c.id===t.act))
       for(const t of controls) expect(t.y0).toBe(y+(t.control.style==='switch'||t.control.style==='swatch'?0:CONTROL_TOP))
       if(row.controls[0]?.style==='switch'){
-        expect(row.height).toBe(SWITCH_ROW_H)
+        expect(row.height).toBe(row.hintSecondLine ? TWO_LINE_SWITCH_ROW_H : SWITCH_ROW_H)
         expect(controls[0]!.x0).toBe(28)
         expect(controls[0]!.y1-y).toBe(LABEL_H)
       }
@@ -177,6 +178,7 @@ test('rows share label/description/control geometry, inline switches and color d
     expect(svg).not.toContain('Applies immediately')
     expect(svg).not.toContain('class="settings-head"')
     for(const {row,y} of b.rows){
+      if(row.kind==='divider') continue
       expect(svg).toContain(`top:${y+HINT_TOP}px">`)
       expect(svg).toContain(row.hintLtr ? `<bdi dir="ltr">${row.hint}</bdi>` : row.hint.replace(/\/muslim/g, '<bdi dir="ltr">/muslim</bdi>'))
     }
@@ -205,7 +207,7 @@ test('optimistic switches retain mismatches and drop confirmed or malformed valu
 
 // The last shown line of a row, from the row's top: what the 28px gap is measured from.
 const lastLineBottom=(row:ReturnType<typeof settingsRows>[number], showsExtra:boolean)=>
-  showsExtra?EXTRA_TOP+CONTROL_H: row.controls[0]?.style==='switch'||row.controls[0]?.style==='swatch'?HINT_TOP+HINT_H : CONTROL_TOP+CONTROL_H
+  row.kind==='divider'?18:showsExtra?EXTRA_TOP+CONTROL_H: row.controls[0]?.style==='switch'||row.controls[0]?.style==='swatch'?HINT_TOP+HINT_H*(row.hintSecondLine?2:1) : CONTROL_TOP+CONTROL_H
 
 test('every setting row ends 28px under its last shown line, in every tab and both stepper states',()=>{
   expect(ROW_GAP).toBe(28)
@@ -293,9 +295,9 @@ test('general rows and thikr end share fixed geometry and Arabic labels',()=>{
   for(const width of [240,360]){
     const general={...make('general'),autoUpdate:'on' as const}
     const body=settingsBody(width,general)
-    expect(body.rows.map(r=>r.row.label)).toEqual(['اللون الرئيسي','التشكيل','العربية في Terminal','زر مسلم','الإصدار','التحديث التلقائي','إرسال ملاحظة'])
-    expect(body.rows.map(r=>r.row.height)).toEqual([70,70,108,70,108,70,108])
-    expect(MAIN_HEIGHTS.general).toBe(594)
+    expect(body.rows.map(r=>r.row.label)).toEqual(['زر مسلم','اللون الرئيسي','التشكيل','العربية في Terminal','','الإصدار','التحديث التلقائي','إرسال ملاحظة'])
+    expect(body.rows.map(r=>r.row.height)).toEqual([70,70,70,108,DIVIDER_H,108,70,108])
+    expect(MAIN_HEIGHTS.general).toBe(640)
     const target=(act:string)=>body.targets.find(t=>t.act===`settings:${act}`)!
     expect(target('paneButton').effect).toEqual({kind:'config',field:'paneButton',value:false})
     expect(target('update').effect).toEqual({kind:'command',args:'update'})
@@ -306,9 +308,9 @@ test('general rows and thikr end share fixed geometry and Arabic labels',()=>{
     }
     const thikr=make('thikr'),rows=settingsRows(thikr)
     expect(rows.at(-1)!.label).toBe('نهاية الرد')
-    expect(rows.at(-1)!.height).toBe(SWITCH_ROW_H)
+    expect(rows.at(-1)!.height).toBe(TWO_LINE_SWITCH_ROW_H)
     expect(rows.at(-1)!.controls[0]!.effect).toEqual({kind:'config',field:'thikrEnd',value:false})
-    expect(MAIN_HEIGHTS.thikr).toBe(384)
+    expect(MAIN_HEIGHTS.thikr).toBe(400)
   }
 })
 
@@ -325,6 +327,56 @@ test('auto-update draws only on for on, disables unreadable states, and overlays
   const options=readOptions({})
   expect(pendingSwitches(options,{paneButton:false,thikrEnd:false})).toEqual({paneButton:false,thikrEnd:false})
   expect(pendingSwitches({...options,paneButton:false,thikrEnd:false},{paneButton:false,thikrEnd:false})).toEqual({})
+})
+
+test('the general divider separates purpose with equal row gaps and no hit targets',()=>{
+  expect(DIVIDER_H).toBe(18+ROW_GAP)
+  for(const width of [240,360]){
+    const m=make('general'), body=settingsBody(width,m), divider=body.rows[4]!
+    expect(divider.row.kind).toBe('divider')
+    expect(divider.row.controls).toEqual([])
+    expect(divider.y).toBe(3*SWITCH_ROW_H+ROW_H)
+    expect(body.rows[5]!.y-divider.y-18).toBe(ROW_GAP)
+    expect(body.targets.some(t=>t.y0<divider.y+DIVIDER_H&&t.y1>divider.y)).toBe(false)
+    const y=cardRects(NO_FOLDS,m.state,m.options).settingsY+SETTINGS_BODY_TOP+divider.y+9
+    for(const x of [28,width/2,width-28]) expect(hitAt(width,x,y,OFF,0,0,NO_FOLDS,m)).toBeNull()
+    const model=paneModel({salah:null,quran:null,athkar:null},0,width,'blue');model.settings=m
+    for(const theme of ['light','dark'] as const){
+      model.theme=theme
+      const svg=paneSvg(model)
+      expect(svg.match(/class="setting-divider"/g)).toHaveLength(1)
+      expect(svg).toContain(`class="setting-divider" aria-hidden="true" style="top:${divider.y}px"`)
+      expect(svg).toContain('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><path d="m20 4 4 6 7-1 1 7 5 4-5 4-1 7-7-1-4 6-4-6-7 1-1-7-5-4 5-4 1-7 7 1Z"/><path d="m20 11 9 9-9 9-9-9Z"/><circle cx="20" cy="20" r="3"/>')
+      expect(svg).toContain('height:1px;opacity:.8')
+      expect(svg).toContain('width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8')
+      expect(svg).toContain('--ornament-dim:color-mix(in srgb,var(--accent) 60%,transparent)')
+      expect(svg).toContain('linear-gradient(to right,transparent,var(--ornament-dim))')
+      expect(svg).toContain('linear-gradient(to left,transparent,var(--ornament-dim))')
+    }
+  }
+})
+
+test('the authored end hint has two full lines and never inherits chrome truncation',()=>{
+  expect(TWO_LINE_SWITCH_ROW_H).toBe(SWITCH_ROW_H+HINT_H)
+  for(const width of [240,360]) for(const tashkeel of [false,true]){
+    const m=make('thikr');m.options.tashkeel=tashkeel
+    const last=settingsRows(m).at(-1)!
+    expect(last.hint).toBe(`«${tashkeel ? END_OF_TURN : stripTashkeel(END_OF_TURN)}» في آخر الرد`)
+    expect(last.hintSecondLine).toBe('بدل كلمة Claude مثل Baked · في الترمينال فقط')
+    expect(last.height-HINT_TOP-2*HINT_H).toBe(ROW_GAP)
+    expect(mainHeight('thikr',{salahShow:'off',thikrSpeed:'auto'})).toBe(362)
+    const model=paneModel({salah:null,quran:null,athkar:null},0,width,'orange');model.settings=m
+    const svg=paneSvg(model), hint=svg.match(/<span class="setting-hint" style="top:\d+px"><span class="hint-line".*?<\/span><span class="hint-line chrome-hint">.*?<\/span><\/span>/)![0]
+    expect(hint).toContain(last.hint)
+    expect(hint).toContain(last.hintSecondLine)
+    expect(hint).not.toContain('font-size')
+    // The authored phrase's line can never ellipsize; only the chrome line may.
+    expect(hint).toContain(`<span class="hint-line">${last.hint}</span>`)
+    const base=svg.match(/\.setting-hint\{[^}]+\}/)![0]
+    expect(base).not.toContain('overflow')
+    expect(base).not.toContain('nowrap')
+    expect(svg).toContain('.chrome-hint{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}')
+  }
 })
 
 
