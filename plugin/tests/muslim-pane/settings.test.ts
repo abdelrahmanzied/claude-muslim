@@ -1,7 +1,10 @@
+import { VERSION } from '../../src/constants.ts'
+import { END_OF_TURN } from '../../src/shared/thikr/end.ts'
+import { stripTashkeel } from '../../src/shared/arabic/visual.ts'
 import { expect, test } from 'claude-code/testing'
 import { readAdjust, readOptions, writeAdjust } from '../../src/config.ts'
 import { cardRects, hitAt, hitOfCells, NO_FOLDS, paneHeight, settingsBoxes, type Enabled } from '../../src/features/muslim-pane/layout.ts'
-import { BODY_TOP, BODY_END, COPIED_LABEL, COPIED_MS, EXTRA_TOP, copiedAt, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, CONTROL_H, ROW_GAP, ROW_H, SWITCH_ROW_H, EXTRA_ROW_H, pendingSwitches, optimisticOptions, TABS_H, SETTINGS_BODY_TOP, CATEGORIES, CLOSED_SETTINGS, DEFAULT_SETTINGS, FACE_HEIGHTS, LIST_SIZE, MAIN_HEIGHTS, METHOD_CHOICES, SETTINGS_TOP, categoryTabs, loadSettings, changeCategory, isSettings, settingsBody, settingsBodyHeight, settingsHeight, settingsOptions, settingsRows, terminalSettings, type SettingsModel, type SettingsState } from '../../src/features/muslim-pane/settings.ts'
+import { BODY_TOP, BODY_END, COPIED_LABEL, COPIED_MS, EXTRA_TOP, copiedAt, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, CONTROL_H, ROW_GAP, ROW_H, SWITCH_ROW_H, TWO_LINE_SWITCH_ROW_H, DIVIDER_H, EXTRA_ROW_H, pendingSwitches, optimisticOptions, TABS_H, SETTINGS_BODY_TOP, CATEGORIES, CLOSED_SETTINGS, DEFAULT_SETTINGS, FACE_HEIGHTS, LIST_SIZE, MAIN_HEIGHTS, mainHeight, METHOD_CHOICES, isInline, SETTINGS_TOP, categoryTabs, loadSettings, changeCategory, isSettings, settingsBody, settingsBodyHeight, settingsHeight, settingsOptions, settingsRows, terminalSettings, type SettingsModel, type SettingsState } from '../../src/features/muslim-pane/settings.ts'
 import { paneModel } from '../../src/features/muslim-pane/model.ts'
 import { paneSvg } from '../../src/features/muslim-pane/view.ts'
 const OFF: Enabled = { athan:false,quran:false,canPrev:false,canNext:false,athkar:false }
@@ -155,10 +158,11 @@ test('rows share label/description/control geometry, inline switches and color d
     const m=make(category), b=settingsBody(width,m)
     expect(b.rows[0]!.y).toBe(0)
     for(const {row,y} of b.rows){
+      if(row.kind==='divider') continue
       const controls=b.controls.filter(t=>row.controls.some(c=>c.id===t.act))
-      for(const t of controls) expect(t.y0).toBe(y+(t.control.style==='switch'||t.control.style==='swatch'?0:CONTROL_TOP))
-      if(row.controls[0]?.style==='switch'){
-        expect(row.height).toBe(SWITCH_ROW_H)
+      for(const t of controls) expect(t.y0).toBe(y+(isInline(t.control)?0:CONTROL_TOP))
+      if(isInline(row.controls[0])){
+        expect(row.height).toBe(row.hintSecondLine ? TWO_LINE_SWITCH_ROW_H : SWITCH_ROW_H)
         expect(controls[0]!.x0).toBe(28)
         expect(controls[0]!.y1-y).toBe(LABEL_H)
       }
@@ -167,14 +171,16 @@ test('rows share label/description/control geometry, inline switches and color d
         expect(controls[0]!.x0).toBe(28)
         for(const t of controls) expect(t.y1-y).toBe(LABEL_H)
       }
-      expect(row.hint).toMatch(/[ء-ي]/)
+      if (!row.hintLtr) expect(row.hint).toMatch(/[ء-ي]/)
     }
     const model=paneModel({salah:null,quran:null,athkar:null},0,width,'orange'); model.settings=m
     const svg=paneSvg(model)
     expect(svg).not.toContain('Applies immediately')
     expect(svg).not.toContain('class="settings-head"')
     for(const {row,y} of b.rows){
-      expect(svg).toContain(`top:${y+HINT_TOP}px">${row.hint}`)
+      if(row.kind==='divider') continue
+      expect(svg).toContain(`top:${y+HINT_TOP}px">`)
+      expect(svg).toContain(row.hintLtr ? `<bdi dir="ltr">${row.hint}</bdi>` : row.hint.replace(/\/muslim/g, '<bdi dir="ltr">/muslim</bdi>'))
     }
   }
 })
@@ -201,7 +207,7 @@ test('optimistic switches retain mismatches and drop confirmed or malformed valu
 
 // The last shown line of a row, from the row's top: what the 28px gap is measured from.
 const lastLineBottom=(row:ReturnType<typeof settingsRows>[number], showsExtra:boolean)=>
-  showsExtra?EXTRA_TOP+CONTROL_H: row.controls[0]?.style==='switch'||row.controls[0]?.style==='swatch'?HINT_TOP+HINT_H : CONTROL_TOP+CONTROL_H
+  row.kind==='divider'?18:showsExtra?EXTRA_TOP+CONTROL_H: isInline(row.controls[0])?HINT_TOP+HINT_H*(row.hintSecondLine?2:1) : CONTROL_TOP+CONTROL_H
 
 test('every setting row ends 28px under its last shown line, in every tab and both stepper states',()=>{
   expect(ROW_GAP).toBe(28)
@@ -283,4 +289,140 @@ test('a copy confirmation lasts until its expiry time and ignores malformed save
   expect(copiedAt(saved,10_000+COPIED_MS)).toBeNull()
   for(const bad of [null,undefined,{},{command:1,until:5},{command:'x',until:'5'},{command:'x',until:Infinity*0}]) expect(copiedAt(bad,0)).toBeNull()
   expect(COPIED_MS).toBe(2000)
+})
+
+test('general rows and thikr end share fixed geometry and Arabic labels',()=>{
+  for(const width of [240,360]){
+    const general={...make('general'),autoUpdate:'on' as const}
+    const body=settingsBody(width,general)
+    expect(body.rows.map(r=>r.row.label)).toEqual(['زر مسلم','اللون الرئيسي','التشكيل','العربية في Terminal','','الإصدار','التحديث التلقائي','إرسال ملاحظة'])
+    expect(body.rows.map(r=>r.row.height)).toEqual([70,70,70,108,DIVIDER_H,70,70,70])
+    expect(MAIN_HEIGHTS.general).toBe(564)
+    const target=(act:string)=>body.targets.find(t=>t.act===`settings:${act}`)!
+    expect(target('paneButton').effect).toEqual({kind:'config',field:'paneButton',value:false})
+    expect(body.targets.find(t=>t.act==='settings:update')).toBeUndefined()
+    expect(body.controls.find(t=>t.act==='settings:update')!.effect).toEqual({kind:'command',args:'update'})
+    expect(target('autoupdate').effect).toEqual({kind:'autoupdate',value:false})
+    expect(target('feedback').effect).toEqual({kind:'command',args:'feedback'})
+    for(const t of settingsBoxes(width,NO_FOLDS,general)){
+      expect(hitAt(width,(t.x0+t.x1)/2,(t.y0+t.y1)/2,OFF,0,0,NO_FOLDS,general)).toBe(t.act)
+    }
+    const thikr=make('thikr'),rows=settingsRows(thikr)
+    expect(rows.at(-1)!.label).toBe('نهاية الرد')
+    expect(rows.at(-1)!.height).toBe(TWO_LINE_SWITCH_ROW_H)
+    expect(rows.at(-1)!.controls[0]!.effect).toEqual({kind:'config',field:'thikrEnd',value:false})
+    expect(MAIN_HEIGHTS.thikr).toBe(400)
+  }
+})
+
+test('auto-update draws only on for on, disables unreadable states, and overlays a pending press',()=>{
+  for(const state of ['on','off','default','missing','unknown'] as const){
+    const m={...make('general'),autoUpdate:state}
+    const c=settingsBody(360,m).controls.find(t=>t.act==='settings:autoupdate')!.control
+    expect(c.selected).toBe(state==='on')
+    expect(c.disabled).toBe(state==='missing'||state==='unknown')
+    expect(settingsBody(360,{...m,pendingAutoUpdate:false}).controls.find(t=>t.act==='settings:autoupdate')!.control.selected).toBe(false)
+  }
+  expect(readOptions({}).paneButton).toBe(true)
+  expect(readOptions({paneButton:false}).paneButton).toBe(false)
+  const options=readOptions({})
+  expect(pendingSwitches(options,{paneButton:false,thikrEnd:false})).toEqual({paneButton:false,thikrEnd:false})
+  expect(pendingSwitches({...options,paneButton:false,thikrEnd:false},{paneButton:false,thikrEnd:false})).toEqual({})
+})
+
+test('the inline update button follows the shown auto-update value without moving the version hint',()=>{
+  for(const width of [240,360]) for(const autoUpdate of [undefined,'on','off','default','missing','unknown'] as const) for(const pendingAutoUpdate of [undefined,null,false,true]){
+    const m={...make('general'),autoUpdate,pendingAutoUpdate}, body=settingsBody(width,m)
+    const shown=pendingAutoUpdate ?? (autoUpdate==='on'), row=body.rows[5]!
+    const update=body.controls.find(t=>t.act==='settings:update')!
+    expect(row.row.height).toBe(SWITCH_ROW_H)
+    expect(row.row.hint).toBe(`v${VERSION}`)
+    expect(row.row.hintNote).toBe(shown?'يتحدّث تلقائيًا':undefined)
+    expect(update.control.style).toBe('inline')
+    expect(isInline(update.control)).toBe(true)
+    expect(update.control.disabled).toBe(shown)
+    expect(body.controls.find(t=>t.act==='settings:autoupdate')!.control.selected).toBe(shown)
+    expect(update.x0).toBe(28)
+    expect(update.x1-update.x0).toBe(64)
+    expect(update.y0).toBe(row.y)
+    expect(update.y1-update.y0).toBe(LABEL_H)
+    expect(body.targets.some(t=>t.act==='settings:update')).toBe(!shown)
+    const y=cardRects(NO_FOLDS,m.state,m.options).settingsY+SETTINGS_BODY_TOP+(update.y0+update.y1)/2
+    expect(hitAt(width,(update.x0+update.x1)/2,y,OFF,0,0,NO_FOLDS,m)).toBe(shown?null:'settings:update')
+    expect(mainHeight('general',m.options)).toBe(settingsRows(m).reduce((h,r)=>h+r.height,0)-ROW_GAP+BODY_END)
+    const model=paneModel({salah:null,quran:null,athkar:null},0,width,'orange');model.settings=m
+    const svg=paneSvg(model), button=svg.match(/<div class="sc inline[^"]*"[^>]*aria-label="تحديث"[^>]*>/)![0]
+    expect(button).toContain(`aria-disabled="${shown}"`)
+    expect(button).toContain(`left:16px;top:${row.y}px;width:64px;height:22px`)
+    expect(button.includes(' disabled')).toBe(shown)
+    expect(svg).toContain(`top:${row.y}px;max-width:calc(100% - 108px)`)
+    expect(svg).toContain(`<bdi dir="ltr">v${VERSION}</bdi>`)
+    if(shown)expect(svg).toContain(`<bdi dir="ltr">v${VERSION}</bdi> · يتحدّث تلقائيًا`)
+    else expect(svg).not.toContain('يتحدّث تلقائيًا')
+    expect(svg).toContain('.sc.inline{font-size:12px;padding:0 6px}')
+    expect(svg).toContain('.sc.inline .value-text{line-height:1;transform:translateY(.12em)}')
+  }
+})
+
+test('the general divider separates purpose with equal row gaps and no hit targets',()=>{
+  expect(DIVIDER_H).toBe(18+ROW_GAP)
+  for(const width of [240,360]){
+    const m=make('general'), body=settingsBody(width,m), divider=body.rows[4]!
+    expect(divider.row.kind).toBe('divider')
+    expect(divider.row.controls).toEqual([])
+    expect(divider.y).toBe(3*SWITCH_ROW_H+ROW_H)
+    expect(body.rows[5]!.y-divider.y-18).toBe(ROW_GAP)
+    expect(body.targets.some(t=>t.y0<divider.y+DIVIDER_H&&t.y1>divider.y)).toBe(false)
+    const y=cardRects(NO_FOLDS,m.state,m.options).settingsY+SETTINGS_BODY_TOP+divider.y+9
+    for(const x of [28,width/2,width-28]) expect(hitAt(width,x,y,OFF,0,0,NO_FOLDS,m)).toBeNull()
+    const model=paneModel({salah:null,quran:null,athkar:null},0,width,'blue');model.settings=m
+    for(const theme of ['light','dark'] as const){
+      model.theme=theme
+      const svg=paneSvg(model)
+      expect(svg.match(/class="setting-divider"/g)).toHaveLength(1)
+      expect(svg).toContain(`class="setting-divider" aria-hidden="true" style="top:${divider.y}px"`)
+      expect(svg).toContain('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><path d="m20 4 4 6 7-1 1 7 5 4-5 4-1 7-7-1-4 6-4-6-7 1-1-7-5-4 5-4 1-7 7 1Z"/><path d="m20 11 9 9-9 9-9-9Z"/><circle cx="20" cy="20" r="3"/>')
+      expect(svg).toContain('height:1px;opacity:.8')
+      expect(svg).toContain('width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8')
+      expect(svg).toContain('--ornament-dim:color-mix(in srgb,var(--accent) 60%,transparent)')
+      expect(svg).toContain('linear-gradient(to right,transparent,var(--ornament-dim))')
+      expect(svg).toContain('linear-gradient(to left,transparent,var(--ornament-dim))')
+    }
+  }
+})
+
+test('the authored end hint has two full lines and never inherits chrome truncation',()=>{
+  expect(TWO_LINE_SWITCH_ROW_H).toBe(SWITCH_ROW_H+HINT_H)
+  for(const width of [240,360]) for(const tashkeel of [false,true]){
+    const m=make('thikr');m.options.tashkeel=tashkeel
+    const last=settingsRows(m).at(-1)!
+    expect(last.hint).toBe(`«${tashkeel ? END_OF_TURN : stripTashkeel(END_OF_TURN)}» في آخر الرد`)
+    expect(last.hintSecondLine).toBe('بدل كلمة Claude مثل Baked · في الترمينال فقط')
+    expect(last.height-HINT_TOP-2*HINT_H).toBe(ROW_GAP)
+    expect(mainHeight('thikr',{salahShow:'off',thikrSpeed:'auto'})).toBe(362)
+    const model=paneModel({salah:null,quran:null,athkar:null},0,width,'orange');model.settings=m
+    const svg=paneSvg(model), hint=svg.match(/<span class="setting-hint" style="top:\d+px"><span class="hint-line".*?<\/span><span class="hint-line chrome-hint">.*?<\/span><\/span>/)![0]
+    expect(hint).toContain(last.hint)
+    expect(hint).toContain(last.hintSecondLine)
+    expect(hint).not.toContain('font-size')
+    // The authored phrase's line can never ellipsize; only the chrome line may.
+    expect(hint).toContain(`<span class="hint-line">${last.hint}</span>`)
+    const base=svg.match(/\.setting-hint\{[^}]+\}/)![0]
+    expect(base).not.toContain('overflow')
+    expect(base).not.toContain('nowrap')
+    expect(svg).toContain('.chrome-hint{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}')
+  }
+})
+
+
+test('version and commands keep LTR isolation and the end sample follows tashkeel',()=>{
+  const m=make('general'),model=paneModel({salah:null,quran:null,athkar:null},0,360,'orange')
+  model.settings=m
+  const svg=paneSvg(model)
+  expect(svg).toContain(`<bdi dir="ltr">v${VERSION}</bdi>`)
+  expect(svg).toContain('افتح اللوحة بـ <bdi dir="ltr">/muslim</bdi>')
+  expect(settingsRows(make('thikr')).at(-1)!.hint).toContain(END_OF_TURN)
+  const noMarks={...make('thikr'),options:{...make('thikr').options,tashkeel:false}}
+  expect(settingsRows(noMarks).at(-1)!.hint).toContain(stripTashkeel(END_OF_TURN))
+  expect(settingsRows(noMarks).at(-1)!.hint).not.toContain(END_OF_TURN)
 })

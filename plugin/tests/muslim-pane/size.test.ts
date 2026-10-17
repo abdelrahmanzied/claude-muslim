@@ -19,10 +19,18 @@ const feeds = {
 const rows = Array.from({ length: 8 }, (_, i) => ({ value: String(i), label: 'عبد الباسط عبد الصمد · مجود رواية حفص', number: String(i + 1), selected: i === 2 }))
 
 test('the Muslim pane picture stays under the Client tree limit with every card full', () => {
-  for (const face of ['main', 'methods', 'city'] as const) for (const [category] of CATEGORIES) for (const picker of [null, { list: 'reciter' as const, query: 'عبد', highlight: 2, scroll: 0, count: 120, rows, dragging: false }]) for (const width of [240, 400, 1200]) {
+  for (const face of ['main', 'methods', 'city'] as const) for (const [category] of CATEGORIES) for (const picker of [null, { list: 'reciter' as const, query: 'عبد', highlight: 2, scroll: 0, count: 120, rows, dragging: false }]) for (const width of [240, 360, 400, 1200]) {
     const settings = { ...DEFAULT_SETTINGS, state: { open: true, category, face, page: 0 } }
     const svg = paneSvg(paneModel(feeds as Parameters<typeof paneModel>[0], NOW, width, 'orange', undefined, undefined, settings, picker))
     expect(svg.length).toBeLessThan(LIMIT)
+  }
+})
+
+test('inline maintenance rows stay under the Client tree limit with pending auto-update at 240px and 360px', () => {
+  for(const width of [240,360]) for(const autoUpdate of ['on','off','missing','unknown'] as const) for(const pendingAutoUpdate of [null,false,true]){
+    const settings={...DEFAULT_SETTINGS,state:{...DEFAULT_SETTINGS.state,open:true},autoUpdate,pendingAutoUpdate}
+    const model=paneModel(feeds as Parameters<typeof paneModel>[0],NOW,width,'orange',undefined,undefined,settings)
+    expect(paneSvg(model).length).toBeLessThan(LIMIT)
   }
 })
 
@@ -33,7 +41,7 @@ test('the open picker leaves the Quran avatar out, since the sheet covers it', (
 })
 
 test('every frame of the pane demo stays under the Client tree limit', () => {
-  for (const width of [240, 400, 1200]) for (let t = 0; t <= DEMO_DURATION_MS; t += DEMO_TICK_MS) {
+  for (const width of [240, 360, 400, 1200]) for (let t = 0; t <= DEMO_DURATION_MS; t += DEMO_TICK_MS) {
     const model = paneModel({ salah: demoSalah(), quran: demoQuran(t, avatarSvg(true, t, 96)), athkar: demoAthkar(t, TITLE.morning) }, demoNow(t), width, 'orange', undefined, demoFolds(t))
     expect(paneSvg(model).length).toBeLessThan(LIMIT)
   }

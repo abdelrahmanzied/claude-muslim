@@ -53,9 +53,11 @@ export type PanelAthkar = {
 }
 
 // The Quran's list picks carry a validated string: a reciter key, a surah number, a segment index.
-export type PanelAction = 'salah-city' | 'quran-toggle' | 'quran-prev' | 'quran-next' | 'quran-reciter' | 'quran-surah' | 'quran-segment' | 'quran-repeat-surah' | 'quran-repeat-segment' | 'athkar-open' | 'athkar-finish' | 'athkar-set' | 'athkar-reset' | 'athkar-undo'
+export type PanelAction = 'muslim-autoupdate' | 'salah-city' | 'quran-toggle' | 'quran-prev' | 'quran-next' | 'quran-reciter' | 'quran-surah' | 'quran-segment' | 'quran-repeat-surah' | 'quran-repeat-segment' | 'athkar-open' | 'athkar-finish' | 'athkar-set' | 'athkar-reset' | 'athkar-undo'
 
+export type PanelAutoUpdate = 'on' | 'off' | 'default' | 'missing' | 'unknown'
 const feeds: {
+  autoUpdate?: () => Promise<PanelAutoUpdate>
   salah?: (now: number) => PanelSalah | null
   quran?: () => Promise<PanelQuran | null>
   quranOptions?: (list: PanelList, query: string) => Promise<PanelOption[]>
@@ -64,6 +66,10 @@ const feeds: {
 const actions = new Map<PanelAction, (value?: string) => Promise<void>>()
 
 // Each feature captures its own hook's $; this module never receives $.
+export const connectAutoUpdate = (read: () => Promise<PanelAutoUpdate>) => { feeds.autoUpdate = read }
+export const readPanelAutoUpdate = async (): Promise<PanelAutoUpdate> => {
+  try { return await feeds.autoUpdate?.() ?? 'unknown' } catch { return 'unknown' }
+}
 export const connectSalah = (read: (now: number) => PanelSalah | null) => { feeds.salah = read }
 export const connectQuran = (read: () => Promise<PanelQuran | null>) => { feeds.quran = read }
 export const connectQuranOptions = (read: (list: PanelList, query: string) => Promise<PanelOption[]>) => { feeds.quranOptions = read }
@@ -90,4 +96,4 @@ export const runPanelAction = async (action: PanelAction, value?: string): Promi
   if (!run) return false
   try { await run(value); return true } catch { return false }
 }
-export const resetPanel = () => { delete feeds.salah; delete feeds.quran; delete feeds.quranOptions; delete feeds.athkar; actions.clear() }
+export const resetPanel = () => { delete feeds.autoUpdate; delete feeds.salah; delete feeds.quran; delete feeds.quranOptions; delete feeds.athkar; actions.clear() }

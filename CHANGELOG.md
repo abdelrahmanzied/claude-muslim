@@ -14,6 +14,8 @@
 
 - Dev: CI uses a GitHub Actions workflow (`.github/workflows/ci.yml`, job `check`) to run `npm run check` on pull requests and pushes to `main`, with Claude Code and the actions pinned, taking the mod API types from the built-in `/plugin-authoring` skill's types file so no API key is needed.
 
+- `/muslim` opens the Muslim pane on desktop and keeps the terminal table. The pane adds a footer-button switch, version and Update, background updates, feedback and the end-of-turn switch; the pane tour stays in `/muslim demo`, and `/muslim demo pane` plays it alone, its Quran card showing Minshawi's Al-Fatiha. Settings put pane access and appearance first, separated from updates and feedback by a rosette rule. The heading avatar is larger, the end-of-turn example stays complete on two lines, and background updates reread settings only while a switch change is pending. Update and feedback now sit beside their labels in compact rows; Update is disabled while the background-update switch is on, including a pending change.
+
 - Fix: athkar after salah, started from the athan card or offered by itself, now play the same finished celebration as morning and evening (the finale, then the done row) instead of the reader disappearing at the last thikr. Morning or evening come back once the band rests. (#21)
 
 - Issues and `/muslim feedback` about the Muslim pane get the new `pane` label instead of `muslim`. CLAUDE.md says which labels every pull request gets.

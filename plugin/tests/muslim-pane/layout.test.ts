@@ -11,9 +11,9 @@ const CY = QURAN_Y + Q_CONTROLS_BASE + quranOffset(false) + Q_CONTROLS_H / 2
 test('the cards stack in order and the pane height ends under the folded settings card', () => {
   expect(PRAYER_Y).toBe(CARDS_TOP)
   expect(TOP_Y).toBe(0)
-  expect(TOP_H).toBe(36)
+  expect(TOP_H).toBe(52)
   expect(AVATAR_H).toBe(TOP_H)
-  expect(CARDS_TOP).toBe(44)
+  expect(CARDS_TOP).toBe(60)
   expect(CARDS_TOP - TOP_Y - TOP_H).toBe(8)
   expect(hitAt(W, W / 2, TOP_Y + TOP_H / 2, ALL)).toBeNull()
   expect(QURAN_Y).toBe(PRAYER_Y + PRAYER_H + GAP)

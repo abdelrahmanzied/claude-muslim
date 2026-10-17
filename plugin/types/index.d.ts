@@ -51,7 +51,7 @@ export type PaneCopied = { command: string; until: number }
 // The Muslim pane's open Quran picker: which list, the typed query, the highlighted row, the first visible row and a
 // scrollbar drag in progress (`cell` is the pane pixels one pointer row stood for at the press; null when unknown).
 export type PanePicker = { list: 'reciter' | 'surah' | 'segment'; query: string; highlight: number; scroll: number; drag: { y: number; scroll: number; cell: number | null } | null }
-export type PaneOptimistic = Partial<Record<'tashkeel' | 'thikr' | 'athkar' | 'salahAthan', boolean>>
+export type PaneOptimistic = Partial<Record<'tashkeel' | 'thikr' | 'athkar' | 'salahAthan' | 'paneButton' | 'thikrEnd', boolean>>
 
 declare module 'claude-code' {
   interface PluginState {
@@ -66,6 +66,8 @@ declare module 'claude-code' {
       paneSettings: PaneSettings | null
       // Immediate settings-switch display until config reload confirms it.
       paneOptimistic: PaneOptimistic
+      // Pending marketplace auto-update switch; cleared on confirmation or failure.
+      paneAutoUpdate: boolean | null
       // The copy button's transient confirmation; expires at `until`.
       paneCopied: PaneCopied | null
       // The Quran card's open picker, or null.

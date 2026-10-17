@@ -18,6 +18,12 @@
   ],
   "types": "./types/index.d.ts",
   "userConfig": {
+    "paneButton": {
+      "type": "boolean",
+      "title": "Muslim pane button",
+      "description": "Show the ☾ Muslim button in the desktop prompt footer; off: open the pane with /muslim",
+      "default": true
+    },
     "thikr": {
       "type": "boolean",
       "title": "Thikr line",

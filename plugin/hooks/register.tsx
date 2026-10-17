@@ -18,6 +18,7 @@ import { nearestAvailable } from '../src/features/quran/availability.ts'
 import { terminalArabic, defaultArabicMode, isArabicMode, terminalIdFromEnv } from '../src/shared/arabic/terminal.ts'
 import { install as installThikr } from '../src/features/thikr/install.tsx'
 import { install as installMuslimPane } from '../src/features/muslim-pane/install.tsx'
+import { connectAutoUpdate, connectPanelAction } from '../src/shared/panel/signal.ts'
 import { pendingSwitches } from '../src/features/muslim-pane/settings.ts'
 
 // $ stays in same-file helpers; Arabic transformation itself is shared pure logic.
@@ -87,6 +88,32 @@ async function writeAutoUpdate($: EngineInterface, value: boolean): Promise<stri
   } catch (error) {
     return notChanged(error instanceof Error ? error.message.split('\n')[0]! : 'could not read or write your settings')
   }
+}
+
+// The pane uses the same reader and writer as /muslim autoupdate, without chat output.
+async function reconcilePaneAutoUpdate($: EngineInterface): Promise<void> {
+  const ref = { plugin: 'muslim', key: 'paneAutoUpdate' } as const
+  const held = await $.state.get(ref)
+  const state = await readAutoUpdate($)
+  if (typeof held.value === 'boolean' && state !== 'unknown' && state !== 'missing' && (state === 'on') === held.value) {
+    await $.state.set(ref, null, { ifVersion: held.version })
+  }
+}
+function connectAutoUpdateToPanel($: EngineInterface): void {
+  connectAutoUpdate(() => readAutoUpdate($))
+  connectPanelAction('muslim-autoupdate', async value => {
+    if (value !== 'on' && value !== 'off') return
+    const failed = await writeAutoUpdate($, value === 'on')
+    if (failed) {
+      const ref = { plugin: 'muslim', key: 'paneAutoUpdate' } as const
+      const held = await $.state.get(ref)
+      if (held.value === (value === 'on')) await $.state.set(ref, null, { ifVersion: held.version })
+      $.ui.toast(failed)
+    } else {
+      await reconcilePaneAutoUpdate($)
+      $.ui.invalidate('ui.render')
+    }
+  })
 }
 
 // The first run turns auto-update on once and records it, so a later "off" stays off.
@@ -219,6 +246,7 @@ export const register: Register = (on, options) => {
     $.clock.after(0, () => $.ui.invalidate('ui.render'))
 
     await seedAutoUpdate($)
+    await reconcilePaneAutoUpdate($)
 
     return next(e)
   })
@@ -228,8 +256,10 @@ export const register: Register = (on, options) => {
     const [word = '', feature = ''] = words
     // DEMO BEGIN: command entry; no feature settings or saved state.
     if (word === 'demo') {
-      if (words.length !== 1) return { text: 'Usage: /muslim demo' }
       if (demo) return { text: '**Muslim demo:** already playing.' }
+      // `/muslim demo pane` is the pane tour alone; the muslim-pane feature answers it.
+      if (words.length === 2 && feature === 'pane') return next(e)
+      if (words.length !== 1) return { text: 'Usage: /muslim demo [pane]' }
       // Walk the demo-only setup hooks once; no self-command dispatch.
       await next(e)
 
@@ -271,9 +301,17 @@ export const register: Register = (on, options) => {
     if (word === 'help') return { text: muslimHelp(feature) }
     if (word !== '') return next(e).catch(() => ({ text: muslimHelp() }))
 
+    const surfaces = await $.session.surfaces()
+    if (surfaces.includes('desktop') && !surfaces.includes('terminal')) {
+      try {
+        const answer = await next(e)
+        if (answer.text) return answer
+      } catch { /* Opening failed: keep the existing table fallback. */ }
+    }
+
     const onOff = (value: boolean) => (value ? 'on' : 'off')
     // The Arabic setup answers an empty /muslim with this terminal's mode; empty off the terminal.
-    const terminal = await next(e).then(result => result.text ?? '', () => '')
+    const terminal = surfaces.includes('desktop') && !surfaces.includes('terminal') ? '' : await next(e).then(result => result.text ?? '', () => '')
     const catalog = await $.store.get('quran.catalog')
     const reciterKey = await $.store.get('quran.reciter')
     const reciter = isCatalog(catalog) ? (catalog.reciters.find(r => r.key === reciterKey) ?? defaultReciter(catalog)).label : 'Muhammad Siddiq Al-Minshawi — murattal'
@@ -326,6 +364,21 @@ export const register: Register = (on, options) => {
   installAthkar(on, settings)
   // First registered SessionMode hook is outermost: the pane chip prepends to Quran's, which prepends to salah's.
   installMuslimPane(on, settings)
+  on('ui.render', { component: 'Pane', requestId: 'muslim' }, async ($, e, next) => {
+    connectAutoUpdateToPanel($)
+    // Drawing only reads state; confirmation cleanup runs after the render.
+    if (typeof (await $.state.get({ plugin: 'muslim', key: 'paneAutoUpdate' })).value === 'boolean') {
+      $.clock.after(0, () => { void reconcilePaneAutoUpdate($) })
+    }
+    return next(e)
+  })
+  on('ui.message', { element: 'muslim-pane' }, async ($, e, next) => {
+    connectAutoUpdateToPanel($)
+    if (typeof (await $.state.get({ plugin: 'muslim', key: 'paneAutoUpdate' })).value === 'boolean') {
+      await reconcilePaneAutoUpdate($)
+    }
+    return next(e)
+  })
   installQuran(on, settings)
   installSalah(on, settings)
   installArabicFix(on, settings)
