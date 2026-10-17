@@ -5,6 +5,7 @@ Claude Code mod (function-hooks plugin). Plugin name is `muslim` — Claude Code
 ## Rules
 
 - Read `DESIGN.md` before designing or changing any feature; follow its shared principles, surfaces, colors and checklist, and its feature index.
+- Keep the design system current: any change to a shared design rule (surfaces, colors, type scale, icons, card shell, pane chrome, folding, input) updates `DESIGN.md` or `docs/desktop/pane-design.md` in the same commit, in the one place that owns it; feature design docs point there instead of repeating it.
 
 - Each feature has a folder `docs/features/<feature>/` mirroring `src/features/<feature>/`: its spec in `<feature>.md` and its design in `<feature>-design.md`. Read both before working on that feature, and update them in the same commit as any change to the feature. A new feature gets both files and a row in DESIGN.md's feature index. Platform docs that are not features (terminal, later desktop) live in `docs/<platform>/` with `<platform>-<topic>.md` names.
 

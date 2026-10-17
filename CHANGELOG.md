@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Docs: the Quran design keeps only what is Quran's own and points to the Muslim pane design for the rest; athkar and pane docs note the after-salah wait, the shared titles and the athkar title menu. CLAUDE.md now requires every shared design-system change to update `DESIGN.md` or the desktop pane design in the same commit.
+
 - Athkar: after-salah no longer cuts off a morning or evening reading you are counting; it waits until that reading is done or closed. The athan card's start button still opens it at once.
 
 - Muslim pane: `/muslim pane demo` plays a 10-second tour on desktop (the cards unfold one by one, the Quran card plays without sound, the athkar fill to done, then everything folds back and the pane returns to how it was); `/muslim demo` ends with it (skipped on a terminal). Nothing is saved.
