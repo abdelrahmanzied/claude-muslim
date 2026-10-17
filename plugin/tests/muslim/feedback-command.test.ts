@@ -24,7 +24,7 @@ test('/muslim feedback replies at once and starts the turn from a timer', async 
   expect(submitted[0]).toContain('the pane is cut off')
   expect(submitted[0]).toContain(`muslim version: ${VERSION}`)
   expect(submitted[0]).toContain('Surface: terminal')
-  expect(submitted[0]).toContain('explicit yes')
+  expect(submitted[0]).toContain('AskUserQuestion')
 })
 
 test('with no text, and on Windows, the prompt still starts', async ($, on) => {

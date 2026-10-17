@@ -25,6 +25,20 @@ body:
       description: A book, page or link that shows the correct text.
     validations:
       required: true
+  - type: dropdown
+    id: feature
+    attributes:
+      label: Feature
+      options:
+        - thikr
+        - athkar
+        - salah
+        - quran
+        - Muslim pane
+        - /muslim commands and settings
+        - other or new
+    validations:
+      required: true
   - type: input
     id: version
     attributes:
