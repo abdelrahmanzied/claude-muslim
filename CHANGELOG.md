@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Dev: CLAUDE.md says every change, the maintainer's own included, goes through a pull request; nothing is pushed straight to main.
+
 - Dev: a pull request template asks for the issue it closes, what changed, and a checklist (npm run check, a CHANGELOG note, docs, the version unchanged, labels).
 
 - Docs: SECURITY.md says to report a vulnerability privately through the Security tab, never in a public issue; CONTRIBUTING.md and the new-issue page point there.
