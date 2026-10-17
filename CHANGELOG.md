@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Docs: the README and plugin/README.md are short: the animated welcome avatar at the top, one line per feature, install, and five commands to start with; every other command is in `/muslim help`. The welcome picture is `.github/assets/readme-welcome.svg`, a copy of the avatar repo's animated story.
+
 - Fix: the Muslim pane heading's avatar is the still claude-muslim avatar from the avatar repo: the short dark beard (it had an older two-tone beard) and the closed smile (all three mouth frames were drawn on top of each other).
 
 - Dev: the slowest engine tests (athkar after-salah, demos, salah setup, Quran player, pane tour) get longer time limits, so they pass on CI's 2-core runner, about 3.5 times slower than a dev machine, where four of them ran out of time.

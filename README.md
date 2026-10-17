@@ -1,38 +1,37 @@
-# claude-muslim
+<p align="center"><img src=".github/assets/readme-welcome.svg" width="320" alt="The Muslim crab says salam, then counts tasbih"></p>
 
-A Claude Code mod for Muslim developers. While Claude works, its working line carries a short thikr, in Claude's own font and colors, in the terminal and the desktop app. It also brings morning, evening and after-salah athkar, prayer times with an athan moment, a Quran recitation player and a Muslim pane.
+<h1 align="center">claude-muslim</h1>
 
-Every feature and command is in [plugin/README.md](plugin/README.md). To work on the mod, see [CONTRIBUTING.md](CONTRIBUTING.md).
+<p align="center">A Claude Code mod for Muslim developers: thikr while Claude works, athkar, prayer times and the Quran, in the terminal and the desktop app.</p>
 
-This repository, `abdelrahmanzied/claude-muslim`, is the only official source of the `muslim` plugin and the `claude-muslim` marketplace. Copies elsewhere are not maintained by us.
+## Features
+
+- **Thikr line** (`/thikr`): a short thikr in Claude's working line, in its own font and colors, and تَمَّ بِحَمْدِ اللَّهِ when a turn ends.
+- **Athkar** (`/athkar`): the morning, evening and after-salah athkar from Hisn al-Muslim, in a reader above the prompt that counts with you.
+- **Prayer times** (`/salah`): the next prayer under the prompt, a countdown, and an athan moment when it comes in. Calculated on your machine.
+- **Quran** (`/quran`): a recitation player with Hafs recordings (desktop).
+- **Muslim pane** (`/muslim`): today's prayers, the Quran player, athkar progress and every setting in one pane (desktop).
 
 ## Install
 
-Only the `plugin/` folder is installed; `--sparse` also keeps the download to that folder. All of these install the same mod, at the user scope, so it runs in every project, in the terminal and in the Claude desktop app.
-
-**Inside a Claude Code session in the terminal:**
+Inside Claude Code:
 
 ```
 /plugin marketplace add abdelrahmanzied/claude-muslim --sparse .claude-plugin plugin
-```
-
-```
 /plugin install muslim@claude-muslim
 ```
 
-**From your shell** (outside Claude):
+Then run `/reload-plugins`.
+
+<details>
+<summary>From your shell, or by asking Claude</summary>
 
 ```bash
 claude plugin marketplace add abdelrahmanzied/claude-muslim --sparse .claude-plugin plugin
-```
-
-```bash
 claude plugin install muslim@claude-muslim
 ```
 
-Then start Claude Code, or run `/reload-plugins` in a session that is already open.
-
-**Inside any session, desktop app or terminal:** paste this prompt to Claude. It installs the mod, or updates it if it is already installed.
+Or paste this to Claude in any session:
 
 ```text
 Set up the Claude Code plugin "muslim" for all my sessions (user scope):
@@ -41,32 +40,25 @@ Set up the Claude Code plugin "muslim" for all my sessions (user scope):
 3. Show me what each step printed, then tell me to run /reload-plugins.
 ```
 
-Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows the installed version and your settings.
+</details>
 
-## Feedback
+## Get started
 
-`/muslim feedback` helps you report a bug, improve something that exists, ask for a new feature, correct the text of the Quran, athkar or thikr, or just send feedback. Claude drafts the GitHub issue, asks you to pick the kind and the feature, shows the draft and sends it only after you choose Send.
+| Command | |
+| --- | --- |
+| `/muslim` | Open the Muslim pane (desktop), or see your settings (terminal) |
+| `/muslim help` | Every command |
+| `/muslim demo` | See every feature play |
+| `/muslim update` | Update to the latest version |
+| `/muslim feedback` | Report a bug or send an idea |
 
-## Update
+To remove it: `claude plugin uninstall muslim@claude-muslim`.
 
-Inside a session, run `/muslim update`: it updates only muslim, tells you the new version and reloads plugins. Claude Code can also update muslim in the background: muslim turns that on for you the first time it runs, and `/muslim autoupdate off` turns it off for good. Or from a shell:
+## More
 
-```bash
-claude plugin marketplace update claude-muslim
-```
+- [CHANGELOG.md](CHANGELOG.md): what changed in each version.
+- [CONTRIBUTING.md](CONTRIBUTING.md): how to work on the mod.
+- This repository is the only official source of the `muslim` plugin. Copies elsewhere are not maintained by us.
+- Some terminals don't join Arabic letters or show them right to left; `/muslim terminal-arabic` picks what works in yours.
 
-```bash
-claude plugin update muslim@claude-muslim
-```
-
-Then restart Claude Code, or run `/reload-plugins` in an open session. Pasting the prompt above does the same. `/muslim` shows the version you are running; [CHANGELOG.md](CHANGELOG.md) lists what changed.
-
-## Uninstall
-
-```bash
-claude plugin uninstall muslim@claude-muslim
-```
-
-## License
-
-MIT
+MIT License
