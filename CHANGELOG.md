@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Docs: CONTRIBUTING.md now says how to start (an issue first for anything big), the design and religious-content rules, commit types (including `content`), a pull request checklist, how versions work and the license of contributions. Contributors commit with their own email.
+
 - Dev: the pre-push hook skips a push that only deletes remote branches, and says to run `npm install` when TypeScript is missing.
 
 - `/muslim feedback [text]` starts a Claude turn that asks what kind it is (bug, feature request, idea, content correction or feedback), drafts the GitHub issue in the matching form's shape with the muslim version, surface and OS filled in, shows the whole draft and files it with `gh issue create` only after your explicit yes. Without `gh`, or when it is not signed in, it gives a link to the issue form with the fields filled in instead. Nothing is sent without the yes. Listed in `/muslim help`.

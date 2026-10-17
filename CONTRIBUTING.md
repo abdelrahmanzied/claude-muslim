@@ -1,5 +1,13 @@
 # Contributing
 
+Thank you for helping. Bug reports, ideas, corrections to the religious text and code are all welcome.
+
+## Before you start
+
+- **Small fixes** (a typo, a clear bug with an obvious fix): open a pull request directly.
+- **Anything bigger** (a new feature, a new command, a change to how something looks or works): open an issue first, or comment on an existing one, and say you want to work on it. Wait until the maintainer agrees and assigns it to you, so nobody builds something that will not be merged or that someone else is already doing.
+- **Religious text** (Quran, athkar, thikr, translations): use the content correction form, see [Religious content](#religious-content).
+
 ## Setup
 
 ```bash
@@ -8,12 +16,64 @@ git config core.hooksPath .githooks
 npm run check
 ```
 
-Rules for the code, docs and tests are in [CLAUDE.md](CLAUDE.md) and [DESIGN.md](DESIGN.md). The installed plugin lives in `plugin/`; everything else here is for development only.
+The installed plugin lives in `plugin/`; everything else here is for development only. Rules for the code, docs and tests are in [CLAUDE.md](CLAUDE.md) and [DESIGN.md](DESIGN.md).
 
 - Load the `/plugin-authoring` skill before building or changing any mod code. It writes this build's API types.
 - Check the mod API in `plugin/.claude-plugin/types/claude-code/index.d.ts` (written on load) and in the docs: https://code.claude.com/docs/en/plugins
-- Commits, PRs and issues use `me@abdelrahman.ai`.
-- Every change adds a note under `## Unreleased` in [CHANGELOG.md](CHANGELOG.md). Never bump the version in a branch; versions change only for a release on main, after confirming the number.
+
+## Design
+
+Every feature follows [DESIGN.md](DESIGN.md): its shared principles, surfaces, colors and checklist. Each feature has a spec in `docs/features/<feature>/<feature>.md` and a design in `docs/features/<feature>/<feature>-design.md`. Read both before changing the feature, and update them in the same pull request. A new feature adds both files and a row in DESIGN.md's feature index.
+
+Everything must work the same on Windows, macOS and Linux, in the terminal and on desktop.
+
+## Religious content
+
+- Every Quran verse, thikr, athkar text and translation comes from a named, trusted source, written with its tashkeel. Say the source in the pull request.
+- Never generate, reword, shorten or "fix" religious text from memory, and never use AI to write it. Display may strip tashkeel; it never changes a word.
+- Changes to religious text are always reviewed by the maintainer before they are merged.
+
+## Commits
+
+Use [Conventional Commits](https://www.conventionalcommits.org/): `type: what changed`, in English, in the present tense.
+
+| Type | For |
+|---|---|
+| `feat` | a new feature or command for users |
+| `fix` | a bug fix |
+| `content` | adding or correcting religious text (Quran, athkar, thikr, translations) |
+| `refactor` | restructure or architecture, no change for users |
+| `docs` | documentation only |
+| `chore` | dev setup, tooling, tests, hooks |
+
+Add the feature in brackets when it helps: `feat(salah): …`. Commit with your own name and email.
+
+## Pull requests
+
+Before you open one:
+
+- [ ] `npm run check` passes.
+- [ ] A note under `## Unreleased` in [CHANGELOG.md](CHANGELOG.md) says what changed, in words a user understands.
+- [ ] The feature's spec and design docs are updated.
+- [ ] New logic has tests in `plugin/tests/<feature>/`.
+- [ ] The version is unchanged (see [Versions](#versions)).
+- [ ] It links the issue it closes (`Closes #12`).
+
+Keep one change per pull request. Labels: `enhancement`, `bug`, `content`, `refactor`, `docs`, `chore`.
+
+## Versions
+
+The version is `MAJOR.MINOR.PATCH`, following [Semantic Versioning](https://semver.org/):
+
+- **MAJOR** (left): a big or breaking change. It stays `0` for now.
+- **MINOR** (middle, `0.x.0`): a new feature.
+- **PATCH** (right, `0.x.y`): a fix or a small change.
+
+Never change the version in a pull request (`plugin/.claude-plugin/plugin.json` and `plugin/src/constants.ts`). Only the maintainer changes it, when releasing; see [Release](#release-maintainer-only).
+
+## License
+
+By contributing, you agree that your work is released under the [MIT License](LICENSE), like the rest of the project.
 
 ## Issues
 
@@ -113,7 +173,7 @@ claude plugin install muslim@claude-muslim
 
 `--sparse` is Claude Code's own flag (git sparse checkout, GitHub and git sources only). Check that the plugin cache (`~/.claude/plugins/cache/claude-muslim/muslim/<version>/`) holds only the contents of `plugin/`: no `docs/`, `scripts/`. Afterwards, remove it and add the main one back.
 
-## Release
+## Release (maintainer only)
 
 Users get an update only when the version changes. For each release:
 
