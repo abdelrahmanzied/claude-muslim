@@ -18,7 +18,7 @@ export type PanelQuran = {
   // The full reciter name with the recording, as the Quran card's reciter field shows it.
   reciter: string
   surah: string
-  // The segment being played or selected, in the shared label (`الربع ٥، الآيات ١٥–٢٤`); empty for a whole surah.
+  // The segment being played or selected, in the shared label (`الربع ٥ - الآيات ١٥–٢٤`); empty for a whole surah.
   part: string
   // True when the surah is split into segments («ابدأ من», segment repeat).
   segmented: boolean

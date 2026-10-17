@@ -14,7 +14,7 @@
 
 - Muslim pane: the Quran card is the full player: status, the surah as a picker button, the reciter avatar, «ابدأ من» for split recordings, the reciter row, progress with times, and repeat-segment, previous, play/stop, next and repeat-surah. Reciter, surah and segment lists open as an in-card sheet with search, eight rows, a drag scrollbar and arrow-key navigation. «افتح المصحف» is gone. The list logic moved to `src/shared/picker/`.
 
-- Quran: segments are named `الربع ٥، الآيات ١٥–٢٤` (with ` (١ من ٢)` when a quarter is cut in several) everywhere, the Quran pane, its next/repeat lines, the Muslim pane and the terminal text; no more «·» beside Arabic digits.
+- Quran: segments are named `الربع ٥ - الآيات ١٥–٢٤` (with ` (١ من ٢)` when a quarter is cut in several) everywhere, the Quran pane, its next/repeat lines, the Muslim pane and the terminal text; no more «·» beside Arabic digits.
 
 - Athkar: the end question («أتممتَ الأذكار؟») also covers athkar after salah, and the Muslim pane's athkar card follows the set the band shows by itself (morning, evening or after salah), with prayer-based periods. The Muslim pane docs move to `docs/features/muslim-pane/`, like every feature.
 

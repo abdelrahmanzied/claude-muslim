@@ -1,6 +1,6 @@
 // How every surface names a segment (a quarter of a hizb, or part of one): one pure formatter.
-// `الربع ٥، الآيات ١٥–٢٤`, and ` (١ من ٢)` when one quarter is cut into several consecutive segments.
-// The comma is the Arabic «،»: a «·» beside Arabic digits reads as ٠.
+// `الربع ٥ - الآيات ١٥–٢٤`, and ` (١ من ٢)` when one quarter is cut into several consecutive segments.
+// A spaced hyphen separates the quarter from the ayat (never «·», which beside Arabic digits reads as ٠).
 
 import type { Segment } from './segments.ts'
 
@@ -22,5 +22,5 @@ export function segmentLabel(segments: readonly Labelled[], index: number): stri
   const segment = segments[index]
   if (!segment) return ''
   const piece = segmentPiece(segments, index)
-  return `الربع ${arabicDigits(segment.quarter)}، الآيات ${arabicDigits(segment.firstAyah)}–${arabicDigits(segment.lastAyah)}${piece ? ` (${arabicDigits(piece.k)} من ${arabicDigits(piece.n)})` : ''}`
+  return `الربع ${arabicDigits(segment.quarter)} - الآيات ${arabicDigits(segment.firstAyah)}–${arabicDigits(segment.lastAyah)}${piece ? ` (${arabicDigits(piece.k)} من ${arabicDigits(piece.n)})` : ''}`
 }

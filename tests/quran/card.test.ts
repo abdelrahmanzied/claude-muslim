@@ -35,7 +35,7 @@ test('quarter boundary controls remain enabled across surahs and the last quarte
   const selection: TrackSelection = { segments, selectedSegment: 0, durationMs: 286000, loading: null }
   const buildQuarter = (surah: number, index: number) => cardModel(fixtureCatalog, fixtureCatalog.reciters[0]!, surah, { moshafKey: '10:20', surah, startedAt: 0, durationMs: 1000, segmentIndex: index, segmentCount: segments.length }, 500, 380, 1, { ...selection, selectedSegment: index })
   expect(buildQuarter(2, 0).canPrev).toBe(true)
-  expect(buildQuarter(2, 0).next).toBe('التالي: البقرة · الربع ٢، الآيات ٢٦–٤٣')
+  expect(buildQuarter(2, 0).next).toBe('التالي: البقرة · الربع ٢ - الآيات ٢٦–٤٣')
   expect(buildQuarter(2, segments.length - 1).canNext).toBe(true)
   expect(buildQuarter(2, segments.length - 1).next).toBe('التالي تلقائي: آل عمران')
   expect(buildQuarter(1, 0).canPrev).toBe(false)
@@ -51,6 +51,6 @@ test('repeat modes are mutually exclusive in the pure rule and the hint names th
   expect(toggleRepeat('segment', 'surah')).toBe('surah')
   expect(toggleRepeat('surah', 'surah')).toBe('off')
   expect(toggleRepeat('segment', 'segment')).toBe('off')
-  expect(split('segment', 7).next).toBe('تكرار: الربع ٨، الآيات ١٢٤–١٤١')
+  expect(split('segment', 7).next).toBe('تكرار: الربع ٨ - الآيات ١٢٤–١٤١')
   expect(split('segment', 4, { moshafKey: '10:20', surah: 2, startedAt: 0, durationMs: 1000, segmentIndex: 4, segmentCount: 20 }).next).toContain('تكرار: الربع ٥')
 })

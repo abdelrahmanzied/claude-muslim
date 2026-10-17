@@ -19,7 +19,7 @@ const feeds = {
     next: { pray: 'asr' as const, at: NOW + 4_320_000, clock: '15:42' },
     isAthan: true,
   },
-  quran: { reciter: 'محمد صديق المنشاوي', surah: 'سورة البقرة', part: 'الربع ٥، الآيات ١٥–٢٤ (١ من ٢)', segmented: true, status: 'يتلى الآن', isLive: true, elapsed: '12:03', total: '41:20', progress: 0.29, isPlaying: true, canPrev: true, canNext: true, repeat: 'off' as const, avatar: '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="90" viewBox="0 0 96 90"></svg>' },
+  quran: { reciter: 'محمد صديق المنشاوي', surah: 'سورة البقرة', part: 'الربع ٥ - الآيات ١٥–٢٤ (١ من ٢)', segmented: true, status: 'يتلى الآن', isLive: true, elapsed: '12:03', total: '41:20', progress: 0.29, isPlaying: true, canPrev: true, canNext: true, repeat: 'off' as const, avatar: '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="90" viewBox="0 0 96 90"></svg>' },
   athkar: { set: 'evening' as const, canUndo: false, title: 'أَذْكَارُ الْمَسَاءِ', done: 4, total: 12, progress: 0.33, isDone: false },
 }
 
@@ -254,14 +254,14 @@ test('the heading shows the full avatar beside مسلم and /muslim at the left 
 
 const sheet = (list: 'reciter' | 'surah' | 'segment', count = 20) => {
   const model = paneModel(feeds, NOW, 360, 'orange')
-  const rows = Array.from({ length: Math.min(8, count) }, (_, i) => ({ value: String(i), label: list === 'segment' ? `الربع ${i + 1}، الآيات ١–٧` : `سورة ${i + 1}`, number: String(i + 1), selected: i === 1 }))
+  const rows = Array.from({ length: Math.min(8, count) }, (_, i) => ({ value: String(i), label: list === 'segment' ? `الربع ${i + 1} - الآيات ١–٧` : `سورة ${i + 1}`, number: String(i + 1), selected: i === 1 }))
   model.picker = { list, query: '', highlight: 1, scroll: 0, count, rows, dragging: false }
   return model
 }
 
 test('the Quran card is the player: title, start-from, reciter, times, five controls and a 96 wide avatar', () => {
   const svg = paneSvg(paneModel(feeds, NOW, 360, 'orange'))
-  for (const text of ['يتلى الآن', 'سورة البقرة', 'ابدأ من', 'الربع <bdi dir="ltr">٥</bdi>، الآيات', 'محمد صديق المنشاوي', 'الوقت تقريبي', 'المقطع', 'السورة']) expect(svg).toContain(text)
+  for (const text of ['يتلى الآن', 'سورة البقرة', 'ابدأ من', 'الربع <bdi dir="ltr">٥</bdi> - الآيات', 'محمد صديق المنشاوي', 'الوقت تقريبي', 'المقطع', 'السورة']) expect(svg).toContain(text)
   for (const label of ['aria-label="اختيار السورة"', 'aria-label="اختيار القارئ"', 'aria-label="Previous"', 'aria-label="Next"', 'aria-label="تكرار المقطع"', 'aria-label="تكرار السورة"']) expect(svg).toContain(label)
   expect(svg).toContain('width="96"')
   expect(svg).toContain('.a-avatar{width:96px;height:90px')
