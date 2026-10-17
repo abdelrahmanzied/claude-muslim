@@ -20,7 +20,7 @@
 
 | | Feature | What it does |
 | :---: | --- | --- |
-| 📿 | **Thikr line** · `/thikr` | A short thikr in Claude's working line while it works, and تَمَّ بِحَمْدِ اللَّهِ when a turn ends. |
+| 📿 | **Thikr line** · `/thikr` | A short thikr in Claude's working line while it works, and a closing word when a turn ends. |
 | 🌅 | **Athkar** · `/athkar` | Morning, evening and after-salah athkar from Hisn al-Muslim, in a reader above the prompt that counts with you. |
 | 🕌 | **Prayer times** · `/salah` | The next prayer under the prompt, a countdown, and an athan moment when it comes in. Calculated on your machine. |
 | 📖 | **Quran** · `/quran` | A recitation player with complete Hafs recordings. Desktop. |
