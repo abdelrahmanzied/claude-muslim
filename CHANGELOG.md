@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Docs: the README says this repository is the only official source of the muslim plugin and the claude-muslim marketplace.
+
 - Dev: CI uses a GitHub Actions workflow (`.github/workflows/ci.yml`, job `check`) to run `npm run check` on pull requests and pushes to `main`, with Claude Code and the actions pinned, taking the mod API types from the built-in `/plugin-authoring` skill's types file so no API key is needed.
 
 - Fix: athkar after salah, started from the athan card or offered by itself, now play the same finished celebration as morning and evening (the finale, then the done row) instead of the reader disappearing at the last thikr. Morning or evening come back once the band rests. (#21)
