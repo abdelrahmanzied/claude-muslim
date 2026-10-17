@@ -4,7 +4,7 @@
 
 - Dev: CLAUDE.md says to link each Claude session to the worktree it works in (`~/.claude/dev-mods/<session-id>/muslim` → `<worktree>/plugin`) so the mod is tested live with hot reload.
 
-- Docs: CONTRIBUTING.md now says how to start (an issue first for anything big), the design and religious-content rules, commit types (including `content`), a pull request checklist, how versions work and the license of contributions. It also says how to avoid two people working on the same thing: one assignee per issue, an early draft pull request, and unassigning after 14 days with no update. Contributors commit with their own email.
+- Docs: CONTRIBUTING.md is short now: open an issue for a problem or idea, comment and wait to be assigned before working on an issue, the religious-text, design, commit and pull request rules, setup, running your copy, testing a real install, and how versions work.
 
 - Dev: the pre-push hook skips a push that only deletes remote branches, and says to run `npm install` when TypeScript is missing.
 
