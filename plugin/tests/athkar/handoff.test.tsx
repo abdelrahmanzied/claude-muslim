@@ -138,7 +138,7 @@ test('desktop: June Fajr before 05:00 keeps the prayer day when the last-count t
 })
 
 for (const close of [false, true]) {
-  test(`desktop ${close ? '× waits for' : 'untouched card hands off at'} prayer + duration; after-salah stays until done or next prayer`, { options: MUNICH, timeoutMs: 15000 }, async ($, on) => {
+  test(`desktop ${close ? '× waits for' : 'untouched card hands off at'} prayer + duration; after-salah stays until done or next prayer`, { options: MUNICH, timeoutMs: 60000 }, async ($, on) => {
     const { clock, held } = setup(on, TIMES.dhuhr, 'desktop')
     const ui = await $.ui.mount(band('desktop'))
     await clock.advance(0)

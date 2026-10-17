@@ -167,7 +167,7 @@ test('the reader moves on by itself after the last count', async ($, on) => {
   await ui.unmount()
 })
 
-test('finishing shows the end, and × hides the band keeping the reading', async ($, on) => {
+test('finishing shows the end, and × hides the band keeping the reading', { timeoutMs: 20000 }, async ($, on) => {
   mock.clock(on, { now: MORNING })
   mock.store(on)
   mock.env(on, {})

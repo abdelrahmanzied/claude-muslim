@@ -69,7 +69,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
     await ui.unmount()
   })
 
-  test(`${surface}: automatic offer hides back to morning, new prayer resets the slot, done falls back, manual still opens`, { options: MUNICH, timeoutMs: 15000 }, async ($, on) => {
+  test(`${surface}: automatic offer hides back to morning, new prayer resets the slot, done falls back, manual still opens`, { options: MUNICH, timeoutMs: 60000 }, async ($, on) => {
     const clock = mock.clock(on, { now: NOW })
     mock.store(on)
     engine(on, surface)
@@ -127,7 +127,7 @@ test('without prayer times there is no automatic offer, including a stale signal
   await ui.unmount()
 })
 
-test('the automatic offer starts at its exact deadline and stays beyond an hour', { options: MUNICH, timeoutMs: 15000 }, async ($, on) => {
+test('the automatic offer starts at its exact deadline and stays beyond an hour', { options: MUNICH, timeoutMs: 60000 }, async ($, on) => {
   const clock = mock.clock(on, { now: NOW })
   mock.store(on)
   engine(on, 'terminal')

@@ -59,7 +59,7 @@ test('the shared pane step skips a terminal without opening a pane', {options:{t
 })
 
 for (const startsOpen of [false, true]) {
-  test(`desktop, pane ${startsOpen ? 'open' : 'closed'}: the tour unfolds, plays, folds back and restores the pane without saved writes`, {options:{thikr:false,athkar:false,salahShow:'off',salahAthan:false}}, async ($, on) => {
+  test(`desktop, pane ${startsOpen ? 'open' : 'closed'}: the tour unfolds, plays, folds back and restores the pane without saved writes`, {options:{thikr:false,athkar:false,salahShow:'off',salahAthan:false}, timeoutMs: 20000 }, async ($, on) => {
     const { clock, calls, writes } = fixture(on, 'desktop', startsOpen)
     const ui = await $.ui.mount(pane('desktop'))
     await clock.settle()

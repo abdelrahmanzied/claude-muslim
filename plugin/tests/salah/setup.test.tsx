@@ -303,7 +303,7 @@ test('after off then always, the line shows at once, before any timer', { option
   await shown.unmount()
 })
 
-test('show minutes: the line is empty until the window, then counts down', { options: AT_MUNICH }, async ($, on) => {
+test('show minutes: the line is empty until the window, then counts down', { options: AT_MUNICH, timeoutMs: 20000 }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
@@ -333,7 +333,7 @@ test('show minutes: the call shows once the pray is in, then the line clears', {
   await shown.unmount()
 })
 
-test('fewer show minutes move the window; no athan skips the call', { options: { athkar: false, ...AT_MUNICH, salahShow: '5', salahAthan: false } }, async ($, on) => {
+test('fewer show minutes move the window; no athan skips the call', { options: { athkar: false, ...AT_MUNICH, salahShow: '5', salahAthan: false }, timeoutMs: 20000 }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:44:00Z') })
@@ -349,7 +349,7 @@ test('fewer show minutes move the window; no athan skips the call', { options: {
   await shown.unmount()
 })
 
-test('the countdown ticks every second in the window, every 30 s outside it', { options: AT_MUNICH }, async ($, on) => {
+test('the countdown ticks every second in the window, every 30 s outside it', { options: AT_MUNICH, timeoutMs: 20000 }, async ($, on) => {
   mock.env(on, {})
   mock.store(on)
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })

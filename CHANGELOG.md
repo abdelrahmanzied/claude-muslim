@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Dev: the slowest engine tests (athkar after-salah, demos, salah setup, Quran player, pane tour) get longer time limits, so they pass on CI's 2-core runner, about 3.5 times slower than a dev machine, where four of them ran out of time.
+
 - Fix: athkar timers (the auto-advance after the last count and others) no longer lose the saved place's prayer-day bounds, so a reading is no longer reset between Fajr and 05:00 or when the computer's time zone differs from the city's.
 
 - Dev: CLAUDE.md says every change, the maintainer's own included, goes through a pull request; nothing is pushed straight to main.
