@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Docs: SECURITY.md says to report a vulnerability privately through the Security tab, never in a public issue; CONTRIBUTING.md and the new-issue page point there.
+
 - Docs: the README says this repository is the only official source of the muslim plugin and the claude-muslim marketplace.
 
 - Dev: CI uses a GitHub Actions workflow (`.github/workflows/ci.yml`, job `check`) to run `npm run check` on pull requests and pushes to `main`, with Claude Code and the actions pinned, taking the mod API types from the built-in `/plugin-authoring` skill's types file so no API key is needed.

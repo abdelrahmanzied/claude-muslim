@@ -6,6 +6,7 @@ Thank you for helping.
 
 - **Found a problem or have an idea?** Open an issue with one of the forms.
 - **Want to work on an issue?** Comment that you are interested, and wait until it is assigned to you before you start. Every change, even a small fix, starts from an assigned issue.
+- **Security problem?** Never report it in an issue; see [SECURITY.md](SECURITY.md).
 
 ## Rules
 
