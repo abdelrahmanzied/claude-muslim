@@ -1,3 +1,4 @@
+import { VERSION } from '../src/constants.ts'
 import { expect, mock, test } from 'claude-code/testing'
 
 const muslim = (args: string) => ({
@@ -10,6 +11,7 @@ const muslim = (args: string) => ({
 test('/muslim shows each setting with its state and how to change it', { options: { tashkeel: false } }, async ($, on) => {
   mock.store(on)
   on('session.surface', async () => ({ value: 'desktop' }))
+  on('session.surfaces', async () => ({ value: ['terminal'] }))
   const ran = await $.command.run(muslim(''))
   expect(ran.text?.split('\n')[1]).toContain('To change a setting or see every option: `/muslim help`')
   expect(ran.text).toContain('### Features\n\n| Feature | Description | State |')
@@ -27,11 +29,12 @@ test('/muslim help shows every feature\'s table; with a feature, only its own', 
   const salah = (await $.command.run(muslim('help salah'))).text
   const thikr = (await $.command.run(muslim('help thikr'))).text
 
+  expect(all).not.toContain('/muslim pane')
   expect(all?.split('\n')[0]).toBe('**Muslim › Help**')
   expect(all).toContain('| `/thikr speed` | How long each phrase stays |')
   expect(all).toContain('/salah city')
   expect(all).toContain('| `/muslim terminal-arabic` |')
-  expect(all).toContain('| `/muslim demo` | Play thikr, athkar, /salah demo (athan and athkar after salah) and the Muslim pane tour (desktop) in order; thikr uses tokens and leaves a message in the transcript | — |\n| `/muslim pane demo` | Tour the Muslim pane on desktop: cards unfold, play and fold back; nothing is saved | — |')
+  expect(all).toContain('| `/muslim demo` | Play thikr, athkar, /salah demo (athan and athkar after salah) and the Muslim pane tour (desktop) in order; thikr uses tokens and leaves a message in the transcript | — |\n| `/muslim demo pane` | Tour the Muslim pane on desktop alone: cards unfold, play and fold back; nothing is saved | — |')
   expect(all).toContain('| `/muslim tashkeel` | Arabic diacritics on desktop; the terminal never shows them | `on` (default) · `off` |')
   expect((await $.command.run(muslim('help terminal-arabic'))).text).toContain('| `/muslim terminal-arabic` | Choose how Arabic shows in this terminal, for every feature | — |')
   expect(salah?.split('\n')[0]).toBe('**Muslim › Salah › Help**')
@@ -57,7 +60,7 @@ test('/muslim help shows every feature\'s table; with a feature, only its own', 
   expect((await $.command.run({ ...muslim('help'), command: 'quran' })).text).toBe(quran)
 })
 
-test('session start clears a status line left by an earlier version', async ($, on) => {
+for(const surface of ['terminal','desktop'] as const) test(`${surface}: session start clears the old status line and registers every command`, async ($, on) => {
   const seen: Array<string | undefined> = []
   const commands: string[] = []
   mock.store(on)
@@ -67,7 +70,7 @@ test('session start clears a status line left by an earlier version', async ($, 
   })
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
   on('ui.status', async (_$, e) => (seen.push(e.text), { value: undefined }))
-  await $.session.start({ cwd: '/tmp', surface: 'terminal', isInteractive: true })
+  await $.session.start({ cwd: '/tmp', surface, isInteractive: true })
 
   expect(seen).toEqual([undefined])
   expect(commands).toEqual(['muslim', 'thikr', 'athkar', 'salah', 'quran'])
@@ -95,6 +98,7 @@ for (const color of ['orange', 'green', 'yellow', 'blue']) {
   test(`/muslim color reads and writes ${color}`, { options: { color } }, async ($, on) => {
     mock.store(on)
     on('session.surface', async () => ({ value: 'desktop' }))
+    on('session.surfaces', async () => ({ value: ['terminal'] }))
     const writes: unknown[] = []
     on('config.set', async (_$, e) => (writes.push(e), { value: e.value }))
     expect((await $.command.run(muslim('color'))).text).toContain(`Color ${color}.`)
@@ -130,4 +134,60 @@ test('/athkar color redirects without writing', async ($, on) => {
   }
   expect(writes).toEqual([])
   expect((await $.command.run(muslim('help athkar'))).text).not.toContain('/athkar color')
+})
+
+for(const surfaces of [['desktop'],['desktop','mobile'],['terminal'],['terminal','desktop'],['mobile'],[]] as const) test(`/muslim uses the full surface list ${JSON.stringify(surfaces)}`,async($,on)=>{
+  mock.store(on)
+  const opened:string[]=[]
+  on('session.surfaces',async()=>({value:surfaces}))
+  mock.env(on,{})
+  // Deliberately contradict the list: the deprecated single surface must not decide.
+  on('session.surface',async()=>({value:surfaces.some(s=>s==='desktop')?'terminal':'desktop'}))
+  on('ui.open',async(_$,e)=>{opened.push(e.id);return {value:{isPlaced:true}}})
+  const result=await $.command.run(muslim('   '))
+  if(surfaces.some(s=>s==='desktop')&&!surfaces.some(s=>s==='terminal')){
+    expect(result.text).toBe('Muslim pane opened.')
+    expect(opened).toEqual(['muslim'])
+  }else{
+    expect(result.text).toContain('### Features\n\n| Feature | Description | State |')
+    expect(result.text).toContain('### Shared\n\n| Setting | Description | State |')
+    expect(opened).toEqual([])
+  }
+})
+
+test('desktop /muslim falls back to the unchanged table when opening is rejected',async($,on)=>{
+  mock.store(on)
+  const opens:string[]=[]
+  on('session.surfaces',async()=>({value:['desktop']}))
+  on('session.surface',async()=>({value:'desktop'}))
+  on('ui.open',async(_$,e)=>{opens.push(e.id);return {deny:'unavailable'}})
+  const result=await $.command.run(muslim(''))
+  expect(result.text).toContain('### Features\n\n| Feature | Description | State |')
+  expect(result.text).toContain('| Terminal Arabic | How Arabic shows in this terminal | terminal only |')
+  expect(opens).toEqual(['muslim'])
+})
+
+
+test('terminal /muslim retains its complete version, feature and shared table byte for byte',async($,on)=>{
+  mock.env(on,{})
+  mock.store(on)
+  on('session.surfaces',async()=>({value:['terminal']}))
+  on('session.surface',async()=>({value:'terminal'}))
+  on('settings.read',async()=>({value:{extraKnownMarketplaces:{'claude-muslim':{autoUpdate:true}}}}))
+  expect((await $.command.run(muslim(''))).text).toBe([
+    `**Muslim** · v${VERSION}`,
+    "To change a setting or see every option: `/muslim help`; each feature's: `/thikr help` · `/athkar help` · `/salah help` · `/quran help`",
+    '', '### Features', '',
+    '| Feature | Description | State |', '| --- | --- | --- |',
+    "| Thikr | Tasbih in Claude's working line | on |",
+    '| Athkar | Morning, evening and after-salah athkar above the prompt | on |',
+    '| Salah | Pray times and the next pray under the prompt | not set up |',
+    '| Quran | Desktop recitation player; the selected recording | Muhammad Siddiq Al-Minshawi — murattal |',
+    '', '### Shared', '',
+    '| Setting | Description | State |', '| --- | --- | --- |',
+    '| Color | The main color in every feature | orange |',
+    '| Tashkeel | Arabic diacritics on desktop; the terminal never shows them | on |',
+    '| Terminal Arabic | How Arabic shows in this terminal | plain (default, not chosen yet) for unknown |',
+    '| Auto-update | Claude Code updates muslim in the background | on |',
+  ].join('\n'))
 })

@@ -3,6 +3,10 @@
 import { readOptions, writeAdjust, type Options } from '../../config.ts'
 import type { PaneCopied, PaneOptimistic, PaneSettings } from '../../../types/index.d.ts'
 import type { FeatureIconKey } from '../../shared/icon/index.ts'
+import { VERSION } from '../../constants.ts'
+import { END_OF_TURN } from '../../shared/thikr/end.ts'
+import { withTashkeel } from '../../shared/arabic/visual.ts'
+import type { PanelAutoUpdate } from '../../shared/panel/signal.ts'
 import { arabicDigits } from '../../shared/pray/line.ts'
 
 export type SettingsState = PaneSettings
@@ -32,7 +36,7 @@ export const loadSettings = (saved: unknown): SettingsState => {
 }
 export type SettingsOptions = Omit<Options, 'salahPlace'> & { salahPlace: NonNullable<Options['salahPlace']> | null }
 export const settingsOptions = (o: Options): SettingsOptions => ({ ...o, salahPlace: o.salahPlace ?? null })
-export const SWITCH_FIELDS = ['tashkeel', 'thikr', 'athkar', 'salahAthan'] as const
+export const SWITCH_FIELDS = ['tashkeel', 'thikr', 'athkar', 'salahAthan', 'paneButton', 'thikrEnd'] as const
 export const isSwitchField = (field: keyof Options): field is keyof PaneOptimistic => SWITCH_FIELDS.some(f => f === field)
 // Retain only pending values; called on load, outside drawing (state writes
 // are forbidden during ui.render). Also filters malformed session data.
@@ -41,7 +45,7 @@ export const pendingSwitches = (options: Options, saved: PaneOptimistic = {}): P
 )
 export const optimisticOptions = (options: Options, saved: PaneOptimistic = {}): SettingsOptions => ({ ...settingsOptions(options), ...pendingSwitches(options, saved) })
 // `copied` is the command whose copy button confirmed within the last COPIED_MS, else null.
-export type SettingsModel = { state: SettingsState; options: SettingsOptions; terminalMode: string; copied: string | null }
+export type SettingsModel = { state: SettingsState; options: SettingsOptions; terminalMode: string; copied: string | null; autoUpdate?: PanelAutoUpdate; pendingAutoUpdate?: boolean | null }
 export const COPIED_LABEL = 'تم النسخ ✓'
 export const COPIED_MS = 2000
 export const isPaneCopied = (v: unknown): v is PaneCopied => !!v && typeof v === 'object' && typeof (v as PaneCopied).command === 'string' && Number.isFinite((v as PaneCopied).until)
@@ -54,8 +58,10 @@ export type Effect =
   | { kind: 'face'; face: SettingsState['face'] }
   | { kind: 'page'; page: number }
   | { kind: 'copy'; command: string }
-export type SettingControl = { id: SettingsAct; label: string; width: number; style: 'pill' | 'switch' | 'value' | 'step' | 'swatch'; selected?: boolean; disabled?: boolean; done?: boolean; effect: Effect }
-export type SettingRow = { label: string; hint: string; height: number; controls: SettingControl[]; extra?: { label: string; controls: SettingControl[] } }
+  | { kind: 'command'; args: 'update' | 'feedback' }
+  | { kind: 'autoupdate'; value: boolean }
+export type SettingControl = { id: SettingsAct; label: string; width: number; style: 'pill' | 'switch' | 'value' | 'inline' | 'step' | 'swatch'; selected?: boolean; disabled?: boolean; done?: boolean; effect: Effect }
+export type SettingRow = { kind?: 'divider'; label: string; hint: string; hintLtr?: boolean; hintNote?: string; hintSecondLine?: string; height: number; controls: SettingControl[]; extra?: { label: string; controls: SettingControl[] } }
 export const SETTINGS_TOP = 56
 // One-line labels: 4px padding, 20px icon, 4px gap, 14px label, 4px padding, inside the 5px border+padding.
 export const TABS_H = 60
@@ -74,6 +80,9 @@ export const ROW_GAP = 28
 // A row's height ends with the gap after its last shown line; the extra line (a stepper) counts only while shown.
 export const ROW_H = CONTROL_TOP + CONTROL_H + ROW_GAP // 108
 export const SWITCH_ROW_H = HINT_TOP + HINT_H + ROW_GAP // 70
+export const TWO_LINE_SWITCH_ROW_H = SWITCH_ROW_H + HINT_H // 86; retains the usual gap after the second line.
+// The preceding row already leaves ROW_GAP above the 18px rosette; this row leaves the same below it.
+export const DIVIDER_H = 18 + ROW_GAP // 46
 export const EXTRA_TOP = CONTROL_TOP + CONTROL_H + 10
 export const EXTRA_ROW_H = EXTRA_TOP + CONTROL_H + ROW_GAP // 146
 export const ADJUST_TOP = 42
@@ -89,7 +98,7 @@ export const LIST_H = 548
 // Constants, per tab, for the tallest row set: «عرض الصلاة» and the speed row count their stepper line (EXTRA_ROW_H) here.
 export const MAIN_HEIGHTS = {
   prayer: bodyH(EXTRA_ROW_H, SWITCH_ROW_H, ROW_H, ROW_H, ROW_H), athkar: bodyH(SWITCH_ROW_H, ROW_H),
-  thikr: bodyH(SWITCH_ROW_H, ROW_H, EXTRA_ROW_H), general: bodyH(SWITCH_ROW_H, SWITCH_ROW_H, ROW_H),
+  thikr: bodyH(SWITCH_ROW_H, ROW_H, EXTRA_ROW_H, TWO_LINE_SWITCH_ROW_H), general: bodyH(SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H, ROW_H, DIVIDER_H, SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H),
 } as const
 export const FACE_HEIGHTS = { methods: LIST_H, adjust: ADJUST_NOTE_TOP + 50, city: 310 } as const
 // With the options, a tab is only as tall as its visible rows: a hidden stepper line takes no space,
@@ -98,7 +107,7 @@ type StepperOptions = Pick<SettingsOptions, 'salahShow' | 'thikrSpeed'>
 export const mainHeight = (c: SettingsState['category'], o?: StepperOptions): number =>
   !o ? MAIN_HEIGHTS[c]
   : c === 'prayer' ? bodyH(typeof o.salahShow === 'number' ? EXTRA_ROW_H : ROW_H, SWITCH_ROW_H, ROW_H, ROW_H, ROW_H)
-  : c === 'thikr' ? bodyH(SWITCH_ROW_H, ROW_H, o.thikrSpeed === 'auto' ? ROW_H : EXTRA_ROW_H)
+  : c === 'thikr' ? bodyH(SWITCH_ROW_H, ROW_H, o.thikrSpeed === 'auto' ? ROW_H : EXTRA_ROW_H, TWO_LINE_SWITCH_ROW_H)
   : MAIN_HEIGHTS[c]
 export const settingsBodyHeight = (s: SettingsState, o?: StepperOptions): number => !s.open ? 0 : s.face === 'main' ? mainHeight(s.category, o) : FACE_HEIGHTS[s.face]
 export const settingsHeight = (s: SettingsState, o?: StepperOptions): number => s.open ? SETTINGS_BODY_TOP + settingsBodyHeight(s, o) + 12 : SETTINGS_TOP
@@ -120,11 +129,11 @@ export const METHOD_CHOICES = [
 const PRAYERS = [['fajr','الفجر'],['sunrise','الشروق'],['dhuhr','الظهر'],['asr','العصر'],['maghrib','المغرب'],['isha','العشاء']] as const
 const config = (field: keyof Options, value: string | boolean): Effect => ({ kind: 'config', field, value })
 const control = (id: string, label: string, effect: Effect, style: SettingControl['style'] = 'pill', width = 42, selected = false, disabled = false): SettingControl => ({ id: `settings:${id}`, label, effect, style, width, selected, disabled })
-const toggle = (o: SettingsOptions, field: 'thikr' | 'tashkeel' | 'athkar' | 'salahAthan') => [control(field, o[field] ? 'on' : 'off', config(field, !o[field]), 'switch', 38, o[field])]
+const toggle = (o: SettingsOptions, field: keyof PaneOptimistic) => [control(field, o[field] ? 'on' : 'off', config(field, !o[field]), 'switch', 38, o[field])]
 const pills = (field: keyof Options, selected: string, values: readonly (readonly [string, string])[]) => values.map(([v,l]) => control(`${field}:${v}`, l, config(field, v), 'pill', l.length > 10 ? 108 : 46, selected === v))
 const face = (id: SettingsState['face'], label: string) => [control(id, label, { kind: 'face', face: id }, 'value', 142)]
-// Heights include the ROW_GAP after each row. A switch or the color dots share the label line.
-export const isInline = (c: SettingControl | undefined): boolean => c?.style === 'switch' || c?.style === 'swatch'
+// Heights include the ROW_GAP after each row. Switches, color dots and compact buttons share the label line.
+export const isInline = (c: SettingControl | undefined): boolean => c?.style === 'switch' || c?.style === 'swatch' || c?.style === 'inline'
 const row = (label: string, controls: SettingControl[], hint: string, extra?: SettingRow['extra']): SettingRow => ({ label, controls, hint, height: extra?.controls.length ? EXTRA_ROW_H : isInline(controls[0]) ? SWITCH_ROW_H : ROW_H, ...(extra ? { extra } : {}) })
 // A copy button: its label is the command (or a note); for COPIED_MS after a copy it confirms instead.
 const copyControl = (m: SettingsModel, id: string, label: string, command: string, width: number): SettingControl => {
@@ -138,6 +147,7 @@ const step = (id: string, value: number, min: number, max: number, effect: (n: n
 ]
 export const settingsRows = (m: SettingsModel): SettingRow[] => {
   const o = m.options, s = m.state
+  const autoUpdateOn = m.pendingAutoUpdate ?? (m.autoUpdate === 'on')
   switch (s.category) {
     case 'prayer': return [
       row('عرض الصلاة', pills('salahShow', typeof o.salahShow === 'number' ? '20' : o.salahShow, [['always','دائمًا'],['20','قبل'],['off','إيقاف']]).map(c => c.label === 'قبل' ? { ...c, effect: config('salahShow', String(typeof o.salahShow === 'number' ? o.salahShow : 20)) } : c), 'ظهور الصلاة أسفل Claude · قبلها بـ٢٠ دقيقة', { label: typeof o.salahShow === 'number' ? 'قبل الصلاة بدقائق' : '', controls: typeof o.salahShow === 'number' ? step('salahShow', o.salahShow, 1, 720, n => config('salahShow', String(n))) : [] }),
@@ -151,11 +161,17 @@ export const settingsRows = (m: SettingsModel): SettingRow[] => {
       row('الذكر',toggle(o,'thikr'),'عبارات في Spinner (سطر العمل) في Claude Code'),
       row('المحتوى',pills('thikrMode',o.thikrMode,[['all','الكل'],['salawat','الصلاة على النبي']]),'كل الأذكار أو صلاة على النبي في كل رد'),
       row('السرعة',pills('thikrSpeed',o.thikrSpeed === 'auto' ? 'auto' : '3',[['auto','تلقائي'],['3','ثوانٍ']]).map(c => c.label === 'ثوانٍ' ? {...c,effect:config('thikrSpeed',String(o.thikrSpeed === 'auto' ? 3 : o.thikrSpeed))} : c),'تلقائي: ثانية + نصف ثانية لكل كلمة',{label:o.thikrSpeed === 'auto' ? '' : 'ثوانٍ لكل عبارة',controls:o.thikrSpeed === 'auto' ? [] : step('thikrSpeed',o.thikrSpeed,1,60,n => config('thikrSpeed',String(n)))}),
+      {...row('نهاية الرد',toggle(o,'thikrEnd'),`«${withTashkeel(END_OF_TURN,o.tashkeel)}» في آخر الرد`),hintSecondLine:'بدل كلمة Claude مثل Baked · في الترمينال فقط',height:TWO_LINE_SWITCH_ROW_H},
     ]
     case 'general': return [
+      row('زر مسلم',toggle(o,'paneButton'),'في الشريط تحت خانة الكتابة · عند الإيقاف افتح اللوحة بـ /muslim'),
       row('اللون الرئيسي',(['orange','green','yellow','blue'] as const).map(v => control(`color:${v}`,v,config('color',v),'swatch',23,o.color === v)),'لون واحد لكل الأجزاء'),
       row('التشكيل',toggle(o,'tashkeel'),'على سطح المكتب فقط، الترمينال يحذف التشكيل'),
       row('العربية في Terminal',[copyControl(m,'terminal','/muslim terminal-arabic','/muslim terminal-arabic',244)],'لكل ترمينال: شغّل هذا الأمر في الترمينال'),
+      {kind:'divider',label:'',hint:'',height:DIVIDER_H,controls:[]},
+      {...row('الإصدار',[control('update','تحديث',{kind:'command',args:'update'},'inline',64,false,autoUpdateOn)],`v${VERSION}`),hintLtr:true,hintNote:autoUpdateOn?'يتحدّث تلقائيًا':undefined},
+      row('التحديث التلقائي',[control('autoupdate','التحديث التلقائي',{kind:'autoupdate',value:!autoUpdateOn},'switch',38,autoUpdateOn,!m.autoUpdate || m.autoUpdate === 'missing' || m.autoUpdate === 'unknown')],'يحدّث Claude Code إضافة مسلم في الخلفية'),
+      row('إرسال ملاحظة',[control('feedback','إرسال ملاحظة',{kind:'command',args:'feedback'},'inline',88)],'مشكلة أو اقتراح أو تصحيح · لا يُرسل شيء إلا بموافقتك'),
     ]
     default: return []
   }

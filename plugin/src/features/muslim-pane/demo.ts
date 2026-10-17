@@ -14,7 +14,7 @@ export const DEMO_ATHKAR_TOTAL = 6
 export const DEMO_DURATION_MS = 10_000
 
 export const demoReply = (): string => '**Muslim pane demo:** all cards unfold, play and fold back (about 10 s); nothing is saved.'
-export const demoTerminalReply = (): string => 'The Muslim pane demo is desktop only. Run /muslim pane demo in the Claude desktop app.'
+export const demoTerminalReply = (): string => 'The Muslim pane demo is desktop only. Run /muslim demo pane in the Claude desktop app.'
 
 // 05:00 on a fixed day; the prays are on the same fixed day.
 const DAY = Date.UTC(2000, 0, 1)
@@ -31,13 +31,14 @@ export const demoNow = (elapsed: number): number => prays[0]!.at - 48 * MIN + Ma
 export const demoSalah = (): PanelSalah => ({ city: 'القاهرة', prays, next: prays[0]!, isAthan: true })
 
 const clockText = (ms: number): string => `${Math.floor(ms / 60_000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`
-const RECITER_START_MS = 192_000
-const RECITER_TOTAL_MS = 3_750_000
+const RECITER_START_MS = 12_000
+// Minshawi's murattal Al-Fatiha is about 52 s.
+const RECITER_TOTAL_MS = 52_000
 // The Quran card: playing from the start, the progress and time advancing with the tour. `avatar` is drawn by the caller.
 export const demoQuran = (elapsed: number, avatar: string): PanelQuran => {
   const at = RECITER_START_MS + Math.max(0, elapsed)
   return {
-    reciter: 'محمد صديق المنشاوي · مرتل', surah: 'سورة الكهف', part: '', segmented: false,
+    reciter: 'محمد صديق المنشاوي · مرتل', surah: 'سورة الفاتحة', part: '', segmented: false,
     status: 'يتلى الآن', isLive: true, elapsed: clockText(at), total: clockText(RECITER_TOTAL_MS), progress: at / RECITER_TOTAL_MS,
     isPlaying: true, canPrev: true, canNext: true, repeat: 'off', avatar,
   }

@@ -152,7 +152,7 @@ for (const theme of ['light', 'dark'] as const) {
       expect(svg).not.toContain('--card')
       expect(svg).toContain('class="dbtn primary" role="button" aria-label="أكمل')
       expect(svg).toContain('.dbtn.hot{background:var(--hover);color:var(--text)}')
-      expect(svg).toMatch(/\.sc\.pill,\.sc\.value\{background:transparent;box-shadow:inset 0 0 0 1px var\(--line\)/)
+      expect(svg).toMatch(/\.sc\.pill,\.sc\.value,\.sc\.inline\{background:transparent;box-shadow:inset 0 0 0 1px var\(--line\)/)
       expect(svg).toContain('class="sc value command hot"')
       expect(svg).toContain('<span class="value-text">/muslim terminal-arabic</span>')
       expect(svg).toMatch(/\.settings-tabs\{[^}]*border:1px solid transparent;border-bottom-color:var\(--line\);[^}]*background:transparent;overflow:visible/)
@@ -243,13 +243,13 @@ test('settings uses the approved gear and exact four tab labels',()=>{
 
 test('the heading shows the full avatar beside مسلم and /muslim at the left edge', () => {
   const svg = paneSvg(paneModel(feeds, NOW, 240, 'orange'))
-  expect(svg).toContain('<div class="pane-top"><svg width="38.4" height="36"')
-  expect(svg).toContain('.pane-top{position:absolute;right:20px;top:0px;height:36px;display:flex;align-items:center;')
-  expect(svg).toContain('.pane-command{position:absolute;left:20px;top:9px;line-height:18px;')
+  expect(svg).toContain('<div class="pane-top"><svg width="55.5" height="52"')
+  expect(svg).toContain('.pane-top{position:absolute;right:20px;top:0px;height:52px;display:flex;align-items:center;')
+  expect(svg).toContain('.pane-command{position:absolute;left:20px;top:17px;line-height:18px;')
   expect(svg).toContain('image-rendering:pixelated')
   expect(svg).toContain('<span>مُسلِم</span>')
   expect(svg).toContain('<div class="pane-command" dir="ltr"><bdi dir="ltr">/muslim</bdi></div>')
-  expect(svg).toContain('<svg width="38.4" height="36" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 30" shape-rendering="crispEdges">')
+  expect(svg).toContain('<svg width="55.5" height="52" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 30" shape-rendering="crispEdges">')
 })
 
 const sheet = (list: 'reciter' | 'surah' | 'segment', count = 20) => {

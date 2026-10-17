@@ -2,7 +2,7 @@
 
 The thikr phrases shown in the work line (`/thikr`): 26 phrases in five groups (starting 4, thinking 8, writing 2, long 4, salawat 5) and three single phrases (call to pray, end of turn, usage limit). The code is the source of truth for what is displayed; this file must stay identical to it (see the rule in CLAUDE.md). Arabic is authored with tashkeel and is never generated or reworded. Each group is played in the order listed, one phrase at a time; the code records no counts or hadith references for them, so only Quran citations are given.
 
-Sources in the code: `plugin/src/features/thikr/phrases.ts`.
+Sources in the code: `plugin/src/features/thikr/phrases.ts`, with the end-of-turn phrase in `plugin/src/shared/thikr/end.ts` (also used verbatim in the pane’s settings example).
 
 ## STARTING: opens a turn
 

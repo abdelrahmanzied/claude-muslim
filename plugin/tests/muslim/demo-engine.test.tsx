@@ -175,7 +175,7 @@ for (const submit of ['drop', 'throw'] as const) {
 
 test('extra demo arguments show usage and start nothing', async ($, on) => {
   const { clock, written } = fixture(on)
-  expect((await $.command.run(run('demo sky'))).text).toBe('Usage: /muslim demo')
+  expect((await $.command.run(run('demo sky'))).text).toBe('Usage: /muslim demo [pane]')
   await clock.advance(90_000)
   expect(written).toEqual([])
 })

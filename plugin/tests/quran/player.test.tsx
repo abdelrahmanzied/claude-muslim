@@ -725,6 +725,7 @@ test('session start discards stale playing state and does not resume or start a 
 
 test('/muslim Quran row uses this terminal mode and remembered recording', async ($, on) => {
   setup(on, { 'quran.reciter': '10:21', arabicTerminals: { WarpTerminal: 'joined' } }, {}, 'terminal')
+  on('session.surfaces', async () => ({value:['terminal']}))
   const ran = await $.command.run({ ...run(''), command: 'muslim' })
   expect(ran.text).toContain(terminalArabic('terminal', 'joined', fixtureCatalog.reciters[1]!.label))
 })
