@@ -1,22 +1,36 @@
-name: Feature request
-description: Ask for something new.
+name: Improvement
+description: Improve something that already exists.
 labels:
   - enhancement
-title: "[feature] "
+title: "[improvement] "
 body:
   - type: textarea
-    id: want
+    id: improve
     attributes:
-      label: What would you like?
+      label: What should be improved?
     validations:
       required: true
   - type: textarea
     id: why
     attributes:
-      label: Why do you want it?
+      label: Why?
       description: What are you trying to do?
     validations:
       required: false
+  - type: dropdown
+    id: feature
+    attributes:
+      label: Feature
+      options:
+        - thikr
+        - athkar
+        - salah
+        - quran
+        - Muslim pane
+        - /muslim commands and settings
+        - other or new
+    validations:
+      required: true
   - type: input
     id: version
     attributes:

@@ -2,7 +2,15 @@
 
 ## Unreleased
 
-- Docs: CONTRIBUTING.md now says how to start (an issue first for anything big), the design and religious-content rules, commit types (including `content`), a pull request checklist, how versions work and the license of contributions. Contributors commit with their own email.
+- Fix: athkar after salah, started from the athan card or offered by itself, now play the same finished celebration as morning and evening (the finale, then the done row) instead of the reader disappearing at the last thikr. Morning or evening come back once the band rests. (#21)
+
+- Issues and `/muslim feedback` about the Muslim pane get the new `pane` label instead of `muslim`. CLAUDE.md says which labels every pull request gets.
+
+- Issue labels by kind, feature and surface: the forms are now Bug report, Improvement (`enhancement`, improve something that exists), New feature (`idea`), Content correction and General feedback (`feature.yml` is `improvement.yml`), and each asks which feature it is about (thikr, athkar, salah, quran, Muslim pane, /muslim commands and settings, other or new). A workflow, `.github/workflows/issue-labels.yml`, adds the feature and surface labels from the form's answers (add only). `/muslim feedback` asks the kind and the feature, and the final send decision (Send, Change it, Don't send), as multiple-choice questions, and passes the kind, feature and surface labels to `gh issue create`; the fallback link includes `feature`.
+
+- Dev: CLAUDE.md says to link each Claude session to the worktree it works in (`~/.claude/dev-mods/<session-id>/muslim` → `<worktree>/plugin`) so the mod is tested live with hot reload.
+
+- Docs: CONTRIBUTING.md is short now: open an issue for a problem or idea, comment and wait to be assigned before working on any issue (no unassigned pull requests, even for small fixes), the religious-text, design, commit and pull request rules, setup, running your copy, testing a real install, and how versions work.
 
 - Dev: the pre-push hook skips a push that only deletes remote branches, and says to run `npm install` when TypeScript is missing.
 

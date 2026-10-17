@@ -2,7 +2,8 @@ import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 import type { Day, SalahLast } from '../../types'
 import { athanFrame, CARD_MS, FOLD_MS, startArea, START_LABEL } from '../../src/features/salah/card.ts'
-import { dayOf, emptyDay, listFor, TITLE } from '../../src/features/athkar/logic.ts'
+import { ADVANCE_MS, dayOf, emptyDay, listFor, TITLE } from '../../src/features/athkar/logic.ts'
+import { IDLE_MS } from '../../src/shared/card/card.ts'
 import { timesOn, NO_ADJUST } from '../../src/features/salah/times.ts'
 import { stripTashkeel } from '../../src/shared/arabic/visual.ts'
 import { accentHex } from '../../src/shared/color/index.ts'
@@ -76,6 +77,36 @@ for (const folded of [false, true]) {
     await ui.unmount()
   })
 }
+
+test('desktop: finishing after-salah started from the athan card plays the finale, then hands back to morning', { options: MUNICH, timeoutMs: 15000 }, async ($, on) => {
+  const { clock, held } = setup(on, TIMES.fajr + 5000, 'desktop')
+  const ui = await $.ui.mount(band('desktop'))
+  await clock.advance(0)
+  const card = (await ui.find({ type: 'Client', key: 'salah-athan' }))?.props.props as Parameters<typeof athanFrame>[0]
+  const area = startArea(athanFrame(card, 100))
+  const x = Math.floor(((area.x0 + area.x1) / 2 + card.card.ch) / card.card.ch)
+  const y = Math.floor(((area.y0 + area.y1) / 2 + card.card.lh / 2) / card.card.lh)
+  await ui.resize({ columns: 100, rows: 5, in: 'salah-athan' })
+  await ui.pointer({ type: 'down', button: 'left', x, y, in: 'salah-athan' })
+  expect(held.request).toEqual({ pray: 'fajr', at: TIMES.fajr })
+  // Every thikr counted but the last count of the last one.
+  const list = listFor('afterSalah', held.day.afterSalah)
+  const counts = Object.fromEntries(list.map(t => [t.id, t.times]))
+  counts[list[list.length - 1]!.id]! -= 1
+  held.day = { ...held.day, afterSalah: { ...held.day.afterSalah, index: list.length - 1, counts } }
+  await ui.key({ key: 'space', in: 'athkar' })
+  await clock.advance(ADVANCE_MS)
+  expect(held.day.afterSalah.isDone).toBe(true)
+  const model = async () => (await ui.find({ type: 'Client', key: 'athkar' }))?.props.props as { period: string; phase: string; finaleMs?: number }
+  expect(await model()).toMatchObject({ period: 'afterSalah', phase: 'done' })
+  const picture = String((await ui.find({ in: 'athkar', type: 'Svg' }))?.props.source)
+  expect(picture).toContain('class="rise-msg"')
+  expect(picture).toContain('class="fall"')
+  // Once the finale has played and the band rests, the clock's period comes back.
+  await clock.advance(IDLE_MS)
+  expect(await model()).toMatchObject({ period: 'morning' })
+  await ui.unmount()
+})
 
 for (const close of [false, true]) {
   test(`desktop ${close ? '× waits for' : 'untouched card hands off at'} prayer + duration; after-salah stays until done or next prayer`, { options: MUNICH, timeoutMs: 15000 }, async ($, on) => {

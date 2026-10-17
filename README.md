@@ -43,7 +43,7 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 
 ## Feedback
 
-`/muslim feedback` helps you report a bug, ask for a feature, share an idea, correct the text of the Quran, athkar or thikr, or just send feedback. Claude drafts the GitHub issue, shows it to you and sends it only after you say yes.
+`/muslim feedback` helps you report a bug, improve something that exists, ask for a new feature, correct the text of the Quran, athkar or thikr, or just send feedback. Claude drafts the GitHub issue, asks you to pick the kind and the feature, shows the draft and sends it only after you choose Send.
 
 ## Update
 

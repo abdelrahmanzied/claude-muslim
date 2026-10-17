@@ -184,7 +184,15 @@ export const setAt = (now: Date, day: Day, last: SalahLast | null, chosen?: Athk
     ? 'afterSalah' : period
 }
 
-const isNumbers = (value: unknown): value is Record<string, number> =>
+// An after-salah slot finished in front of the person, held on the band.
+export type FinishedHold = { pray: Fard | null; at: number | null; until: number }
+
+// The finished slot keeps the band through its finale (until `until`) and its
+// done row while the band is lit; once it rests, morning or evening come back.
+export const holdsFinished = (hold: FinishedHold | undefined, slot: AfterSalahReading, now: number, isActive: boolean) =>
+  !!hold && slot.isDone && slot.at === hold.at && slot.pray === hold.pray && (now < hold.until || isActive)
+
+const isNumbers =(value: unknown): value is Record<string, number> =>
   !!value && typeof value === 'object' && Object.values(value).every(n => typeof n === 'number')
 
 export const listFor = (period: AthkarSet, reading?: Reading): readonly ReaderThikr[] =>

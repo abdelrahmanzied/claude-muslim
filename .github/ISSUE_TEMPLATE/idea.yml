@@ -1,14 +1,35 @@
-name: Idea
-description: A rough idea you want to share.
+name: New feature
+description: Ask for a new feature.
 labels:
   - idea
-title: "[idea] "
+title: "[new feature] "
 body:
   - type: textarea
-    id: idea
+    id: feature_idea
     attributes:
-      label: Your idea
+      label: What is the new feature?
       description: Rough is fine.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why?
+      description: What are you trying to do?
+    validations:
+      required: false
+  - type: dropdown
+    id: feature
+    attributes:
+      label: Feature
+      options:
+        - thikr
+        - athkar
+        - salah
+        - quran
+        - Muslim pane
+        - /muslim commands and settings
+        - other or new
     validations:
       required: true
   - type: input
