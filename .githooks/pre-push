@@ -1,8 +1,22 @@
 #!/bin/sh
 # Runs the gates before a push. Enable once per clone:
 #   git config core.hooksPath .githooks
+
+# Git passes one line per ref: <local ref> <local sha> <remote ref> <remote sha>.
+# A push that only deletes remote branches sends nothing to check.
+zero=0000000000000000000000000000000000000000
+sends=no
+while read -r _ local_sha _ _; do
+  [ "$local_sha" != "$zero" ] && sends=yes
+done
+[ "$sends" = no ] && exit 0
+
 if [ ! -d plugin/.claude-plugin/types ]; then
   echo "pre-push: plugin/.claude-plugin/types is missing; load the mod in Claude Code once to write it." >&2
+  exit 1
+fi
+if [ ! -d node_modules/typescript ]; then
+  echo "pre-push: TypeScript is not installed; run npm install once." >&2
   exit 1
 fi
 npm run check

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Dev: the pre-push hook skips a push that only deletes remote branches, and says to run `npm install` when TypeScript is missing.
+
 - `/muslim feedback [text]` starts a Claude turn that asks what kind it is (bug, feature request, idea, content correction or feedback), drafts the GitHub issue in the matching form's shape with the muslim version, surface and OS filled in, shows the whole draft and files it with `gh issue create` only after your explicit yes. Without `gh`, or when it is not signed in, it gives a link to the issue form with the fields filled in instead. Nothing is sent without the yes. Listed in `/muslim help`.
 
 - GitHub issue forms in `.github/ISSUE_TEMPLATE/`: bug report, feature request, idea, content correction (Quran, athkar, thikr, translations) and general feedback, each asking for the muslim version, the surface and the OS; blank issues are off. They use the labels `bug`, `enhancement`, `idea`, `content` and `feedback`.
