@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix: athkar timers (the auto-advance after the last count and others) no longer lose the saved place's prayer-day bounds, so a reading is no longer reset between Fajr and 05:00 or when the computer's time zone differs from the city's.
+
 - Dev: CLAUDE.md says every change, the maintainer's own included, goes through a pull request; nothing is pushed straight to main.
 
 - Dev: a pull request template asks for the issue it closes, what changed, and a checklist (npm run check, a CHANGELOG note, docs, the version unchanged, labels).

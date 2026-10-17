@@ -87,7 +87,6 @@ declare module 'claude-code' {
       salahReview: SalahAdjust | null
       salahWindow: SalahWindow | null
       salahLast: SalahLast | null
-      salahAthkarTimes: SalahAthkarTimes | null
       // Desktop athan button requests this prayer's reader; salah writes, athkar reads.
       salahAfterSalahStart: SalahLast | null
       // The pray time (ms since epoch) whose minaret has played, so it plays once.
