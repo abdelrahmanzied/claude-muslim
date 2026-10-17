@@ -114,4 +114,8 @@ Prayer bounds reuse a pure daily calculation cache, refreshed on the first read 
 
 ## Muslim pane
 
-The [Muslim pane](../muslim-pane/muslim-pane.md) shows this feature on its own card. This feature connects what that card shows (and what its buttons ask of it) through `src/shared/panel/signal.ts`; see the pane spec for the table.
+The [Muslim pane](../muslim-pane/muslim-pane.md) card shows the current set and lets the person pick morning, evening or after-salah from its title menu; choosing a set shares the slash command's internal selection function, including manual hold and unhide rules. Its row buttons act on the shown set: «ابدأ» (no counts) or «أكمل» (partly counted) opens the reader, «✓ أتممتُها» finishes and «إعادة» resets. Look and sizes: [pane design](../muslim-pane/muslim-pane-design.md).
+
+Only `src/shared/panel/signal.ts` connects the features: `PanelAthkar.set` uses the public command spelling (`morning|evening|after-salah`), `canUndo` reports reset undo availability, and athkar validates `athkar-set` values. `athkar-reset` uses the same reset function as `/athkar <set> reset`: empty counts, clear done/hidden, keep after-salah prayer identity, return to the folded cover. The pane alone offers an 8-second reset undo (`athkar-undo`); a module-local copied snapshot restores the counts, index, done and hidden state. A day change, any new set choice, another reset, prayer-slot replacement, expiry or reload drops the snapshot. Nothing new is persisted with the reading and no slash command is added. The pane owns only menu visibility (`paneAthkarMenu`).
+
+Athkar reconnects its feed and actions during band drawing and Muslim-pane render/input, so the card works before a band has drawn. The terminal fallback keeps its existing line shape; the band and authored religious text are unchanged.

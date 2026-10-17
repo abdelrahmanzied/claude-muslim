@@ -21,7 +21,7 @@ test('a connected reader and action are used, and a failing one never throws', a
   expect(readSalah(1)).toBeNull()
   connectQuran(async () => { throw new Error('x') })
   expect(await readQuran()).toBeNull()
-  connectAthkar(async () => ({ title: 't', done: 1, total: 2, progress: 0.5, isDone: false }))
+  connectAthkar(async () => ({ set: 'morning', canUndo: false, title: 't', done: 1, total: 2, progress: 0.5, isDone: false }))
   expect((await readAthkar())?.done).toBe(1)
   resetPanel()
 })
@@ -40,4 +40,18 @@ test('picks carry a value to the owner; options are read by list and query and n
   expect(await readQuranOptions('surah', '')).toEqual([])
   resetPanel()
   expect(await readQuranOptions('surah', '')).toEqual([])
+})
+
+test('athkar set/reset/undo actions and the shown set/undo flag cross only the signal bus', async () => {
+  resetPanel()
+  const calls: string[] = []
+  for (const action of ['athkar-set', 'athkar-reset', 'athkar-undo'] as const) connectPanelAction(action, async value => { calls.push(`${action}:${value ?? ''}`) })
+  connectAthkar(async () => ({ set: 'after-salah', canUndo: true, title: 'أذكار بعد الصلاة', done: 0, total: 10, progress: 0, isDone: false }))
+  expect(await runPanelAction('athkar-set', 'evening')).toBe(true)
+  expect(await runPanelAction('athkar-reset')).toBe(true)
+  expect(await runPanelAction('athkar-undo')).toBe(true)
+  expect(calls).toEqual(['athkar-set:evening', 'athkar-reset:', 'athkar-undo:'])
+  expect(await readAthkar()).toMatchObject({ set: 'after-salah', canUndo: true })
+  resetPanel()
+  expect(await runPanelAction('athkar-reset')).toBe(false)
 })

@@ -71,6 +71,12 @@ async function arabicMode($: EngineInterface, surface: string): Promise<ArabicMo
   return cached?.terminalId === id ? cached.mode : isArabicMode(saved) ? saved : defaultArabicMode(id)
 }
 
+const athkarMenuRef = { plugin: 'muslim', key: 'paneAthkarMenu' } as const
+async function writeAthkarMenu($: EngineInterface, open: boolean): Promise<void> {
+  await $.state.set(athkarMenuRef, open)
+  $.ui.invalidate('ui.render')
+}
+
 const pickerRef = { plugin: 'muslim', key: 'panePicker' } as const
 async function readPicker($: EngineInterface): Promise<PanePicker | null> {
   const saved = (await $.state.get(pickerRef)).value
@@ -88,7 +94,7 @@ async function modelNow($: EngineInterface, options: Options, columns: unknown):
   // A segment list only means something for a split surah; a folded card shows no list.
   let view: PickerView | null = null
   if (picker && quran && !folds.quran && (picker.list !== 'segment' || quran.segmented)) view = pickerView(picker, await readQuranOptions(picker.list, picker.query))
-  return paneModel({ salah: readSalah(now), quran, athkar: await readAthkar() }, now, widthOf(columns), options.color, undefined, folds, { state: await readSettings($), options: optimisticOptions(options, (await $.state.get(optimisticRef)).value), terminalMode: 'per-terminal setup', copied: copiedAt((await $.state.get(copiedRef)).value, now) }, view)
+  return paneModel({ salah: readSalah(now), quran, athkar: await readAthkar() }, now, widthOf(columns), options.color, undefined, folds, { state: await readSettings($), options: optimisticOptions(options, (await $.state.get(optimisticRef)).value), terminalMode: 'per-terminal setup', copied: copiedAt((await $.state.get(copiedRef)).value, now) }, view, (await $.state.get(athkarMenuRef)).value === true)
 }
 
 const enabledOf = (m: PaneModel): Enabled => ({
@@ -99,6 +105,7 @@ const enabledOf = (m: PaneModel): Enabled => ({
   segmented: m.quran.isAvailable && m.quran.segmented,
   athkar: m.athkar.isAvailable,
   athkarFinish: m.athkar.isAvailable && !m.athkar.isDone,
+  athkarDone: m.athkar.isAvailable && m.athkar.isDone,
 })
 
 // The athan toggle changes the salah setting itself (the module reloads); every other press is the owning feature's own action.
@@ -107,8 +114,23 @@ async function press($: EngineInterface, options: Options, act: PaneAct): Promis
   if (act === 'fold-prayer' || act === 'fold-quran' || act === 'fold-athkar') {
     const key = act === 'fold-prayer' ? 'prayer' : act === 'fold-quran' ? 'quran' : 'athkar'
     const folds = await readFolds($)
+    if (key === 'athkar') await writeAthkarMenu($, false)
     await $.state.set(foldsRef, { ...folds, [key]: !folds[key] })
     $.ui.invalidate('ui.render')
+    return
+  }
+  if (act === 'athkar-picker') {
+    await writeAthkarMenu($, (await $.state.get(athkarMenuRef)).value !== true)
+    return
+  }
+  if (act.startsWith('athkar-set:')) {
+    await writeAthkarMenu($, false)
+    await runPanelAction('athkar-set', act.slice('athkar-set:'.length))
+    return
+  }
+  if (act === 'athkar-reset') {
+    const k = await readAthkar()
+    if (k) await runPanelAction(k.canUndo ? 'athkar-undo' : 'athkar-reset')
     return
   }
   if (act === 'athan') {
@@ -120,6 +142,7 @@ async function press($: EngineInterface, options: Options, act: PaneAct): Promis
     const list = act === 'quran-pick-reciter' ? 'reciter' : act === 'quran-pick-surah' ? 'surah' : 'segment'
     const rows = await readQuranOptions(list, '')
     if (!rows.length) { $.ui.toast('Quran is not ready yet. /quran'); return }
+    await writeAthkarMenu($, false)
     await writePicker($, openPicker(list, rows.length, rows.findIndex(o => o.selected)))
     return
   }
@@ -160,9 +183,9 @@ async function barPress($: EngineInterface, model: PaneModel, message: Extract<P
   const picker = await readPicker($)
   if (!picker || !model.picker) return
   const layout = quranLayout(model)
-  const height = paneHeight(model.folds, model.settings.state, model.settings.options, layout)
+  const height = paneHeight(model.folds, model.settings.state, model.settings.options, layout, model.athkarMenu)
   const y = pointerPixels(message.width, message.x, message.y, message.columns, message.rows, height).y
-  await writePicker($, pressBar(picker, model.picker.count, cardRects(model.folds, model.settings.state, model.settings.options, layout).quranY, y, dragCell(height, message.rows)))
+  await writePicker($, pressBar(picker, model.picker.count, cardRects(model.folds, model.settings.state, model.settings.options, layout, model.athkarMenu).quranY, y, dragCell(height, message.rows)))
 }
 async function dragPress($: EngineInterface, folds: Folds, message: Extract<PaneMessage, { act: 'drag' }>): Promise<void> {
   const picker = await readPicker($)
@@ -293,8 +316,12 @@ export const install = (on: On, options: Options) => {
     if (message.act === 'pointer') {
       if (message.button !== 'left') return {}
       const model = await modelNow($, options, message.columns)
-      act = hitOfCells(message.width, message.x, message.y, message.columns, message.rows, message.coarse, enabledOf(model), model.folds, model.settings, quranLayout(model))
+      act = hitOfCells(message.width, message.x, message.y, message.columns, message.rows, message.coarse, enabledOf(model), model.folds, model.settings, quranLayout(model), model.athkarMenu)
       if (act === 'quran-scroll') { await barPress($, model, message); return {} }
+    } else if ((await $.state.get(athkarMenuRef)).value === true && !(await readFolds($)).athkar) {
+      // The host consumes Escape on this build; also accept it if a host forwards it.
+      if (message.key === 'escape' || message.key === 'esc' || message.key === 'tab') await writeAthkarMenu($, false)
+      return {}
     } else if ((await readPicker($)) && (await modelNow($, options, 50)).picker) {
       await pickerKeyPress($, message.key)
       return {}

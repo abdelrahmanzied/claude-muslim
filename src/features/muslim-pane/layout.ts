@@ -14,7 +14,7 @@ export const HEAD_TOP = 14
 export const HEAD_H = 28
 
 // The pane's own heading above the cards: the full avatar and «مسلم» at the right edge,
-// the LTR `/muslim` label at the left edge, as the Quran pane's heading.
+// the LTR `/muslim` label at the left edge.
 // The Desktop adds its own space above the picture (the API has no setting for it),
 // so the heading starts at the picture's top edge. The 36px avatar fills the row.
 export const TOP_Y = 0
@@ -102,10 +102,44 @@ export const QURAN_H = quranHeight(NO_QURAN)
 // Athkar card, from its top.
 export const KROW_TOP = 48
 export const KROW_H = 36
-export const KBTN_W = 56
-export const KFINISH_W = 84
+// The progress row's buttons, from the card's left edge: «إعادة», «✓ أتممتُها», then «ابدأ» or «أكمل» (RTL order after the bar).
+// Up to KCOMPACT_W wide the first two shrink to icons (their aria-labels stay) so the bar keeps room at 240.
+export const KCOMPACT_W = 380
 export const KROW_GAP = 8
+export const KROW_GAP_COMPACT = 6
+export const athkarRow = (width: number) => {
+  const compact = width <= KCOMPACT_W, gap = compact ? KROW_GAP_COMPACT : KROW_GAP, left = PAD + SIDE
+  const resetW = compact ? 28 : 64, finishW = compact ? 28 : 84, openW = compact ? 40 : 52
+  const reset = { x0: left, x1: left + resetW }
+  const finish = { x0: reset.x1 + gap, x1: reset.x1 + gap + finishW }
+  const open = { x0: finish.x1 + gap, x1: finish.x1 + gap + openW }
+  // The done note takes the finish and open slots' place beside «إعادة».
+  const done = { x0: finish.x0, x1: compact ? finish.x0 + 76 : finish.x0 + 84 }
+  return { compact, gap, resetW, finishW, openW, doneW: done.x1 - done.x0, reset, finish, open, done }
+}
 export const ATHKAR_H = KROW_TOP + KROW_H + 14
+export const ATHKAR_MENU_H = 208
+export const KMENU_TOP = 48
+export const KMENU_PAD = 5 // 1px border and 4px top padding
+export const KMENU_ROW_H = 32
+export const KMENU_GAP = 2
+export const KROW_OPEN_TOP = 158
+export const ATHKAR_SETS = [
+  { key: 'morning', title: 'أذكار الصباح', icon: 'sun' },
+  { key: 'evening', title: 'أذكار المساء', icon: 'moon' },
+  { key: 'after-salah', title: 'أذكار بعد الصلاة', icon: 'prayer' },
+] as const
+export const athkarRowTop = (open: boolean) => open ? KROW_OPEN_TOP : KROW_TOP
+// The shared header's fold chevron sits at the card's left end in every card (a 26px target, 6px past the inset);
+// the athkar header boxes follow it: fold, fraction, then the title button (the menu) up to the icon at the right.
+export const FOLD_W = 26
+export const FOLD_BLEED = 6
+export const athkarHead = (width: number) => {
+  const left = PAD + SIDE, right = width - PAD - SIDE
+  const fold = { x0: left - FOLD_BLEED, x1: left - FOLD_BLEED + FOLD_W }
+  const fraction = { x0: fold.x1 + 8, x1: fold.x1 + 8 + 40 }
+  return { fold, fraction, title: { x0: fraction.x1 + 4, x1: right } }
+}
 
 // A folded card is just its title row.
 export const FOLDED_H = HEAD_TOP * 2 + HEAD_H
@@ -117,13 +151,13 @@ export const NO_FOLDS: Folds = { prayer: false, quran: false, athkar: false }
 export const isFolds = (value: unknown): value is Folds => !!value && typeof value === 'object' && (['prayer', 'quran', 'athkar'] as const).every(k => typeof (value as Record<string, unknown>)[k] === 'boolean')
 
 // Where each card sits and how tall it is, and the whole pane's height, for the folded cards.
-export const cardRects = (f: Folds, settings: SettingsState = CLOSED_SETTINGS, options?: SettingsOptions, quran: QuranLayout = NO_QURAN) => {
-  const prayerH = f.prayer ? FOLDED_H : PRAYER_H, quranH = f.quran ? FOLDED_H : quranHeight(quran), athkarH = f.athkar ? FOLDED_H : ATHKAR_H
+export const cardRects = (f: Folds, settings: SettingsState = CLOSED_SETTINGS, options?: SettingsOptions, quran: QuranLayout = NO_QURAN, athkarMenu = false) => {
+  const prayerH = f.prayer ? FOLDED_H : PRAYER_H, quranH = f.quran ? FOLDED_H : quranHeight(quran), athkarH = f.athkar ? FOLDED_H : athkarMenu ? ATHKAR_MENU_H : ATHKAR_H
   const prayerY = CARDS_TOP, quranY = prayerY + prayerH + GAP, athkarY = quranY + quranH + GAP
   const settingsY = athkarY + athkarH + GAP, settingsH = settingsHeight(settings, options)
   return { prayerY, prayerH, quranY, quranH, athkarY, athkarH, settingsY, settingsH, height: settingsY + settingsH + PAD }
 }
-export const paneHeight = (f: Folds, settings: SettingsState = CLOSED_SETTINGS, options?: SettingsOptions, quran: QuranLayout = NO_QURAN): number => cardRects(f, settings, options, quran).height
+export const paneHeight = (f: Folds, settings: SettingsState = CLOSED_SETTINGS, options?: SettingsOptions, quran: QuranLayout = NO_QURAN, athkarMenu = false): number => cardRects(f, settings, options, quran, athkarMenu).height
 
 // The unfolded pane.
 export const PRAYER_Y = CARDS_TOP
@@ -133,14 +167,14 @@ export const PANE_HEIGHT = paneHeight(NO_FOLDS)
 
 type QuranRowAct = `quran-row:${number}`
 export type PaneAct = SettingsAct | 'fold-prayer' | 'fold-quran' | 'fold-athkar' | 'athan' | 'quran-prev' | 'quran-toggle' | 'quran-next' | 'quran-repeat-surah' | 'quran-repeat-segment'
-  | 'quran-pick-reciter' | 'quran-pick-surah' | 'quran-pick-segment' | 'quran-back' | 'quran-scroll' | QuranRowAct | 'athkar-open' | 'athkar-finish'
+  | 'quran-pick-reciter' | 'quran-pick-surah' | 'quran-pick-segment' | 'quran-back' | 'quran-scroll' | QuranRowAct | 'athkar-open' | 'athkar-finish' | 'athkar-picker' | 'athkar-reset' | `athkar-set:${typeof ATHKAR_SETS[number]['key']}`
 export const quranRowOf = (act: string): number | null => {
   const m = /^quran-row:(\d+)$/.exec(act)
   return m ? Number(m[1]) : null
 }
 
 // What can be pressed now: the Quran controls need a connected Quran, «ابدأ من» and segment repeat a split surah, the athkar button a connected athkar, the athan row a place.
-export type Enabled = { athan: boolean; quran: boolean; canPrev: boolean; canNext: boolean; athkar: boolean; athkarFinish?: boolean; segmented?: boolean }
+export type Enabled = { athan: boolean; quran: boolean; canPrev: boolean; canNext: boolean; athkar: boolean; athkarFinish?: boolean; athkarDone?: boolean; segmented?: boolean }
 
 type Circle = { act: PaneAct; x: number; y: number; r: number }
 const circles = (width: number, f: Folds, q: QuranLayout, quranY: number): Circle[] => {
@@ -163,15 +197,22 @@ const sheetBoxes = (width: number, q: QuranLayout, quranY: number): Box[] => {
     ...(p.count > 8 ? [{ act: 'quran-scroll' as const, x0: x0 + SHEET_BAR_LEFT, x1: x0 + SHEET_BAR_LEFT + SHEET_BAR_W, y0: y0 + SHEET_ROWS_TOP, y1: y0 + SHEET_ROWS_TOP + SHEET_ROWS_H }] : []),
   ]
 }
-const boxes = (width: number, f: Folds, settings: SettingsModel, q: QuranLayout): Box[] => {
-  const r = cardRects(f, settings.state, settings.options, q)
+const boxes = (width: number, f: Folds, settings: SettingsModel, q: QuranLayout, athkarMenu: boolean, athkar: boolean): Box[] => {
+  const kr = athkarRow(width)
+  const r = cardRects(f, settings.state, settings.options, q, athkarMenu)
+  const kh = athkarHead(width), ky = r.athkarY + athkarRowTop(athkarMenu)
+  const headBox = (act: PaneAct, b: { x0: number; x1: number }): Box => ({ act, ...b, y0: r.athkarY + HEAD_TOP, y1: r.athkarY + HEAD_TOP + HEAD_H })
   if (q.picker && !f.quran) return sheetBoxes(width, q, r.quranY)
   const title = (act: PaneAct, y: number): Box => ({ act, x0: PAD, x1: width - PAD, y0: y, y1: y + TITLE_HIT_H })
   const off = quranOffset(q.segmented), qy = r.quranY
   return [
-    ...settingsBoxes(width, f, settings, q),
+    ...settingsBoxes(width, f, settings, q, athkarMenu),
     title('settings:fold', r.settingsY),
-    title('fold-prayer', r.prayerY), title('fold-quran', r.quranY), title('fold-athkar', r.athkarY),
+    title('fold-prayer', r.prayerY), title('fold-quran', r.quranY),
+    ...(f.athkar || !athkar ? [title('fold-athkar', r.athkarY)] : [
+      headBox('fold-athkar', kh.fold), headBox('athkar-picker', kh.title),
+      ...(athkarMenu ? ATHKAR_SETS.map((set, i): Box => ({ act: `athkar-set:${set.key}`, x0: PAD + SIDE, x1: width - PAD - SIDE, y0: r.athkarY + KMENU_TOP + KMENU_PAD + i * (KMENU_ROW_H + KMENU_GAP), y1: r.athkarY + KMENU_TOP + KMENU_PAD + i * (KMENU_ROW_H + KMENU_GAP) + KMENU_ROW_H })) : []),
+    ]),
     ...(f.prayer ? [] : [{ act: 'athan' as const, x0: PAD + SIDE - 8, x1: width - PAD - SIDE + 8, y0: r.prayerY + ATHAN_TOP, y1: r.prayerY + ATHAN_TOP + ATHAN_H }]),
     ...(f.quran ? [] : [
       // The title button spans the hero's text column, right of the avatar.
@@ -179,15 +220,14 @@ const boxes = (width: number, f: Folds, settings: SettingsModel, q: QuranLayout)
       ...(q.segmented ? [{ act: 'quran-pick-segment' as const, x0: PAD + Q_SEG_LEFT, x1: width - PAD - SIDE, y0: qy + Q_SEG_TOP, y1: qy + Q_SEG_TOP + Q_SEG_H }] : []),
       { act: 'quran-pick-reciter' as const, x0: PAD + SIDE, x1: width - PAD - SIDE, y0: qy + Q_RECITER_BASE + off, y1: qy + Q_RECITER_BASE + off + Q_RECITER_H },
     ]),
-    // In RTL the button sits at the left end of its row.
-    ...(f.athkar ? [] : [{ act: 'athkar-finish' as const, x0: PAD + SIDE + KBTN_W + KROW_GAP, x1: PAD + SIDE + KBTN_W + KROW_GAP + KFINISH_W, y0: r.athkarY + KROW_TOP + 2, y1: r.athkarY + KROW_TOP + KROW_H - 2 }]),
-    ...(f.athkar ? [] : [{ act: 'athkar-open' as const, x0: PAD + SIDE, x1: PAD + SIDE + KBTN_W, y0: r.athkarY + KROW_TOP + 2, y1: r.athkarY + KROW_TOP + KROW_H - 2 }]),
+    // In RTL the row's buttons sit at the left end: «إعادة», then «أتممتُها», then «ابدأ» or «أكمل».
+    ...(f.athkar ? [] : (['athkar-reset', 'athkar-finish', 'athkar-open'] as const).map((act): Box => ({ act, ...kr[act === 'athkar-reset' ? 'reset' : act === 'athkar-finish' ? 'finish' : 'open'], y0: ky + 2, y1: ky + KROW_H - 2 }))),
   ]
 }
 
 // Settings share the existing nearest-edge/slack arbitration with daily cards.
-export const settingsBoxes = (width: number, folds: Folds, m: SettingsModel, q: QuranLayout = NO_QURAN): Box[] => {
-  const y = cardRects(folds, m.state, m.options, q).settingsY
+export const settingsBoxes = (width: number, folds: Folds, m: SettingsModel, q: QuranLayout = NO_QURAN, athkarMenu = false): Box[] => {
+  const y = cardRects(folds, m.state, m.options, q, athkarMenu).settingsY
   if (!m.state.open) return []
   return [
     ...categoryTabs(width).map(c => ({ act:`settings:tab:${c.category}` as const, x0:c.x0, x1:c.x1, y0:y+c.y0, y1:y+c.y1 })),
@@ -196,7 +236,7 @@ export const settingsBoxes = (width: number, folds: Folds, m: SettingsModel, q: 
 }
 
 const isEnabled = (act: PaneAct, on: Enabled): boolean =>
-  act.startsWith('settings:') ? true : act === 'fold-prayer' || act === 'fold-quran' || act === 'fold-athkar' ? true : act === 'athan' ? on.athan : act === 'athkar-finish' ? !!on.athkarFinish : act === 'athkar-open' ? on.athkar
+  act.startsWith('settings:') ? true : act === 'fold-prayer' || act === 'fold-quran' || act === 'fold-athkar' ? true : act === 'athan' ? on.athan : act === 'athkar-finish' ? !!on.athkarFinish : act === 'athkar-open' ? on.athkar && !on.athkarDone : act.startsWith('athkar-') ? on.athkar
     : act === 'quran-back' || act === 'quran-scroll' || quranRowOf(act) !== null ? true
     : act === 'quran-prev' ? on.quran && on.canPrev : act === 'quran-next' ? on.quran && on.canNext
     : act === 'quran-repeat-segment' || act === 'quran-pick-segment' ? on.quran && !!on.segmented : on.quran
@@ -206,17 +246,17 @@ const gap = (v: number, lo: number, hi: number) => (v < lo ? lo - v : v > hi ? v
 // `sx`/`sy` are the half-extent of the pointer's cell (see pointerSlack): a pointer
 // known only as a whole cell may sit anywhere in it, so a target is hit when the cell
 // overlaps it, the one nearest the pointer (its edge, not its center) winning.
-export const hitAt = (width: number, x: number, y: number, on: Enabled, sx = 0, sy = 0, folds: Folds = NO_FOLDS, settings: SettingsModel = DEFAULT_SETTINGS, quran: QuranLayout = NO_QURAN): PaneAct | null => {
+export const hitAt = (width: number, x: number, y: number, on: Enabled, sx = 0, sy = 0, folds: Folds = NO_FOLDS, settings: SettingsModel = DEFAULT_SETTINGS, quran: QuranLayout = NO_QURAN, athkarMenu = false): PaneAct | null => {
   if (![width, x, y, sx, sy].every(Number.isFinite) || width < 1) return null
   let best: PaneAct | null = null, bestDistance = Infinity
-  for (const c of circles(width, folds, quran, cardRects(folds, settings.state, settings.options, quran).quranY)) {
+  for (const c of circles(width, folds, quran, cardRects(folds, settings.state, settings.options, quran, athkarMenu).quranY)) {
     if (!isEnabled(c.act, on)) continue
     const dx = Math.max(Math.abs(x - c.x) - sx, 0), dy = Math.max(Math.abs(y - c.y) - sy, 0)
     if (dx ** 2 + dy ** 2 > c.r ** 2 + 1e-8) continue
     const d = Math.max(0, Math.hypot(x - c.x, y - c.y) - c.r)
     if (d < bestDistance) { best = c.act; bestDistance = d }
   }
-  for (const b of boxes(width, folds, settings, quran)) {
+  for (const b of boxes(width, folds, settings, quran, athkarMenu, on.athkar)) {
     if (!isEnabled(b.act, on)) continue
     if (gap(x, b.x0, b.x1) > sx || gap(y, b.y0, b.y1) > sy) continue
     const d = Math.hypot(gap(x, b.x0, b.x1), gap(y, b.y0, b.y1))
@@ -226,12 +266,12 @@ export const hitAt = (width: number, x: number, y: number, on: Enabled, sx = 0, 
 }
 
 // A click in region cells, to its act.
-export const hitOfCells = (width: number, x: number, y: number, columns: number, rows: number, isCoarse: boolean, on: Enabled, folds: Folds = NO_FOLDS, settings: SettingsModel = DEFAULT_SETTINGS, quran: QuranLayout = NO_QURAN): PaneAct | null => {
+export const hitOfCells = (width: number, x: number, y: number, columns: number, rows: number, isCoarse: boolean, on: Enabled, folds: Folds = NO_FOLDS, settings: SettingsModel = DEFAULT_SETTINGS, quran: QuranLayout = NO_QURAN, athkarMenu = false): PaneAct | null => {
   if (!(columns > 0) || !(rows > 0)) return null
-  const height = paneHeight(folds, settings.state, settings.options, quran)
+  const height = paneHeight(folds, settings.state, settings.options, quran, athkarMenu)
   const p = pointerPixels(width, x, y, columns, rows, height)
   const s = pointerSlack(width, columns, rows, height, isCoarse)
-  return hitAt(width, p.x, p.y, on, s.x, s.y, folds, settings, quran)
+  return hitAt(width, p.x, p.y, on, s.x, s.y, folds, settings, quran, athkarMenu)
 }
 
 // What the Client posts: a click with its region and the width it drew at, or a key.

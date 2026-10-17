@@ -1,3 +1,8 @@
+import { emptyDay, dayOf } from '../../src/features/athkar/logic.ts'
+import type { Day } from '../../types/index.d.ts'
+import { runPanelAction } from '../../src/shared/panel/signal.ts'
+import { quranLayout } from '../../src/features/muslim-pane/model.ts'
+import { athkarHead, athkarRow, athkarRowTop, KMENU_TOP, KMENU_PAD, KMENU_ROW_H, KMENU_GAP } from '../../src/features/muslim-pane/layout.ts'
 import { fixtureCatalog } from '../quran/fixtures/catalog.ts'
 import type { Mounted } from 'claude-code/testing'
 import { settingsBoxes, TITLE_HIT_H, paneHeight } from '../../src/features/muslim-pane/layout.ts'
@@ -177,8 +182,9 @@ for (const style of ['sky', 'frame'] as const) {
     const model = async () => (await ui.find({ type: 'Client', key: 'muslim-pane' }))!.props.props as PaneModel
     expect((await model()).athkar).toMatchObject({ isAvailable: true, isDone: false, progress: 0 })
     expect(String((await ui.find({ in: 'muslim-pane', type: 'Svg' }))?.props.source)).toContain('✓ أتممتُها')
-    // Finish is immediately to Open's right, in the same RTL row.
-    const fine = { x: 148 * 50 / 420, y: (ATHKAR_Y + KROW_TOP + 18) * 40 / PANE_HEIGHT }
+    // Finish sits between «إعادة» and «ابدأ» in the same RTL row.
+    const finish = athkarRow(420).finish
+    const fine = { x: (finish.x0 + finish.x1) / 2 * 50 / 420, y: (ATHKAR_Y + KROW_TOP + 18) * 40 / PANE_HEIGHT }
     await ui.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: Math.floor(fine.x), y: Math.floor(fine.y), fine })
     const card = (await model()).athkar
     expect(card).toMatchObject({ isDone: true, progress: 1 })
@@ -446,4 +452,109 @@ test('a denied write is retried when another press beat its version',async($,on)
   await settingsClick(ui,'settings:athkar')
   await until(()=>toasts.length>0)
   expect(writes).toEqual([{athkar:false},{},{}])
+})
+
+const athkarModel = async (ui: Mounted<'desktop' | 'terminal', 'Pane'>) => (await ui.find({ type: 'Client', key: 'muslim-pane' }))!.props.props as PaneModel
+async function athkarClick(ui: Mounted<'desktop' | 'terminal', 'Pane'>, target: 'title' | 'reset' | 'fold' | 'open' | 'finish' | number) {
+  await ui.resize({ columns: 50, rows: 100, in: 'muslim-pane' })
+  const model = await athkarModel(ui), q = quranLayout(model)
+  const r = cardRects(model.folds, model.settings.state, model.settings.options, q, model.athkarMenu)
+  const h = athkarHead(420)
+  let x: number, y: number
+  if (typeof target === 'number') { x = 210; y = KMENU_TOP + KMENU_PAD + target * (KMENU_ROW_H + KMENU_GAP) + 16 }
+  else if (target === 'title' || target === 'fold') { x = (h[target].x0 + h[target].x1) / 2; y = 28 }
+  else { const b = athkarRow(420)[target]; x = (b.x0 + b.x1) / 2; y = athkarRowTop(model.athkarMenu) + 18 }
+  const fine = { x: x * 50 / 420, y: (r.athkarY + y) * 100 / r.height }
+  await ui.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: Math.floor(fine.x), y: Math.floor(fine.y), fine })
+}
+
+for (const [i, set] of (['morning', 'evening', 'after-salah'] as const).entries()) {
+  test(`athkar picker ${set}: works before band draw, shares manual hold, Finish, Open and reset/undo`, async ($, on) => {
+    const writes: { key: string; value: unknown }[] = []
+    engine(on, 'desktop', undefined, {}, writes)
+    const ui = await $.ui.mount(pane('desktop'))
+    expect((await athkarModel(ui)).athkar).toMatchObject({ isAvailable: true })
+    await athkarClick(ui, 'title')
+    expect((await athkarModel(ui)).athkarMenu).toBe(true)
+    await athkarClick(ui, i)
+    expect((await athkarModel(ui)).athkarMenu).toBe(false)
+    expect((await athkarModel(ui)).athkar).toMatchObject({ set, canUndo: false })
+    await athkarClick(ui, 'finish')
+    const finished = (await athkarModel(ui)).athkar
+    expect(finished).toMatchObject({ set, isDone: true, progress: 1 })
+    const saved = writes.filter(w => w.key === 'athkar').at(-1)!.value as Day
+    const slot = set === 'after-salah' ? 'afterSalah' : set
+    expect(saved[slot].isDone).toBe(true)
+    await athkarClick(ui, 'reset')
+    expect((await athkarModel(ui)).athkar).toMatchObject({ set, canUndo: true, isDone: false, progress: 0 })
+    expect(await svgOf(ui)).toContain('>تراجع</span>')
+    await athkarClick(ui, 'reset')
+    expect((await athkarModel(ui)).athkar).toMatchObject({ set, canUndo: false, isDone: true, progress: 1 })
+    expect(writes.filter(w => w.key === 'athkar').at(-1)!.value).toEqual(saved)
+    const reader = await $.ui.mount(band('desktop'))
+    await athkarClick(ui, 'open')
+    expect((await reader.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ period: slot, phase: 'done' })
+    await athkarClick(ui, 'reset')
+    await testClock.advance(8000)
+    expect((await athkarModel(ui)).athkar).toMatchObject({ set, canUndo: false })
+    await athkarClick(ui, 'reset')
+    expect((await athkarModel(ui)).athkar).toMatchObject({ set, canUndo: true, isDone: false })
+    await athkarClick(ui, 'title')
+    await athkarClick(ui, (i + 1) % 3)
+    expect((await athkarModel(ui)).athkar).toMatchObject({ canUndo: false })
+    await ui.unmount(); await reader.unmount()
+  })
+}
+
+test('athkar title toggles its menu, Tab closes it, folding clears it, and invalid signals leave the choice untouched', async ($, on) => {
+  engine(on, 'desktop')
+  const ui = await $.ui.mount(pane('desktop'))
+  await athkarClick(ui, 'title')
+  expect((await athkarModel(ui)).athkarMenu).toBe(true)
+  await athkarClick(ui, 'title')
+  expect((await athkarModel(ui)).athkarMenu).toBe(false)
+  await athkarClick(ui, 'title')
+  await ui.key({ in: 'muslim-pane', key: 'tab' })
+  expect((await athkarModel(ui)).athkarMenu).toBe(false)
+  // A forwarded Escape message is accepted; real Escape is consumed by this engine.
+  await athkarClick(ui, 'title')
+  await ui.post({ act: 'key', key: 'escape' }, { in: 'muslim-pane' })
+  expect((await athkarModel(ui)).athkarMenu).toBe(false)
+  await athkarClick(ui, 'title')
+  await athkarClick(ui, 'fold')
+  expect((await athkarModel(ui)).folds.athkar).toBe(true)
+  expect((await athkarModel(ui)).athkarMenu).toBe(false)
+  const before = (await athkarModel(ui)).athkar
+  for (const value of ['afterSalah', 'morning reset', '', undefined]) expect(await runPanelAction('athkar-set', value)).toBe(false)
+  expect((await athkarModel(ui)).athkar).toEqual(before)
+  await ui.unmount()
+})
+
+test('pane and slash choices share hold and unhide rules, and another command choice drops reset undo', async ($, on) => {
+  engine(on, 'desktop')
+  const ui = await $.ui.mount(pane('desktop'))
+  const command = (args: string) => $.command.run({ command: 'athkar', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+  await command('evening')
+  expect((await athkarModel(ui)).athkar).toMatchObject({ set: 'evening' })
+  const reader = await $.ui.mount(band('desktop'))
+  await reader.post({ act: 'hide' }, { in: 'athkar' })
+  expect((await reader.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ period: 'morning' })
+  await athkarClick(ui, 'title'); await athkarClick(ui, 1)
+  expect((await reader.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ period: 'evening' })
+  await athkarClick(ui, 'finish'); await athkarClick(ui, 'reset')
+  expect((await athkarModel(ui)).athkar).toMatchObject({ canUndo: true })
+  await command('evening')
+  expect((await athkarModel(ui)).athkar).toMatchObject({ set: 'evening', canUndo: false })
+  await ui.unmount(); await reader.unmount()
+})
+
+test('pane reads a replaced after-salah slot without trying a render-time state write', { options: { salahPlace: MUNICH } }, async ($, on) => {
+  const day = emptyDay(dayOf(new Date(NOON)))
+  day.afterSalah = { ...day.afterSalah, pray: 'isha', at: NOON - 24 * 60 * 60 * 1000, counts: { '75': 1 }, isDone: true }
+  const writes: { key: string; value: unknown }[] = []
+  engine(on, 'desktop', undefined, { athkar: day }, writes)
+  const ui = await $.ui.mount(pane('desktop'))
+  expect((await athkarModel(ui)).athkar).toMatchObject({ isAvailable: true, isDone: false, progress: 0 })
+  expect(writes.filter(w => w.key === 'athkar')).toEqual([])
+  await ui.unmount()
 })

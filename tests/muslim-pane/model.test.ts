@@ -54,7 +54,7 @@ test('the prayer card names the city and the next prayer in the main values', ()
 
 test('athkar shows done of total in Arabic digits and clamps the bar', () => {
   expect(athkarCard(null)).toEqual({ isAvailable: false })
-  const card = athkarCard({ title: 'أَذْكَارُ الْمَسَاءِ', done: 4, total: 12, progress: 1.4, isDone: false })
+  const card = athkarCard({ set: 'evening', canUndo: false, title: 'أَذْكَارُ الْمَسَاءِ', done: 4, total: 12, progress: 1.4, isDone: false })
   expect(card).toMatchObject({ isAvailable: true, fraction: '٤ / ١٢', progress: 1 })
 })
 

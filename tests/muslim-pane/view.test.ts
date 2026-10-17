@@ -20,7 +20,7 @@ const feeds = {
     isAthan: true,
   },
   quran: { reciter: 'محمد صديق المنشاوي', surah: 'سورة البقرة', part: 'الربع ٥، الآيات ١٥–٢٤ (١ من ٢)', segmented: true, status: 'يتلى الآن', isLive: true, elapsed: '12:03', total: '41:20', progress: 0.29, isPlaying: true, canPrev: true, canNext: true, repeat: 'off' as const, avatar: '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="90" viewBox="0 0 96 90"></svg>' },
-  athkar: { title: 'أَذْكَارُ الْمَسَاءِ', done: 4, total: 12, progress: 0.33, isDone: false },
+  athkar: { set: 'evening' as const, canUndo: false, title: 'أَذْكَارُ الْمَسَاءِ', done: 4, total: 12, progress: 0.33, isDone: false },
 }
 
 test('the picture draws the three cards at the fixed pane height', () => {
@@ -150,8 +150,7 @@ for (const theme of ['light', 'dark'] as const) {
       const svg = paneSvg(model, 'settings:terminal')
       expect(svg).not.toContain('--raised')
       expect(svg).not.toContain('--card')
-      expect(svg).toContain('class="dbtn tertiary" role="button">Open')
-      expect(svg).toContain('.dbtn.tertiary{box-shadow:none;color:var(--text-2)}')
+      expect(svg).toContain('class="dbtn primary" role="button" aria-label="أكمل')
       expect(svg).toContain('.dbtn.hot{background:var(--hover);color:var(--text)}')
       expect(svg).toMatch(/\.sc\.pill,\.sc\.value\{background:transparent;box-shadow:inset 0 0 0 1px var\(--line\)/)
       expect(svg).toContain('class="sc value command hot"')
@@ -170,40 +169,52 @@ for (const theme of ['light', 'dark'] as const) {
 }
 
 for (const folded of [false, true]) {
-  test(`daily card headers use their settings tab fragments when ${folded ? 'folded' : 'open'}`, () => {
+  test(`feature icons remain in prayer, Quran headers and settings tabs; athkar uses the horizon mark (${folded})`, () => {
     const model = paneModel(feeds, NOW, 360, 'orange')
     model.folds = { prayer: folded, quran: folded, athkar: folded }
     model.settings = { ...model.settings, state: { ...CLOSED_SETTINGS, open: true } }
     const svg = paneSvg(model)
     const headers = svg.match(/<div class="in dh"[^>]*>.*?<\/div>/g)!
-    // The Quran card keeps its icon; it has no settings tab.
-    expect(headers.find(h => h.includes('<span class="ar">القرآن</span>'))).toContain(FEATURE_ICONS.qpane)
-    expect(svg).not.toContain('aria-label="القرآن"')
-    for (const [category, key] of [['prayer', 'sujoodreal'], ['athkar', 'horizon']] as const) {
-      const label = CATEGORIES.find(c => c[0] === category)![1]
-      const head = headers.find(h => h.includes(`<span class="ar">${category === 'athkar' ? feeds.athkar.title : label}</span>`))!
-      const tab = svg.match(new RegExp(`role="tab"[^>]*aria-label="${label}">.*?</svg>`))![0]
-      expect(head).toContain(FEATURE_ICONS[key])
-      expect(tab).toContain(FEATURE_ICONS[key])
-    }
+    expect(headers.find(h => h.includes('<span class="ar">القرآن الكريم</span>'))).toContain(FEATURE_ICONS.qpane)
+    expect(headers.find(h => h.includes('<span class="ar">الصلاة</span>'))).toContain(FEATURE_ICONS.sujoodreal)
+    const tab = svg.match(/role="tab"[^>]*aria-label="الأذكار">.*?<\/svg>/)![0]
+    expect(tab).toContain(FEATURE_ICONS.horizon)
+    expect(svg).not.toContain('M20 14.5A8.2')
   })
+}
 
-  for (const title of ['أَذْكَارُ الصَّبَاحِ', 'أَذْكَارُ الْمَسَاءِ', null]) {
-    test(`athkar use horizon in the header, row and tab: ${title ?? 'off'}, ${folded ? 'folded' : 'open'}`, () => {
-      const model = paneModel({ ...feeds, athkar: title === null ? null : { ...feeds.athkar, title } }, NOW, 360, 'orange')
-      model.folds = { ...model.folds, athkar: folded }
-      model.settings = { ...model.settings, state: { ...CLOSED_SETTINGS, open: true } }
-      const svg = paneSvg(model)
-      const head = svg.match(/<div class="in dh"[^>]*>.*?<\/div>/g)![2]!
-      const tab = svg.match(/role="tab"[^>]*aria-label="الأذكار">.*?<\/svg>/)![0]
-      expect(head).toContain(FEATURE_ICONS.horizon)
-      expect(tab).toContain(FEATURE_ICONS.horizon)
-      if (!folded) {
-        const row = svg.match(/<div class="in krow"[^>]*>.*?<\/svg>/)![0]
-        expect(row).toContain(FEATURE_ICONS.horizon)
-      }
-    })
-  }
+for (const theme of ['light', 'dark'] as const) {
+  for (const width of [240, 360, 420]) test(`athkar picker ${theme} ${width}: title, full menu, reset, undo and done state`, () => {
+    const model = paneModel(feeds, NOW, width, 'orange', theme)
+    const closed = paneSvg(model)
+    expect(closed).toContain('class="dcard compact"')
+    expect(closed).toContain('class="picker-title" role="button" aria-expanded="false"')
+    expect(closed).not.toContain('role="menuitemradio"')
+    expect(closed).toContain('aria-label="إعادة بدء')
+    expect(closed.includes('<span>إعادة</span>')).toBe(width > 380)
+    expect(closed).toContain('أكمل</span>')
+    model.athkarMenu = true
+    const open = paneSvg(model, 'athkar-set:after-salah')
+    expect(open).toContain('class="dcard picker-open"')
+    expect(open).toContain('height:208px')
+    expect(open).toContain('class="in krow" style="top:158px;gap:')
+    expect(open.match(/role="menuitemradio"/g)).toHaveLength(3)
+    expect(open.match(/role="menuitemradio" aria-checked="true"/g)).toHaveLength(1)
+    expect(open).toContain('أذكار بعد الصلاة')
+    expect(open).toContain('<span class="tick">✓</span>')
+    expect(open).toContain('M7 12.8C9.5 8.5')
+    expect(open).toContain('M20 14.5A8.2')
+    expect(open).toContain('class="menu-row hot"')
+    expect(open).not.toMatch(/[٠-٩]\s*·|·\s*[٠-٩]/)
+    if (model.athkar.isAvailable) model.athkar = { ...model.athkar, isDone: true, canUndo: true }
+    const done = paneSvg(model)
+    expect(done).toContain('class="dbtn reset undo')
+    expect(done.includes('<span>تراجع</span>')).toBe(width > 380)
+    expect(done).not.toContain('أكمل</span>')
+    expect(done).not.toContain('ابدأ</span>')
+    expect(done).toContain('أتممتَ وردك ✓')
+    expect(done).not.toContain('✓ أتممتُها')
+  })
 }
 
 test('settings uses the approved gear and exact four tab labels',()=>{
@@ -285,4 +296,53 @@ test('an open picker draws the sheet with head, search, rows, footer count and t
 test('a short list has no scrollbar and a long one has', () => {
   expect(paneSvg(sheet('reciter', 3))).not.toContain('class="sbar')
   expect(paneSvg(sheet('reciter', 30))).toContain('class="sbar')
+})
+
+test('the athkar card keeps the horizon mark for every set, folded or open; set icons stay in the menu', () => {
+  const horizon = FEATURE_ICONS.horizon
+  for (const set of ['morning', 'evening', 'after-salah'] as const) for (const folded of [false, true]) {
+    const model = paneModel({ ...feeds, athkar: { set, canUndo: false, title: 'أذكار', done: 0, total: 3, progress: 0, isDone: false } }, NOW, 420, 'orange', undefined, { prayer: false, quran: false, athkar: folded })
+    const html = paneSvg(model, null)
+    expect(html.split(horizon).length - 1).toBeGreaterThanOrEqual(folded ? 1 : 2)
+  }
+})
+
+test('the athkar open menu keeps the per-set icons, and the card header and row keep the horizon', () => {
+  const model = paneModel(feeds, NOW, 360, 'orange')
+  model.athkarMenu = true
+  const html = paneSvg(model, null)
+  const menu = html.match(/<div class="in menu".*?<\/div><\/div>/)![0]
+  expect(menu).not.toContain(FEATURE_ICONS.horizon)
+  expect(menu).toContain('M7 12.8C9.5 8.5')
+  expect(menu).toContain('M20 14.5A8.2')
+  expect(html.match(/<section class="dcard picker-open".*?<\/section>/)![0].split(FEATURE_ICONS.horizon).length - 1).toBe(2)
+})
+
+test('the Quran card says «القرآن الكريم» and the athkar card «الأذكار» when folded, open or not', () => {
+  for (const folded of [false, true]) {
+    const html = paneSvg(paneModel(feeds, NOW, 360, 'orange', undefined, { prayer: folded, quran: folded, athkar: folded }), null)
+    expect(html).toContain('<span class="ar">القرآن الكريم</span>')
+    expect(html.includes('<span class="ar">الأذكار</span>')).toBe(folded)
+    expect(html.includes('<span class="title ar">أَذْكَارُ الْمَسَاءِ</span>')).toBe(!folded)
+    expect(html).not.toContain('<span class="ar">القرآن</span>')
+  }
+})
+
+test('the fold chevron closes every card header the same way, folded or open', () => {
+  for (const folded of [false, true]) {
+    const html = paneSvg(paneModel(feeds, NOW, 360, 'orange', undefined, { prayer: folded, quran: folded, athkar: folded }), null)
+    expect(html.match(/<span class="fold[^"]*"[^>]*>(<svg[^>]*>[^]*?<\/svg>)<\/span><\/div>/g)).toHaveLength(4)
+  }
+})
+
+test('the athkar row says ابدأ with no counts, أكمل with some, and only «إعادة» plus the done note when done', () => {
+  const at = (done: number, isDone = false) => paneSvg(paneModel({ ...feeds, athkar: { ...feeds.athkar, done, progress: done / 12, isDone } }, NOW, 420, 'orange'), null)
+  expect(at(0)).toContain('>ابدأ</span>')
+  expect(at(0)).not.toContain('>أكمل</span>')
+  expect(at(4)).toContain('>أكمل</span>')
+  expect(at(4)).toContain('✓ أتممتُها')
+  expect(at(12, true)).not.toContain('✓ أتممتُها')
+  expect(at(12, true)).not.toContain('>أكمل</span>')
+  expect(at(12, true)).toContain('أتممتَ وردك ✓')
+  expect(at(12, true)).toContain('<span>إعادة</span>')
 })

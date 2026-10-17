@@ -8,7 +8,7 @@ import type { PickerView } from './picker.ts'
 import type { Accent } from '../../shared/color/index.ts'
 import { ARABIC } from '../../shared/pray/names.ts'
 import { arabicDigits } from '../../shared/pray/line.ts'
-import type { PanelAthkar, PanelQuran, PanelSalah } from '../../shared/panel/signal.ts'
+import type { PanelAthkar, PanelAthkarSet, PanelQuran, PanelSalah } from '../../shared/panel/signal.ts'
 
 export type PrayState = 'done' | 'next' | 'upcoming'
 export type PrayerRow = { name: string; time: string; state: PrayState }
@@ -23,7 +23,7 @@ export type PrayerCard = {
   isAthan: boolean
 }
 export type QuranCard = (PanelQuran & { isAvailable: true }) | { isAvailable: false }
-export type AthkarCard = { isAvailable: false } | { isAvailable: true; isEvening: boolean; title: string; fraction: string; progress: number; isDone: boolean }
+export type AthkarCard = { isAvailable: false } | { isAvailable: true; set: PanelAthkarSet; canUndo: boolean; isEvening: boolean; title: string; fraction: string; progress: number; isDone: boolean; hasCounts: boolean }
 
 export type PaneModel = {
   width: number
@@ -36,6 +36,7 @@ export type PaneModel = {
   athkar: AthkarCard
   // The Quran card's open list; null when none is open (or the card is folded).
   picker: PickerView | null
+  athkarMenu: boolean
 }
 
 // What the Quran card's height and targets depend on.
@@ -83,12 +84,13 @@ export const isEvening = (title: string): boolean => title.replace(/[\u064B-\u06
 
 export const athkarCard = (athkar: PanelAthkar | null): AthkarCard => athkar === null
   ? { isAvailable: false }
-  : { isAvailable: true, isEvening: isEvening(athkar.title), title: athkar.title, fraction: arabicDigits(`${athkar.done} / ${athkar.total}`), progress: Math.max(0, Math.min(1, athkar.progress)), isDone: athkar.isDone }
+  : { isAvailable: true, set: athkar.set, canUndo: athkar.canUndo, isEvening: athkar.set === 'evening', title: athkar.title, fraction: arabicDigits(`${athkar.done} / ${athkar.total}`), progress: Math.max(0, Math.min(1, athkar.progress)), isDone: athkar.isDone, hasCounts: athkar.done > 0 }
 
 export const quranCard = (quran: PanelQuran | null): QuranCard => quran === null ? { isAvailable: false } : { ...quran, isAvailable: true, progress: Math.max(0, Math.min(1, quran.progress)) }
 
-export const paneModel = (feeds: { salah: PanelSalah | null; quran: PanelQuran | null; athkar: PanelAthkar | null }, now: number, width: number, color: Accent, theme?: 'light' | 'dark', folds: Folds = NO_FOLDS, settings: SettingsModel = DEFAULT_SETTINGS, picker: PickerView | null = null): PaneModel => ({
+export const paneModel = (feeds: { salah: PanelSalah | null; quran: PanelQuran | null; athkar: PanelAthkar | null }, now: number, width: number, color: Accent, theme?: 'light' | 'dark', folds: Folds = NO_FOLDS, settings: SettingsModel = DEFAULT_SETTINGS, picker: PickerView | null = null, athkarMenu = false): PaneModel => ({
   width,
+  athkarMenu: !!feeds.athkar && !folds.athkar && athkarMenu,
   settings,
   folds,
   color,
@@ -111,13 +113,13 @@ export const textLines = (model: PaneModel, show: (text: string) => string): str
     for (const row of p.rows) lines.push(`${row.state === 'done' ? '✓' : row.state === 'next' ? '▸' : '○'} ${show(row.name)} ${show(row.time)}`)
     lines.push(`Athan ${p.isAthan ? 'on' : 'off'}`)
   }
-  lines.push('', `**${show('القرآن')}**`)
+  lines.push('', `**${show('القرآن الكريم')}**`)
   const q = model.quran
   if (!q.isAvailable) lines.push('Not ready. /quran (desktop player)')
   else {
     lines.push(`${show(q.reciter)}`, `${show(q.surah)}${q.part ? ` · ${show(q.part)}` : ''}`, `${q.elapsed} / ${q.total} · ${q.isPlaying ? 'playing' : 'stopped'}`)
   }
-  lines.push('', `**${show('أذكار')}**`)
+  lines.push('', `**${show('الأذكار')}**`)
   const k = model.athkar
   if (!k.isAvailable) lines.push('Athkar are off. /athkar on')
   else lines.push(`${show(k.title)} ${show(k.fraction)}`)

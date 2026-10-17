@@ -1,3 +1,4 @@
+import { ATHKAR_SETS, athkarRowTop, KMENU_TOP, KMENU_PAD, KMENU_ROW_H, KMENU_GAP } from './layout.ts'
 // The pane's picture: one SVG document holding HTML and CSS in a foreignObject,
 // built in the style of the Desktop's own session-panel cards (rounded
 // bordered cards, a header with a chevron and a value, icon rows, a toggle,
@@ -7,7 +8,7 @@ import { TAJAWAL_FAMILY, tajawalFontFaceCss } from '../../shared/font/index.ts'
 import { accentHex } from '../../shared/color/index.ts'
 import { FEATURE_ICONS } from '../../shared/icon/index.ts'
 import {
-  ATHAN_H, ATHAN_TOP, CITY_H, CITY_TOP, CONTROL_SPECS, FOLDED_H, HEAD_H, HEAD_TOP, KBTN_W, KROW_H, KROW_TOP, KFINISH_W, KROW_GAP, NX_H, NX_TOP, Q_AVATAR_H, Q_AVATAR_W, Q_BAR_BASE, Q_CONTROLS_BASE, Q_CONTROLS_H, Q_HERO_H, Q_HERO_TOP,
+  ATHAN_H, ATHAN_TOP, CITY_H, CITY_TOP, CONTROL_SPECS, FOLDED_H, HEAD_H, HEAD_TOP, KROW_H, KROW_TOP, athkarRow, KROW_GAP, NX_H, NX_TOP, Q_AVATAR_H, Q_AVATAR_W, Q_BAR_BASE, Q_CONTROLS_BASE, Q_CONTROLS_H, Q_HERO_H, Q_HERO_TOP,
   Q_RECITER_BASE, Q_RECITER_H, Q_SEG_H, Q_SEG_LEFT, Q_SEG_TOP, Q_TIMES_BASE, Q_TIMES_H, Q_TITLE_H, Q_TITLE_TOP, SHEET_BACK_W, SHEET_BAR_LEFT, SHEET_BAR_W, SHEET_BORDER, SHEET_FOOT_H, SHEET_FOOT_TOP, SHEET_H, SHEET_HEAD_H, SHEET_HEAD_TOP,
   SHEET_MIN_THUMB, SHEET_ROWS_H, SHEET_ROWS_LEFT, SHEET_ROWS_RIGHT, SHEET_ROWS_TOP, SHEET_ROW_H, SHEET_SEARCH_H, SHEET_SEARCH_TOP, AVATAR_H, PAD, TOP_H, TOP_Y, ROWS_TOP, ROW_H, SIDE, cardRects, controlScale, quranOffset, type PaneAct,
 } from './layout.ts'
@@ -19,7 +20,7 @@ import { avatar } from './avatar.ts'
 const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 const ltr = (text: string) => `<bdi dir="ltr">${escape(text)}</bdi>`
 
-// Colors live here only: dark by default, light under the app's color scheme (the same mechanism as the Quran pane; Claude Code's own theme row is not read, it can differ from the Desktop's).
+// Colors live here only: dark by default, light under the app's color scheme (Claude Code's own theme row is not read, it can differ from the Desktop's).
 const VARS = {
   dark: '--line:rgba(238,237,232,.13);--line-soft:rgba(238,237,232,.07);--text:#eeede8;--text-2:#c6c3bb;--muted:#a6a299;--dim:#969289;--hover:rgba(238,237,232,.04);--active:rgba(238,237,232,.07);--on:#faf9f5;--on-accent:#1f1e1d;--sheet:#1f1e1d;--sheet-line:#393733;--sheet-dim:#98948b;--sheet-soft:#c6c3bb;--sheet-shadow:0 10px 30px #0008',
   light: '--line:rgba(41,40,36,.14);--line-soft:rgba(41,40,36,.07);--text:#292824;--text-2:#514e47;--muted:#736f66;--dim:#817c72;--hover:rgba(41,40,36,.04);--active:rgba(41,40,36,.07);--on:#ffffff;--on-accent:#ffffff;--sheet:#fdfcf9;--sheet-line:#d9d6cd;--sheet-dim:#79766c;--sheet-soft:#46443e;--sheet-shadow:0 10px 30px #302f2a24',
@@ -38,6 +39,8 @@ const PATHS = {
   ...FEATURE_ICONS,
   chev: '<path d="M6 9l6 6 6-6"/>',
   chevl: '<path d="M15 6l-6 6 6 6"/>',
+  prayer: '<circle cx="5.2" cy="14.8" r="1.9"/><path d="M7 12.8C9.5 8.5 12.5 6.5 15.5 6.5c2 0 3 1.5 3 4v5H21M9.5 11.2l1.5 3.6-3 2.2M2.5 17.2h19"/>',
+  reset: '<path d="M3 10a9 9 0 1 1 2.6 8.4M3 4v6h6"/>',
   moon: '<path d="M20 14.5A8.2 8.2 0 019.5 4a8.2 8.2 0 1010.5 10.5z"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6L7 7M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>',
   check: '<circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.2l2.5 2.5 4.5-5"/>',
@@ -156,8 +159,8 @@ const CSS = `
 .dbtn.off{opacity:.45}
 .krow{display:flex;align-items:center;gap:${KROW_GAP}px;height:${KROW_H}px;font-size:14px}
 .krow .ic{color:var(--text-2);width:18px;height:18px}
-.krow .dbtn{width:${KBTN_W}px;height:${KROW_H - 4}px;flex:none;padding-inline:10px;font-size:14px}
-.krow .dbtn.finish{width:${KFINISH_W}px}
+.krow .dbtn{height:${KROW_H - 4}px;flex:none;padding-inline:0;font-size:12px}
+.krow .pbar{min-width:40px}
 .krow .none{flex:1;color:var(--muted);font-size:12px;direction:ltr;line-height:1;transform:translateY(.12em)}
 `
 
@@ -166,7 +169,7 @@ const header = (name: keyof typeof PATHS, title: string, value: string, isFolded
   `<div class="in dh" style="top:${HEAD_TOP}px" role="button" aria-expanded="${!isFolded}">${icon(name, 'hi')}<span class="ar">${escape(title)}</span><span class="dv"${isLtr ? ' dir="ltr"' : ''}>${value}</span><span class="fold${isHot ? ' hot' : ''}">${icon(isFolded ? 'chevl' : 'chev')}</span></div>`
 
 const prayerCard = (m: PaneModel, hover: PaneAct | null): string => {
-  const p = m.prayer, r = cardRects(m.folds, m.settings.state, m.settings.options, quranLayout(m))
+  const p = m.prayer, r = cardRects(m.folds, m.settings.state, m.settings.options, quranLayout(m), m.athkarMenu)
   if (m.folds.prayer) return `<section class="dcard" style="top:${r.prayerY}px;height:${r.prayerH}px">${header('sujoodreal', 'الصلاة', '', true, hover === 'fold-prayer')}</section>`
   let body: string
   if (!p.isSet) {
@@ -184,14 +187,15 @@ const prayerCard = (m: PaneModel, hover: PaneAct | null): string => {
 const ltrDigits = (escaped: string) => escaped.replace(/[٠-٩]+(?:–[٠-٩]+)?/g, run => `<bdi dir="ltr">${run}</bdi>`)
 
 const quranCard = (m: PaneModel, hover: PaneAct | null): string => {
+  // The open sheet covers the hero, so the avatar is left out of the picture then (it keeps the pane under the Client tree limit).
   const q = m.quran, layout = quranLayout(m), r = cardRects(m.folds, m.settings.state, m.settings.options, layout)
   // Folded, the header says which segment is playing; open, «ابدأ من» does.
-  if (m.folds.quran) return `<section class="dcard" style="top:${r.quranY}px;height:${r.quranH}px">${header('qpane', 'القرآن', q.isAvailable ? ltrDigits(escape(q.part)) : '', true, hover === 'fold-quran')}</section>`
+  if (m.folds.quran) return `<section class="dcard" style="top:${r.quranY}px;height:${r.quranH}px">${header('qpane', 'القرآن الكريم', q.isAvailable ? ltrDigits(escape(q.part)) : '', true, hover === 'fold-quran')}</section>`
   const ok = q.isAvailable, segmented = ok && q.segmented, off = quranOffset(segmented)
   const cls = (act: PaneAct, extra = '', disabled = false) => `${extra}${hover === act ? ' hot' : ''}${disabled ? ' off' : ''}`
   const label = ok ? ltrDigits(escape(q.part)) : ''
   const hero = `<div class="a-hero"><div class="a-info"><div class="a-status${ok && q.isLive ? ' live' : ''}"><span>${ok ? escape(q.status) : 'متوقف'}</span></div>`
-    + `<div class="a-title ${cls('quran-pick-surah')}" role="button" aria-haspopup="listbox" aria-label="اختيار السورة"><span class="ar">${ok ? escape(q.surah) : '—'}</span>${icon('chev')}</div></div><div class="a-avatar">${ok ? q.avatar : ''}</div></div>`
+    + `<div class="a-title ${cls('quran-pick-surah')}" role="button" aria-haspopup="listbox" aria-label="اختيار السورة"><span class="ar">${ok ? escape(q.surah) : '—'}</span>${icon('chev')}</div></div><div class="a-avatar">${ok && !m.picker ? q.avatar : ''}</div></div>`
   const start = segmented ? `<div class="below-seg ${cls('quran-pick-segment')}" role="button" aria-haspopup="listbox" aria-label="ابدأ من"><small>ابدأ من</small><span class="segment-label">${label}</span>${icon('chev')}</div>` : ''
   const reciter = `<div class="a-reciter ${cls('quran-pick-reciter')}" style="top:${Q_RECITER_BASE + off}px" role="button" aria-haspopup="listbox" aria-label="اختيار القارئ">${icon('mic')}<span class="name ar${ok ? '' : ' off'}">${ok ? escape(q.reciter) : '—'}</span>${icon('chev', 'tail')}</div>`
   const bar = `<div class="bar" style="top:${Q_BAR_BASE + off}px"><div class="pbar"><i style="width:${ok ? Math.round(q.progress * 1000) / 10 : 0}%"></i></div></div>`
@@ -213,7 +217,7 @@ const quranCard = (m: PaneModel, hover: PaneAct | null): string => {
     return `<div class="cb ${cls(c.act, c.act === 'quran-toggle' ? 'pl' : '', disabled)}" role="button" aria-label="${aria}" style="${size}">${icon(name)}</div>`
   }).join('')
   const sheet = m.picker ? quranSheet(m, r.quranY, hover) : ''
-  return `<section class="dcard" style="top:${r.quranY}px;height:${r.quranH}px">${header('qpane', 'القرآن', '', false, hover === 'fold-quran')}${hero}${start}${reciter}${bar}${times}${controls}</section>${sheet}`
+  return `<section class="dcard" style="top:${r.quranY}px;height:${r.quranH}px">${header('qpane', 'القرآن الكريم', '', false, hover === 'fold-quran')}${hero}${start}${reciter}${bar}${times}${controls}</section>${sheet}`
 }
 
 // The open picker: a sheet over the card with the list's head, a search box, eight rows, a scrollbar and a footer.
@@ -238,19 +242,45 @@ const quranSheet = (m: PaneModel, quranY: number, hover: PaneAct | null): string
 }
 
 const athkarCard = (m: PaneModel, hover: PaneAct | null): string => {
-  const k = m.athkar, r = cardRects(m.folds, m.settings.state, m.settings.options, quranLayout(m))
-  const head = (folded: boolean) => header('horizon', k.isAvailable ? k.title : 'أذكار', k.isAvailable ? ltr(k.fraction) : '', folded, hover === 'fold-athkar')
-  if (m.folds.athkar) return `<section class="dcard" style="top:${r.athkarY}px;height:${r.athkarH}px">${head(true)}</section>`
-  const row = k.isAvailable
-    ? `${icon('horizon')}<div class="pbar"><i style="width:${Math.round(k.progress * 1000) / 10}%"></i></div>`
-    : `${icon('horizon')}<span class="none">Athkar are off: /athkar on</span>`
-  return `<section class="dcard" style="top:${r.athkarY}px;height:${r.athkarH}px">${head(false)}`
-    + `<div class="in krow" style="top:${KROW_TOP}px">${row}${k.isAvailable && !k.isDone ? `<span class="dbtn finish${hover === 'athkar-finish' ? ' hot' : ''}" role="button">✓ أتممتُها</span>` : ''}<span class="dbtn tertiary${hover === 'athkar-open' ? ' hot' : ''}${k.isAvailable ? '' : ' off'}" role="button">Open</span></div></section>`
+  const k = m.athkar, r = cardRects(m.folds, m.settings.state, m.settings.options, quranLayout(m), m.athkarMenu)
+  // The card's mark is the athkar horizon for every set; the per-set icons live only in the menu rows.
+  const mark = 'horizon' as const
+  const foldedHead = header(mark, 'الأذكار', '', true, hover === 'fold-athkar')
+  if (m.folds.athkar) return `<section class="dcard" style="top:${r.athkarY}px;height:${r.athkarH}px">${foldedHead}</section>`
+  const kr = athkarRow(m.width)
+  const head = k.isAvailable
+    ? `<div class="in dh" style="top:${HEAD_TOP}px" role="group"><div class="picker-title${hover === 'athkar-picker' ? ' hot' : ''}" role="button" aria-expanded="${m.athkarMenu}" aria-haspopup="menu" aria-label="${escape(k.title)}، اختر الورد">${icon(mark, 'hi')}<span class="title ar">${escape(k.title)}</span>${icon('chev', 'tail')}</div>`
+      + `<span class="dv" dir="ltr">${ltr(k.fraction)}</span><span class="fold${hover === 'fold-athkar' ? ' hot' : ''}" role="button" aria-label="طي الأذكار" aria-expanded="true">${icon('chev')}</span></div>`
+    : foldedHead
+  const menu = m.athkarMenu && k.isAvailable
+    ? `<div class="in menu" role="menu" aria-label="اختر الورد" style="top:${KMENU_TOP}px">${ATHKAR_SETS.map((s, i) => `<div class="menu-row${hover === `athkar-set:${s.key}` ? ' hot' : ''}" role="menuitemradio" aria-checked="${s.key === k.set}" style="top:${KMENU_PAD - 1 + i * (KMENU_ROW_H + KMENU_GAP)}px">${icon(s.icon)}<span>${s.title}</span>${s.key === k.set ? '<span class="tick">✓</span>' : ''}</div>`).join('')}</div>` : ''
+  const bar = k.isAvailable
+    ? `<div class="pbar" role="progressbar" aria-label="تقدّم ${escape(k.title)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(k.progress * 100)}"><i style="width:${Math.round(k.progress * 1000) / 10}%"></i></div>`
+    : `<span class="none">Athkar are off: /athkar on</span>`
+  const btn = (act: string, cls: string, width: number, aria: string, inner: string) => `<span class="dbtn ${cls}${hover === act ? ' hot' : ''}" role="button" aria-label="${aria}" style="width:${width}px">${inner}</span>`
+  const openLabel = k.isAvailable && k.hasCounts ? 'أكمل' : 'ابدأ'
+  const undo = k.isAvailable && k.canUndo
+  const buttons = !k.isAvailable
+    ? `<span class="dbtn primary off" role="button" aria-label="${openLabel}" style="width:${kr.openW}px">${openLabel}</span>`
+    : (k.isDone ? '' : btn('athkar-open', 'primary', kr.openW, `${openLabel} ${escape(k.title)}`, openLabel) + btn('athkar-finish', 'finish', kr.finishW, `أتممتُ ${escape(k.title)}`, kr.compact ? icon('check') : '✓ أتممتُها'))
+      + (k.isDone ? `<span class="done-note" style="width:${kr.doneW}px">أتممتَ وردك ✓</span>` : '')
+      + btn('athkar-reset', `reset${undo ? ' undo' : ''}`, kr.resetW, `${undo ? 'تراجع عن إعادة' : 'إعادة بدء'} ${escape(k.title)}`, `${icon('reset')}${kr.compact ? '' : `<span>${undo ? 'تراجع' : 'إعادة'}</span>`}`)
+  return `<section class="dcard ${m.athkarMenu ? 'picker-open' : 'compact'}" style="top:${r.athkarY}px;height:${r.athkarH}px">${head}${menu}`
+    + `<div class="in krow" style="top:${athkarRowTop(m.athkarMenu)}px;gap:${kr.gap}px">${icon(mark)}${bar}${buttons}</div></section>`
 }
-
 
 // Only tab labels stay at 11px: at 240px, «الأذكار» needs 28.572px at 12px,
 // but a 31.6px tab has 27.6px after its horizontal padding.
+const ATHKAR_CSS = `
+.picker-title{display:flex;align-items:center;justify-content:flex-start;gap:5px;border-radius:5px;min-width:0;flex:1;height:${HEAD_H}px;font-size:16px;font-weight:500;white-space:nowrap}
+.picker-title .hi{width:20px;height:20px;color:var(--accent);flex:none}.picker-title .title{line-height:1;transform:translateY(.12em);min-width:0;overflow:hidden;text-overflow:ellipsis}.picker-title .tail{width:14px;height:14px;color:var(--muted);flex:none}
+.picker-title.hot,.menu-row.hot{background:var(--hover);color:var(--text)}
+.dbtn.reset{gap:4px;color:var(--muted);font-size:12px;padding-inline:0}.dbtn.reset .ic{width:16px;height:16px}.dbtn.reset.undo{color:var(--accent)}
+.dbtn.primary{color:var(--text)}.dbtn.finish{color:var(--text-2)}.dbtn.finish .ic{width:16px;height:16px}
+.menu{border-top:1px solid var(--line-soft)}.menu-row{position:absolute;left:0;right:0;display:flex;align-items:center;gap:9px;height:${KMENU_ROW_H}px;border-radius:6px;padding:0 8px;text-align:right;font-size:14px}.menu-row .ic{width:18px;height:18px}.menu-row[aria-checked=true]{background:var(--active)}.menu .tick{margin-inline-start:auto;color:var(--accent)}
+.done-note{font-size:12px;color:var(--muted);white-space:nowrap}.krow .done-note{flex:none;text-align:center}
+`
+
 const SETTINGS_CSS = `
 .settings-tabs{position:absolute;left:${TAB_INSET}px;right:${TAB_INSET}px;top:${SETTINGS_TOP}px;height:${TABS_H}px;border:1px solid transparent;border-bottom-color:var(--line);padding:4px;background:transparent;overflow:visible}
 .setting-tab{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:4px 2px;min-width:0;border-radius:8px 8px 0 0;background:transparent;color:var(--muted)}
@@ -287,7 +317,7 @@ const settingRow = (row: SettingRow, y: number): string => {
   return `<span class="setting-label" style="top:${y}px;max-width:calc(100% - ${inline}px)"><span>${escape(row.label)}</span></span><span class="setting-hint" style="top:${y+HINT_TOP}px">${escape(row.hint)}</span>${row.extra?.controls.length?`<span class="setting-extra" style="top:${y+EXTRA_TOP+7}px">${escape(row.extra.label)}</span>`:''}`
 }
 const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
-  const model=m.settings, s=model.state, r=cardRects(m.folds,s,model.options,quranLayout(m)), b=settingsBody(m.width,model)
+  const model=m.settings, s=model.state, r=cardRects(m.folds,s,model.options,quranLayout(m), m.athkarMenu), b=settingsBody(m.width,model)
   let content=header('gearteeth','الإعدادات','٤ أقسام',!s.open,hover==='settings:fold')
   if (s.open) {
     content+=`<div class="settings-tabs" role="tablist" aria-label="الإعدادات">${categoryTabs(m.width).map(c=>`<div class="setting-tab${hover===`settings:tab:${c.category}`?' hot':''}" style="left:${c.x0-PAD-TAB_INSET-1}px;top:${c.y0-SETTINGS_TOP-1}px;width:${c.x1-c.x0}px;height:${c.y1-c.y0}px" role="tab" aria-selected="${s.category===c.category}" aria-label="${c.label}">${icon(c.icon)}<span>${c.label}</span></div>`).join('')}</div>`
@@ -320,10 +350,10 @@ const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
 const paneTop = `<div class="pane-top">${avatar(AVATAR_H)}<span>مُسلِم</span></div><div class="pane-command" dir="ltr">${ltr('/muslim')}</div>`
 
 export const paneSvg = (m: PaneModel, hover: PaneAct | null = null): string => {
-  const width = m.width, height = cardRects(m.folds, m.settings.state, m.settings.options, quranLayout(m)).height
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" class="dp${m.theme ? ` theme-${m.theme}` : ''}" dir="rtl"><style>${tajawalFontFaceCss()}${paletteCss('.dp', m.color)}${CSS}${SETTINGS_CSS}</style>${paneTop}${prayerCard(m, hover)}${quranCard(m, hover)}${athkarCard(m, hover)}${settingsCard(m, hover)}</div></foreignObject></svg>`
+  const width = m.width, height = cardRects(m.folds, m.settings.state, m.settings.options, quranLayout(m), m.athkarMenu).height
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" class="dp${m.theme ? ` theme-${m.theme}` : ''}" dir="rtl"><style>${tajawalFontFaceCss()}${paletteCss('.dp', m.color)}${CSS}${ATHKAR_CSS}${m.width <= 380 ? ".reset-label{display:none}" : ""}${SETTINGS_CSS}</style>${paneTop}${prayerCard(m, hover)}${quranCard(m, hover)}${athkarCard(m, hover)}${settingsCard(m, hover)}</div></foreignObject></svg>`
 }
 
 export const paneAlt = (m: PaneModel): string =>
-  `مسلم · الصلاة${m.prayer.isSet ? ` · ${m.prayer.nextName} ${m.prayer.nextTime} · ${m.prayer.until}` : ''} · القرآن${m.quran.isAvailable ? ` · ${m.quran.surah} · ${m.quran.elapsed} / ${m.quran.total}` : ''} · ${m.athkar.isAvailable ? `${m.athkar.title} ${m.athkar.fraction}` : 'أذكار'} · الإعدادات`
+  `مسلم، الصلاة${m.prayer.isSet ? `، ${m.prayer.nextName} ${m.prayer.nextTime}، ${m.prayer.until}` : ''}، القرآن${m.quran.isAvailable ? `، ${m.quran.surah}، ${m.quran.elapsed} / ${m.quran.total}` : ''}، ${m.athkar.isAvailable ? `${m.athkar.title} ${m.athkar.fraction}` : 'أذكار'}، الإعدادات`
 

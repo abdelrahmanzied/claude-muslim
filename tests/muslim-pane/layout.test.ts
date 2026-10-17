@@ -1,8 +1,10 @@
+import { athkarHead, athkarRow, FOLD_W, FOLD_BLEED, KROW_OPEN_TOP, KMENU_TOP, KMENU_PAD, KMENU_ROW_H, KMENU_GAP } from '../../src/features/muslim-pane/layout.ts'
 import { expect, test } from 'claude-code/testing'
-import { AVATAR_H, CARDS_TOP, CITY_H, CITY_TOP, FOLDED_H, GAP, TOP_H, TOP_Y, NO_FOLDS, TITLE_HIT_H, cardRects, paneHeight, ATHAN_H, ATHAN_TOP, ATHKAR_H, ATHKAR_Y, CONTROL_SPECS, Q_CONTROLS_BASE, Q_CONTROLS_H, Q_RECITER_BASE, Q_SEG_TOP, Q_TITLE_TOP, Q_BASE_H, Q_PICKER_H, SHEET_BORDER, SHEET_ROWS_TOP, SHEET_ROW_H, SHEET_HEAD_TOP, SHEET_BACK_W, quranHeight, quranOffset, sheetBar, quranRowOf, NO_QURAN, KBTN_W, KFINISH_W, KROW_GAP, KROW_TOP, PAD, SIDE, PANE_HEIGHT, PRAYER_H, PRAYER_Y, QURAN_Y, hitAt, hitOfCells, isPaneMessage, keyAct, type Enabled } from '../../src/features/muslim-pane/layout.ts'
+import { AVATAR_H, CARDS_TOP, CITY_H, CITY_TOP, FOLDED_H, GAP, TOP_H, TOP_Y, NO_FOLDS, TITLE_HIT_H, cardRects, paneHeight, ATHAN_H, ATHAN_TOP, ATHKAR_H, ATHKAR_Y, CONTROL_SPECS, Q_CONTROLS_BASE, Q_CONTROLS_H, Q_RECITER_BASE, Q_SEG_TOP, Q_TITLE_TOP, Q_BASE_H, Q_PICKER_H, SHEET_BORDER, SHEET_ROWS_TOP, SHEET_ROW_H, SHEET_HEAD_TOP, SHEET_BACK_W, quranHeight, quranOffset, sheetBar, quranRowOf, NO_QURAN, KROW_TOP, PAD, SIDE, PANE_HEIGHT, PRAYER_H, PRAYER_Y, QURAN_Y, hitAt, hitOfCells, isPaneMessage, keyAct, type Enabled } from '../../src/features/muslim-pane/layout.ts'
 
 const ALL: Enabled = { athan: true, quran: true, canPrev: true, canNext: true, athkar: true }
 const W = 360
+const mid = (b: { x0: number; x1: number }) => (b.x0 + b.x1) / 2
 const SEG = { segmented: true, picker: null }
 const CY = QURAN_Y + Q_CONTROLS_BASE + quranOffset(false) + Q_CONTROLS_H / 2
 
@@ -40,7 +42,7 @@ test('each control is hit at its center', () => {
   expect(hitAt(W, W / 2 - 110, y - 8.25, ALL)).toBeNull()
   expect(hitAt(W, W / 2 - 110, y - 8.25, { ...ALL, segmented: true }, 0, 0, NO_FOLDS, undefined, SEG)).toBe('quran-repeat-segment')
   expect(hitAt(W, W / 2, PRAYER_Y + ATHAN_TOP + 10, ALL)).toBe('athan')
-  expect(hitAt(W, PAD + SIDE + KBTN_W / 2, ATHKAR_Y + KROW_TOP + 18, ALL)).toBe('athkar-open')
+  expect(hitAt(W, mid(athkarRow(W).open), ATHKAR_Y + KROW_TOP + 18, ALL)).toBe('athkar-open')
 })
 
 test('empty space and the right side of the athkar row hit nothing', () => {
@@ -53,7 +55,7 @@ test('disabled targets are not hit', () => {
   const none: Enabled = { athan: false, quran: false, canPrev: false, canNext: false, athkar: false }
   const y = CY
   expect(hitAt(W, W / 2, y, none)).toBeNull()
-  expect(hitAt(W, PAD + SIDE + KBTN_W / 2, ATHKAR_Y + KROW_TOP + 18, none)).toBeNull()
+  expect(hitAt(W, mid(athkarRow(W).open), ATHKAR_Y + KROW_TOP + 18, none)).toBeNull()
   expect(hitAt(W, W / 2, PRAYER_Y + ATHAN_TOP + 10, none)).toBeNull()
   expect(hitAt(W, W / 2 + 10, QURAN_Y + Q_TITLE_TOP + 10, none)).toBeNull()
   expect(hitAt(W, W / 2 - 60, y, { ...ALL, canPrev: false })).toBeNull()
@@ -98,9 +100,9 @@ test('folded cards shrink to their title row and the cards below move up', () =>
 test('the whole title row folds, even by a whole-cell pointer, and folded cards hit nothing else', () => {
   expect(hitAt(W, 40, PRAYER_Y + 20, ALL)).toBe('fold-prayer')
   expect(hitAt(W, W - 40, QURAN_Y + 20, ALL)).toBe('fold-quran')
-  expect(hitAt(W, W / 2, ATHKAR_Y + 20, ALL)).toBe('fold-athkar')
+  expect(hitAt(W, W / 2, ATHKAR_Y + 20, ALL)).toBe('athkar-picker')
   // A cell just under the row still reaches it.
-  expect(hitAt(W, W / 2, ATHKAR_Y + 50, ALL, 4, 12)).toBe('fold-athkar')
+  expect(hitAt(W, PAD + SIDE + 4, ATHKAR_Y + 40, ALL, 4, 4)).toBe('fold-athkar')
   const folds = { prayer: true, quran: true, athkar: true }
   const r = cardRects(folds)
   expect(hitAt(W, W / 2, r.quranY + 20, ALL, 0, 0, folds)).toBe('fold-quran')
@@ -109,8 +111,8 @@ test('the whole title row folds, even by a whole-cell pointer, and folded cards 
   expect(hitOfCells(W, 20, (r.athkarY + 20) / (r.height / 40), 40, 40, false, ALL, folds)).toBe('fold-athkar')
 })
 
-test('athkar finish sits beside Open and is inactive when done, off or folded', () => {
-  const y = ATHKAR_Y + KROW_TOP + 18, x = PAD + SIDE + KBTN_W + KROW_GAP + KFINISH_W / 2
+test('athkar finish sits beside Open and is inactive when done, off or folded; Open is hidden when done', () => {
+  const y = ATHKAR_Y + KROW_TOP + 18, x = mid(athkarRow(W).finish)
   expect(hitAt(W, x, y, { ...ALL, athkarFinish: true })).toBe('athkar-finish')
   expect(hitAt(W, x, y, { ...ALL, athkarFinish: false })).toBeNull()
   expect(hitAt(W, x, y, { ...ALL, athkarFinish: true }, 0, 0, { ...NO_FOLDS, athkar: true })).toBeNull()
@@ -157,4 +159,60 @@ test('a short list has no scrollbar, and only its rows are hit', () => {
   expect(quranRowOf('quran-row:5')).toBe(5)
   expect(quranRowOf('quran-toggle')).toBeNull()
   expect(CONTROL_SPECS).toHaveLength(5)
+})
+
+for (const width of [240, 360, 420]) test(`athkar ${width}: fold at the left end, title menu, row buttons and a usable bar`, () => {
+  const head = athkarHead(width), row = athkarRow(width)
+  const y = ATHKAR_Y, on = { ...ALL, athkarFinish: true }
+  // The fold chevron is where the shared header puts it: the same 26px target 6px past the card's left inset.
+  expect(head.fold).toEqual({ x0: PAD + SIDE - FOLD_BLEED, x1: PAD + SIDE - FOLD_BLEED + FOLD_W })
+  // RTL after the bar: «ابدأ/أكمل», «أتممتُها», then «إعادة» at the far left; no overlaps, all inside the card.
+  expect(row.reset.x0).toBe(PAD + SIDE)
+  expect(row.finish.x0).toBeGreaterThan(row.reset.x1)
+  expect(row.open.x0).toBeGreaterThan(row.finish.x1)
+  expect(row.open.x1).toBeLessThan(width - PAD - SIDE)
+  // The bar (row width minus the 18px icon, the buttons and the gaps) keeps a sensible minimum.
+  const inner = width - 2 * (PAD + SIDE), bar = inner - 18 - row.gap - (row.open.x1 - row.reset.x0) - row.gap
+  expect(bar).toBeGreaterThanOrEqual(40)
+  expect(row.compact).toBe(width <= 380)
+  for (const open of [false, true]) {
+    const hit = (x: number, py: number, sx = 0, sy = 0) => hitAt(width, x, y + py, on, sx, sy, NO_FOLDS, undefined, NO_QURAN, open)
+    expect(hit(mid(head.title), 28)).toBe('athkar-picker')
+    expect(hit(mid(head.fold), 28)).toBe('fold-athkar')
+    expect(hit(head.title.x0 - 1, 28, 4, 12)).toBe('athkar-picker')
+    const rowTop = open ? KROW_OPEN_TOP : KROW_TOP
+    if (!open) {
+      expect(hit(mid(row.reset), rowTop + 18)).toBe('athkar-reset')
+      expect(hit(mid(row.finish), rowTop + 18)).toBe('athkar-finish')
+      expect(hit(mid(row.open), rowTop + 18)).toBe('athkar-open')
+      expect(hitAt(width, mid(row.open), y + rowTop + 18, { ...on, athkarDone: true, athkarFinish: false }, 0, 0, NO_FOLDS, undefined, NO_QURAN, false)).toBeNull()
+      expect(hitAt(width, mid(row.reset), y + rowTop + 18, { ...on, athkarDone: true, athkarFinish: false }, 0, 0, NO_FOLDS, undefined, NO_QURAN, false)).toBe('athkar-reset')
+    }
+    for (const [i, key] of ['morning', 'evening', 'after-salah'].entries()) {
+      const py = KMENU_TOP + KMENU_PAD + i * (KMENU_ROW_H + KMENU_GAP) + 16
+      if (open) {
+        expect(hit(width / 2, py)).toBe(`athkar-set:${key}`)
+        const height = paneHeight(NO_FOLDS, undefined, undefined, NO_QURAN, true)
+        expect(hitOfCells(width, width / 2 * 40 / width, (y + py) * 80 / height, 40, 80, true, on, NO_FOLDS, undefined, NO_QURAN, true)).toBe(`athkar-set:${key}`)
+      } else expect(hit(width - PAD - SIDE, py)).not.toBe(`athkar-set:${key}`)
+    }
+  }
+  expect(cardRects(NO_FOLDS).athkarH).toBe(98)
+  const openRects = cardRects(NO_FOLDS, undefined, undefined, NO_QURAN, true)
+  expect(openRects.athkarH).toBe(208)
+  expect(openRects.settingsY).toBe(cardRects(NO_FOLDS).settingsY + 110)
+  expect(openRects.height).toBe(PANE_HEIGHT + 110)
+  expect(cardRects({ ...NO_FOLDS, athkar: true }, undefined, undefined, NO_QURAN, true).athkarH).toBe(FOLDED_H)
+  expect(hitAt(width, mid(head.title), y + 28, { ...on, athkar: false })).toBe('fold-athkar')
+})
+
+test('the fold chevron sits at the same left x on all three folding cards, folded or open', () => {
+  const x = PAD + SIDE + 4
+  for (const folded of [false, true]) {
+    const folds = { prayer: folded, quran: folded, athkar: folded }
+    const r = cardRects(folds)
+    expect(hitAt(W, x, r.prayerY + 28, ALL, 0, 0, folds)).toBe('fold-prayer')
+    expect(hitAt(W, x, r.quranY + 28, ALL, 0, 0, folds)).toBe('fold-quran')
+    expect(hitAt(W, x, r.athkarY + 28, ALL, 0, 0, folds)).toBe('fold-athkar')
+  }
 })

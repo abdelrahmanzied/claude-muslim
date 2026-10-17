@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Muslim pane: the athkar card header matches the other cards: icon, title (the set name with its menu chevron when open, just «الأذكار» when folded), fraction, and the fold chevron at the left end in both states. Reset moved to the progress row, which now reads «ابدأ» or «أكمل» (replacing «Open»), «✓ أتممتُها» and «إعادة» (↺, «تراجع» for 8 seconds after a reset); done shows «أتممتَ وردك ✓» and «إعادة». The row's button text is 12px and the buttons shrink to icons on narrow panes. The card's header and progress row use the original athkar mark (`horizon`) for every set; the sun, moon and prayer icons stay only in the title menu's rows.
+
+- Muslim pane: choose morning, evening or after-salah athkar from the title menu, with reset and an 8-second undo.
+
 - Muslim pane: make the full Quran card smaller to serialize. The embedded Tajawal is subset to Latin, Arabic and punctuation (layout features kept), and both avatars draw their pixel runs as paths (same art); the Quran avatar drops CSS for sprites it never shows.
 
 - Muslim pane: the Quran card is the full player: status, the surah as a picker button, the reciter avatar, «ابدأ من» for split recordings, the reciter row, progress with times, and repeat-segment, previous, play/stop, next and repeat-surah. Reciter, surah and segment lists open as an in-card sheet with search, eight rows, a drag scrollbar and arrow-key navigation. «افتح المصحف» is gone (the Quran pane and `/quran` stay). The list logic moved to `src/shared/picker/`.

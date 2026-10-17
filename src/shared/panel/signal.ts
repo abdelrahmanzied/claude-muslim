@@ -15,7 +15,7 @@ export type PanelSalah = {
 }
 
 export type PanelQuran = {
-  // The full reciter name with the recording, as the Quran pane's reciter field shows it.
+  // The full reciter name with the recording, as the Quran card's reciter field shows it.
   reciter: string
   surah: string
   // The segment being played or selected, in the shared label (`الربع ٥، الآيات ١٥–٢٤`); empty for a whole surah.
@@ -40,7 +40,10 @@ export type PanelQuran = {
 export type PanelList = 'reciter' | 'surah' | 'segment'
 export type PanelOption = { value: string; label: string; number: string; selected: boolean }
 
+export type PanelAthkarSet = 'morning' | 'evening' | 'after-salah'
 export type PanelAthkar = {
+  set: PanelAthkarSet
+  canUndo: boolean
   // The period's authored title, with tashkeel as the athkar data has it.
   title: string
   done: number
@@ -50,7 +53,7 @@ export type PanelAthkar = {
 }
 
 // The Quran's list picks carry a validated string: a reciter key, a surah number, a segment index.
-export type PanelAction = 'salah-city' | 'quran-toggle' | 'quran-prev' | 'quran-next' | 'quran-reciter' | 'quran-surah' | 'quran-segment' | 'quran-repeat-surah' | 'quran-repeat-segment' | 'athkar-open' | 'athkar-finish'
+export type PanelAction = 'salah-city' | 'quran-toggle' | 'quran-prev' | 'quran-next' | 'quran-reciter' | 'quran-surah' | 'quran-segment' | 'quran-repeat-surah' | 'quran-repeat-segment' | 'athkar-open' | 'athkar-finish' | 'athkar-set' | 'athkar-reset' | 'athkar-undo'
 
 const feeds: {
   salah?: (now: number) => PanelSalah | null

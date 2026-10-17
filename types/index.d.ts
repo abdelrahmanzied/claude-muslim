@@ -70,6 +70,8 @@ declare module 'claude-code' {
       paneCopied: PaneCopied | null
       // The Quran card's open picker, or null.
       panePicker: PanePicker | null
+      // The athkar card's title menu, kept with the pane's UI state.
+      paneAthkarMenu: boolean
       // Which daily cards are folded to their title row.
       paneFolds: { prayer: boolean; quran: boolean; athkar: boolean } | null
 

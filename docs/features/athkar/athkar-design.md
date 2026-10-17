@@ -198,3 +198,7 @@ After each obligatory prayer, the after-salah reading takes the band at prayer +
 Salah owns a read-through `salahAthkarTimes` state value: each read calculates current bounds and date keys from the configured place, method and adjustments. It is available before the first ticker publication and cannot retain yesterday’s bounds at midnight or after a settings reload. Athkar reads it for commands, input and drawing. A one-shot redraw wakes at the next Fajr/Maghrib; the existing minute ticker refreshes prayer-based or fixed-hour skies and handles clock changes. Manual choices, after-salah precedence and demos keep their rules.
 
 Prayer bounds reuse a pure daily calculation cache, refreshed on the first read after the place’s date changes; a settings reload drops the cache.
+
+## Muslim pane card
+
+The pane's athkar card (set menu, progress row, «ابدأ/أكمل · ✓ أتممتُها · إعادة») is drawn by the Muslim pane; its look and sizes are in [the pane design](../muslim-pane/muslim-pane-design.md), its behaviour in [athkar.md](athkar.md). It never changes the band's 77px open and 24px folded heights or any religious text.
