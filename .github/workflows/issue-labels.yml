@@ -23,7 +23,7 @@ jobs:
                 'athkar': 'athkar',
                 'salah': 'salah',
                 'quran': 'quran',
-                'Muslim pane': 'muslim',
+                'Muslim pane': 'pane',
                 '/muslim commands and settings': 'muslim',
               },
               Surface: {

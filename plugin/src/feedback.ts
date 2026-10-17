@@ -21,7 +21,7 @@ export const FEATURES: readonly string[] = ['thikr', 'athkar', 'salah', 'quran',
 
 // The label each feature adds (the issue-labels workflow does the same from the form).
 export const FEATURE_LABELS: Readonly<Record<string, string>> = {
-  thikr: 'thikr', athkar: 'athkar', salah: 'salah', quran: 'quran', 'Muslim pane': 'muslim', '/muslim commands and settings': 'muslim',
+  thikr: 'thikr', athkar: 'athkar', salah: 'salah', quran: 'quran', 'Muslim pane': 'pane', '/muslim commands and settings': 'muslim',
 }
 
 export const KINDS: readonly Kind[] = [
