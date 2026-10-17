@@ -8,6 +8,13 @@ Thank you for helping. Bug reports, ideas, corrections to the religious text and
 - **Anything bigger** (a new feature, a new command, a change to how something looks or works): open an issue first, or comment on an existing one, and say you want to work on it. Wait until the maintainer agrees and assigns it to you, so nobody builds something that will not be merged or that someone else is already doing.
 - **Religious text** (Quran, athkar, thikr, translations): use the content correction form, see [Religious content](#religious-content).
 
+So two people never build the same thing:
+
+- One person per issue. The assignee is the one working on it; if an issue already has one, pick another or ask in a comment.
+- Search open issues and pull requests before you start.
+- Open a draft pull request early and link the issue (`Closes #12`), so others can see the work.
+- No update in 14 days: the maintainer may ask, then unassign the issue so someone else can take it.
+
 ## Setup
 
 ```bash
