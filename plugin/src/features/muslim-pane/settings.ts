@@ -60,8 +60,8 @@ export type Effect =
   | { kind: 'copy'; command: string }
   | { kind: 'command'; args: 'update' | 'feedback' }
   | { kind: 'autoupdate'; value: boolean }
-export type SettingControl = { id: SettingsAct; label: string; width: number; style: 'pill' | 'switch' | 'value' | 'step' | 'swatch'; selected?: boolean; disabled?: boolean; done?: boolean; effect: Effect }
-export type SettingRow = { kind?: 'divider'; label: string; hint: string; hintLtr?: boolean; hintSecondLine?: string; height: number; controls: SettingControl[]; extra?: { label: string; controls: SettingControl[] } }
+export type SettingControl = { id: SettingsAct; label: string; width: number; style: 'pill' | 'switch' | 'value' | 'inline' | 'step' | 'swatch'; selected?: boolean; disabled?: boolean; done?: boolean; effect: Effect }
+export type SettingRow = { kind?: 'divider'; label: string; hint: string; hintLtr?: boolean; hintNote?: string; hintSecondLine?: string; height: number; controls: SettingControl[]; extra?: { label: string; controls: SettingControl[] } }
 export const SETTINGS_TOP = 56
 // One-line labels: 4px padding, 20px icon, 4px gap, 14px label, 4px padding, inside the 5px border+padding.
 export const TABS_H = 60
@@ -98,7 +98,7 @@ export const LIST_H = 548
 // Constants, per tab, for the tallest row set: «عرض الصلاة» and the speed row count their stepper line (EXTRA_ROW_H) here.
 export const MAIN_HEIGHTS = {
   prayer: bodyH(EXTRA_ROW_H, SWITCH_ROW_H, ROW_H, ROW_H, ROW_H), athkar: bodyH(SWITCH_ROW_H, ROW_H),
-  thikr: bodyH(SWITCH_ROW_H, ROW_H, EXTRA_ROW_H, TWO_LINE_SWITCH_ROW_H), general: bodyH(SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H, ROW_H, DIVIDER_H, ROW_H, SWITCH_ROW_H, ROW_H),
+  thikr: bodyH(SWITCH_ROW_H, ROW_H, EXTRA_ROW_H, TWO_LINE_SWITCH_ROW_H), general: bodyH(SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H, ROW_H, DIVIDER_H, SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H),
 } as const
 export const FACE_HEIGHTS = { methods: LIST_H, adjust: ADJUST_NOTE_TOP + 50, city: 310 } as const
 // With the options, a tab is only as tall as its visible rows: a hidden stepper line takes no space,
@@ -132,8 +132,8 @@ const control = (id: string, label: string, effect: Effect, style: SettingContro
 const toggle = (o: SettingsOptions, field: keyof PaneOptimistic) => [control(field, o[field] ? 'on' : 'off', config(field, !o[field]), 'switch', 38, o[field])]
 const pills = (field: keyof Options, selected: string, values: readonly (readonly [string, string])[]) => values.map(([v,l]) => control(`${field}:${v}`, l, config(field, v), 'pill', l.length > 10 ? 108 : 46, selected === v))
 const face = (id: SettingsState['face'], label: string) => [control(id, label, { kind: 'face', face: id }, 'value', 142)]
-// Heights include the ROW_GAP after each row. A switch or the color dots share the label line.
-export const isInline = (c: SettingControl | undefined): boolean => c?.style === 'switch' || c?.style === 'swatch'
+// Heights include the ROW_GAP after each row. Switches, color dots and compact buttons share the label line.
+export const isInline = (c: SettingControl | undefined): boolean => c?.style === 'switch' || c?.style === 'swatch' || c?.style === 'inline'
 const row = (label: string, controls: SettingControl[], hint: string, extra?: SettingRow['extra']): SettingRow => ({ label, controls, hint, height: extra?.controls.length ? EXTRA_ROW_H : isInline(controls[0]) ? SWITCH_ROW_H : ROW_H, ...(extra ? { extra } : {}) })
 // A copy button: its label is the command (or a note); for COPIED_MS after a copy it confirms instead.
 const copyControl = (m: SettingsModel, id: string, label: string, command: string, width: number): SettingControl => {
@@ -147,6 +147,7 @@ const step = (id: string, value: number, min: number, max: number, effect: (n: n
 ]
 export const settingsRows = (m: SettingsModel): SettingRow[] => {
   const o = m.options, s = m.state
+  const autoUpdateOn = m.pendingAutoUpdate ?? (m.autoUpdate === 'on')
   switch (s.category) {
     case 'prayer': return [
       row('عرض الصلاة', pills('salahShow', typeof o.salahShow === 'number' ? '20' : o.salahShow, [['always','دائمًا'],['20','قبل'],['off','إيقاف']]).map(c => c.label === 'قبل' ? { ...c, effect: config('salahShow', String(typeof o.salahShow === 'number' ? o.salahShow : 20)) } : c), 'ظهور الصلاة أسفل Claude · قبلها بـ٢٠ دقيقة', { label: typeof o.salahShow === 'number' ? 'قبل الصلاة بدقائق' : '', controls: typeof o.salahShow === 'number' ? step('salahShow', o.salahShow, 1, 720, n => config('salahShow', String(n))) : [] }),
@@ -168,9 +169,9 @@ export const settingsRows = (m: SettingsModel): SettingRow[] => {
       row('التشكيل',toggle(o,'tashkeel'),'على سطح المكتب فقط، الترمينال يحذف التشكيل'),
       row('العربية في Terminal',[copyControl(m,'terminal','/muslim terminal-arabic','/muslim terminal-arabic',244)],'لكل ترمينال: شغّل هذا الأمر في الترمينال'),
       {kind:'divider',label:'',hint:'',height:DIVIDER_H,controls:[]},
-      {...row('الإصدار',[control('update','تحديث',{kind:'command',args:'update'},'value',90)],`v${VERSION}`),hintLtr:true},
-      row('التحديث التلقائي',[control('autoupdate','التحديث التلقائي',{kind:'autoupdate',value:!(m.pendingAutoUpdate ?? (m.autoUpdate === 'on'))},'switch',38,m.pendingAutoUpdate ?? (m.autoUpdate === 'on'),!m.autoUpdate || m.autoUpdate === 'missing' || m.autoUpdate === 'unknown')],'يحدّث Claude Code إضافة مسلم في الخلفية'),
-      row('إرسال ملاحظة',[control('feedback','إرسال ملاحظة',{kind:'command',args:'feedback'},'value',142)],'مشكلة أو اقتراح أو تصحيح · لا يُرسل شيء إلا بموافقتك'),
+      {...row('الإصدار',[control('update','تحديث',{kind:'command',args:'update'},'inline',64,false,autoUpdateOn)],`v${VERSION}`),hintLtr:true,hintNote:autoUpdateOn?'يتحدّث تلقائيًا':undefined},
+      row('التحديث التلقائي',[control('autoupdate','التحديث التلقائي',{kind:'autoupdate',value:!autoUpdateOn},'switch',38,autoUpdateOn,!m.autoUpdate || m.autoUpdate === 'missing' || m.autoUpdate === 'unknown')],'يحدّث Claude Code إضافة مسلم في الخلفية'),
+      row('إرسال ملاحظة',[control('feedback','إرسال ملاحظة',{kind:'command',args:'feedback'},'inline',88)],'مشكلة أو اقتراح أو تصحيح · لا يُرسل شيء إلا بموافقتك'),
     ]
     default: return []
   }

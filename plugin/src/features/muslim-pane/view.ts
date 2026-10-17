@@ -295,9 +295,9 @@ const SETTINGS_CSS = `
 .setting-divider{position:absolute;left:16px;right:16px;height:18px;display:flex;direction:ltr;gap:10px;align-items:center;color:var(--accent)}.setting-divider .arm{flex:1;height:1px;opacity:.8}.setting-divider .a1{background:linear-gradient(to right,transparent,var(--ornament-dim))}.setting-divider .a2{background:linear-gradient(to left,transparent,var(--ornament-dim))}.setting-divider svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8}
 .setting-extra{position:absolute;right:16px;max-width:calc(100% - 142px);font-size:12px;line-height:14px;color:var(--muted)}
 .sc{position:absolute;display:flex;align-items:center;justify-content:center;gap:4px;border-radius:7px;font-size:14px;color:var(--text-2);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.sc.pill,.sc.value{background:transparent;box-shadow:inset 0 0 0 1px var(--line);padding:3px 6px}
+.sc.pill,.sc.value,.sc.inline{background:transparent;box-shadow:inset 0 0 0 1px var(--line);padding:3px 6px}.sc.inline{font-size:12px;padding:0 6px}
 .sc.hot{background:var(--hover);color:var(--text)}.sc.pill.on{background:var(--active);color:var(--text)}.sc.disabled{opacity:.38}.sc.step{border:1px solid var(--line);direction:ltr;border-radius:4px}.sc.step.output{opacity:1;color:var(--text);font-size:14px}.sc.step:not(.output){font-size:20px;line-height:1}
-.sc.pill .value-text,.sc.value .value-text{line-height:1;transform:translateY(.12em)}
+.sc.pill .value-text,.sc.value .value-text,.sc.inline .value-text{line-height:1;transform:translateY(.12em)}
 .sc.copied{color:var(--text)}.sc.command{direction:ltr}.sc.command .value-text{transform:none}.sc .value-text{min-width:0;overflow:hidden;text-overflow:ellipsis}.sc .ic{width:12px;height:12px;flex:none}.sc.switch{overflow:visible}.sc .tog{margin:0}.sc.swatch{overflow:visible}.sc.swatch::before{content:'';width:16px;height:16px;border-radius:50%;background:var(--sw)}.sc.swatch.on::before{outline:1.5px solid var(--text-2);outline-offset:3px}
 .list-choice{position:absolute;left:16px;right:16px;padding:6px 10px;border-radius:8px;height:${LIST_CHOICE_H}px;font-size:14px;display:flex;align-items:center;justify-content:space-between;gap:6px}
 .list-choice small{display:block;margin-top:4px;font-size:12px;color:var(--muted);line-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.list-choice>span{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.list-choice.hot{background:var(--hover)}.list-choice.on{color:var(--text);background:var(--active)}
@@ -316,11 +316,11 @@ const settingControl = (t: SettingsTarget, hover: PaneAct | null): string => {
 }
 const settingRow = (row: SettingRow, y: number): string => {
   if (row.kind === 'divider') return `<div class="setting-divider" aria-hidden="true" style="top:${y}px"><span class="arm a1"></span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><path d="m20 4 4 6 7-1 1 7 5 4-5 4-1 7-7-1-4 6-4-6-7 1-1-7-5-4 5-4 1-7 7 1Z"/><path d="m20 11 9 9-9 9-9-9Z"/><circle cx="20" cy="20" r="3"/></svg><span class="arm a2"></span></div>`
-  const inline = row.controls[0]?.style === 'switch' ? 82 : row.controls[0]?.style === 'swatch' ? 144 : 32
+  const inline = row.controls[0]?.style === 'switch' ? 82 : row.controls[0]?.style === 'swatch' ? 144 : row.controls[0]?.style === 'inline' ? row.controls[0].width + 44 : 32
   // The authored phrase stays on its own short first line at 12px, never cut; only the chrome second line may ellipsize.
   const hint = row.hintSecondLine ? `<span class="hint-line">${escape(row.hint)}</span><span class="hint-line chrome-hint">${escape(row.hintSecondLine)}</span>`
     : row.hintLtr ? `<bdi dir="ltr">${escape(row.hint)}</bdi>` : escape(row.hint).replace(/\/muslim/g, '<bdi dir="ltr">/muslim</bdi>')
-  return `<span class="setting-label" style="top:${y}px;max-width:calc(100% - ${inline}px)"><span>${escape(row.label)}</span></span><span class="setting-hint${row.hintSecondLine ? '' : ' chrome-hint'}" style="top:${y+HINT_TOP}px">${hint}</span>${row.extra?.controls.length?`<span class="setting-extra" style="top:${y+EXTRA_TOP+7}px">${escape(row.extra.label)}</span>`:''}`
+  return `<span class="setting-label" style="top:${y}px;max-width:calc(100% - ${inline}px)"><span>${escape(row.label)}</span></span><span class="setting-hint${row.hintSecondLine ? '' : ' chrome-hint'}" style="top:${y+HINT_TOP}px">${hint}${row.hintNote?` · ${escape(row.hintNote)}`:''}</span>${row.extra?.controls.length?`<span class="setting-extra" style="top:${y+EXTRA_TOP+7}px">${escape(row.extra.label)}</span>`:''}`
 }
 const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
   const model=m.settings, s=model.state, r=cardRects(m.folds,s,model.options,quranLayout(m), m.athkarMenu), b=settingsBody(m.width,model)

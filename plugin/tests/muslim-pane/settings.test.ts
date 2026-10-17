@@ -4,7 +4,7 @@ import { stripTashkeel } from '../../src/shared/arabic/visual.ts'
 import { expect, test } from 'claude-code/testing'
 import { readAdjust, readOptions, writeAdjust } from '../../src/config.ts'
 import { cardRects, hitAt, hitOfCells, NO_FOLDS, paneHeight, settingsBoxes, type Enabled } from '../../src/features/muslim-pane/layout.ts'
-import { BODY_TOP, BODY_END, COPIED_LABEL, COPIED_MS, EXTRA_TOP, copiedAt, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, CONTROL_H, ROW_GAP, ROW_H, SWITCH_ROW_H, TWO_LINE_SWITCH_ROW_H, DIVIDER_H, EXTRA_ROW_H, pendingSwitches, optimisticOptions, TABS_H, SETTINGS_BODY_TOP, CATEGORIES, CLOSED_SETTINGS, DEFAULT_SETTINGS, FACE_HEIGHTS, LIST_SIZE, MAIN_HEIGHTS, mainHeight, METHOD_CHOICES, SETTINGS_TOP, categoryTabs, loadSettings, changeCategory, isSettings, settingsBody, settingsBodyHeight, settingsHeight, settingsOptions, settingsRows, terminalSettings, type SettingsModel, type SettingsState } from '../../src/features/muslim-pane/settings.ts'
+import { BODY_TOP, BODY_END, COPIED_LABEL, COPIED_MS, EXTRA_TOP, copiedAt, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, CONTROL_H, ROW_GAP, ROW_H, SWITCH_ROW_H, TWO_LINE_SWITCH_ROW_H, DIVIDER_H, EXTRA_ROW_H, pendingSwitches, optimisticOptions, TABS_H, SETTINGS_BODY_TOP, CATEGORIES, CLOSED_SETTINGS, DEFAULT_SETTINGS, FACE_HEIGHTS, LIST_SIZE, MAIN_HEIGHTS, mainHeight, METHOD_CHOICES, isInline, SETTINGS_TOP, categoryTabs, loadSettings, changeCategory, isSettings, settingsBody, settingsBodyHeight, settingsHeight, settingsOptions, settingsRows, terminalSettings, type SettingsModel, type SettingsState } from '../../src/features/muslim-pane/settings.ts'
 import { paneModel } from '../../src/features/muslim-pane/model.ts'
 import { paneSvg } from '../../src/features/muslim-pane/view.ts'
 const OFF: Enabled = { athan:false,quran:false,canPrev:false,canNext:false,athkar:false }
@@ -160,8 +160,8 @@ test('rows share label/description/control geometry, inline switches and color d
     for(const {row,y} of b.rows){
       if(row.kind==='divider') continue
       const controls=b.controls.filter(t=>row.controls.some(c=>c.id===t.act))
-      for(const t of controls) expect(t.y0).toBe(y+(t.control.style==='switch'||t.control.style==='swatch'?0:CONTROL_TOP))
-      if(row.controls[0]?.style==='switch'){
+      for(const t of controls) expect(t.y0).toBe(y+(isInline(t.control)?0:CONTROL_TOP))
+      if(isInline(row.controls[0])){
         expect(row.height).toBe(row.hintSecondLine ? TWO_LINE_SWITCH_ROW_H : SWITCH_ROW_H)
         expect(controls[0]!.x0).toBe(28)
         expect(controls[0]!.y1-y).toBe(LABEL_H)
@@ -207,7 +207,7 @@ test('optimistic switches retain mismatches and drop confirmed or malformed valu
 
 // The last shown line of a row, from the row's top: what the 28px gap is measured from.
 const lastLineBottom=(row:ReturnType<typeof settingsRows>[number], showsExtra:boolean)=>
-  row.kind==='divider'?18:showsExtra?EXTRA_TOP+CONTROL_H: row.controls[0]?.style==='switch'||row.controls[0]?.style==='swatch'?HINT_TOP+HINT_H*(row.hintSecondLine?2:1) : CONTROL_TOP+CONTROL_H
+  row.kind==='divider'?18:showsExtra?EXTRA_TOP+CONTROL_H: isInline(row.controls[0])?HINT_TOP+HINT_H*(row.hintSecondLine?2:1) : CONTROL_TOP+CONTROL_H
 
 test('every setting row ends 28px under its last shown line, in every tab and both stepper states',()=>{
   expect(ROW_GAP).toBe(28)
@@ -296,11 +296,12 @@ test('general rows and thikr end share fixed geometry and Arabic labels',()=>{
     const general={...make('general'),autoUpdate:'on' as const}
     const body=settingsBody(width,general)
     expect(body.rows.map(r=>r.row.label)).toEqual(['زر مسلم','اللون الرئيسي','التشكيل','العربية في Terminal','','الإصدار','التحديث التلقائي','إرسال ملاحظة'])
-    expect(body.rows.map(r=>r.row.height)).toEqual([70,70,70,108,DIVIDER_H,108,70,108])
-    expect(MAIN_HEIGHTS.general).toBe(640)
+    expect(body.rows.map(r=>r.row.height)).toEqual([70,70,70,108,DIVIDER_H,70,70,70])
+    expect(MAIN_HEIGHTS.general).toBe(564)
     const target=(act:string)=>body.targets.find(t=>t.act===`settings:${act}`)!
     expect(target('paneButton').effect).toEqual({kind:'config',field:'paneButton',value:false})
-    expect(target('update').effect).toEqual({kind:'command',args:'update'})
+    expect(body.targets.find(t=>t.act==='settings:update')).toBeUndefined()
+    expect(body.controls.find(t=>t.act==='settings:update')!.effect).toEqual({kind:'command',args:'update'})
     expect(target('autoupdate').effect).toEqual({kind:'autoupdate',value:false})
     expect(target('feedback').effect).toEqual({kind:'command',args:'feedback'})
     for(const t of settingsBoxes(width,NO_FOLDS,general)){
@@ -327,6 +328,40 @@ test('auto-update draws only on for on, disables unreadable states, and overlays
   const options=readOptions({})
   expect(pendingSwitches(options,{paneButton:false,thikrEnd:false})).toEqual({paneButton:false,thikrEnd:false})
   expect(pendingSwitches({...options,paneButton:false,thikrEnd:false},{paneButton:false,thikrEnd:false})).toEqual({})
+})
+
+test('the inline update button follows the shown auto-update value without moving the version hint',()=>{
+  for(const width of [240,360]) for(const autoUpdate of [undefined,'on','off','default','missing','unknown'] as const) for(const pendingAutoUpdate of [undefined,null,false,true]){
+    const m={...make('general'),autoUpdate,pendingAutoUpdate}, body=settingsBody(width,m)
+    const shown=pendingAutoUpdate ?? (autoUpdate==='on'), row=body.rows[5]!
+    const update=body.controls.find(t=>t.act==='settings:update')!
+    expect(row.row.height).toBe(SWITCH_ROW_H)
+    expect(row.row.hint).toBe(`v${VERSION}`)
+    expect(row.row.hintNote).toBe(shown?'يتحدّث تلقائيًا':undefined)
+    expect(update.control.style).toBe('inline')
+    expect(isInline(update.control)).toBe(true)
+    expect(update.control.disabled).toBe(shown)
+    expect(body.controls.find(t=>t.act==='settings:autoupdate')!.control.selected).toBe(shown)
+    expect(update.x0).toBe(28)
+    expect(update.x1-update.x0).toBe(64)
+    expect(update.y0).toBe(row.y)
+    expect(update.y1-update.y0).toBe(LABEL_H)
+    expect(body.targets.some(t=>t.act==='settings:update')).toBe(!shown)
+    const y=cardRects(NO_FOLDS,m.state,m.options).settingsY+SETTINGS_BODY_TOP+(update.y0+update.y1)/2
+    expect(hitAt(width,(update.x0+update.x1)/2,y,OFF,0,0,NO_FOLDS,m)).toBe(shown?null:'settings:update')
+    expect(mainHeight('general',m.options)).toBe(settingsRows(m).reduce((h,r)=>h+r.height,0)-ROW_GAP+BODY_END)
+    const model=paneModel({salah:null,quran:null,athkar:null},0,width,'orange');model.settings=m
+    const svg=paneSvg(model), button=svg.match(/<div class="sc inline[^"]*"[^>]*aria-label="تحديث"[^>]*>/)![0]
+    expect(button).toContain(`aria-disabled="${shown}"`)
+    expect(button).toContain(`left:16px;top:${row.y}px;width:64px;height:22px`)
+    expect(button.includes(' disabled')).toBe(shown)
+    expect(svg).toContain(`top:${row.y}px;max-width:calc(100% - 108px)`)
+    expect(svg).toContain(`<bdi dir="ltr">v${VERSION}</bdi>`)
+    if(shown)expect(svg).toContain(`<bdi dir="ltr">v${VERSION}</bdi> · يتحدّث تلقائيًا`)
+    else expect(svg).not.toContain('يتحدّث تلقائيًا')
+    expect(svg).toContain('.sc.inline{font-size:12px;padding:0 6px}')
+    expect(svg).toContain('.sc.inline .value-text{line-height:1;transform:translateY(.12em)}')
+  }
 })
 
 test('the general divider separates purpose with equal row gaps and no hit targets',()=>{

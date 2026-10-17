@@ -6,7 +6,7 @@ import { athkarHead, athkarRow, athkarRowTop, KMENU_TOP, KMENU_PAD, KMENU_ROW_H,
 import { fixtureCatalog } from '../quran/fixtures/catalog.ts'
 import type { Mounted } from 'claude-code/testing'
 import { settingsBoxes, TITLE_HIT_H, paneHeight } from '../../src/features/muslim-pane/layout.ts'
-import { CLOSED_SETTINGS, COPIED_MS, type SettingsState } from '../../src/features/muslim-pane/settings.ts'
+import { CLOSED_SETTINGS, COPIED_MS, SETTINGS_BODY_TOP, settingsBody, type SettingsState } from '../../src/features/muslim-pane/settings.ts'
 import type { On, PaneOpenArgs, UiOpenResult } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 import { cardRects, ATHAN_TOP, ATHKAR_Y, KROW_TOP, PANE_HEIGHT, Q_CONTROLS_BASE, Q_CONTROLS_H, Q_TITLE_TOP, PRAYER_Y, QURAN_Y } from '../../src/features/muslim-pane/layout.ts'
@@ -586,6 +586,40 @@ for(const args of ['update','feedback'] as const) test(`general ${args} press di
   await settingsClick(ui,`settings:${args}`)
   expect(recorded.filter(e=>e.key==='test.command').map(e=>e.value)).toEqual([{command:'muslim',args}])
   expect(toasts).toEqual([])
+  await ui.unmount()
+})
+
+test('an update press runs only when the shown auto-update switch is off', {plugins:[{
+  name:'command-observer',tier:'prepend',register(on){
+    on('command.run',{command:'muslim'},async($,e)=>{
+      await $.store.set('test.command',{command:e.command,args:e.args})
+      return {text:'done'}
+    })
+  },
+}]},async($,on)=>{
+  const recorded:{key:string;value:unknown}[]=[]
+  engine(on,'desktop',undefined,{},recorded)
+  settingsState(on,{open:true,category:'general',face:'main',page:0})
+  let real=true,pending:boolean|null=null
+  on('settings.read',async()=>({value:{extraKnownMarketplaces:{'claude-muslim':{autoUpdate:real}}}}))
+  on('state.get',{plugin:'muslim',key:'paneAutoUpdate'},async()=>({value:{value:pending,version:1}}))
+  const ui=await $.ui.mount(pane('desktop'))
+  let expected=0
+  for(const [value,held] of [[true,null],[true,false],[false,true],[false,null]] as const){
+    real=value;pending=held
+    await ui.resize({columns:50,rows:100,in:'muslim-pane'})
+    await ui.redraw()
+    const model=(await ui.find({type:'Client',key:'muslim-pane'}))!.props.props as PaneModel
+    const update=settingsBody(420,model.settings).controls.find(t=>t.act==='settings:update')!
+    const top=cardRects(model.folds,model.settings.state,model.settings.options).settingsY+SETTINGS_BODY_TOP
+    const height=paneHeight(model.folds,model.settings.state,model.settings.options)
+    const fine={x:(update.x0+update.x1)/2*50/420,y:(top+(update.y0+update.y1)/2)*100/height}
+    await ui.pointer({in:'muslim-pane',type:'down',button:'left',x:Math.floor(fine.x),y:Math.floor(fine.y),fine})
+    if(!(held??value))expected++
+    const commands=recorded.filter(e=>e.key==='test.command')
+    expect(commands).toHaveLength(expected)
+    for(const command of commands)expect(command.value).toEqual({command:'muslim',args:'update'})
+  }
   await ui.unmount()
 })
 

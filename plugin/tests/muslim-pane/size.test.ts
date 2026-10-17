@@ -26,6 +26,14 @@ test('the Muslim pane picture stays under the Client tree limit with every card 
   }
 })
 
+test('inline maintenance rows stay under the Client tree limit with pending auto-update at 240px and 360px', () => {
+  for(const width of [240,360]) for(const autoUpdate of ['on','off','missing','unknown'] as const) for(const pendingAutoUpdate of [null,false,true]){
+    const settings={...DEFAULT_SETTINGS,state:{...DEFAULT_SETTINGS.state,open:true},autoUpdate,pendingAutoUpdate}
+    const model=paneModel(feeds as Parameters<typeof paneModel>[0],NOW,width,'orange',undefined,undefined,settings)
+    expect(paneSvg(model).length).toBeLessThan(LIMIT)
+  }
+})
+
 test('the open picker leaves the Quran avatar out, since the sheet covers it', () => {
   const picker = { list: 'surah' as const, query: '', highlight: 0, scroll: 0, count: 114, rows, dragging: false }
   expect(paneSvg(paneModel(feeds as Parameters<typeof paneModel>[0], NOW, 400, 'orange')).includes('kbx-root')).toBe(true)

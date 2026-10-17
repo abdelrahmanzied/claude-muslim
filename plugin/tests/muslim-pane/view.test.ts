@@ -152,7 +152,7 @@ for (const theme of ['light', 'dark'] as const) {
       expect(svg).not.toContain('--card')
       expect(svg).toContain('class="dbtn primary" role="button" aria-label="أكمل')
       expect(svg).toContain('.dbtn.hot{background:var(--hover);color:var(--text)}')
-      expect(svg).toMatch(/\.sc\.pill,\.sc\.value\{background:transparent;box-shadow:inset 0 0 0 1px var\(--line\)/)
+      expect(svg).toMatch(/\.sc\.pill,\.sc\.value,\.sc\.inline\{background:transparent;box-shadow:inset 0 0 0 1px var\(--line\)/)
       expect(svg).toContain('class="sc value command hot"')
       expect(svg).toContain('<span class="value-text">/muslim terminal-arabic</span>')
       expect(svg).toMatch(/\.settings-tabs\{[^}]*border:1px solid transparent;border-bottom-color:var\(--line\);[^}]*background:transparent;overflow:visible/)
