@@ -1,6 +1,6 @@
 // The plugin's one embedded face for drawn desktop panes: Tajawal Regular (400) and Bold (700),
 // as @font-face rules with the WOFF2 inlined as data URIs (SIL OFL: fonts/OFL.txt).
-// Pure: no $. Used by the Quran pane and the Muslim pane.
+// Pure: no $. Used by the Muslim pane.
 
 import { TAJAWAL_BOLD_WOFF2, TAJAWAL_REGULAR_WOFF2 } from './tajawal-embedded.ts'
 

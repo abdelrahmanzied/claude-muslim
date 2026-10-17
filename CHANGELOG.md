@@ -2,13 +2,17 @@
 
 ## Unreleased
 
+- Quran: the standalone Quran pane («۞ القرآن الكريم» tab) is gone; the player lives only in the Muslim pane's Quran card. `/quran` opens the Muslim pane at that card and unfolds it; on a terminal it replies with a text status (reciter, surah, segment, time, playing or stopped) and `Playback runs in the Claude desktop app.`. The other `/quran` subcommands are unchanged.
+
+- Muslim pane: the Quran card's header reads «القرآن الكريم» (was «القرآن»), folded or open, and so does the terminal text fallback.
+
 - Muslim pane: the athkar card header matches the other cards: icon, title (the set name with its menu chevron when open, just «الأذكار» when folded), fraction, and the fold chevron at the left end in both states. Reset moved to the progress row, which now reads «ابدأ» or «أكمل» (replacing «Open»), «✓ أتممتُها» and «إعادة» (↺, «تراجع» for 8 seconds after a reset); done shows «أتممتَ وردك ✓» and «إعادة». The row's button text is 12px and the buttons shrink to icons on narrow panes. The card's header and progress row use the original athkar mark (`horizon`) for every set; the sun, moon and prayer icons stay only in the title menu's rows.
+
+- Muslim pane: fix «a tree serializing to more than 100000 characters» with the full Quran card. The embedded Tajawal is subset to Latin, Arabic and punctuation (layout features kept), both avatars draw their pixel runs as paths (same art), the Quran avatar drops CSS for sprites it never shows, and the open picker sheet leaves the hidden avatar out. A test keeps the full pane under 96,000 characters.
 
 - Muslim pane: choose morning, evening or after-salah athkar from the title menu, with reset and an 8-second undo.
 
-- Muslim pane: make the full Quran card smaller to serialize. The embedded Tajawal is subset to Latin, Arabic and punctuation (layout features kept), and both avatars draw their pixel runs as paths (same art); the Quran avatar drops CSS for sprites it never shows.
-
-- Muslim pane: the Quran card is the full player: status, the surah as a picker button, the reciter avatar, «ابدأ من» for split recordings, the reciter row, progress with times, and repeat-segment, previous, play/stop, next and repeat-surah. Reciter, surah and segment lists open as an in-card sheet with search, eight rows, a drag scrollbar and arrow-key navigation. «افتح المصحف» is gone (the Quran pane and `/quran` stay). The list logic moved to `src/shared/picker/`.
+- Muslim pane: the Quran card is the full player: status, the surah as a picker button, the reciter avatar, «ابدأ من» for split recordings, the reciter row, progress with times, and repeat-segment, previous, play/stop, next and repeat-surah. Reciter, surah and segment lists open as an in-card sheet with search, eight rows, a drag scrollbar and arrow-key navigation. «افتح المصحف» is gone. The list logic moved to `src/shared/picker/`.
 
 - Quran: segments are named `الربع ٥، الآيات ١٥–٢٤` (with ` (١ من ٢)` when a quarter is cut in several) everywhere, the Quran pane, its next/repeat lines, the Muslim pane and the terminal text; no more «·» beside Arabic digits.
 

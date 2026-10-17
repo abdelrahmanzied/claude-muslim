@@ -93,7 +93,7 @@ Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows t
 | `/salah show always` · `<minutes>` · `off` | Show the next pray all day, only that many minutes before it (e.g. `show 20`), or hide it |
 | `/salah athan on` · `off` | `حان وقت صلاة …` when a prayer comes in |
 | `/salah demo` | Preview Fajr at 05:00 without a city: desktop 5 s open, 3 s folded; terminal 3.01 s rise, 3 s folded; real athan state stays untouched, nothing is saved |
-| `/quran` | Open the desktop player |
+| `/quran` | Open the Muslim pane at the Quran player (desktop); on a terminal, show the status |
 | `/quran help` | Table of every `/quran` command |
 | `/quran play <surah>` | Play an available surah by number or Arabic name |
 | `/quran stop` | Stop playback or pending preparation |

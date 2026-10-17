@@ -1,6 +1,6 @@
 # Desktop pane design
 
-The design principles for every drawn desktop pane in this mod (today the Muslim pane, `/muslim pane`, and the Quran pane). They extend [DESIGN.md](../../DESIGN.md) and never contradict it; each pane's own `docs/features/<feature>-design.md` holds its exact layout. Read this before drawing or changing a pane.
+The design principles for every drawn desktop pane in this mod (today the Muslim pane, `/muslim pane`; the Quran player is its card). They extend [DESIGN.md](../../DESIGN.md) and never contradict it; each pane's own `docs/features/<feature>-design.md` holds its exact layout. Read this before drawing or changing a pane.
 
 ## 1. What the Desktop owns, and what we own
 
@@ -16,7 +16,7 @@ The design principles for every drawn desktop pane in this mod (today the Muslim
 
 ## 3. Look
 
-- **Transparent**, like the Quran pane: no panel fill. It follows the app's light or dark scheme, and every color is a token (`--text`, `--muted`, `--line`, feature-specific surface/state tokens, `--accent`); the accent is the plugin-wide main color from `src/shared/color/`.
+- **Transparent**: no panel fill. It follows the app's light or dark scheme, and every color is a token (`--text`, `--muted`, `--line`, feature-specific surface/state tokens, `--accent`); the accent is the plugin-wide main color from `src/shared/color/`.
 - **Tajawal** throughout, embedded from `src/shared/font/`.
 - **Type scale:** 24px the plugin name «مسلم», 20px the big fact (next prayer), 16px card titles, 14px body and buttons, 12px meta and descriptions. Settings tab labels are 11px so the tabs fit at 240px.
 - **Tajawal sits high.** Text beside an icon or a switch gets `line-height:1; transform:translateY(.12em)` so icon, text and control share one center line. Check every icon + text row for this.

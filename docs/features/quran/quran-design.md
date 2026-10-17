@@ -6,11 +6,9 @@ The [recording catalog design](quran-catalog.md) covers developer audits and the
 
 ## Visual means
 
-The entire desktop pane body is one Client (`client.tsx`), rendering Svg/foreignObject HTML/CSS. `pane.ts` builds its pure model, dropdown state transitions, option filtering and hit testing; `card.ts` retains the playback picture and control geometry; `avatar.ts` draws the avatar. Shared color helpers supply main accents.
+The player is drawn only inside the Muslim pane's «القرآن الكريم» card (one Client, design and geometry in [muslim-pane-design.md](../muslim-pane/muslim-pane-design.md)); there is no standalone Quran pane. This feature builds the pure model (`pane.ts`, `card.ts`), the segment label (`label.ts`) and the avatar (`avatar.ts`, `avatarSvg`, 96 wide) and passes them through the panel signal. Shared color helpers supply main accents. Sections 1–10 below record the player's design principles; where they name a standalone pane, heading or `/quran` label, the Muslim pane's card replaces it.
 
-The player is also drawn inside the Muslim pane's Quran card (design in muslim-pane-design.md); the avatar is drawn here (`avatarSvg`, 96 wide for that card) and passed through the panel signal.
-
-**Visual means and why:** native controls cannot draw the selected design's typography, radius, fill and spacing consistently, so the heading, picker fields, optional quarter picker and player live in one picture. The selected design is the «integrated / clear / madinah» direction of the Quran design lab: the pane has no panel of its own (transparent root, no card or border around the player), so it sits directly on the host surface in both app themes. The terminal and other surfaces get only the dim fallback line (see Surfaces).
+**Visual means and why:** native controls cannot draw the selected design's typography, radius, fill and spacing consistently, so the heading, picker fields, optional quarter picker and player live in one picture. The terminal and other surfaces get the text status of `/quran` (see Surfaces).
 
 ## Design principles
 
@@ -35,7 +33,7 @@ A thin rule with an eight-point rosette marks a change of purpose, not decoratio
 - Scale: heading 23 (20 at W ≤ 370, 18 at W ≤ 300); surah title 30 (25 at W ≤ 370, 22 at W ≤ 280); field value 14; reciter/riwaya line 13; status, field labels, next line and unavailable note 12; times 14 monospace; quarter line, «الوقت تقريبي» hint, segment note and captions 10–11.
 - Every Arabic line is RTL and right-aligned. Times, `/quran` and numeric runs are isolated LTR so digits never reorder: the elapsed time sits at the left and the total at the right of the progress bar, which fills from the left, like a clock and unlike the text. Surah values show the Arabic-Indic number in an isolated LTR run and its authored name; reciter values show `<reciter> · <moshaf>`.
 - Arabic is shown as authored on desktop; nothing is shaped, reordered or reworded here.
-- **Embedded font:** the OFL licence is in `src/shared/font/fonts/OFL.txt`. The full TTFs as base64 are about 160 KB, above the 100 KB Client tree bound (and the 131072-character Svg bound). `src/shared/font/tajawal-embedded.ts` holds lossless WOFF2 encodings of those same full fonts, all glyphs retained, about 56 KB combined, embedded as data URIs in `@font-face` inside the foreignObject style with no network loading. WOFF2 is required to fit this build's limits.
+- **Embedded font:** the OFL licence is in `src/shared/font/fonts/OFL.txt`. The full TTFs as base64 are about 160 KB, above the 100 KB Client tree bound (and the 131072-character Svg bound). `src/shared/font/tajawal-embedded.ts` holds WOFF2 subsets of those fonts (Basic Latin, Latin-1, the Arabic blocks, punctuation, arrows and shapes, every layout feature kept), about 48 KB combined, embedded as data URIs in `@font-face` inside the foreignObject style with no network loading. WOFF2 is required to fit this build's limits.
 
 ### 4. Palette tokens, light and dark
 
@@ -92,13 +90,13 @@ The pane is one SVG image whose foreignObject holds XHTML, and Desktop parses it
 
 ### 10. Narrow widths
 
-The minimum pane width is 240. Narrow panes scale instead of wrapping the control row: heading 20 then 18, `/quran` always visible (11 at W ≤ 300; the heading is capped to end 8 before the label and ellipsizes rather than overlap it), surah title 25 then 22, avatar shrinking to 48, and the control row scales by `min(1, (W − 44) / 259)` with captions down to 9 so the five circles and their captions always fit in one row (full size from about W 303). Long values truncate with an ellipsis; the next line wraps to two lines. Dropdowns keep their row heights at every width.
+The minimum pane width is 240. Narrow panes scale instead of wrapping the control row: heading 20 then 18, `/quran` always visible , surah title 25 then 22, avatar shrinking to 48, and the control row scales by `min(1, (W − 44) / 259)` with captions down to 9 so the five circles and their captions always fit in one row (full size from about W 303). Long values truncate with an ellipsis; the next line wraps to two lines. Dropdowns keep their row heights at every width.
 
-**Focus and sizing:** the API says a click gives the Client focus and `surface.onKey` then receives keys. Escape returns focus to the app and never reaches the Client; there is no Client blur callback. Pane `isFocused` changes and the `ui.focus` hook supply reported focus loss, closing local panels through a model revision. The Client pointer API has no wheel event. **The wheel never moves the list:** Desktop moves the pane body before the `ui.scroll` hook runs, so holding the pane still to scroll the open list made the pane shake, and that cannot be fixed from the plugin. The hook therefore never routes, pins or pulls back a wheel tick; the wheel scrolls the pane like any other, and the open list moves only by search, ↑ ↓ and the scrollbar, and the footer line names ↑ ↓. **No shaking:** a person-origin wheel tick outside the open list that cannot move the window (the pane fits, or it is at an edge) is consumed without `next` or a redraw, by the shared `skipPaneScroll` (`src/shared/scroll/`, also used by the Muslim pane); every such redraw swapped the whole picture and shook the window. Real overflow still reaches the host. The Client posts no size or picker reports: nothing in the hooks needs them now. The Client maps cells to pixels (8.4px per desktop column, as the reference card does). Desktop gives no `fine` position, so the pointer is a whole cell (about 8 by 19px) snapped to its center; `paneHit` takes the cell's half-extent as slack and hits a field, the retry button or a control circle when the cell overlaps it, the nearest to the center winning, so the bottom edge of a field (just under its ▾) works. The open overlay still owns the pixels its center falls on, label and gap cells claim nothing, and a `fine` pointer uses zero slack. The pointer post carries `coarse` so the hook repeats the same test, and draws a 751px whole-recording picture or an 869px segmented picture, plus any wrapped error/retry space. Dropdowns overlay the card within that height rather than growing the Client region. App pane chrome, zoom and focus-event delivery remain host-controlled.
+Picks arrive from the Muslim pane through the panel signal; the owner validates the value against the authoritative cached catalog, then saves/restarts the reciter or plays the surah using existing dispatch. Errors are drawn dim inside the card; actions never show toasts.
 
-`<Client key="quran-card" module="./client.tsx" width="100%" props={model} />` mounts the full pane. Picks post `{ act: 'pick', list, value }` through `surface.post` to `ui.message`; the hooks validate the value against the authoritative cached catalog, then save/restart the reciter or play the surah using existing dispatch. Playback controls still use validated pointer hit testing or keyboard posts. Once-per-second props update elapsed/progress without resetting dropdown state. Errors are drawn dim inside the picture; actions never show toasts.
+**No footer item.** The footer is one shared slot sized by Desktop and holds only `☾ Muslim` and salah's prayer line. Quran's `SessionMode` hook only reconnects the panel feeds and returns `next(e)` unchanged.
 
-**No footer item.** Quran used to put a «۞» Button in the Desktop footer (`SessionMode`) that toggled its pane and shed words by width. It was removed: the footer is one shared slot sized by Desktop, and it now holds only `☾ Muslim` (which opens the Muslim pane, whose Quran card and **افتح المصحف** reach this pane) and salah's prayer line. Quran's `SessionMode` hook only reconnects the panel feeds and returns `next(e)` unchanged.
+**`/quran` per surface.** With no arguments: on Desktop it opens the Muslim pane (`$.ui.open({ id: 'muslim', title: '☾ Muslim', focus: true })`), unfolds the Quran card if the shared `paneFolds` state has it folded (Quran writes that one key and does not import the pane) and silently inspects the selected surah; the reply is «Muslim pane opened at القرآن الكريم (desktop only).». Anywhere else it replies with a text status: «القرآن الكريم» heading, reciter, surah, segment label if split, elapsed / total, playing or stopped, then `Playback runs in the Claude desktop app.`; Arabic goes through `src/shared/arabic`. `play`, `stop`, `next`, `prev`, `reciter`, `repeat`, `repeat segment` and `help` work on every surface.
 
 **Why:** listening is an explicit activity with choices and controls; the Pane keeps those together without interrupting Claude's transcript. No AbovePrompt band or automatic opening at startup. Whole-track natural ends continue to the next available surah with the same recording, stopping when none remains. Split segments continue within the surah and then to the next available surah; previous/next skip unavailable surahs when crossing surah boundaries. Salah’s athan moment does not interrupt recitation.
 
@@ -115,14 +113,15 @@ Its text forms are: 1 → «سورة واحدة غير متاحة لهذا ال�
 | Moment | Surface | Shows |
 | --- | --- | --- |
 | Footer | SessionMode | Nothing on any surface; the Muslim pane is the way in |
-| User opens player | Desktop docked Pane `quran` | One full Client picture: dropdown fields/search overlays and a card-less player with hit-tested controls (two repeat buttons), RTL Arabic and embedded Tajawal; dim hints |
-| Non-desktop pane | Terminal, mobile, vscode Pane | Only dim «مشغّل القرآن متاح على تطبيق Claude للديسكتوب» |
+| `/quran` on Desktop | Muslim pane | Opens at the «القرآن الكريم» card, unfolded |
+| User plays | Muslim pane's Quran card | The player drawn by the Muslim pane's Client, hit-tested controls (two repeat buttons), RTL Arabic and embedded Tajawal; dim hints |
+| `/quran` elsewhere | Terminal, mobile, vscode command reply | Text status ending «Playback runs in the Claude desktop app.» |
 | Commands/help/settings | Command reply on all surfaces | Short status or requested catalog/help; Quran row in `/muslim` |
-| Playback failure after command | Quran CommandOutput and pane | Dim error line; command output only for playback started by a command |
-| Playback failure after pane action | Desktop pane | Dim error line only; no toast or command-row rewrite |
-| Playing | Docked Pane and the Muslim pane's Quran card | Clock-based approximate elapsed/progress, redraw once per second |
+| Playback failure after command | Quran CommandOutput and card | Dim error line; command output only for playback started by a command |
+| Playback failure after card action | Muslim pane's Quran card | Dim error line only; no toast or command-row rewrite |
+| Playing | The Muslim pane's Quran card | Clock-based approximate elapsed/progress, redraw once per second |
 | AbovePrompt | All surfaces | No Quran band |
-| Stopped | Same desktop Pane | No redraw timer; per-clip watchdog ends when its play promise settles; play starts from beginning |
+| Stopped | Muslim pane's Quran card | No redraw timer; per-clip watchdog ends when its play promise settles; play starts from beginning |
 
 Desktop is the supported v1 surface, a stated scope exception to the shared cross-platform playback goal. Terminal Arabic follows `src/shared/arabic` and the saved per-terminal mode; desktop and other surfaces keep source text as authored. Use simple Latin digits consistently for result numbering and time, as permitted by the feature spec. Audio plays only when the user starts it.
 
@@ -161,11 +160,9 @@ Quran demo is deferred to a separate task and is not included in the shared sequ
 
 Native Desktop validation on macOS confirmed both drag scrollbars reach the last rows and return to the first rows while the Pane remains stationary. Surah search for 18 returns Al-Kahf and hides the scrollbar. Drag input is quantized by the host cell coordinates; engine tests also cover release outside the Client, search and selection after dragging. This validates the drag control, not mouse-wheel behavior or other operating systems.
 
-## Opening from Muslim
+## Opening the card
 
-The Muslim card's «افتح المصحف» raises the same `quran` tab in the host's mod-pane dock using `$.ui.open({ id: 'quran', title: '۞ القرآن الكريم', focus: true })`. Navigation uses the current Muslim input context and precedes the serialized player initialization, which skips its usual pane-open call. Quran connects on Muslim pane render/input even if the footer has not drawn. It never closes/recreates either tab, starts audio, or changes the picture. Desktop manages the group and focus; the installed host permits same-plugin pane focus, while the generic API documents a conditional request. Tests observe API requests and failure results, not native painting or focus delivery.
-
-Tab title: on desktop the pane opens as «۞ القرآن الكريم». The host draws the tab strip and takes only the title text, so the rub el hizb glyph stands in for an icon beside Muslim's moon, matching the footer chip «۞ القرآن». Terminals keep the plain words.
+`/quran` (no arguments) and the Muslim pane's own toggle are the only ways in; see **`/quran` per surface** above. Quran connects on Muslim pane render/input even if the footer has not drawn. It never closes/recreates the pane, starts audio, or changes the picture. Desktop manages the dock and focus.
 
 
 ### Muslim pane settings connector

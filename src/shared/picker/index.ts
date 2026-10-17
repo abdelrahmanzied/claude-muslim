@@ -1,4 +1,4 @@
-// The pure part of a searchable list picker, shared by the Quran pane and the Muslim pane's
+// The pure part of a searchable list picker, used by the Muslim pane's
 // Quran card: eight visible rows, a highlight, typing, ↑ ↓ and a draggable scrollbar.
 // The state is only what a list needs (`query`, `highlight`, `scroll`); each pane keeps the
 // rest (which list is open, focus) and gives the scrollbar its own geometry. Pure: no $.
