@@ -1,6 +1,11 @@
 import type { On } from 'claude-code'
 import { expect, mock, test, type Mounted } from 'claude-code/testing'
-import { DEMO_DURATION_MS, DEMO_FOLD_MS, DEMO_UNFOLD_MS, demoReply, demoTerminalReply } from '../../src/features/muslim-pane/demo.ts'
+import { DEMO_DURATION_MS, DEMO_FOLD_MS, DEMO_UNFOLD_MS, demoReply } from '../../src/features/muslim-pane/demo.ts'
+import { DEMO_GAP_MS, DEMO_START_MS } from '../../src/demo.ts'
+import { demoDuration as athkarDuration } from '../../src/features/athkar/demo.ts'
+import { demoDuration as salahDuration } from '../../src/features/salah/demo.ts'
+import { demoPrompt, DEMO_LIMIT_MS, DEMO_SUBMIT_MS } from '../../src/features/thikr/demo.ts'
+import type { Engine } from 'claude-code/testing'
 import type { PaneModel } from '../../src/features/muslim-pane/model.ts'
 
 const NOON = Date.parse('2026-10-10T10:00:00Z')
@@ -14,6 +19,9 @@ const fixture = (on: On, surface: 'desktop' | 'terminal', startsOpen: boolean) =
   const calls: string[] = []
   let open = startsOpen
   on('session.surface', async () => ({ value: surface }))
+  on('prompt.submit', async (_$, e) => ({ text: e.text }))
+  on('turn.start', async (_$, e) => ({ turnId: e.turnId }))
+  on('turn.complete', async (_$, e) => ({ text: e.answer }))
   on('config.list', async () => ({ value: [] }))
   on('store.get', async (_$, e) => ({ value: e.key === 'arabicTerminals' ? { unknown: 'plain' } : undefined }))
   on('store.set', async (_$, e) => (writes.push(`store:${e.key}`), { value: undefined }))
@@ -28,21 +36,35 @@ const fixture = (on: On, surface: 'desktop' | 'terminal', startsOpen: boolean) =
 }
 const modelOf = async (ui: Pick<Mounted<'desktop' | 'terminal', 'Pane'>, 'find'>) => (await ui.find({ type: 'Client', key: 'muslim-pane' }))!.props.props as PaneModel
 
-test('a terminal is told the pane demo is desktop only, and nothing starts', async ($, on) => {
+// Drive the real shared sequence: the pane has no separate demo command.
+const startTour = async ($: Engine, clock: ReturnType<typeof mock.clock>, surface: 'desktop' | 'terminal') => {
+  await $.command.run(run('demo'))
+  await clock.advance(DEMO_START_MS + DEMO_SUBMIT_MS)
+  await $.turn.start({ text: demoPrompt('/muslim demo'), turnId: 'tour-turn' })
+  await $.turn.complete({ answer: 'Done.', durationMs: 1000, isAborted: false, reason: 'answer', turnId: 'tour-turn' })
+  await clock.settle()
+  await clock.advance(DEMO_LIMIT_MS)
+  await clock.advance(DEMO_GAP_MS + athkarDuration(surface === 'desktop' ? 'sky' : 'frame', 3200))
+  await clock.advance(DEMO_GAP_MS + salahDuration(surface))
+  await clock.advance(athkarDuration('frame', 3200, 'afterSalah'))
+  await clock.advance(DEMO_GAP_MS)
+}
+
+test('the shared pane step skips a terminal without opening a pane', {options:{thikr:false,athkar:false,salahShow:'off',salahAthan:false}}, async ($, on) => {
   const { clock, calls, writes } = fixture(on, 'terminal', false)
-  expect((await $.command.run(run('pane demo'))).text).toBe(demoTerminalReply())
+  await startTour($, clock, 'terminal')
   await clock.advance(DEMO_DURATION_MS)
   expect(calls).toEqual([])
   expect(writes).toEqual([])
 })
 
 for (const startsOpen of [false, true]) {
-  test(`desktop, pane ${startsOpen ? 'open' : 'closed'}: the tour unfolds, plays, folds back and restores the pane without saved writes`, async ($, on) => {
+  test(`desktop, pane ${startsOpen ? 'open' : 'closed'}: the tour unfolds, plays, folds back and restores the pane without saved writes`, {options:{thikr:false,athkar:false,salahShow:'off',salahAthan:false}}, async ($, on) => {
     const { clock, calls, writes } = fixture(on, 'desktop', startsOpen)
     const ui = await $.ui.mount(pane('desktop'))
     await clock.settle()
     writes.length = 0
-    expect((await $.command.run(run('pane demo'))).text).toBe(demoReply())
+    await startTour($, clock, 'desktop')
     expect(calls).toEqual(startsOpen ? [] : ['open'])
     const m0 = await modelOf(ui)
     expect(m0.folds).toEqual({ prayer: true, quran: true, athkar: true })

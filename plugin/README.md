@@ -73,11 +73,11 @@ Set up the Claude Code plugin "muslim" for all my sessions (user scope):
 3. Show me what each step printed, then tell me to run /reload-plugins.
 ```
 
-Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` shows the installed version and your settings.
+Run `/reload-plugins` when Claude asks, and the mod is active. `/muslim` opens the Muslim pane on desktop and shows the installed version and your settings in the terminal.
 
-### Muslim pane (`/muslim pane`)
+### Muslim pane (`/muslim`)
 
-A docked «☾ Muslim» pane on the desktop app that gathers today's prayers, the Quran player and the athkar progress in three cards; a `☾ Muslim` button in the prompt footer toggles it. In a terminal, `/muslim pane` prints the same as plain text. Details: [docs/features/muslim-pane/muslim-pane.md](https://github.com/abdelrahmanzied/claude-muslim/blob/main/docs/features/muslim-pane/muslim-pane.md).
+A docked «☾ Muslim» pane on the desktop app that gathers today's prayers, the Quran player and the athkar progress in three cards; a `☾ Muslim` button in the prompt footer toggles it. The folded settings card includes the footer-button switch, version and Update, background-update switch, feedback action, and every feature setting, including the terminal end-of-turn switch. Turn off **Muslim pane button** (`paneButton`, default on) in عام or `/config` to hide the footer button; `/muslim` still opens the pane. There is no slash command for this desktop-only setting. Update and feedback run `/muslim update` and `/muslim feedback` in chat; auto-update changes silently. In a terminal, `/muslim` keeps the version, feature-state and shared-settings table. The pane tour is only the last step of `/muslim demo`. Details: [docs/features/muslim-pane/muslim-pane.md](https://github.com/abdelrahmanzied/claude-muslim/blob/main/docs/features/muslim-pane/muslim-pane.md).
 
 ## Use
 
@@ -115,15 +115,13 @@ A docked «☾ Muslim» pane on the desktop app that gathers today's prayers, th
 | `/quran repeat` · `/quran repeat segment` | Toggle surah or current-quarter repeat; mutually exclusive |
 | `/quran retry` | Refresh recording size and timing metadata |
 | `/quran reciter` · `/quran reciter <number or name>` | List recordings or remember a choice |
-| `/muslim` | Version, each feature's main state and the shared settings; a hint points to help |
+| `/muslim` | Desktop: open the Muslim pane; terminal: version, each feature's main state and the shared settings, with a hint to help |
 | `/muslim tashkeel on` · `off` | Show or hide Arabic diacritics on desktop (the terminal never shows them) |
 | `/muslim update` | Update muslim from GitHub (only this plugin) and reload plugins; says the new version, or that you have the latest |
 | `/muslim autoupdate` · `on` · `off` | Show or set Claude Code's background update of muslim; it turns on by itself the first time muslim runs, so `off` stays off |
 | `/muslim feedback` · `feedback <text>` | Report a bug, improvement, new feature, content correction or feedback as a GitHub issue; Claude asks you to pick the kind and feature, drafts it and sends it only after you choose Send |
-| `/muslim pane` | Open the Muslim pane on desktop; a plain text summary in the terminal |
 | `/muslim terminal-arabic` | Choose how Arabic shows in this terminal |
 | `/muslim help` · `help <feature>` | Command tables of every feature, or one (`thikr`, `athkar`, `salah`, `quran`) or one shared command (`color`, `tashkeel`, `terminal-arabic`) |
-| `/muslim pane demo` | Desktop: a 10 s tour of the Muslim pane (cards unfold, the Quran card plays without sound, athkar fill to done, then everything folds back and the pane returns to how it was); nothing is saved; a terminal says it is desktop only |
 | `/muslim demo` | Play the thikr, athkar, salah (athan, then athkar after salah) and Muslim pane (desktop) demos in order: thikr in a real turn (about 30 s; it uses tokens and leaves a message in the transcript), its 3 s usage-limit hold, athkar (desktop sky 33.2 s; terminal frame 24.2 s), then the salah athan moment (`/salah demo`), then the Muslim pane tour on desktop; 0.1 s between demos, no setting or saved state changes; no city needed; another request while playing says so |
 
 Shared and feature settings are also in `/config`; Quran remembers its recording in the local store to avoid reloading playback. The shared `color` setting changes existing main-color accents across athkar, salah, Quran, thikr's usage-limit line and the terminal Arabic survey label. Orange text follows Claude's theme; other choices use light/dark shades.

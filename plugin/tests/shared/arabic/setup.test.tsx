@@ -89,6 +89,7 @@ test('terminal-arabic reopens the survey for an answered terminal', { options: O
   engineBand(on)
   install(on, readOptions(OPTIONS))
   on('session.surface', async () => ({ value: 'terminal' }))
+  on('session.surfaces', async () => ({ value: ['terminal'] }))
   const automatic = await $.ui.mount(band('terminal', false, 'already-answered'))
   expect(await automatic.find(rows)).toBeUndefined()
   await automatic.unmount()
@@ -125,6 +126,7 @@ test('/muslim status shows this terminal saved Arabic mode', { options: OPTIONS 
   mock.env(on, { TERM_PROGRAM: 'WarpTerminal' })
   mock.store(on, { arabicTerminals: { WarpTerminal: 'reversed' } })
   on('session.surface', async () => ({ value: 'terminal' }))
+  on('session.surfaces', async () => ({ value: ['terminal'] }))
   const text = (await $.command.run(status)).text
   expect(text).toContain('| Terminal Arabic | How Arabic shows in this terminal | reversed for WarpTerminal |')
 })
@@ -134,9 +136,11 @@ test('/muslim status shows the default when this terminal has no answer, and not
   mock.store(on)
   let surface: 'terminal' | 'desktop' = 'terminal'
   on('session.surface', async () => ({ value: surface }))
+  on('session.surfaces', async () => ({ value: [surface] }))
+  on('ui.open', async () => ({value:{isPlaced:true}}))
   expect((await $.command.run(status)).text).toContain('| Terminal Arabic | How Arabic shows in this terminal | plain (default, not chosen yet) for Apple_Terminal |')
   surface = 'desktop'
-  expect((await $.command.run(status)).text).toContain('| Terminal Arabic | How Arabic shows in this terminal | terminal only |')
+  expect((await $.command.run(status)).text).toBe('Muslim pane opened.')
 })
 
 for (const [color, expected] of [['orange', 'claude'], ['yellow', '#c99a1f']] as const) {

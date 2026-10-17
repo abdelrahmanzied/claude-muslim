@@ -2,7 +2,7 @@ import type { EngineInterface, On } from 'claude-code'
 import type { Options } from '../../config.ts'
 import type { PaneOptimistic, PanePicker } from '../../../types/index.d.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
-import { readAthkar, readQuran, readQuranOptions, readSalah, runPanelAction, type PanelAction, type PanelOption } from '../../shared/panel/signal.ts'
+import { readPanelAutoUpdate, readAthkar, readQuran, readQuranOptions, readSalah, runPanelAction, type PanelAction, type PanelOption } from '../../shared/panel/signal.ts'
 import { pointerPixels } from '../../shared/card/pointer.ts'
 import { NO_FOLDS, cardRects, hitOfCells, isFolds, isPaneMessage, keyAct, paneHeight, quranRowOf, type Enabled, type Folds, type PaneAct, type PaneMessage } from './layout.ts'
 import { paneModel, quranLayout, textLines, widthOf, type PaneModel } from './model.ts'
@@ -10,7 +10,7 @@ import { dragBar, dragCell, isPanePicker, openPicker, pickerKey, pickerView, pre
 import { CATEGORIES, CLOSED_SETTINGS, COPIED_MS, changeCategory, copiedAt, isSwitchField, loadSettings, optimisticOptions, settingsBody, type SettingsState } from './settings.ts'
 import { skipPaneScroll } from '../../shared/scroll/index.ts'
 // DEMO BEGIN
-import { DEMO_TICK_MS, demoAthkar, demoFolds, demoNow, demoQuran, demoReply, demoSalah, demoTerminalReply, isDemoOver } from './demo.ts'
+import { DEMO_TICK_MS, demoAthkar, demoFolds, demoNow, demoQuran, demoReply, demoSalah, isDemoOver } from './demo.ts'
 import { avatarSvg } from '../../shared/quran-avatar/index.ts'
 import { ATHKAR_TITLE } from '../../shared/athkar/titles.ts'
 import { connectDemo, doneDemo } from '../../shared/demo/signal.ts'
@@ -100,7 +100,7 @@ async function modelNow($: EngineInterface, options: Options, columns: unknown):
   // A segment list only means something for a split surah; a folded card shows no list.
   let view: PickerView | null = null
   if (picker && quran && !folds.quran && (picker.list !== 'segment' || quran.segmented)) view = pickerView(picker, await readQuranOptions(picker.list, picker.query))
-  return paneModel({ salah: readSalah(now), quran, athkar: await readAthkar() }, now, widthOf(columns), options.color, undefined, folds, { state: await readSettings($), options: optimisticOptions(options, (await $.state.get(optimisticRef)).value), terminalMode: 'per-terminal setup', copied: copiedAt((await $.state.get(copiedRef)).value, now) }, view, (await $.state.get(athkarMenuRef)).value === true)
+  return paneModel({ salah: readSalah(now), quran, athkar: await readAthkar() }, now, widthOf(columns), options.color, undefined, folds, { state: await readSettings($), options: optimisticOptions(options, (await $.state.get(optimisticRef)).value), terminalMode: 'per-terminal setup', copied: copiedAt((await $.state.get(copiedRef)).value, now), autoUpdate: await readPanelAutoUpdate(), pendingAutoUpdate: (await $.state.get({ plugin: 'muslim', key: 'paneAutoUpdate' })).value ?? null }, view, (await $.state.get(athkarMenuRef)).value === true)
 }
 
 const enabledOf = (m: PaneModel): Enabled => ({
@@ -226,6 +226,17 @@ async function settingsPress($: EngineInterface, options: Options, act: PaneAct)
         $.ui.toast(`Not changed: ${deny}`)
       }
       else if (s.face === 'methods') await $.state.set(settingsRef, { ...s, face: 'main', page: 0 })
+    } else if (effect.kind === 'command') {
+      try { await $.command.run({ command: 'muslim', args: effect.args }) }
+      catch { $.ui.toast(`Run /muslim ${effect.args}.`) }
+    } else if (effect.kind === 'autoupdate') {
+      const ref = { plugin: 'muslim', key: 'paneAutoUpdate' } as const
+      await $.state.set(ref, effect.value)
+      if (!(await runPanelAction('muslim-autoupdate', effect.value ? 'on' : 'off'))) {
+        const pending = await $.state.get(ref)
+        if (pending.value === effect.value) await $.state.set(ref, null, { ifVersion: pending.version })
+        $.ui.toast('Not changed: auto-update is unavailable')
+      }
     } else if (effect.kind === 'face') {
       await $.state.set(settingsRef, { ...s, face: effect.face, page: 0 })
       if (effect.face === 'city' && !(await runPanelAction('salah-city'))) $.ui.toast('Choose a city with /salah city.')
@@ -244,7 +255,7 @@ async function togglePane($: EngineInterface): Promise<void> {
   try {
     if (await isPaneOpen($)) await $.ui.close({ id: PANE_ID })
     else { await $.ui.open({ id: PANE_ID, title: '☾ Muslim' }); $.ui.invalidate('ui.render') }
-  } catch { $.ui.toast('Muslim pane unavailable. Use /muslim pane.') }
+  } catch { $.ui.toast('Muslim pane unavailable. Use /muslim.') }
 }
 
 // DEMO BEGIN: the tour is module-local drawing only. It reads the clock and the pane list, and
@@ -279,7 +290,7 @@ const tickDemo = async ($: EngineInterface, playing: PaneDemo) => {
 const playDemo = async ($: EngineInterface, shared: boolean): Promise<string> => {
   if (await $.session.surface() !== 'desktop') {
     if (shared) doneDemo('pane')
-    return demoTerminalReply()
+    return ''
   }
   demo?.timer?.cancel()
   const wasOpen = await isPaneOpen($)
@@ -290,7 +301,7 @@ const playDemo = async ($: EngineInterface, shared: boolean): Promise<string> =>
   } catch {
     demo = undefined
     if (shared) doneDemo('pane')
-    return 'Muslim pane unavailable. Use /muslim pane.'
+    return 'Muslim pane unavailable. Use /muslim.'
   }
   playing.timer = $.clock.every(DEMO_TICK_MS, () => { void tickDemo($, playing) })
   $.ui.invalidate('ui.render')
@@ -302,7 +313,7 @@ export const install = (on: On, options: Options) => {
   // Registered before Quran and salah: this outer hook prepends the chip, so it is the leftmost item.
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
     const theirs = await next(e)
-    if (e.surface !== 'desktop') return theirs
+    if (e.surface !== 'desktop' || !options.paneButton) return theirs
     const { Box, Text, Button } = $.ui.resolve(e)
     // Desktop draws a Button from its label alone; the Text repeats it for a Desktop that draws the children.
     return <Box gap={1}>
@@ -320,19 +331,20 @@ export const install = (on: On, options: Options) => {
   let desktopPane = false
   let paneOffset = 0
 
-  on('command.run', { command: 'muslim', args: /^\s*pane\s*$/ }, async ($, e, next) => {
-    // Refresh read-only feature feeds for terminal command output too.
-    try { await next(e) } catch { /* no command handler beneath */ }
-    const surface = await $.session.surface() ?? 'desktop'
-    if (surface !== 'desktop') {
-      const mode = await arabicMode($, surface)
-      const model = await modelNow($, options, 0)
-      model.settings.terminalMode = mode
-      return { text: textLines(model, text => terminalArabic(surface, mode, text)).join('\n') }
+  // Outer to Arabic setup: desktop answers here, other surfaces keep the status table.
+  on('command.run', { command: 'muslim', args: /^\s*$/ }, async ($, e, next) => {
+    const surfaces = await $.session.surfaces()
+    if (!surfaces.includes('desktop') || surfaces.includes('terminal')) return next(e)
+    // Refresh Quran's feed through its own empty-command hook before opening.
+    await next(e)
+    try {
+      await $.ui.open({ id: 'muslim', title: '☾ Muslim' })
+      $.ui.invalidate('ui.render')
+      return { text: 'Muslim pane opened.' }
+    } catch {
+      // An empty answer asks register to keep its existing text-table fallback.
+      return {}
     }
-    await $.ui.open({ id: PANE_ID, title: '☾ Muslim' })
-    $.ui.invalidate('ui.render')
-    return { text: 'Muslim pane opened (desktop only).' }
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
@@ -366,7 +378,7 @@ export const install = (on: On, options: Options) => {
     return <Client key="muslim-pane" module="./client.tsx" width="100%" props={model} />
   }).catch(async ($, e) => {
     const { Text } = $.ui.resolve(e)
-    return <Text dimColor>Muslim pane unavailable. Use /muslim pane again.</Text>
+    return <Text dimColor>Muslim pane unavailable. Use /muslim again.</Text>
   })
 
   on('ui.message', { element: 'muslim-pane' }, async ($, e, next) => {
@@ -401,12 +413,11 @@ export const install = (on: On, options: Options) => {
     return next(e)
   })
 
-  // DEMO BEGIN: connect the shared starter; `/muslim pane demo` plays the same tour.
+  // DEMO BEGIN: the tour is the last step of /muslim demo.
   on('command.run', { command: 'muslim', args: /^\s*demo\s*$/ }, ($, e, next) => {
     connectDemo('pane', () => playDemo($, true))
     return next(e)
   })
-  on('command.run', { command: 'muslim', args: /^\s*pane\s+demo\s*$/ }, async $ => ({ text: await playDemo($, false) }))
   // DEMO END
 
   on('ui.close', { id: PANE_ID }, async ($, e, next) => {

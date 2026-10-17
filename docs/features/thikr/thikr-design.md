@@ -34,7 +34,7 @@ The shared `/muslim demo` connects a transient signal to this same feature-local
 
 - Terminal rendering and tashkeel behavior follow the shared [terminal Arabic guide](../../terminal/terminal-arabic.md). The shared [Arabic check](../../terminal/terminal-arabic.md#design) is terminal-only and hidden during surveys.
 
-- Phrases are authored with tashkeel in `plugin/src/features/thikr/phrases.ts`; the desktop-only [`/muslim tashkeel` setting](../../terminal/terminal-arabic.md#tashkeel) controls desktop display.
+- Phrases are authored with tashkeel in `plugin/src/features/thikr/phrases.ts`, with the end-of-turn phrase shared from `plugin/src/shared/thikr/end.ts`; the desktop-only [`/muslim tashkeel` setting](../../terminal/terminal-arabic.md#tashkeel) controls desktop display.
 - Every phrase fits one line at 80 columns next to Claude's own text.
 - Claude's text and ours are separate runs joined by ` · `, so each keeps its own direction.
 - Claude's own numbers (timer, tokens) are never converted.

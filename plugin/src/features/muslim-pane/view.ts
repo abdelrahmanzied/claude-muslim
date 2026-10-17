@@ -290,7 +290,7 @@ const SETTINGS_CSS = `
 .settings-body{position:absolute;left:0;right:0}
 .setting-label{position:absolute;right:16px;max-width:calc(100% - 32px);height:${LABEL_H}px;display:flex;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
 .setting-label span{line-height:1;transform:translateY(.12em)}
-.setting-hint{position:absolute;left:16px;right:16px;text-align:right;direction:rtl;line-height:${HINT_H}px;font-size:12px;color:var(--muted)}
+.setting-hint{position:absolute;left:16px;right:16px;text-align:right;direction:rtl;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:${HINT_H}px;font-size:12px;color:var(--muted)}
 .setting-extra{position:absolute;right:16px;max-width:calc(100% - 142px);font-size:12px;line-height:14px;color:var(--muted)}
 .sc{position:absolute;display:flex;align-items:center;justify-content:center;gap:4px;border-radius:7px;font-size:14px;color:var(--text-2);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .sc.pill,.sc.value{background:transparent;box-shadow:inset 0 0 0 1px var(--line);padding:3px 6px}
@@ -314,7 +314,7 @@ const settingControl = (t: SettingsTarget, hover: PaneAct | null): string => {
 }
 const settingRow = (row: SettingRow, y: number): string => {
   const inline = row.controls[0]?.style === 'switch' ? 82 : row.controls[0]?.style === 'swatch' ? 144 : 32
-  return `<span class="setting-label" style="top:${y}px;max-width:calc(100% - ${inline}px)"><span>${escape(row.label)}</span></span><span class="setting-hint" style="top:${y+HINT_TOP}px">${escape(row.hint)}</span>${row.extra?.controls.length?`<span class="setting-extra" style="top:${y+EXTRA_TOP+7}px">${escape(row.extra.label)}</span>`:''}`
+  return `<span class="setting-label" style="top:${y}px;max-width:calc(100% - ${inline}px)"><span>${escape(row.label)}</span></span><span class="setting-hint" style="top:${y+HINT_TOP}px">${row.hintLtr ? `<bdi dir="ltr">${escape(row.hint)}</bdi>` : escape(row.hint).replace(/\/muslim/g, '<bdi dir="ltr">/muslim</bdi>')}</span>${row.extra?.controls.length?`<span class="setting-extra" style="top:${y+EXTRA_TOP+7}px">${escape(row.extra.label)}</span>`:''}`
 }
 const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
   const model=m.settings, s=model.state, r=cardRects(m.folds,s,model.options,quranLayout(m), m.athkarMenu), b=settingsBody(m.width,model)

@@ -1,12 +1,12 @@
 # Desktop pane design
 
-The design principles for every drawn desktop pane in this mod (today the Muslim pane, `/muslim pane`; the Quran player is its card). They extend [DESIGN.md](../../DESIGN.md) and never contradict it; each pane's own `docs/features/<feature>-design.md` holds its exact layout. Read this before drawing or changing a pane.
+The design principles for every drawn desktop pane in this mod (today the Muslim pane, `/muslim`; the Quran player is its card). They extend [DESIGN.md](../../DESIGN.md) and never contradict it; each pane's own `docs/features/<feature>-design.md` holds its exact layout. Read this before drawing or changing a pane.
 
 ## 1. What the Desktop owns, and what we own
 
 - **The frame is the Desktop's.** `$.ui.open` takes `id`, `title`, `focus`, `closeOnEscape` and `holdToasts`, nothing else: no width, height, padding or position. The Desktop adds its own space above the picture and sets the pane's width. We own only the picture inside.
 - **The heading starts at the picture's top edge** (`TOP_Y = 0`), since the Desktop's own top space is already there. The picture ends 12px (`PAD`) under the last card.
-- **The footer is one shared slot.** On Desktop a plugin reaches the prompt footer only through `SessionMode`: one slot for every plugin, placed and sized by the Desktop, with no size or position prop. Each plugin adds its items next to what `next(e)` returns, so they share one width and long items are cut with `…`. Keep ours to one short plain Button, `☾ Muslim`. Only text and Buttons (string or emoji labels) draw there; Svg and custom fonts do not.
+- **The footer is one shared slot.** On Desktop a plugin reaches the prompt footer only through `SessionMode`: one slot for every plugin, placed and sized by the Desktop, with no size or position prop. Each plugin adds its items next to what `next(e)` returns, so they share one width and long items are cut with `…`. Keep ours to one short plain Button, `☾ Muslim`, shown while `paneButton` is on (default). The pane and `/config` can turn it off; `/muslim` still opens the pane. Only text and Buttons (string or emoji labels) draw there; Svg and custom fonts do not.
 
 ## 2. A fixed picture
 
@@ -32,7 +32,7 @@ The design principles for every drawn desktop pane in this mod (today the Muslim
 ## 5. Words
 
 - **Arabic in the pane.** Labels, descriptions, buttons and notes in a pane are Arabic (the pane is a drawn surface for this mod's users, unlike Claude's own chrome). Latin product names (Terminal, Claude, Spinner) stay Latin inside an Arabic line, and commands are LTR in `<bdi>`.
-- Keep descriptions to one short line at 360px. No explanations that repeat the label.
+- Keep descriptions to one short line at 360px. Settings descriptions remain one line and ellipsize when the pane is narrower, so they never overlap the next control or row. No explanations that repeat the label.
 
 ## 6. Settings rows
 
@@ -40,6 +40,7 @@ The design principles for every drawn desktop pane in this mod (today the Muslim
 - **Switches** sit on the label's line at the opposite end, never on a line of their own. They flip at once on press (the value is drawn from `$.state` before the config write and its module reload).
 - **Color dots** sit on the label's line at the opposite end, like a switch, at their small 16px size.
 - **A command is its own button.** When a setting is changed by running a command elsewhere (the terminal check), the button's text is the command itself (no glyph) and one press copies it (`$.ui.copy`, a toast when copying fails). After a copy the button shows «تم النسخ ✓» in the main color for 2 seconds, then the command again. No extra page for one command, no long how-to text.
+- **Chat actions** (update and feedback) use one Arabic value-style button and run the existing slash command from the input hook. No command logic is copied into the pane. The version hint is LTR; commands embedded in descriptions stay in LTR `<bdi>`. The background-update switch uses its owner’s connected reader and action, with immediate session-state feedback and a toast on failure, without a chat reply.
 - A card is only as tall as its visible rows: a hidden line takes its height with it.
 - One home per setting: a setting already in another pane (the Quran reciter and repeat) is not repeated here.
 - Lists (methods) and steppers (adjustments) may open a detail face with a back control.

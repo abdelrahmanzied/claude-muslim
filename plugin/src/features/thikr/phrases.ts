@@ -47,6 +47,6 @@ export const SALAWAT = [
 // phrases: the call to pray, then the pray and the minutes left.
 export const CALL_TO_PRAY = 'حَيَّ عَلَى الصَّلَاةِ'
 
-export const END_OF_TURN = 'تَمَّ بِحَمْدِ اللَّهِ'
+export { END_OF_TURN } from '../../shared/thikr/end.ts'
 
 export const USAGE_LIMIT = 'حَسْبُنَا اللَّهُ وَنِعْمَ الْوَكِيلُ'

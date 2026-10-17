@@ -1,3 +1,6 @@
+import { VERSION } from '../../src/constants.ts'
+import { END_OF_TURN } from '../../src/shared/thikr/end.ts'
+import { stripTashkeel } from '../../src/shared/arabic/visual.ts'
 import { expect, test } from 'claude-code/testing'
 import { readAdjust, readOptions, writeAdjust } from '../../src/config.ts'
 import { cardRects, hitAt, hitOfCells, NO_FOLDS, paneHeight, settingsBoxes, type Enabled } from '../../src/features/muslim-pane/layout.ts'
@@ -167,14 +170,15 @@ test('rows share label/description/control geometry, inline switches and color d
         expect(controls[0]!.x0).toBe(28)
         for(const t of controls) expect(t.y1-y).toBe(LABEL_H)
       }
-      expect(row.hint).toMatch(/[ء-ي]/)
+      if (!row.hintLtr) expect(row.hint).toMatch(/[ء-ي]/)
     }
     const model=paneModel({salah:null,quran:null,athkar:null},0,width,'orange'); model.settings=m
     const svg=paneSvg(model)
     expect(svg).not.toContain('Applies immediately')
     expect(svg).not.toContain('class="settings-head"')
     for(const {row,y} of b.rows){
-      expect(svg).toContain(`top:${y+HINT_TOP}px">${row.hint}`)
+      expect(svg).toContain(`top:${y+HINT_TOP}px">`)
+      expect(svg).toContain(row.hintLtr ? `<bdi dir="ltr">${row.hint}</bdi>` : row.hint.replace(/\/muslim/g, '<bdi dir="ltr">/muslim</bdi>'))
     }
   }
 })
@@ -283,4 +287,55 @@ test('a copy confirmation lasts until its expiry time and ignores malformed save
   expect(copiedAt(saved,10_000+COPIED_MS)).toBeNull()
   for(const bad of [null,undefined,{},{command:1,until:5},{command:'x',until:'5'},{command:'x',until:Infinity*0}]) expect(copiedAt(bad,0)).toBeNull()
   expect(COPIED_MS).toBe(2000)
+})
+
+test('general rows and thikr end share fixed geometry and Arabic labels',()=>{
+  for(const width of [240,360]){
+    const general={...make('general'),autoUpdate:'on' as const}
+    const body=settingsBody(width,general)
+    expect(body.rows.map(r=>r.row.label)).toEqual(['اللون الرئيسي','التشكيل','العربية في Terminal','زر مسلم','الإصدار','التحديث التلقائي','إرسال ملاحظة'])
+    expect(body.rows.map(r=>r.row.height)).toEqual([70,70,108,70,108,70,108])
+    expect(MAIN_HEIGHTS.general).toBe(594)
+    const target=(act:string)=>body.targets.find(t=>t.act===`settings:${act}`)!
+    expect(target('paneButton').effect).toEqual({kind:'config',field:'paneButton',value:false})
+    expect(target('update').effect).toEqual({kind:'command',args:'update'})
+    expect(target('autoupdate').effect).toEqual({kind:'autoupdate',value:false})
+    expect(target('feedback').effect).toEqual({kind:'command',args:'feedback'})
+    for(const t of settingsBoxes(width,NO_FOLDS,general)){
+      expect(hitAt(width,(t.x0+t.x1)/2,(t.y0+t.y1)/2,OFF,0,0,NO_FOLDS,general)).toBe(t.act)
+    }
+    const thikr=make('thikr'),rows=settingsRows(thikr)
+    expect(rows.at(-1)!.label).toBe('نهاية الرد')
+    expect(rows.at(-1)!.height).toBe(SWITCH_ROW_H)
+    expect(rows.at(-1)!.controls[0]!.effect).toEqual({kind:'config',field:'thikrEnd',value:false})
+    expect(MAIN_HEIGHTS.thikr).toBe(384)
+  }
+})
+
+test('auto-update draws only on for on, disables unreadable states, and overlays a pending press',()=>{
+  for(const state of ['on','off','default','missing','unknown'] as const){
+    const m={...make('general'),autoUpdate:state}
+    const c=settingsBody(360,m).controls.find(t=>t.act==='settings:autoupdate')!.control
+    expect(c.selected).toBe(state==='on')
+    expect(c.disabled).toBe(state==='missing'||state==='unknown')
+    expect(settingsBody(360,{...m,pendingAutoUpdate:false}).controls.find(t=>t.act==='settings:autoupdate')!.control.selected).toBe(false)
+  }
+  expect(readOptions({}).paneButton).toBe(true)
+  expect(readOptions({paneButton:false}).paneButton).toBe(false)
+  const options=readOptions({})
+  expect(pendingSwitches(options,{paneButton:false,thikrEnd:false})).toEqual({paneButton:false,thikrEnd:false})
+  expect(pendingSwitches({...options,paneButton:false,thikrEnd:false},{paneButton:false,thikrEnd:false})).toEqual({})
+})
+
+
+test('version and commands keep LTR isolation and the end sample follows tashkeel',()=>{
+  const m=make('general'),model=paneModel({salah:null,quran:null,athkar:null},0,360,'orange')
+  model.settings=m
+  const svg=paneSvg(model)
+  expect(svg).toContain(`<bdi dir="ltr">v${VERSION}</bdi>`)
+  expect(svg).toContain('افتح اللوحة بـ <bdi dir="ltr">/muslim</bdi>')
+  expect(settingsRows(make('thikr')).at(-1)!.hint).toContain(END_OF_TURN)
+  const noMarks={...make('thikr'),options:{...make('thikr').options,tashkeel:false}}
+  expect(settingsRows(noMarks).at(-1)!.hint).toContain(stripTashkeel(END_OF_TURN))
+  expect(settingsRows(noMarks).at(-1)!.hint).not.toContain(END_OF_TURN)
 })

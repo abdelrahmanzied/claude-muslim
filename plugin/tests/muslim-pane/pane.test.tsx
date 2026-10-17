@@ -19,14 +19,15 @@ declare const setTimeout: (fn: () => void, ms: number) => unknown
 let testClock!: ReturnType<typeof mock.clock>
 const pane = (surface: 'desktop' | 'terminal') => ({ plugin: 'muslim', component: 'Pane' as const, requestId: 'muslim', surface, props: { title: 'Muslim', isFocused: false, bodyColumns: 50, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 40 }, view: {} } })
 // Stands for the engine's own band and mode labels beneath the plugin, so the features connect as in a session.
-const engine = (on: On, surface: 'desktop' | 'terminal', open?: (args: PaneOpenArgs) => UiOpenResult, entries: Record<string, unknown> = {}, storeWrites?: {key:string;value:unknown}[]) => {
-  mock.env(on, {})
+const engine = (on: On, surface: 'desktop' | 'terminal', open?: (args: PaneOpenArgs) => UiOpenResult, entries: Record<string, unknown> = {}, storeWrites?: {key:string;value:unknown}[], env: Record<string,string> = {}) => {
+  mock.env(on, env)
   if (storeWrites) {
     on('store.get',async(_$,e)=>({value:entries[e.key]}))
     on('store.set',async(_$,e)=>{entries[e.key]=e.value;storeWrites.push({key:e.key,value:e.value});return {value:undefined}})
   } else mock.store(on, entries)
   testClock = mock.clock(on, { now: NOON })
   on('session.surface', async () => ({ value: surface }))
+  on('session.surfaces', async () => ({ value: [surface] }))
   on('config.list', async () => ({ value: [] }))
   on('ui.render', { component: 'AbovePrompt' }, async ($, e) => { const { Box } = $.ui.resolve(e); return <Box /> })
   on('ui.render', { component: 'SessionMode' }, async ($, e) => { const { Text } = $.ui.resolve(e); return <Text>x</Text> })
@@ -39,11 +40,11 @@ const engine = (on: On, surface: 'desktop' | 'terminal', open?: (args: PaneOpenA
 const band = (surface: 'desktop' | 'terminal') => ({ plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'band', props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} } })
 const modes = (surface: 'desktop' | 'terminal') => ({ plugin: 'muslim', surface, component: 'SessionMode' as const, requestId: 'modes', props: { modes: [] as readonly string[] } })
 
-test('/muslim pane opens the Muslim pane on desktop', { options: { salahPlace: MUNICH } }, async ($, on) => {
+test('/muslim opens the Muslim pane on desktop', { options: { salahPlace: MUNICH } }, async ($, on) => {
   const opened = engine(on, 'desktop')
-  const result = await $.command.run({ command: 'muslim', args: 'pane', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+  const result = await $.command.run({ command: 'muslim', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
   expect(opened).toEqual([{ id: 'muslim', title: '☾ Muslim' }])
-  expect(result.text).toContain('Muslim pane opened')
+  expect(result.text).toBe('Muslim pane opened.')
 })
 
 test('the pane draws the prayer card from salah and quiet notes for features not drawn yet', { options: { salahPlace: MUNICH, athkar: false } }, async ($, on) => {
@@ -100,11 +101,11 @@ test('before the footer or catalog has loaded, the Quran controls and pickers st
 
 test('the terminal gets a plain text summary instead of a pane', { options: { salahPlace: MUNICH } }, async ($, on) => {
   const opened = engine(on, 'terminal')
-  const result = await $.command.run({ command: 'muslim', args: 'pane', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+  const result = await $.command.run({ command: 'muslim', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
   expect(opened).toEqual([])
-  expect(result.text).toContain('**Muslim**')
-  expect(result.text).toContain('Munich')
-  expect(result.text).toContain('Athan on')
+  expect(result.text).toContain('**Muslim** · v')
+  expect(result.text).toContain('### Features\n\n| Feature | Description | State |')
+  expect(result.text).toContain('| Salah | Pray times and the next pray under the prompt | `20` — only the 20 min before a pray, counting down |')
 })
 
 test('the terminal pane body is text too', { options: { salahPlace: MUNICH } }, async ($, on) => {
@@ -219,6 +220,8 @@ function settingsState(on: On, state: SettingsState) {
 }
 const settingCases: {category:SettingsState['category'];face?:SettingsState['face'];page?:number;act:string;field:string;value:string|boolean}[] = [
   {category:'thikr',act:'thikr',field:'thikr',value:false},
+  {category:'thikr',act:'thikrEnd',field:'thikrEnd',value:false},
+  {category:'general',act:'paneButton',field:'paneButton',value:false},
   {category:'thikr',act:'thikrSpeed:3',field:'thikrSpeed',value:'3'},
   {category:'thikr',act:'thikrMode:salawat',field:'thikrMode',value:'salawat'},
   {category:'general',act:'tashkeel',field:'tashkeel',value:false},
@@ -343,13 +346,12 @@ test('terminal Arabic copies its command in one press, then confirms «تم ال
   expect(button).not.toContain('تم النسخ')
 })
 
-test('terminal pane command lists no Quran settings: they live in /quran',async($,on)=>{
-  engine(on,'terminal',undefined,{'quran.catalog':{...fixtureCatalog,fetchedAt:NOON},'quran.reciter':'10:21'})
-  const result=await $.command.run({command:'muslim',args:'pane',origin:{kind:'composer'},presentation:{isFullscreen:false,columns:80}})
-  expect(result.text).not.toContain('Quran · reciter')
-  expect(result.text).not.toContain('/quran reciter')
-  expect(result.text).not.toContain('Quran · repeat')
-  expect(result.text).toContain('Terminal Arabic:')
+test('terminal pane body lists terminal settings without desktop-only rows',async($,on)=>{
+  engine(on,'terminal')
+  const ui=await $.ui.mount(pane('terminal'))
+  expect(await ui.find({text:/Terminal Arabic:/})).toBeDefined()
+  expect(await ui.find({text:/End of turn:/})).toBeDefined()
+  for(const label of ['زر مسلم','الإصدار','التحديث التلقائي','إرسال ملاحظة']) expect(await ui.find({text:label})).toBeUndefined()
 })
 
 const boundaryCases: {category:SettingsState['category'];act:string;raw:Record<string,string>;expected:{key:string;value:string}|null}[] = [
@@ -556,5 +558,90 @@ test('pane reads a replaced after-salah slot without trying a render-time state 
   const ui = await $.ui.mount(pane('desktop'))
   expect((await athkarModel(ui)).athkar).toMatchObject({ isAvailable: true, isDone: false, progress: 0 })
   expect(writes.filter(w => w.key === 'athkar')).toEqual([])
+  await ui.unmount()
+})
+
+test('paneButton off preserves the engine footer and /muslim still opens the pane', {options:{paneButton:false}},async($,on)=>{
+  const opened=engine(on,'desktop')
+  const ui=await $.ui.mount(modes('desktop'))
+  expect(await ui.find({key:'muslim-footer'})).toBeUndefined()
+  expect(await ui.find({text:'x'})).toBeDefined()
+  expect((await $.command.run({command:'muslim',args:'',origin:{kind:'composer'},presentation:{isFullscreen:false,columns:80}})).text).toBe('Muslim pane opened.')
+  expect(opened).toHaveLength(1)
+})
+
+for(const args of ['update','feedback'] as const) test(`general ${args} press dispatches the chat command`,{plugins:[{
+  name:'command-observer',tier:'prepend',register(on){
+    on('command.run',{command:'muslim'},async($,e)=>{
+      await $.store.set('test.command',{command:e.command,args:e.args})
+      return {text:'done'}
+    })
+  },
+}]},async($,on)=>{
+  const recorded:{key:string;value:unknown}[]=[],toasts:string[]=[]
+  engine(on,'desktop',undefined,{},recorded)
+  settingsState(on,{open:true,category:'general',face:'main',page:0})
+  on('ui.toast',async(_$,e)=>{toasts.push(e.text);return {value:undefined}})
+  const ui=await $.ui.mount(pane('desktop'))
+  await settingsClick(ui,`settings:${args}`)
+  expect(recorded.filter(e=>e.key==='test.command').map(e=>e.value)).toEqual([{command:'muslim',args}])
+  expect(toasts).toEqual([])
+  await ui.unmount()
+})
+
+for(const failure of [false,true]) test(`autoupdate uses the connected writer without a chat command; ${failure?'rolls back failure':'clears a confirmed optimistic value'}`,async($,on)=>{
+  engine(on,'desktop',undefined,{},undefined,{HOME:'/test-home'})
+  settingsState(on,{open:true,category:'general',face:'main',page:0})
+  let data={theme:'dark',extraKnownMarketplaces:{'claude-muslim':{autoUpdate:true},other:{autoUpdate:false}}}
+  on('settings.read',async()=>({value:data}))
+  on('fs.read',async()=>({value:JSON.stringify(data)}))
+  let started!:()=>void,release!:()=>void
+  const writing=new Promise<void>(r=>{started=r}),held=new Promise<void>(r=>{release=r})
+  let pending: boolean | null | undefined
+  on('state.set',{plugin:'muslim',key:'paneAutoUpdate'},async(_$,e,next)=>{pending=e.value;return next(e)})
+  const writes:string[]=[],toasts:string[]=[],commands:string[]=[]
+  on('fs.write',async(_$,e)=>{writes.push(e.path);started();await held;if(failure)return {deny:'locked'};data=JSON.parse(e.text);return {value:undefined}})
+  on('ui.toast',async(_$,e)=>{toasts.push(e.text);return {value:undefined}})
+  on('command.run',async(_$,e)=>{commands.push(e.args);return {text:'unexpected'}})
+  const ui=await $.ui.mount(pane('desktop'))
+  const click=settingsClick(ui,'settings:autoupdate')
+  try{
+    await writing
+    expect(pending).toBe(false)
+    const m=(await ui.find({type:'Client',key:'muslim-pane'}))!.props.props as PaneModel
+    expect(m.settings.pendingAutoUpdate).toBe(false)
+  }finally{release()}
+  await click
+  await until(()=>pending===null)
+  expect(writes).toEqual(['/test-home/.claude/settings.json'])
+  expect(commands).toEqual([])
+  if(failure){expect(toasts).toHaveLength(1);expect(toasts[0]).toMatch(/^Not changed: .*locked$/)}else expect(toasts).toEqual([])
+  expect(pending).toBeNull()
+  expect(data.extraKnownMarketplaces['claude-muslim'].autoUpdate).toBe(failure)
+  expect(data.extraKnownMarketplaces.other.autoUpdate).toBe(false)
+  await ui.unmount()
+})
+
+test('auto-update keeps a pending value until the real reader catches up, then clears it after drawing',async($,on)=>{
+  engine(on,'desktop',undefined,{},undefined,{HOME:'/test-home'})
+  settingsState(on,{open:true,category:'general',face:'main',page:0})
+  let real=true,pending:boolean|null|undefined,rendering=false
+  on('settings.read',async()=>({value:{extraKnownMarketplaces:{'claude-muslim':{autoUpdate:real}}}}))
+  on('fs.read',async()=>({value:JSON.stringify({extraKnownMarketplaces:{'claude-muslim':{autoUpdate:true}}})}))
+  on('fs.write',async()=>({value:undefined}))
+  on('state.set',{plugin:'muslim',key:'paneAutoUpdate'},async(_$,e,next)=>{
+    expect(rendering).toBe(false)
+    pending=e.value
+    return next(e)
+  })
+  const ui=await $.ui.mount(pane('desktop'))
+  await settingsClick(ui,'settings:autoupdate')
+  await testClock.settle()
+  expect(pending).toBe(false)
+  real=false
+  rendering=true
+  try{await ui.redraw()}finally{rendering=false}
+  await testClock.advance(0)
+  expect(pending).toBeNull()
   await ui.unmount()
 })

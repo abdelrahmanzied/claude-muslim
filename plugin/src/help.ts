@@ -9,7 +9,7 @@ import { helpReply, helpTable, type HelpRow } from './table.ts'
 const FEATURES = { thikr: THIKR_COMMANDS, athkar: ATHKAR_COMMANDS, salah: SALAH_COMMANDS, quran: QURAN_COMMANDS } as const
 
 export const MUSLIM_COMMANDS: readonly HelpRow[] = [
-  ['/muslim', 'The version, every feature\'s state and the shared settings', ''],
+  ['/muslim', 'Desktop: open the Muslim pane; terminal: the version, every feature\'s state and the shared settings', ''],
   ['/muslim help', 'Every command table, or one feature\'s', '`<feature>`: thikr, athkar, salah, quran, color, tashkeel, terminal-arabic, update, autoupdate, feedback'],
   ['/muslim color', 'The main color in every feature', '`orange` (default, Claude\'s) · `green` · `yellow` · `blue`'],
   ['/muslim tashkeel', 'Arabic diacritics on desktop; the terminal never shows them', '`on` (default) · `off`'],
@@ -17,10 +17,8 @@ export const MUSLIM_COMMANDS: readonly HelpRow[] = [
   ['/muslim update', 'Update muslim from GitHub and reload plugins; only this plugin, nothing else', ''],
   ['/muslim autoupdate', 'The background update of muslim by Claude Code, on after the first run; alone it shows the state', '`on` · `off`'],
   ['/muslim feedback', 'Report a bug or send a request, idea, content correction or feedback to GitHub; Claude drafts it and sends only after your yes', '`<what you want to say>` (optional)'],
-  ['/muslim pane', 'Open the Muslim pane on desktop: today\'s prayers, the Quran player and the athkar progress; a plain text summary in the terminal', ''],
   // DEMO BEGIN: shared demo help.
   ['/muslim demo', 'Play thikr, athkar, /salah demo (athan and athkar after salah) and the Muslim pane tour (desktop) in order; thikr uses tokens and leaves a message in the transcript', ''],
-  ['/muslim pane demo', 'Tour the Muslim pane on desktop: cards unfold, play and fold back; nothing is saved', ''],
   // DEMO END
 ]
 

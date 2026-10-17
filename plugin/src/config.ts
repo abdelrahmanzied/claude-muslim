@@ -6,6 +6,7 @@ import type { Speed } from './features/thikr/rotation.ts'
 
 // Typed view of the manifest's userConfig values, defaults filled in.
 export type Options = {
+  paneButton: boolean
   thikr: boolean
   thikrSpeed: Speed
   tashkeel: boolean
@@ -32,6 +33,7 @@ export const SPEED_MIN = 1
 export const SPEED_MAX = 60
 
 export const readOptions = (raw: Record<string, unknown>): Options => ({
+  paneButton: raw.paneButton !== false,
   thikr: raw.thikr !== false,
   thikrSpeed: readSpeed(raw.thikrSpeed),
   tashkeel: raw.tashkeel !== false,

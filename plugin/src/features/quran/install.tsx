@@ -623,7 +623,7 @@ function connectToPanel($: EngineInterface): void {
 }
 
 export const install = (on: On, _options: Options) => {
-  on('command.run', { command: 'muslim', args: /^\s*pane\s*$/ }, ($, e, next) => {
+  on('command.run', { command: 'muslim', args: /^\s*$/ }, ($, e, next) => {
     connectToPanel($)
     return next(e)
   })

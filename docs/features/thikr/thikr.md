@@ -38,7 +38,7 @@ A desktop step row (`Running a command 6s >`) keeps its words with the thikr aft
 - **auto** (default): each phrase stays for its reading time, 1 s + 0.5 s per word. سبحان الله stays 2 s; ربنا آتنا … 6.5 s.
 - **fixed**: `/thikr speed <1-60>` gives every phrase the same seconds. `/thikr speed auto` goes back.
 
-Full text with tashkeel: `plugin/src/features/thikr/phrases.ts`.
+Full text with tashkeel: `plugin/src/features/thikr/phrases.ts`; the end-of-turn constant is shared from `plugin/src/shared/thikr/end.ts` for the pane’s example.
 
 ## Special moments
 
@@ -58,7 +58,7 @@ Terminal Arabic uses the shared three-mode behavior, and terminal output always 
 | `thikrEnd` | `/thikr end on` · `off` | on |
 | `thikrMode` | `/thikr mode all` · `/thikr mode salawat` | all |
 
-`/thikr` alone shows the current settings and help.
+`/thikr` alone shows the current settings and help. All four fields can also be changed in the Muslim pane’s الذكر tab, including «نهاية الرد» (`thikrEnd`); its effect remains terminal-only.
 
 Tashkeel is controlled on desktop by [`/muslim tashkeel`](../../terminal/terminal-arabic.md#tashkeel); terminals always strip it.
 
