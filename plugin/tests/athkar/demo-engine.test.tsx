@@ -41,7 +41,7 @@ const savedReading = (on: On, day = emptyDay(dayOf(new Date(NOW)))) => {
 }
 
 for (const style of ['sky', 'frame'] as const) {
-  test(`desktop ${style}: the story draws readings, the full finale and folded done, then restores the real band`, async ($, on) => {
+  test(`desktop ${style}: the story draws readings, the full finale and folded done, then restores the real band`, { timeoutMs: 20000 }, async ($, on) => {
     const clock = mock.clock(on, { now: NOW })
     engineBand(on)
     const day = emptyDay(dayOf(new Date(NOW)))

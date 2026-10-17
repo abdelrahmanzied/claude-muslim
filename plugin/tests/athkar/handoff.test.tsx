@@ -108,8 +108,37 @@ test('desktop: finishing after-salah started from the athan card plays the final
   await ui.unmount()
 })
 
+test('desktop: June Fajr before 05:00 keeps the prayer day when the last-count timer finishes after-salah', { options: MUNICH, timeoutMs: 15000 }, async ($, on) => {
+  // June Fajr is before 05:00 on both CEST and UTC machines.
+  const times = timesOn(PLACE, 'mwl', NO_ADJUST, Date.parse('2026-06-10T10:00:00Z'))
+  const { clock, held } = setup(on, times.fajr + 5000, 'desktop')
+  const ui = await $.ui.mount(band('desktop'))
+  await clock.advance(0)
+  const card = (await ui.find({ type: 'Client', key: 'salah-athan' }))?.props.props as Parameters<typeof athanFrame>[0]
+  const area = startArea(athanFrame(card, 100))
+  const x = Math.floor(((area.x0 + area.x1) / 2 + card.card.ch) / card.card.ch)
+  const y = Math.floor(((area.y0 + area.y1) / 2 + card.card.lh / 2) / card.card.lh)
+  await ui.resize({ columns: 100, rows: 5, in: 'salah-athan' })
+  await ui.pointer({ type: 'down', button: 'left', x, y, in: 'salah-athan' })
+  expect(held.request).toEqual({ pray: 'fajr', at: times.fajr })
+  const list = listFor('afterSalah', held.day.afterSalah)
+  const counts = Object.fromEntries(list.map(t => [t.id, t.times]))
+  counts[list[list.length - 1]!.id]! -= 1
+  held.day = { ...held.day, afterSalah: { ...held.day.afterSalah, index: list.length - 1, counts } }
+  await ui.key({ key: 'space', in: 'athkar' })
+  expect(held.day.day).toBe('2026-06-10')
+  expect(held.day.afterSalah.counts[list[list.length - 1]!.id]).toBe(list[list.length - 1]!.times)
+  await clock.advance(ADVANCE_MS)
+  expect(held.day.afterSalah.isDone).toBe(true)
+  expect(held.day.day).toBe('2026-06-10')
+  expect((await ui.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ period: 'afterSalah', phase: 'done' })
+  await clock.advance(IDLE_MS)
+  expect((await ui.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ period: 'morning' })
+  await ui.unmount()
+})
+
 for (const close of [false, true]) {
-  test(`desktop ${close ? '× waits for' : 'untouched card hands off at'} prayer + duration; after-salah stays until done or next prayer`, { options: MUNICH, timeoutMs: 15000 }, async ($, on) => {
+  test(`desktop ${close ? '× waits for' : 'untouched card hands off at'} prayer + duration; after-salah stays until done or next prayer`, { options: MUNICH, timeoutMs: 60000 }, async ($, on) => {
     const { clock, held } = setup(on, TIMES.dhuhr, 'desktop')
     const ui = await $.ui.mount(band('desktop'))
     await clock.advance(0)

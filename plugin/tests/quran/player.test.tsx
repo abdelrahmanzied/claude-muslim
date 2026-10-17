@@ -196,7 +196,7 @@ test('large cached recording plays a bounded clip from the original source and c
   expect(ranges.cleanup[0]!.slice(0, 3)).toEqual(['rm', '-f', '--'])
   await $.command.run(run('stop'))
 })
-test('quarter selection, next and previous move between quarters, then across surahs, and abort the replaced clip', async ($, on) => {
+test('quarter selection, next and previous move between quarters, then across surahs, and abort the replaced clip', { timeoutMs: 20000 }, async ($, on) => {
   const plan = quarterPlan()
   const clock = setup(on, { 'quran.segmentCache': { '10:20:2': plan } })
   const played = audio(on, clock)
@@ -218,7 +218,7 @@ test('quarter selection, next and previous move between quarters, then across su
   await $.command.run(run('stop'))
   expect(played.every(p => p.signal.aborted)).toBe(true)
 })
-test('nearCheckpoint reuses a saved lead-in less than 60s away before probing a CBR jump', async ($, on) => {
+test('nearCheckpoint reuses a saved lead-in less than 60s away before probing a CBR jump', { timeoutMs: 20000 }, async ($, on) => {
   const plan = quarterPlan()
   const index = plan.segments.findIndex(s => s.startMs >= 100000 && s.startMs < 120000)
   plan.segments = plan.segments.map((s, i) => i === index ? (({ startByte, endByte, decodedDurationMs, ...rest }) => rest)(s) : s)
@@ -254,7 +254,7 @@ test('surah picks start at quarter one; the optional quarter picker alone starts
   expect(played[1]!.signal.aborted).toBe(true)
   await $.command.run(run('stop')); await clock.settle()
 })
-test('natural end of the last quarter starts the next surah at its first quarter; 114 stops', async ($, on) => {
+test('natural end of the last quarter starts the next surah at its first quarter; 114 stops', { timeoutMs: 20000 }, async ($, on) => {
   const second = quarterPlan(), third = quarterPlan(3), final = quarterPlan(114)
   const clock = setup(on, { 'quran.segmentCache': { '10:20:2': second, '10:20:3': third, '10:20:114': final } })
   const played = audio(on, clock)

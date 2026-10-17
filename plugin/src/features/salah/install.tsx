@@ -19,6 +19,7 @@ import { METHODS, methodFor, type Pray } from './methods.ts'
 import { ENGLISH, prayNamed } from '../../shared/pray/names.ts'
 import { writePlace, type Place } from './place.ts'
 import { athanText, isInWindow } from '../../shared/pray/line.ts'
+import { connectAthkarTimes } from '../../shared/pray/bounds.ts'
 import { ACCENT_ROWS, FRAME_MS, isDue, LABEL_ROW, minaretRows, minaretStage, ROWS_COUNT } from './minaret.ts'
 import { nudge, reviewRows } from './review.ts'
 import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, isOnClose, KEY_REST_MS, LEAVE_MS, LINE_PX } from '../../shared/card/card.ts'
@@ -398,19 +399,17 @@ const begin = async ($: EngineInterface, options: Options, place: Place, timer: 
 export const install = (on: On, options: Options) => {
   // The Muslim pane reads today's times from here; it needs no engine call.
   connectSalah(now => panelSalah(options, now))
-  // Read-through: correct on the first read, at midnight and between ticker ticks.
-  // No state writes while drawing; this value is calculated rather than persisted.
+  // Correct on the first read, at midnight and between ticker ticks, including timers.
   let athkarBounds: { key: string; value: SalahAthkarTimes } | undefined
-  on('state.get', { plugin: 'muslim', key: 'salahAthkarTimes' }, async $ => {
+  connectAthkarTimes(now => {
     const place = options.salahPlace
-    if (!place) return { value: { value: null, version: 0 } }
-    const now = await $.clock.now()
+    if (!place) return null
     const { year, month, day } = localTime(now, place.timeZone)
     const key = `${year}-${month}-${day}`
     // Pure calculation cache only; settings reload this closure, date changes
     // replace it on the first read. Frequent reader redraws reuse daily times.
     if (athkarBounds?.key !== key) athkarBounds = { key, value: athkarTimes(place, methodOf(options, place), options.salahAdjust, now) }
-    return { value: { value: athkarBounds.value, version: 0 } }
+    return athkarBounds.value
   })
 
   const arabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }

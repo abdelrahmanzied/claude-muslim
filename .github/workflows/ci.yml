@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CLAUDE_CODE_VERSION: 2.1.302
+  CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Claude Code
+        run: |
+          npm install -g @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}
+          claude --version
+
+      # Claude Code writes these types when it loads a mod or this skill;
+      # the skill's copy is written with no login.
+      - name: Write the mod API types
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CLAUDE_CODE_TMPDIR="$RUNNER_TEMP/claude"
+          mkdir -p "$CLAUDE_CODE_TMPDIR"
+          claude -p /plugin-authoring < /dev/null || true
+          types_file=$(find "$CLAUDE_CODE_TMPDIR" -type f -path "*/bundled-skills/$CLAUDE_CODE_VERSION/*/plugin-authoring/types/claude-code.d.ts" -print -quit)
+          if [[ -z "$types_file" ]]; then
+            echo "::error::Claude Code $CLAUDE_CODE_VERSION did not write the mod API types."
+            exit 1
+          fi
+          if [[ "$(head -n 1 "$types_file")" != "// Written by Claude Code $CLAUDE_CODE_VERSION." ]]; then
+            echo "::error::The mod API types do not match Claude Code $CLAUDE_CODE_VERSION."
+            exit 1
+          fi
+          mkdir -p plugin/.claude-plugin/types/claude-code
+          cp "$types_file" plugin/.claude-plugin/types/claude-code/index.d.ts
+
+      - name: Run checks
+        run: npm run check

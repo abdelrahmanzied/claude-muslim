@@ -7,6 +7,7 @@ import type { Day, SalahCard, SalahLast, SalahAthkarTimes } from '../../../types
 import type { Options } from '../../config.ts'
 import { withTashkeel } from '../../shared/arabic/visual.ts'
 import { connectAthkar, connectPanelAction, type PanelAthkar } from '../../shared/panel/signal.ts'
+import { athkarTimesAt } from '../../shared/pray/bounds.ts'
 import { helpHint, statusTable } from '../../table.ts'
 import { athkarHelp } from './help.ts'
 import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, KEY_REST_MS, LEAVE_MS, LINE_PX, REST_PX } from '../../shared/card/card.ts'
@@ -168,7 +169,7 @@ const today = async ($: EngineInterface, persist = true) => {
   const now = await localNow($)
   const { value } = await $.state.get({ plugin: 'muslim', key: 'athkar' })
 
-  const bounds = hasPrayerTimes ? (await $.state.get({ plugin: 'muslim', key: 'salahAthkarTimes' })).value : null
+  const bounds = hasPrayerTimes ? athkarTimesAt(now.getTime()) : null
   const stored = readDay(value ?? (await $.store.get(STORE_KEY)), dayOf(now, bounds))
   const signal = (await $.state.get({ plugin: 'muslim', key: 'salahLast' })).value
   const last = hasPrayerTimes ? signal ?? null : null
@@ -494,7 +495,7 @@ export const install = (on: On, options: Options) => {
     if (!playing || e.props.hasSurvey || (playing.style === 'sky' && e.surface !== 'desktop')) return theirs
     const now = await $.clock.now()
     const bounds = playing.set === 'afterSalah' && hasPrayerTimes
-      ? (await $.state.get({ plugin: 'muslim', key: 'salahAthkarTimes' })).value : null
+      ? athkarTimesAt(now) : null
     const scene = demoStep(playing.style, playing.accent, now - playing.startedAt, FINALE_MS, playing.set, skyOn(new Date(now), bounds))
     if (!scene) return theirs
     const isPicture = e.surface === 'desktop'
@@ -723,7 +724,7 @@ export const install = (on: On, options: Options) => {
         startTimer = $.clock.after(deadline - now.getTime(), () => $.ui.invalidate('ui.render'))
       }
     }
-    const bounds = hasPrayerTimes ? (await $.state.get({ plugin: 'muslim', key: 'salahAthkarTimes' })).value : null
+    const bounds = hasPrayerTimes ? athkarTimesAt(now.getTime()) : null
     const boundary = bounds ? nextPeriodAt(now, bounds) : undefined
     if (boundary !== periodDeadline) {
       periodTimer?.cancel()

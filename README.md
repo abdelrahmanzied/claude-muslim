@@ -4,6 +4,8 @@ A Claude Code mod for Muslim developers. While Claude works, its working line ca
 
 Every feature and command is in [plugin/README.md](plugin/README.md). To work on the mod, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
+This repository, `abdelrahmanzied/claude-muslim`, is the only official source of the `muslim` plugin and the `claude-muslim` marketplace. Copies elsewhere are not maintained by us.
+
 ## Install
 
 Only the `plugin/` folder is installed; `--sparse` also keeps the download to that folder. All of these install the same mod, at the user scope, so it runs in every project, in the terminal and in the Claude desktop app.

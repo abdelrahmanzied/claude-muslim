@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+- Dev: the slowest engine tests (athkar after-salah, demos, salah setup, Quran player, pane tour) get longer time limits, so they pass on CI's 2-core runner, about 3.5 times slower than a dev machine, where four of them ran out of time.
+
+- Fix: athkar timers (the auto-advance after the last count and others) no longer lose the saved place's prayer-day bounds, so a reading is no longer reset between Fajr and 05:00 or when the computer's time zone differs from the city's.
+
+- Dev: CLAUDE.md says every change, the maintainer's own included, goes through a pull request; nothing is pushed straight to main.
+
+- Dev: a pull request template asks for the issue it closes, what changed, and a checklist (npm run check, a CHANGELOG note, docs, the version unchanged, labels).
+
+- Docs: SECURITY.md says to report a vulnerability privately through the Security tab, never in a public issue; CONTRIBUTING.md and the new-issue page point there.
+
+- Docs: the README says this repository is the only official source of the muslim plugin and the claude-muslim marketplace.
+
+- Dev: CI uses a GitHub Actions workflow (`.github/workflows/ci.yml`, job `check`) to run `npm run check` on pull requests and pushes to `main`, with Claude Code and the actions pinned, taking the mod API types from the built-in `/plugin-authoring` skill's types file so no API key is needed.
+
 - `/muslim` opens the Muslim pane on desktop and keeps the terminal table. The pane adds a footer-button switch, version and Update, background updates, feedback and the end-of-turn switch; the pane tour stays in `/muslim demo`, and `/muslim demo pane` plays it alone, its Quran card showing Minshawi's Al-Fatiha. Settings put pane access and appearance first, separated from updates and feedback by a rosette rule. The heading avatar is larger, the end-of-turn example stays complete on two lines, and background updates reread settings only while a switch change is pending. Update and feedback now sit beside their labels in compact rows; Update is disabled while the background-update switch is on, including a pending change.
 
 - Fix: athkar after salah, started from the athan card or offered by itself, now play the same finished celebration as morning and evening (the finale, then the done row) instead of the reader disappearing at the last thikr. Morning or evening come back once the band rests. (#21)

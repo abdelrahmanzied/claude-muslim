@@ -6,6 +6,7 @@ Thank you for helping.
 
 - **Found a problem or have an idea?** Open an issue with one of the forms.
 - **Want to work on an issue?** Comment that you are interested, and wait until it is assigned to you before you start. Every change, even a small fix, starts from an assigned issue.
+- **Security problem?** Never report it in an issue; see [SECURITY.md](SECURITY.md).
 
 ## Rules
 
@@ -23,7 +24,7 @@ git config core.hooksPath .githooks
 npm run check
 ```
 
-The plugin is in `plugin/`; everything else is for development. `npm run check` needs `plugin/.claude-plugin/types/`, which Claude Code writes when it loads the mod, so load it once first.
+The plugin is in `plugin/`; everything else is for development. `npm run check` needs `plugin/.claude-plugin/types/`, which Claude Code writes when it loads the mod, so load it once first. CI runs the same `npm run check` on every pull request.
 
 ## Run your copy
 
