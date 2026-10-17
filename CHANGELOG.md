@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Dev: a pull request template asks for the issue it closes, what changed, and a checklist (npm run check, a CHANGELOG note, docs, the version unchanged, labels).
+
 - Docs: SECURITY.md says to report a vulnerability privately through the Security tab, never in a public issue; CONTRIBUTING.md and the new-issue page point there.
 
 - Docs: the README says this repository is the only official source of the muslim plugin and the claude-muslim marketplace.
