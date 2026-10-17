@@ -37,11 +37,13 @@ test('the prayer feed is Fajr at 05:00 with a countdown that runs down', () => {
   expect(card(DEMO_DURATION_MS).rows.filter(r => r.state === 'next')).toHaveLength(1)
 })
 
-test('the Quran feed looks playing and its progress advances', () => {
+test('the Quran feed is Minshawi\'s Al-Fatiha, looks playing and its progress advances', () => {
   const a = demoQuran(0, '<svg/>'), b = demoQuran(DEMO_DURATION_MS, '<svg/>')
   expect(a.isPlaying && a.isLive).toBe(true)
   expect(a.status).toBe('يتلى الآن')
-  expect(a.surah.startsWith('سورة ')).toBe(true)
+  expect(a.surah).toBe('سورة الفاتحة')
+  expect(a.reciter).toBe('محمد صديق المنشاوي · مرتل')
+  expect([a.elapsed, a.total, b.elapsed]).toEqual(['0:12', '0:52', '0:22'])
   expect(b.progress).toBeGreaterThan(a.progress)
   expect(b.progress).toBeLessThan(1)
   expect(a.elapsed).not.toBe(b.elapsed)
