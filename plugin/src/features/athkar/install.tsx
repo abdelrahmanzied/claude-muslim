@@ -14,8 +14,8 @@ import { bandHeight, closeArea, pixelOf, questionAreas } from './band.ts'
 import type { BandModel } from './band.ts'
 import { canUndoReset, resetReading, resetSnapshot, setNamed, undoReset, UNDO_MS, type ResetSnapshot } from './reset.ts'
 import type { AthkarSet } from './logic.ts'
-import { ADVANCE_MS, asksToFinish, countKey, countOf, currentOf, dayOf, emptyReading, END, listFor, overall, offerStart, nextPeriodAt, questionKey, setAt, syncAfterSalah, readDay, shouldAdvance, skyOn, step, textOf, timesOf, TITLE } from './logic.ts'
-import type { Act, FinishQuestion } from './logic.ts'
+import { ADVANCE_MS, asksToFinish, countKey, countOf, currentOf, dayOf, emptyReading, END, holdsFinished, listFor, overall, offerStart, nextPeriodAt, questionKey, setAt, syncAfterSalah, readDay, shouldAdvance, skyOn, step, textOf, timesOf, TITLE } from './logic.ts'
+import type { Act, FinishedHold, FinishQuestion, Reading } from './logic.ts'
 import { lookFor, plain, readerProps, resetHint } from './look.ts'
 import type { Style } from './look.ts'
 
@@ -144,8 +144,17 @@ const glowAtTime = (from: number, to: number, ms: number) => {
 const isStyle = (value: string): value is Style => (STYLES as readonly string[]).includes(value)
 const setLabel = (set: AthkarSet) => set === 'afterSalah' ? 'Athkar after salah' : `${set} athkar`
 
-// Manual choices hold; otherwise offer after-salah after the card, then the automatic period.
-const periodOf = (now: Date, day: Day, last: SalahLast | null, requested?: SalahLast | null, bounds?: SalahAthkarTimes | null): AthkarSet => setAt(now, day, last, view.chosen, requested, bounds)
+// Manual choices hold; otherwise offer after-salah after the card, then the
+// automatic period. After-salah finished just now stays for its celebration.
+const periodOf = (now: Date, day: Day, last: SalahLast | null, requested?: SalahLast | null, bounds?: SalahAthkarTimes | null): AthkarSet => {
+  if (view.finished && !holdsFinished(view.finished, day.afterSalah, now.getTime(), view.isActive)) view.finished = undefined
+  return setAt(now, day, last, view.chosen ?? (view.finished ? 'afterSalah' : undefined), requested, bounds)
+}
+
+// Holds an after-salah slot finished in front of the person on the band.
+const holdIfFinished = (period: AthkarSet, before: Reading, after: Reading, now: Date) => {
+  if (period === 'afterSalah' && !before.isDone && after.isDone) view.finished = { pray: after.pray ?? null, at: after.at ?? null, until: now.getTime() + FINALE_MS }
+}
 
 let resetUndo: ResetSnapshot | undefined
 let undoTimer: { cancel: () => void } | undefined
@@ -220,7 +229,9 @@ const openFromPanel = async ($: EngineInterface) => {
 const finishFromPanel = async ($: EngineInterface) => {
   const { now, day, last, requested, bounds } = await today($)
   const period = periodOf(now, day, last, requested, bounds)
-  await save($, { ...day, [period]: step(period, day[period], { act: 'finish' }) })
+  const after = step(period, day[period], { act: 'finish' })
+  await save($, { ...day, [period]: after })
+  holdIfFinished(period, day[period], after, now)
   if (periodOf(now, day, last, requested, bounds) === period) view.question = undefined
   $.ui.invalidate('ui.render')
 }
@@ -232,6 +243,7 @@ const chooseSet = async ($: EngineInterface, selected: AthkarSet) => {
   const reading = day[selected]
   if (view.chosen !== selected) { view.isOpen = false; view.question = undefined; view.revision++ }
   view.chosen = selected
+  view.finished = undefined
   if (reading.isHidden) await save($, { ...day, [selected]: { ...reading, isHidden: false } })
   wake($)
   return reading
@@ -307,7 +319,8 @@ const apply = async ($: EngineInterface, act: Act, target?: AthkarSet) => {
   view.question = undefined
   const after = step(period, before, act)
   await save($, { ...day, [period]: after })
-  if (act.act === 'hide') view.chosen = undefined
+  holdIfFinished(period, before, after, now)
+  if (act.act === 'hide') { view.chosen = undefined; view.finished = undefined }
   if (act.act === 'count' && shouldAdvance(period, before, after)) {
     const revision = view.revision
     $.clock.after(ADVANCE_MS, () => void advance($, period, after.index, revision, after.at))
@@ -342,6 +355,9 @@ const view = {
   // Picked by a set command: holds for this session until the
   // other period is picked or the band is hidden with ×.
   chosen: undefined as AthkarSet | undefined,
+  // After-salah finished just now: it keeps the band for the finale and the
+  // done row, as morning and evening do, until the band rests.
+  finished: undefined as FinishedHold | undefined,
 }
 
 // Lights the band, and fades it again after a while with no input.
@@ -394,6 +410,7 @@ export const install = (on: On, options: Options) => {
   view.isActive = false
   view.isInside = false
   view.chosen = undefined
+  view.finished = undefined
   view.question = undefined
   view.revision++
   view.lastKey = undefined

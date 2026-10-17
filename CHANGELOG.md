@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fix: athkar after salah, started from the athan card or offered by itself, now play the same finished celebration as morning and evening (the finale, then the done row) instead of the reader disappearing at the last thikr. Morning or evening come back once the band rests. (#21)
+
 - Issues and `/muslim feedback` about the Muslim pane get the new `pane` label instead of `muslim`. CLAUDE.md says which labels every pull request gets.
 
 - Issue labels by kind, feature and surface: the forms are now Bug report, Improvement (`enhancement`, improve something that exists), New feature (`idea`), Content correction and General feedback (`feature.yml` is `improvement.yml`), and each asks which feature it is about (thikr, athkar, salah, quran, Muslim pane, /muslim commands and settings, other or new). A workflow, `.github/workflows/issue-labels.yml`, adds the feature and surface labels from the form's answers (add only). `/muslim feedback` asks the kind and the feature, and the final send decision (Send, Change it, Don't send), as multiple-choice questions, and passes the kind, feature and surface labels to `gh issue create`; the fallback link includes `feature`.
