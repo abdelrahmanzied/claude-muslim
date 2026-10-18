@@ -60,7 +60,7 @@ Then run `claude` to start a session; muslim loads by itself. A Claude session t
 To remove it: `claude plugin uninstall muslim@claude-muslim`.
 
 > [!NOTE]
-> Some terminals don't join Arabic letters or show them right to left. `/muslim terminal-arabic` picks what works in yours.
+> Some terminals don't join Arabic letters or show them right to left. The first time muslim opens in a terminal, it asks which Arabic sample reads right, and remembers the answer. To pick again: `/muslim terminal-arabic`.
 
 ## Contributing
 
