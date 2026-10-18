@@ -28,24 +28,30 @@
 
 ## Install
 
-Inside Claude Code:
+It installs for your user: every project, in the terminal and the desktop app.
 
-```
-/plugin marketplace add abdelrahmanzied/claude-muslim --sparse .claude-plugin plugin
-/plugin install muslim@claude-muslim
-```
+**In a Claude Code session** (terminal or desktop), send these one at a time, each as its own message:
 
-Then run `/reload-plugins`.
+1. ```
+   /plugin marketplace add abdelrahmanzied/claude-muslim --sparse .claude-plugin plugin
+   ```
+2. ```
+   /plugin install muslim@claude-muslim
+   ```
+3. ```
+   /reload-plugins
+   ```
 
 <details>
 <summary>From your shell, or by asking Claude</summary>
 
+**From your shell**, in one line. Then start Claude Code, or run `/reload-plugins` in a session that is already open:
+
 ```bash
-claude plugin marketplace add abdelrahmanzied/claude-muslim --sparse .claude-plugin plugin
-claude plugin install muslim@claude-muslim
+claude plugin marketplace add abdelrahmanzied/claude-muslim --sparse .claude-plugin plugin && claude plugin install muslim@claude-muslim
 ```
 
-Or paste this to Claude in any session:
+**Or paste this to Claude** in any session:
 
 ```text
 Set up the Claude Code plugin "muslim" for all my sessions (user scope):
