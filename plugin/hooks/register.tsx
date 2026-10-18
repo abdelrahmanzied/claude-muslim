@@ -13,7 +13,8 @@ import { helpHint, statusTable } from '../src/table.ts'
 import { showText } from '../src/features/salah/today.ts'
 import { install as installSalah } from '../src/features/salah/install.tsx'
 import { install as installQuran } from '../src/features/quran/install.tsx'
-import { isCatalog, defaultReciter } from '../src/features/quran/catalog.ts'
+import { defaultReciter } from '../src/features/quran/catalog.ts'
+import { QURAN_CATALOG } from '../src/features/quran/catalog-data.ts'
 import { nearestAvailable } from '../src/features/quran/availability.ts'
 import { terminalArabic, defaultArabicMode, isArabicMode, terminalIdFromEnv } from '../src/shared/arabic/terminal.ts'
 import { install as installThikr } from '../src/features/thikr/install.tsx'
@@ -232,9 +233,8 @@ export const register: Register = (on, options) => {
     await $.state.set({ plugin: 'muslim', key: 'quranPlaying' }, null)
     await $.state.set({ plugin: 'muslim', key: 'quranRepeat' }, 'off')
     // Repair restored selection using shipped metadata only; never resume audio.
-    const catalog = await $.store.get('quran.catalog').catch(() => undefined)
     const savedReciter = await $.store.get('quran.reciter').catch(() => undefined)
-    const reciterKey = isCatalog(catalog) ? (catalog.reciters.find(r => r.key === savedReciter) ?? defaultReciter(catalog)).key : typeof savedReciter === 'string' ? savedReciter : ''
+    const reciterKey = (QURAN_CATALOG.reciters.find(r => r.key === savedReciter) ?? defaultReciter(QURAN_CATALOG)).key
     const storedSurah = (await $.state.get({ plugin: 'muslim', key: 'quranSurah' })).value ?? 1
     const selected = nearestAvailable(reciterKey, storedSurah)
     if (selected !== null && selected !== storedSurah) await $.state.set({ plugin: 'muslim', key: 'quranSurah' }, selected)
@@ -312,9 +312,8 @@ export const register: Register = (on, options) => {
     const onOff = (value: boolean) => (value ? 'on' : 'off')
     // The Arabic setup answers an empty /muslim with this terminal's mode; empty off the terminal.
     const terminal = surfaces.includes('desktop') && !surfaces.includes('terminal') ? '' : await next(e).then(result => result.text ?? '', () => '')
-    const catalog = await $.store.get('quran.catalog')
     const reciterKey = await $.store.get('quran.reciter')
-    const reciter = isCatalog(catalog) ? (catalog.reciters.find(r => r.key === reciterKey) ?? defaultReciter(catalog)).label : 'Muhammad Siddiq Al-Minshawi — murattal'
+    const reciter = (QURAN_CATALOG.reciters.find(r => r.key === reciterKey) ?? defaultReciter(QURAN_CATALOG)).label
     const surface = await $.session.surface()
     const reciterLabel = await settingsArabic($, surface ?? 'desktop', reciter)
     const autoUpdate = await readAutoUpdate($)

@@ -16,5 +16,5 @@ export const reciters = JSON.parse(String.raw`{
 import { filterReciters, type Catalog } from '../../../src/features/quran/catalog.ts'
 // Synthetic full catalog for engine tests; authored names used by matching cases.
 export const surahs = Array.from({ length: 114 }, (_, i) => ({ id: i + 1, name: ({ 1: 'الفاتحة', 2: 'البقرة', 3: 'آل عمران', 18: 'الكهف', 114: 'الناس' } as Record<number, string>)[i + 1] ?? `Fixture ${i + 1}` }))
-export const fixtureCatalog: Catalog = { fetchedAt: 100000, reciters: filterReciters(reciters), surahs }
+export const fixtureCatalog: Catalog = { reciters: filterReciters(reciters), surahs }
 

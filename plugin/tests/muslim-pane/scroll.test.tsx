@@ -23,17 +23,19 @@ test('wheel over the Quran title or reciter row leaves a fitting pane undrawn, w
   const forwarded = setup(on)
   const ui = await $.ui.mount(pane('desktop'))
   await ui.resize({ columns: 50, rows: 40, in: 'muslim-pane' })
-  const before = await ui.drawn({ in: 'muslim-pane' })
   for (const top of [Q_RECITER_BASE + 14, Q_TITLE_TOP]) {
     const row = (QURAN_Y + top + 18) * 40 / PANE_HEIGHT
     await ui.pointer({ in: 'muslim-pane', type: 'move', x: 25, y: Math.floor(row) })
+    // The shipped catalog makes these fields active: moving the pointer may
+    // draw hover feedback, but the following wheel events must not redraw.
+    const before = await ui.drawn({ in: 'muslim-pane' })
     for (const by of [1, -1, 8, -8, 0.2, -0.2]) {
       await $.ui.scroll(wheel(by, row))
       await $.ui.scroll(wheel(by))
     }
+    expect(await ui.drawn({ in: 'muslim-pane' })).toEqual(before)
   }
   expect(forwarded).toEqual([])
-  expect(await ui.drawn({ in: 'muslim-pane' })).toEqual(before)
 })
 
 test('a flickering measured row count never posts unused size messages on the frame clock', { plugins: [{

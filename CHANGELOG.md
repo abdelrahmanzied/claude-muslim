@@ -28,6 +28,7 @@ The first public release.
 
 ### Quran (desktop)
 
+- The player is ready as soon as muslim is installed; the reciter and surah lists ship with it.
 - A recitation player with complete Hafs recordings: pick a reciter and a surah, play, stop, previous and next.
 - Long recordings play in quarters; repeat a whole surah or one quarter.
 

@@ -3,7 +3,6 @@ import type { Day } from '../../types/index.d.ts'
 import { runPanelAction } from '../../src/shared/panel/signal.ts'
 import { quranLayout } from '../../src/features/muslim-pane/model.ts'
 import { athkarHead, athkarRow, athkarRowTop, KMENU_TOP, KMENU_PAD, KMENU_ROW_H, KMENU_GAP } from '../../src/features/muslim-pane/layout.ts'
-import { fixtureCatalog } from '../quran/fixtures/catalog.ts'
 import type { Mounted } from 'claude-code/testing'
 import { settingsBoxes, TITLE_HIT_H, paneHeight } from '../../src/features/muslim-pane/layout.ts'
 import { CLOSED_SETTINGS, COPIED_MS, SETTINGS_BODY_TOP, settingsBody, type SettingsState } from '../../src/features/muslim-pane/settings.ts'
@@ -47,7 +46,7 @@ test('/muslim opens the Muslim pane on desktop', { options: { salahPlace: MUNICH
   expect(result.text).toBe('Muslim pane opened.')
 })
 
-test('the pane draws the prayer card from salah and quiet notes for features not drawn yet', { options: { salahPlace: MUNICH, athkar: false } }, async ($, on) => {
+test('the pane draws prayers and the shipped Quran catalog immediately, with a quiet note for disabled athkar', { options: { salahPlace: MUNICH, athkar: false } }, async ($, on) => {
   engine(on, 'desktop')
   const ui = await $.ui.mount(pane('desktop'))
   const model = (await ui.find({ type: 'Client', key: 'muslim-pane' }))!.props.props as PaneModel
@@ -55,7 +54,7 @@ test('the pane draws the prayer card from salah and quiet notes for features not
   expect(model.prayer.city).toBe('Munich')
   expect(model.prayer.rows).toHaveLength(5)
   expect(model.prayer.rows.filter(r => r.state === 'next')).toHaveLength(1)
-  expect(model.quran.isAvailable).toBe(false)
+  expect(model.quran.isAvailable).toBe(true)
   expect(model.athkar.isAvailable).toBe(false)
 })
 
@@ -79,24 +78,24 @@ test('the athan row changes the salah setting itself', { options: { salahPlace: 
   expect(sets).toEqual([{ key: 'muslim.salahAthan', value: false }])
 })
 
-test('before the footer or catalog has loaded, the Quran controls and pickers stay inactive', { options: { salahPlace: MUNICH } }, async ($, on) => {
-  const opened = engine(on, 'desktop')
-  on('http.fetch', async () => ({ value: { ok: false, status: 503, headers: {}, text: '' } }))
+test('the Quran surah picker works before a footer draw, with an empty store and no network', { options: { salahPlace: MUNICH } }, async ($, on) => {
+  engine(on, 'desktop')
+  const requests: string[] = []
+  on('http.fetch', async (_$, e) => { requests.push(e.url); throw new Error('unexpected network') })
   const toasts: string[] = []
   on('ui.toast', async (_$, e) => { toasts.push(e.text); return { value: undefined } })
   const ui = await $.ui.mount(pane('desktop'))
   await ui.resize({ columns: 50, rows: 40, in: 'muslim-pane' })
-  const click = async (y: number) => {
-    const fine = { x: 25, y: y * 40 / PANE_HEIGHT }
-    await ui.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: Math.floor(fine.x), y: Math.floor(fine.y), fine })
-  }
-  // No footer draw or catalog: playback is inactive, navigation still works.
-  await click(QURAN_Y + Q_CONTROLS_BASE + 14 + Q_CONTROLS_H / 2)
-  await click(QURAN_Y + Q_TITLE_TOP + 16)
+  const model = (await ui.find({ type: 'Client', key: 'muslim-pane' }))!.props.props as PaneModel
+  expect(model.quran.isAvailable).toBe(true)
+  const rects = cardRects(model.folds, model.settings.state, model.settings.options, quranLayout(model), model.athkarMenu)
+  const fine = { x: 25, y: (rects.quranY + Q_TITLE_TOP + 16) * 40 / rects.height }
+  await ui.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: Math.floor(fine.x), y: Math.floor(fine.y), fine })
+  const picked = (await ui.find({ type: 'Client', key: 'muslim-pane' }))!.props.props as PaneModel
+  expect(picked.picker?.list).toBe('surah')
+  expect(picked.picker?.count).toBe(114)
+  expect(requests).toEqual([])
   expect(toasts).toEqual([])
-  // Athkar not connected: its button is not a target.
-  await click(ATHKAR_Y + KROW_TOP + 18)
-  expect(toasts).toHaveLength(0)
 })
 
 test('the terminal gets a plain text summary instead of a pane', { options: { salahPlace: MUNICH } }, async ($, on) => {

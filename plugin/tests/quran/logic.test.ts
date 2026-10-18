@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { audioUrl, defaultReciter, filterReciters, isCatalog, matchReciter, matchSurah, normalizeName, readSurahs, searchReciters, searchSurahs } from '../../src/features/quran/catalog.ts'
+import { audioUrl, defaultReciter, filterReciters, matchReciter, matchSurah, normalizeName, readSurahs, searchReciters, searchSurahs } from '../../src/features/quran/catalog.ts'
 import { effectiveRepeat, formatTime, nextPlaybackItem, repeatMode, nextSurahAfterEnd, parseCommand, progressBar } from '../../src/features/quran/player.ts'
 import { quranHelp } from '../../src/features/quran/help.ts'
 import { fixtureCatalog, reciters, surahs } from './fixtures/catalog.ts'
@@ -23,8 +23,6 @@ test('each complete Hafs moshaf is separate, labels preserve authored names', ()
   expect(matchReciter('محمد صديق المنشاوي — مرتل', choices)?.key).toBe('10:20')
   expect(matchReciter('عبدالباسط عبدالصمد', choices)?.key).toBe('11:24')
   expect(filterReciters({ reciters: [null, {}] })).toEqual([])
-  expect(isCatalog(fixtureCatalog)).toBe(true)
-  expect(isCatalog({ ...fixtureCatalog, surahs: [] })).toBe(false)
   expect(readSurahs({ suwar: [...surahs.slice(1), surahs[113]] })).toEqual([])
 })
 test('whole-surah URLs have three digits', () => {

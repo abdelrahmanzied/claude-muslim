@@ -2,7 +2,8 @@ import type { EngineInterface, On } from 'claude-code'
 import type { Options } from '../../config.ts'
 import type { QuranPlaying } from '../../../types/index.d.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type TerminalEnvironment } from '../../shared/arabic/terminal.ts'
-import { audioUrl, CATALOG_MS, defaultReciter, filterReciters, isCatalog, matchReciter, matchSurah, readSurahs, type Catalog, type Reciter } from './catalog.ts'
+import { audioUrl, defaultReciter, matchReciter, matchSurah, type Catalog, type Reciter } from './catalog.ts'
+import { QURAN_CATALOG } from './catalog-data.ts'
 import { contentRangeTotal, decodeBase64, durationMs } from './mp3.ts'
 import { AUDIO_LIMIT_BYTES, CLIP_ERROR, SIZE_ERROR, TIMING_ERROR, cachedPlan, fileSize, lowerHeaders, makePlan, planKey, rangeHeader, readCache, timedSegments, timingRead, trimCache, sameRecording, withSegmentCut, type Checkpoint, type RecordingPlan, type Segment } from './segments.ts'
 import { SegmentScanner, SEGMENT_LEAD_MS, cbrByte, cbrCheckpoint, cbrStream, encodeBase64, seekCheckpoint } from './segment-mp3.ts'
@@ -25,7 +26,7 @@ const commandErrorRef = { plugin: 'muslim', key: 'quranCommandError' } as const
 const errorRef = { plugin: 'muslim', key: 'quranError' } as const
 const surahRef = { plugin: 'muslim', key: 'quranSurah' } as const
 // Handles cannot survive reload; only these ephemeral resources stay here.
-const runtime: { controller?: AbortController; prefetch?: PrefetchTarget & { controller: AbortController; source: Promise<PreparedSegment> }; plan?: RecordingPlan; preparing?: Preparing; selectedSegment: number; reads?: unknown; timer?: { cancel(): void }; catalog?: Promise<Catalog>; queue: Promise<unknown>; probe: number; generation: number; stopEpoch: number; debugQueue: Promise<unknown>; cacheQueue: Promise<unknown>; clip?: { generation: number; surah: number } } = { selectedSegment: 0, queue: Promise.resolve(), probe: 0, generation: 0, stopEpoch: 0, debugQueue: Promise.resolve(), cacheQueue: Promise.resolve() }
+const runtime: { controller?: AbortController; prefetch?: PrefetchTarget & { controller: AbortController; source: Promise<PreparedSegment> }; plan?: RecordingPlan; preparing?: Preparing; selectedSegment: number; reads?: unknown; timer?: { cancel(): void }; queue: Promise<unknown>; probe: number; generation: number; stopEpoch: number; debugQueue: Promise<unknown>; cacheQueue: Promise<unknown>; clip?: { generation: number; surah: number } } = { selectedSegment: 0, queue: Promise.resolve(), probe: 0, generation: 0, stopEpoch: 0, debugQueue: Promise.resolve(), cacheQueue: Promise.resolve() }
 
 
 async function writeDebug($: EngineInterface, message: string): Promise<void> {
@@ -71,34 +72,9 @@ async function arabic($: EngineInterface, surface: string, text: string): Promis
   return terminalArabic(surface, cached?.terminalId === id ? cached.mode : isArabicMode(saved) ? saved : defaultArabicMode(id), text)
 }
 
-// Claude Code's own theme row decides only when it names light or dark; otherwise the pane follows the app's color scheme.
-async function catalog($: EngineInterface): Promise<Catalog> {
-  if (runtime.catalog) return runtime.catalog
-  runtime.catalog = loadCatalog($)
-  try { return await runtime.catalog } finally { runtime.catalog = undefined }
-}
-async function loadCatalog($: EngineInterface): Promise<Catalog> {
-  const stored = await $.store.get('quran.catalog')
-  const old = isCatalog(stored) ? stored : undefined
-  const now = await $.clock.now()
-  if (old && now - old.fetchedAt < CATALOG_MS) return old
-  try {
-    const [r, s] = await Promise.all([
-      $.http.fetch('https://www.mp3quran.net/api/v3/reciters?language=ar'),
-      $.http.fetch('https://www.mp3quran.net/api/v3/suwar?language=ar'),
-    ])
-    if (!r.ok || !s.ok) throw new Error('Quran catalog unavailable')
-    const reciters = filterReciters(JSON.parse(r.text))
-    const surahs = readSurahs(JSON.parse(s.text))
-    if (!reciters.length || surahs.length !== 114) throw new Error('Quran catalog incomplete')
-    const fresh = { fetchedAt: now, reciters, surahs }
-    await $.store.set('quran.catalog', fresh)
-    return fresh
-  } catch (error) { if (old) return old; throw error }
-}
-async function chosen($: EngineInterface, c: Catalog): Promise<Reciter> {
+async function chosen($: EngineInterface): Promise<Reciter> {
   const key = await $.store.get('quran.reciter')
-  return c.reciters.find(r => r.key === key) ?? defaultReciter(c)
+  return QURAN_CATALOG.reciters.find(r => r.key === key) ?? defaultReciter(QURAN_CATALOG)
 }
 // Restore a catalog-valid selection without fetching metadata or starting playback.
 async function selectedSurah($: EngineInterface, reciter: Reciter): Promise<number> {
@@ -110,7 +86,7 @@ async function selectedSurah($: EngineInterface, reciter: Reciter): Promise<numb
 async function fail($: EngineInterface, error: unknown, fromCommand = false): Promise<string> {
   // Keep external errors short and free of multiline process output.
   const known = error instanceof Error && [SIZE_ERROR, TIMING_ERROR, CLIP_ERROR, UNAVAILABLE_ERROR].includes(error.message)
-  const rawMessage = known ? (error as Error).message : `Quran: ${error instanceof Error ? error.message.replace(/^.*?\$\.[\w.]+:\s*/, '').replace(/[\r\n|]/g, ' ').slice(0, 160) : 'Unable to play or load the catalog'}`
+  const rawMessage = known ? (error as Error).message : `Quran: ${error instanceof Error ? error.message.replace(/^.*?\$\.[\w.]+:\s*/, '').replace(/[\r\n|]/g, ' ').slice(0, 160) : 'Unable to play the recording'}`
   const message = rawMessage === UNAVAILABLE_ERROR ? await arabic($, await $.session.surface() ?? 'desktop', rawMessage) : rawMessage
   try { await $.state.set(commandErrorRef, fromCommand ? message : null); await $.state.set(errorRef, message); $.ui.invalidate('ui.render') } catch { /* A refused state write must not escape a hook. */ }
   return message
@@ -356,7 +332,7 @@ async function play($: EngineInterface, reciter: Reciter, surah: number, fromCom
   await $.state.set(commandErrorRef, null)
   $.ui.invalidate('ui.render')
   try {
-    const c = await catalog($)
+    const c = QURAN_CATALOG
     let plan = await loadPlan($, c, reciter, surah, controller, refresh)
     if (controller.signal.aborted || token !== runtime.generation) return
     if (!refresh && sameRecording(runtime.plan, plan)) plan = runtime.plan!
@@ -416,8 +392,7 @@ async function play($: EngineInterface, reciter: Reciter, surah: number, fromCom
   }
 }
 async function splitSelected($: EngineInterface): Promise<boolean> {
-  const raw = await $.store.get('quran.catalog')
-  return isCatalog(raw) && trackSelection(await chosen($, raw), (await $.state.get(surahRef)).value ?? 1).segments.length > 0
+  return trackSelection(await chosen($), (await $.state.get(surahRef)).value ?? 1).segments.length > 0
 }
 function trackSelection(reciter: Reciter, surah: number) {
   const plan = runtime.plan?.moshafKey === reciter.key && runtime.plan.surah === surah ? runtime.plan : undefined
@@ -436,7 +411,6 @@ async function showCard($: EngineInterface): Promise<void> {
 // /quran off the desktop: where the player stands, in text.
 async function statusText($: EngineInterface, surface: string): Promise<string> {
   const state = await panelQuran($)
-  if (!state) return 'Quran catalog is not ready yet. Try /quran again.'
   const say = (text: string) => arabic($, surface, text)
   const lines = [`Reciter: ${await say(state.reciter)}`, `Surah: ${await say(state.surah)}`]
   if (state.part) lines.push(`Segment: ${await say(state.part)}`)
@@ -455,10 +429,10 @@ async function action($: EngineInterface, command: Command, fromCommand: boolean
     $.ui.invalidate('ui.render')
     return `Quran repeat ${repeat === 'off' ? 'off' : repeat === 'surah' ? 'on' : 'on: current quarter'}.`
   }
-  const c = await catalog($)
+  const c = QURAN_CATALOG
   await $.state.set(errorRef, null)
   $.ui.invalidate('ui.render')
-  let reciter = await chosen($, c)
+  let reciter = await chosen($)
   const playing = (await $.state.get(playingRef)).value
   const current = await selectedSurah($, reciter)
   if (generation !== runtime.generation) return 'Quran stopped.'
@@ -508,19 +482,17 @@ async function action($: EngineInterface, command: Command, fromCommand: boolean
 }
 // Serialize user actions; play completions check generation and controller identity.
 async function dispatch($: EngineInterface, command: Command, fromCommand = true): Promise<string> {
-  // Stop must abort now, even if a catalog refresh is holding the action queue.
+  // Stop must abort now, even if recording preparation is holding the action queue.
   if (command.kind === 'stop') {
     ++runtime.stopEpoch
     return action($, command, fromCommand).catch(error => fail($, error, fromCommand))
   }
   const requestedEpoch = runtime.stopEpoch
-  // Refuse known picks before a catalog refresh, replacement or any track work.
+  // Refuse known picks before replacement or any track work.
   if (command.kind === 'play' || command.kind === 'select') {
-    const raw = await $.store.get('quran.catalog')
-    const saved = await $.store.get('quran.reciter')
-    const key = isCatalog(raw) ? (await chosen($, raw)).key : typeof saved === 'string' ? saved : ''
+    const key = (await chosen($)).key
     const value = command.value.replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 1632))
-    const surah = isCatalog(raw) ? matchSurah(value, raw.surahs)?.id : Number(value)
+    const surah = matchSurah(value, QURAN_CATALOG.surahs)?.id
     if (surah !== undefined && Number.isInteger(surah) && surah >= 1 && surah <= 114 && !isAvailable(key, surah)) return fail($, new Error(UNAVAILABLE_ERROR), fromCommand)
   }
   if (requestedEpoch !== runtime.stopEpoch) return 'Quran stopped.'
@@ -537,17 +509,15 @@ async function paneAction($: EngineInterface, command: Command): Promise<void> {
 async function togglePlayback($: EngineInterface): Promise<void> {
   try {
     const playing = (await $.state.get(playingRef)).value
-    const raw = await $.store.get('quran.catalog')
-    const surah = isCatalog(raw) ? await selectedSurah($, await chosen($, raw)) : (await $.state.get(surahRef)).value ?? 1
+    const surah = await selectedSurah($, await chosen($))
     await paneAction($, playing || runtime.preparing ? { kind: 'stop' } : { kind: 'play', value: String(surah), segmentIndex: runtime.selectedSegment })
   } catch (error) { await fail($, error) }
 }
 
-// The player's model as the Muslim card sees it; null until the catalog has been fetched once.
+// The player is ready on the first draw, using only the shipped catalog.
 async function panelModel($: EngineInterface, width = 480) {
-  const raw = await $.store.get('quran.catalog')
-  if (!isCatalog(raw)) return null
-  const reciter = await chosen($, raw)
+  const raw = QURAN_CATALOG
+  const reciter = await chosen($)
   const stored = (await $.state.get(surahRef)).value ?? 1
   const surah = nearestAvailable(reciter.key, stored) ?? stored
   const playing = (await $.state.get(playingRef)).value
@@ -557,9 +527,8 @@ async function panelModel($: EngineInterface, width = 480) {
   return { raw, reciter, playing, selection, model }
 }
 // What the Muslim pane shows of the player.
-async function panelQuran($: EngineInterface): Promise<PanelQuran | null> {
+async function panelQuran($: EngineInterface): Promise<PanelQuran> {
   const state = await panelModel($)
-  if (!state) return null
   const { raw, reciter, playing, selection, model } = state
   const active = playing ? raw.reciters.find(r => r.key === playing.moshafKey) ?? reciter : reciter
   const index = playing?.segmentIndex ?? selection.selectedSegment
@@ -583,24 +552,23 @@ async function panelQuran($: EngineInterface): Promise<PanelQuran | null> {
 // The rows of one list for the Muslim card's pickers: the Quran feature's own options and search.
 async function panelOptions($: EngineInterface, list: PanelList, query: string): Promise<PanelOption[]> {
   const state = await panelModel($)
-  if (!state) return []
   return listOptions(state.model, list, query).map(o => ({ value: o.value, label: o.label, number: list === 'segment' ? '' : o.number, selected: o.selected }))
 }
 // One list pick, from the Muslim card: the same checks and the same actions.
 async function pick($: EngineInterface, list: List, value: string): Promise<void> {
   if (!isPickMessage({ act: 'pick', list, value })) return
-  // Dispatch surah picks before catalog refresh so known gaps do no network work.
+  // Dispatch surah picks before any track work so known gaps do no network work.
   if (list === 'surah') {
     const surah = Number(value)
     if (Number.isInteger(surah) && surah >= 1 && surah <= 114 && String(surah) === value) await paneAction($, { kind: 'play', value })
     return
   }
-  const c = await catalog($)
+  const c = QURAN_CATALOG
   if (list === 'reciter') {
     const index = c.reciters.findIndex(r => r.key === value)
     if (index >= 0) await paneAction($, { kind: 'reciter', value: String(index + 1) })
   } else {
-    const reciter = await chosen($, c)
+    const reciter = await chosen($)
     const current = (await $.state.get(surahRef)).value ?? 1
     const index = Number(value)
     if (runtime.plan?.moshafKey === reciter.key && runtime.plan.surah === current && Number.isInteger(index) && runtime.plan.segments[index]) {

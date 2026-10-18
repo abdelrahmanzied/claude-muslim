@@ -1,8 +1,7 @@
 export type Reciter = { key: string; name: string; label: string; server: string }
 export type Surah = { id: number; name: string }
-export type Catalog = { fetchedAt: number; reciters: Reciter[]; surahs: Surah[] }
+export type Catalog = { reciters: Reciter[]; surahs: Surah[] }
 export const DEFAULT_SERVER = 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r1/'
-export const CATALOG_MS = 7 * 24 * 60 * 60 * 1000
 
 const record = (value: unknown): Record<string, unknown> => value !== null && typeof value === 'object' ? value as Record<string, unknown> : {}
 const id = (value: unknown): value is number => typeof value === 'number' && Number.isSafeInteger(value) && value > 0
@@ -30,14 +29,6 @@ export function readSurahs(value: unknown): Surah[] {
   if (!Array.isArray(rows)) return []
   const surahs = rows.map(record).filter(r => id(r.id) && r.id <= 114 && typeof r.name === 'string').map(r => ({ id: r.id as number, name: r.name as string })).sort((a, b) => a.id - b.id)
   return surahs.length === 114 && surahs.every((s, i) => s.id === i + 1) ? surahs : []
-}
-
-export function isCatalog(value: unknown): value is Catalog {
-  const c = record(value)
-  return typeof c.fetchedAt === 'number' && Number.isFinite(c.fetchedAt) && Array.isArray(c.reciters) && c.reciters.length > 0 && c.reciters.every(raw => {
-    const r = record(raw)
-    return typeof r.key === 'string' && /^\d+:\d+$/.test(r.key) && typeof r.name === 'string' && typeof r.label === 'string' && typeof r.server === 'string' && /^https:\/\/[a-z0-9.-]+\/[a-z0-9/_-]*\/$/i.test(r.server)
-  }) && Array.isArray(c.surahs) && readSurahs({ suwar: c.surahs }).length === 114
 }
 
 export const defaultReciter = (catalog: Catalog): Reciter => catalog.reciters.find(r => r.server === DEFAULT_SERVER) ?? catalog.reciters[0]!

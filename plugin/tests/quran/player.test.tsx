@@ -6,16 +6,23 @@ import type { PanelAction, PanelQuran } from '../../src/shared/panel/signal.ts'
 import type { PaneModel } from '../../src/features/muslim-pane/model.ts'
 import { quranLayout } from '../../src/features/muslim-pane/model.ts'
 import { CONTROL_SPECS, Q_CONTROLS_BASE, Q_CONTROLS_H, Q_RECITER_BASE, Q_SEG_TOP, Q_TITLE_TOP, cardRects, controlScale, quranOffset } from '../../src/features/muslim-pane/layout.ts'
-import { CATALOG_MS } from '../../src/features/quran/catalog.ts'
+import { defaultReciter } from '../../src/features/quran/catalog.ts'
+import { QURAN_CATALOG } from '../../src/features/quran/catalog-data.ts'
+import { QURAN_SUPPORT } from '../../src/features/quran/reciter-support.ts'
 import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
-import { fixtureCatalog, reciters, surahs } from './fixtures/catalog.ts'
 import { AUDIO_LIMIT_BYTES, CLIP_ERROR, SIZE_ERROR, TIMING_ERROR, makePlan, timedSegments, type RecordingPlan } from '../../src/features/quran/segments.ts'
 import { QURAN_QUARTER_BOUNDARIES } from '../../src/features/quran/quarter-boundaries.ts'
 import { encodeBase64 } from '../../src/features/quran/segment-mp3.ts'
 
+const NOW = 100000
+const primary = defaultReciter(QURAN_CATALOG)
+// Pick a second real recording with no known gaps, independent of catalog order.
+const secondary = QURAN_CATALOG.reciters.find(r => r.key !== primary.key && QURAN_SUPPORT[r.key] && !Object.keys(QURAN_SUPPORT[r.key]!.unavailable).length)!
+const alternateCommand = `reciter ${QURAN_CATALOG.reciters.indexOf(secondary) + 1}`
+
 const run = (args: string) => ({ command: 'quran', args, origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } })
 const muslimPane = { plugin: 'muslim', component: 'Pane' as const, requestId: 'muslim', surface: 'desktop' as const, props: { title: 'Muslim', isFocused: true, bodyColumns: 50, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 40 }, view: {} } }
-type Panel = { post(message: { act: string; list?: string; value?: string; key?: string }, _target?: unknown): Promise<void>; press(action: PanelAction): Promise<void>; read(): Promise<PanelQuran | null> }
+type Panel = { post(message: { act: string; list?: string; value?: string; key?: string }, _target?: unknown): Promise<void>; press(action: PanelAction): Promise<void>; read(): Promise<PanelQuran | null>; count(list: 'reciter' | 'surah'): Promise<number> }
 // The Muslim card's side of the player, driven the way a person does: its keys, its buttons and its pickers.
 async function panel($: { ui: { mount(args: typeof muslimPane): Promise<Mounted<'desktop', 'Pane'>> } }): Promise<Panel> {
   const ui = await $.ui.mount(muslimPane)
@@ -38,8 +45,10 @@ async function panel($: { ui: { mount(args: typeof muslimPane): Promise<Mounted<
     if (list === 'segment') {
       for (let i = 0; i < 40; i++) await key('up')
       for (let i = 0; i < Number(value); i++) await key('down')
-    } else if (value === '102:102') for (let i = 0; i < 40; i++) await key('down')
-    else for (const c of list === 'surah' ? value : 'مجود') await key(c)
+    } else {
+      const query = list === 'surah' ? value : String(QURAN_CATALOG.reciters.findIndex(r => r.key === value) + 1)
+      for (const c of query) await key(c)
+    }
     await key('return')
   }
   return {
@@ -53,6 +62,12 @@ async function panel($: { ui: { mount(args: typeof muslimPane): Promise<Mounted<
       if (action === 'quran-next') return key('right')
       const { r, q } = await layout(), spec = CONTROL_SPECS.find(c => c.act === action)!
       await click(420 / 2 + spec.dx * controlScale(420), r.quranY + Q_CONTROLS_BASE + quranOffset(q.segmented) + Q_CONTROLS_H / 2 + spec.dy)
+    },
+    async count(list) {
+      await open(list)
+      const count = (await model()).picker?.count ?? 0
+      await key('tab')
+      return count
     },
     read: async () => { const m = await model(); return m.quran.isAvailable ? m.quran : null },
   }
@@ -68,7 +83,7 @@ function deepFreeze<T>(value: T): T {
 
 function setup(on: On, entries: Record<string, unknown> = {}, env: Record<string, string> = {}, surface: 'desktop' | 'terminal' = 'desktop', mockSize = true) {
   mock.env(on, { TERM_PROGRAM: 'WarpTerminal', ...env })
-  const store: Record<string, unknown> = Object.fromEntries(Object.entries({ 'quran.catalog': fixtureCatalog, ...entries }).map(([key, value]) => [key, deepFreeze(value)]))
+  const store: Record<string, unknown> = Object.fromEntries(Object.entries(entries).map(([key, value]) => [key, deepFreeze(value)]))
   on('store.get', async (_$, e) => ({ value: store[e.key] }))
   on('store.set', async (_$, e) => { store[e.key] = deepFreeze(e.value); return { value: undefined } })
   const state: { quranPlaying?: QuranPlaying | null; quranError?: string | null; quranSurah?: number; quranRepeat?: QuranRepeat } = {}
@@ -82,7 +97,7 @@ function setup(on: On, entries: Record<string, unknown> = {}, env: Record<string
     return result
   })
   if (mockSize) on('http.fetch', { init: { method: 'HEAD' } }, async () => ({ value: { ok: true, status: 200, headers: { 'content-length': '1000000' }, text: '' } }))
-  const clock = mock.clock(on, { now: fixtureCatalog.fetchedAt })
+  const clock = mock.clock(on, { now: NOW })
   on('session.surface', async () => ({ value: surface }))
   const opened: { id: string; title?: string }[] = []
   on('ui.open', async (_$, e) => { opened.push({ id: e.id, title: e.title }); return { value: { isPlaced: true } } })
@@ -115,11 +130,11 @@ function audio(on: On, clock: { sleep(ms: number): Promise<void> }) {
 }
 
 function quarterPlan(surah = 2): RecordingPlan {
-  const reciter = fixtureCatalog.reciters[0]!
+  const reciter = primary
   const timing = Array.from({ length: QURAN_QUARTER_BOUNDARIES[surah]!.at(-1)![2] }, (_, i) => ({ ayah: i + 1, start_time: i * 1000, end_time: (i + 1) * 1000 }))
   const size = AUDIO_LIMIT_BYTES * 2
   const segments = timedSegments(timing, surah, size).map(s => ({ ...s, startByte: s.id * 41700, endByte: (s.id + 1) * 41700, decodedDurationMs: 2612 }))
-  return makePlan(reciter, fixtureCatalog.surahs[surah - 1]!, reciter.server + String(surah).padStart(3, '0') + '.mp3', size, fixtureCatalog.fetchedAt, { etag: 'fixture' }, timing.length * 1000, 112, segments)
+  return makePlan(reciter, QURAN_CATALOG.surahs[surah - 1]!, reciter.server + String(surah).padStart(3, '0') + '.mp3', size, NOW, { etag: 'fixture' }, timing.length * 1000, 112, segments)
 }
 function mockRanges(on: On, plan: RecordingPlan, etag = 'fixture', windows = false, beforeRange?: (range: string) => Promise<void>) {
   const ranges: string[] = [], cleanup: string[][] = []
@@ -146,7 +161,7 @@ function mockRanges(on: On, plan: RecordingPlan, etag = 'fixture', windows = fal
 test('frozen pane props and frozen store/state values cannot prevent uncached quarter extraction', async ($, on) => {
   const plan = quarterPlan()
   plan.segments = plan.segments.map(({ startByte, endByte, decodedDurationMs, ...s }) => s)
-  const clock = setup(on, { 'quran.segmentCache': { '10:20:2': plan } })
+  const clock = setup(on, { 'quran.segmentCache': { [`${primary.key}:2`]: plan } })
   const played = audio(on, clock)
   let release!: () => void, scanning!: () => void
   const gate = new Promise<void>(resolve => { release = resolve })
@@ -163,7 +178,7 @@ test('frozen pane props and frozen store/state values cannot prevent uncached qu
   await running; await clock.settle()
   expect(clock.state.quranError).toBe(null)
   expect(played).toHaveLength(1)
-  const saved = (clock.store['quran.segmentCache'] as Record<string, RecordingPlan>)['10:20:2']!
+  const saved = (clock.store['quran.segmentCache'] as Record<string, RecordingPlan>)[`${primary.key}:2`]!
   expect(saved.segments[0]!.startByte).toBe(0)
   expect(saved.segments[0]!.endByte! > 0).toBe(true)
   expect(saved.segments[1]!.startByte).toBeDefined()
@@ -172,7 +187,7 @@ test('frozen pane props and frozen store/state values cannot prevent uncached qu
 })
 test('large cached recording plays a bounded clip from the original source and continues with the next quarter', async ($, on) => {
   const plan = quarterPlan()
-  const clock = setup(on, { 'quran.segmentCache': { '10:20:2': plan } })
+  const clock = setup(on, { 'quran.segmentCache': { [`${primary.key}:2`]: plan } })
   const played = audio(on, clock), ranges = mockRanges(on, plan)
   await $.command.run(run('play 2')); await clock.settle()
   // The next quarter is fetched while the first one plays.
@@ -198,7 +213,7 @@ test('large cached recording plays a bounded clip from the original source and c
 })
 test('quarter selection, next and previous move between quarters, then across surahs, and abort the replaced clip', { timeoutMs: 20000 }, async ($, on) => {
   const plan = quarterPlan()
-  const clock = setup(on, { 'quran.segmentCache': { '10:20:2': plan } })
+  const clock = setup(on, { 'quran.segmentCache': { [`${primary.key}:2`]: plan } })
   const played = audio(on, clock)
   mockRanges(on, plan)
   await $.command.run(run('play 2')); await clock.settle()
@@ -224,7 +239,7 @@ test('nearCheckpoint reuses a saved lead-in less than 60s away before probing a 
   plan.segments = plan.segments.map((s, i) => i === index ? (({ startByte, endByte, decodedDurationMs, ...rest }) => rest)(s) : s)
   const checkpoint = { byte: 2296 * 417, timeMs: 2296 * 1152 / 44100 * 1000 }
   plan.checkpoints = [checkpoint]
-  const clock = setup(on, { 'quran.segmentCache': { '10:20:2': plan } })
+  const clock = setup(on, { 'quran.segmentCache': { [`${primary.key}:2`]: plan } })
   const played = audio(on, clock)
   const { ranges } = mockRanges(on, plan)
   on('state.get', { plugin: 'muslim', key: 'quranSurah' }, async () => ({ value: { value: 2, version: 1 } }))
@@ -241,7 +256,7 @@ test('nearCheckpoint reuses a saved lead-in less than 60s away before probing a 
 })
 test('surah picks start at quarter one; the optional quarter picker alone starts later', async ($, on) => {
   const plan = quarterPlan()
-  const clock = setup(on, { 'quran.segmentCache': { '10:20:2': plan } })
+  const clock = setup(on, { 'quran.segmentCache': { [`${primary.key}:2`]: plan } })
   const played = audio(on, clock)
   mockRanges(on, plan)
   const mounted = await panel($)
@@ -256,7 +271,7 @@ test('surah picks start at quarter one; the optional quarter picker alone starts
 })
 test('natural end of the last quarter starts the next surah at its first quarter; 114 stops', { timeoutMs: 20000 }, async ($, on) => {
   const second = quarterPlan(), third = quarterPlan(3), final = quarterPlan(114)
-  const clock = setup(on, { 'quran.segmentCache': { '10:20:2': second, '10:20:3': third, '10:20:114': final } })
+  const clock = setup(on, { 'quran.segmentCache': { [`${primary.key}:2`]: second, [`${primary.key}:3`]: third, [`${primary.key}:114`]: final } })
   const played = audio(on, clock)
   mockRanges(on, second)
   const mounted = await panel($)
@@ -278,7 +293,7 @@ test('natural end of the last quarter starts the next surah at its first quarter
 })
 test('unfinished next-quarter prefetch survives natural advancement and is downloaded only once', async ($, on) => {
   const plan = quarterPlan()
-  const clock = setup(on, { 'quran.segmentCache': { '10:20:2': plan } })
+  const clock = setup(on, { 'quran.segmentCache': { [`${primary.key}:2`]: plan } })
   const played = audio(on, clock)
   let release!: () => void, fetching!: () => void
   const gate = new Promise<void>(resolve => { release = resolve })
@@ -323,7 +338,7 @@ test('repeat command replays a whole surah, toggles without restarting and Stop 
 test('repeat plays every quarter of a split surah, then starts it over', async ($, on) => {
   const plan = quarterPlan(36)
   expect(plan.segments.length > 1).toBe(true)
-  const clock = setup(on, { 'quran.segmentCache': { '10:20:36': plan } })
+  const clock = setup(on, { 'quran.segmentCache': { [`${primary.key}:36`]: plan } })
   const played = audio(on, clock)
   mockRanges(on, plan)
   await $.command.run(run('repeat'))
@@ -339,7 +354,7 @@ test('repeat plays every quarter of a split surah, then starts it over', async (
 })
 test('segment repeat replays the same quarter forever and never reads the next one', async ($, on) => {
   const plan = quarterPlan(36)
-  const clock = setup(on, { 'quran.segmentCache': { '10:20:36': plan } })
+  const clock = setup(on, { 'quran.segmentCache': { [`${primary.key}:36`]: plan } })
   const played = audio(on, clock)
   const ranges = mockRanges(on, plan)
   expect((await $.command.run(run('repeat segment'))).text).toBe('Quarter repeat works only while a split surah is selected.')
@@ -369,7 +384,7 @@ test('segment repeat replays the same quarter forever and never reads the next o
 })
 test('the two repeat commands exclude each other and quarter repeat falls back to off on a whole surah', async ($, on) => {
   const plan = quarterPlan(36)
-  const clock = setup(on, { 'quran.segmentCache': { '10:20:36': plan } })
+  const clock = setup(on, { 'quran.segmentCache': { [`${primary.key}:36`]: plan } })
   audio(on, clock)
   mockRanges(on, plan)
   await $.command.run(run('play 36')); await clock.settle()
@@ -400,18 +415,18 @@ test('pane repeat is a silent toggle and persists through manual navigation and 
   expect(clock.state.quranPlaying?.surah).toBe(18)
   await mounted.post({ act: 'pick', list: 'surah', value: '114' }, { in: 'quran-card' })
   expect(clock.state.quranRepeat).toBe('surah')
-  await $.command.run(run('reciter 2'))
+  await $.command.run(run(alternateCommand))
   expect(clock.state.quranRepeat).toBe('surah')
-  expect(clock.state.quranPlaying?.moshafKey).toBe('10:21')
+  expect(clock.state.quranPlaying?.moshafKey).toBe(secondary.key)
   await clock.advance(10000)
   expect(clock.state.quranPlaying?.surah).toBe(114)
   expect(clock.state.quranPlaying).not.toBe(null)
   expect(clock.toasts).toEqual([])
   await $.command.run(run('stop')); await clock.settle()
 })
-for (const replacement of ['stop', 'prev', 'next', 'play 2', 'reciter 2']) test(`${replacement} cancels an unfinished quarter prefetch`, async ($, on) => {
+for (const replacement of ['stop', 'prev', 'next', 'play 2', alternateCommand]) test(`${replacement} cancels an unfinished quarter prefetch`, async ($, on) => {
   const plan = quarterPlan()
-  const clock = setup(on, { 'quran.segmentCache': { '10:20:2': plan } })
+  const clock = setup(on, { 'quran.segmentCache': { [`${primary.key}:2`]: plan } })
   const played = audio(on, clock)
   let release!: () => void, fetching!: () => void
   const gate = new Promise<void>(resolve => { release = resolve })
@@ -437,7 +452,7 @@ test('a newly picked large surah fetches exact timing metadata and immediately p
   on('http.fetch', async (_$, e) => {
     urls.push(e.url)
     const value: HttpResponse = e.init?.method === 'HEAD' ? { ok: true, status: 200, headers: { 'content-length': String(AUDIO_LIMIT_BYTES + 1), etag: 'fixture' }, text: '' }
-      : { ok: true, status: 200, headers: {}, text: JSON.stringify(e.url.endsWith('/reads') ? [{ id: 112, folder_url: fixtureCatalog.reciters[0]!.server }] : Array.from({ length: 286 }, (_, i) => ({ ayah: i + 1, start_time: i * 1000, end_time: (i + 1) * 1000 }))) }
+      : { ok: true, status: 200, headers: {}, text: JSON.stringify(e.url.endsWith('/reads') ? [{ id: 112, folder_url: primary.server }] : Array.from({ length: 286 }, (_, i) => ({ ayah: i + 1, start_time: i * 1000, end_time: (i + 1) * 1000 }))) }
     return { value }
   })
   mockRanges(on, { ...quarterPlan(), sizeBytes: AUDIO_LIMIT_BYTES + 1 })
@@ -447,11 +462,11 @@ test('a newly picked large surah fetches exact timing metadata and immediately p
   expect(played).toHaveLength(1)
   expect(clock.state.quranPlaying?.segmentIndex).toBe(0)
   expect(urls).toContain('https://www.mp3quran.net/api/v3/ayat_timing?surah=2&read=112')
-  const saved = (clock.store['quran.segmentCache'] as Record<string, RecordingPlan>)['10:20:2']!
-  expect(saved.reciterName).toBe(fixtureCatalog.reciters[0]!.name)
+  const saved = (clock.store['quran.segmentCache'] as Record<string, RecordingPlan>)[`${primary.key}:2`]!
+  expect(saved.reciterName).toBe(primary.name)
   expect(saved.surahName).toBe('البقرة')
-  expect(saved.computedAt).toBe(fixtureCatalog.fetchedAt)
-  expect(saved.sourceCheckedAt).toBe(fixtureCatalog.fetchedAt)
+  expect(saved.computedAt).toBe(NOW)
+  expect(saved.sourceCheckedAt).toBe(NOW)
   expect(saved.segments).toHaveLength(20)
   expect((await mounted.read())?.segmented).toBe(true)
   await $.command.run(run('stop')); await clock.settle()
@@ -461,7 +476,7 @@ test('a fresh large recording computes, saves and plays its first quarter', asyn
   const played = audio(on, clock)
   const size = AUDIO_LIMIT_BYTES + 1
   on('http.fetch', async (_$, e) => ({ value: (e.init?.method === 'HEAD' ? { ok: true, status: 200, headers: { 'content-length': String(size), etag: 'fixture' }, text: '' }
-    : { ok: true, status: 200, headers: {}, text: JSON.stringify(e.url.endsWith('/reads') ? [{ id: 112, folder_url: fixtureCatalog.reciters[0]!.server }] : Array.from({ length: 286 }, (_, i) => ({ ayah: i + 1, start_time: i * 1000, end_time: (i + 1) * 1000 }))) }) as HttpResponse }))
+    : { ok: true, status: 200, headers: {}, text: JSON.stringify(e.url.endsWith('/reads') ? [{ id: 112, folder_url: primary.server }] : Array.from({ length: 286 }, (_, i) => ({ ayah: i + 1, start_time: i * 1000, end_time: (i + 1) * 1000 }))) }) as HttpResponse }))
   mockRanges(on, { ...quarterPlan(), sizeBytes: size })
   await $.command.run(run('play 2')); await clock.settle()
   expect(clock.state.quranError ?? null).toBe(null)
@@ -473,7 +488,7 @@ test('small whole surahs bypass timing data even when crossing many quarters', a
   const clock = setup(on)
   const played = audio(on, clock)
   await $.command.run(run('play 2')); await clock.settle()
-  expect(played[0]!.clip).toEqual({ url: fixtureCatalog.reciters[0]!.server + '002.mp3' })
+  expect(played[0]!.clip).toEqual({ url: primary.server + '002.mp3' })
   expect(clock.state.quranPlaying?.segmentIndex).toBeUndefined()
   const mounted = await panel($)
   expect((await mounted.read())?.segmented).toBe(false)
@@ -495,7 +510,7 @@ test('unknown size or missing timing shows the Claude limit with retry and never
 })
 test('a changed recording validator rejects cached byte cuts and cleans Windows range files', async ($, on) => {
   const plan = quarterPlan()
-  const clock = setup(on, { 'quran.segmentCache': { '10:20:2': plan } }, { OS: 'Windows_NT', TEMP: 'C:\\fixture' })
+  const clock = setup(on, { 'quran.segmentCache': { [`${primary.key}:2`]: plan } }, { OS: 'Windows_NT', TEMP: 'C:\\fixture' })
   const played = audio(on, clock), ranges = mockRanges(on, plan, 'changed', true)
   expect((await $.command.run(run('play 2'))).text).toBe(CLIP_ERROR)
   expect(played).toEqual([])
@@ -529,7 +544,7 @@ test('play sets whole-track state and approximate clock time; stop clears tracki
   expect(played).toHaveLength(1)
   expect(played[0]?.clip).toEqual({ url: 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r1/018.mp3' })
   expect(played[0]?.gain).toBeUndefined()
-  expect(clock.state.quranPlaying).toEqual({ moshafKey: '10:20', surah: 18, startedAt: fixtureCatalog.fetchedAt, durationMs: null })
+  expect(clock.state.quranPlaying).toEqual({ moshafKey: primary.key, surah: 18, startedAt: NOW, durationMs: null })
   const mounted = await panel($)
   await clock.advance(1000)
   expect((await mounted.read())?.elapsed).toBe('00:01')
@@ -544,7 +559,7 @@ test('natural completion advances to the next surah with the same reciter', asyn
   await $.command.run(run('play 18'))
   await clock.advance(10000)
   expect(clock.state.quranPlaying?.surah).toBe(19)
-  expect(clock.state.quranPlaying?.moshafKey).toBe('10:20')
+  expect(clock.state.quranPlaying?.moshafKey).toBe(primary.key)
   expect(clock.state.quranSurah).toBe(19)
   expect(played).toHaveLength(2)
   expect(played[1]?.clip).toEqual({ url: 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r1/019.mp3' })
@@ -557,12 +572,12 @@ test('reciter switch restarts current surah without config writes', async ($, on
   on('config.set', async (_$, e) => (config.push(e), { value: e.value }))
   await $.command.run(run('play 18')); await clock.settle()
   expect(played).toHaveLength(1)
-  expect((await $.command.run(run('reciter 2'))).text).toContain('مجود')
+  expect((await $.command.run(run(alternateCommand))).text).toContain(secondary.label)
   await clock.settle()
   expect(played).toHaveLength(2)
-  expect(played[1]?.clip).toEqual({ url: 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r2/018.mp3' })
+  expect(played[1]?.clip).toEqual({ url: secondary.server + '018.mp3' })
   expect(played[1]?.gain).toBeUndefined()
-  expect(clock.store['quran.reciter']).toBe('10:21')
+  expect(clock.store['quran.reciter']).toBe(secondary.key)
   expect(config).toEqual([])
   await $.command.run(run('stop'))
 })
@@ -586,8 +601,8 @@ test('pane search picks start playback and toggle aborts the exact audio signal'
   await mounted.post({ act: 'pick', list: 'surah', value: '18' })
   await clock.settle()
   expect(clock.state.quranPlaying?.surah).toBe(18)
-  await mounted.post({ act: 'pick', list: 'reciter', value: '10:21' })
-  expect(clock.store['quran.reciter']).toBe('10:21')
+  await mounted.post({ act: 'pick', list: 'reciter', value: secondary.key })
+  expect(clock.store['quran.reciter']).toBe(secondary.key)
   await mounted.post({ act: 'key', key: 'return' }, { in: 'quran-card' })
   expect(clock.state.quranPlaying).toBe(null)
   expect(played).toHaveLength(2)
@@ -595,31 +610,37 @@ test('pane search picks start playback and toggle aborts the exact audio signal'
   expect(played[1]?.signal.aborted).toBe(true)
   expect(played[1]?.aborted).toBe(true)
 })
-test('catalog refresh fetches JSON, saves only used fields, and keeps old catalog on failure', async ($, on) => {
-  const old = { ...fixtureCatalog, fetchedAt: fixtureCatalog.fetchedAt - CATALOG_MS - 1 }
-  const clock = setup(on, { 'quran.catalog': old })
-  let fail = false
-  const urls: string[] = []
-  on('http.fetch', async (_$, e) => {
-    urls.push(e.url)
-    if (fail) throw new Error('Network unavailable')
-    return { value: { ok: true, status: 200, headers: {}, text: JSON.stringify(e.url.includes('reciters') ? reciters : { suwar: surahs }) } }
-  })
-  expect((await $.command.run(run(''))).text).toContain('opened')
-  expect(urls).toHaveLength(2)
-  const saved = clock.store['quran.catalog']
-  expect(saved).toEqual(fixtureCatalog)
-  clock.store['quran.catalog'] = old
-  fail = true
-  expect((await $.command.run(run('reciter'))).text).toContain('محمد صديق المنشاوي')
-  expect(clock.store['quran.catalog']).toEqual(old)
-})
-test('first catalog failure is a short reply and pane error; stop still works', async ($, on) => {
-  setup(on, { 'quran.catalog': null })
-  on('http.fetch', async () => ({ deny: 'Network unavailable' }))
-  expect((await $.command.run(run(''))).text).toBe('Quran: Network unavailable')
+test('an empty store fills the Quran card and both lists without any network request', async ($, on) => {
+  const clock = setup(on, {}, {}, 'desktop', false)
+  const requests: string[] = [], catalogReads: string[] = []
+  on('http.fetch', async (_$, e) => { requests.push(e.url); throw new Error('unexpected network') })
+  on('store.get', { key: 'quran.catalog' }, async (_$, e) => { catalogReads.push(e.key); return { value: undefined } })
+  expect(clock.store).toEqual({})
   const mounted = await panel($)
-  expect((await $.command.run(run('stop'))).text).toBe('Quran stopped.')
+  const shown = await mounted.read()
+  expect(shown).not.toBe(null)
+  expect(shown?.reciter).toBe(primary.label.replace(' — ', ' · '))
+  expect(shown?.surah).toBe(`سورة ${QURAN_CATALOG.surahs[0]!.name}`)
+  expect(await mounted.count('reciter')).toBe(QURAN_CATALOG.reciters.length)
+  expect(await mounted.count('surah')).toBe(114)
+  expect(requests).toEqual([])
+  expect(catalogReads).toEqual([])
+  expect(clock.store).toEqual({})
+})
+test('an obsolete store catalog is ignored and the remembered recording is kept', async ($, on) => {
+  const old = { fetchedAt: -1, reciters: [], surahs: [] }
+  const clock = setup(on, { 'quran.catalog': old, 'quran.reciter': secondary.key }, {}, 'desktop', false)
+  const catalogReads: string[] = [], requests: string[] = []
+  on('store.get', { key: 'quran.catalog' }, async (_$, e) => { catalogReads.push(e.key); return { value: old } })
+  on('http.fetch', async (_$, e) => { requests.push(e.url); throw new Error('unexpected network') })
+  expect((await (await panel($)).read())?.reciter).toBe(secondary.label.replace(' — ', ' · '))
+  const listed = (await $.command.run(run('reciter'))).text ?? ''
+  expect(listed).toContain(primary.label)
+  expect(listed).toContain(secondary.label)
+  expect(clock.store['quran.catalog']).toEqual(old)
+  expect(clock.store['quran.reciter']).toBe(secondary.key)
+  expect(catalogReads).toEqual([])
+  expect(requests).toEqual([])
 })
 test('play rejection clears playing and renders a dim pane/command-output error', async ($, on) => {
   const clock = setup(on)
@@ -631,7 +652,7 @@ test('play rejection clears playing and renders a dim pane/command-output error'
   expect(await output.find({ text: 'Quran: Playback unavailable' })).toBeDefined()
 })
 test('cached duration skips process probing; a failed probe leaves total unknown silently', async ($, on) => {
-  const clock = setup(on, { 'quran.durations': { '10:20:18': 60000 } })
+  const clock = setup(on, { 'quran.durations': { [`${primary.key}:18`]: 60000 } })
   audio(on, clock)
   const processes: unknown[] = []
   on('process.run', async (_$, e) => (processes.push(e), { value: { exitCode: 1, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
@@ -673,7 +694,7 @@ test('duration probe uses curl Range, reads base64 bytes, caches a number and cl
   expect(body).toContain('/fixture-tmp/claude-muslim-quran/')
   expect(argv[0]).toEqual(['curl', '-s', '-L', '--fail', '--max-time', '15', '-r', '0-131071', '-D', `${body}.headers`, '-o', body, 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r1/018.mp3'])
   expect(argv[1]).toEqual(['rm', '-f', '--', body, `${body}.headers`])
-  expect(clock.store['quran.durations']).toEqual({ '10:20:18': 100000 })
+  expect(clock.store['quran.durations']).toEqual({ [`${primary.key}:18`]: 100000 })
   expect(clock.state.quranPlaying?.durationMs).toBe(100000)
   await $.command.run(run('stop'))
 })
@@ -709,7 +730,7 @@ test('session start discards stale playing state and does not resume or start a 
   const played = audio(on, clock)
   const timers: number[] = []
   on('clock.every', { ms: 1000 }, async (_$, e, next) => { timers.push(e.ms); return next(e) })
-  on('state.get', { plugin: 'muslim', key: 'quranPlaying' }, async () => ({ value: { value: { moshafKey: '10:20', surah: 18, startedAt: 0, durationMs: null }, version: 1 } }))
+  on('state.get', { plugin: 'muslim', key: 'quranPlaying' }, async () => ({ value: { value: { moshafKey: primary.key, surah: 18, startedAt: 0, durationMs: null }, version: 1 } }))
   on('command.register', async (_$, e) => ({ value: { command: e.name } }))
   on('ui.status', async () => ({ value: undefined }))
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
@@ -724,10 +745,10 @@ test('session start discards stale playing state and does not resume or start a 
 })
 
 test('/muslim Quran row uses this terminal mode and remembered recording', async ($, on) => {
-  setup(on, { 'quran.reciter': '10:21', arabicTerminals: { WarpTerminal: 'joined' } }, {}, 'terminal')
+  setup(on, { 'quran.reciter': secondary.key, arabicTerminals: { WarpTerminal: 'joined' } }, {}, 'terminal')
   on('session.surfaces', async () => ({value:['terminal']}))
   const ran = await $.command.run({ ...run(''), command: 'muslim' })
-  expect(ran.text).toContain(terminalArabic('terminal', 'joined', fixtureCatalog.reciters[1]!.label))
+  expect(ran.text).toContain(terminalArabic('terminal', 'joined', secondary.label))
 })
 
 test('after the last surah playback stops and clears tracking without wrapping', async ($, on) => {
@@ -742,7 +763,7 @@ test('after the last surah playback stops and clears tracking without wrapping',
   await clock.advance(10000)
   expect(played).toHaveLength(1)
 })
-for (const replacement of ['stop', 'next', 'prev', 'play 18', 'reciter 2']) {
+for (const replacement of ['stop', 'next', 'prev', 'play 18', alternateCommand]) {
   test(`${replacement}: an aborted or replaced generation cannot auto-advance`, async ($, on) => {
     const clock = setup(on)
     const played = audio(on, clock)
@@ -755,7 +776,7 @@ for (const replacement of ['stop', 'next', 'prev', 'play 18', 'reciter 2']) {
     if (replacement === 'stop') expect(clock.state.quranPlaying).toBe(null)
     else {
       expect(clock.state.quranPlaying?.surah).toBe(replacement === 'next' ? 19 : replacement === 'prev' ? 17 : 18)
-      expect(clock.state.quranPlaying?.moshafKey).toBe(replacement === 'reciter 2' ? '10:21' : '10:20')
+      expect(clock.state.quranPlaying?.moshafKey).toBe(replacement === alternateCommand ? secondary.key : primary.key)
     }
     await $.command.run(run('stop'))
   })
@@ -822,32 +843,29 @@ test('pane playback rejection stays inside the pane and does not rewrite a comma
   expect(clock.toasts).toEqual([])
 })
 
-test('pane Stop aborts immediately during a blocked catalog refresh and cancels the waiting play', async ($, on) => {
-  const clock = setup(on)
+test('pane Stop aborts immediately during blocked recording preparation and cancels waiting actions', async ($, on) => {
+  const clock = setup(on, {}, {}, 'desktop', false)
   const played = audio(on, clock)
   let began!: () => void
   const fetching = new Promise<void>(resolve => { began = resolve })
   let release!: () => void
   const gate = new Promise<void>(resolve => { release = resolve })
   on('http.fetch', async (_$, e) => {
-    began()
-    await gate
-    return { value: { ok: true, status: 200, headers: {}, text: JSON.stringify(e.url.includes('reciters') ? reciters : { suwar: surahs }) } }
+    if (e.url.endsWith('/019.mp3')) { began(); await gate }
+    return { value: { ok: true, status: 200, headers: { 'content-length': '1000000' }, text: '' } }
   })
   const mounted = await panel($)
   await $.command.run(run('play 18'))
-  // Audio is called before command dispatch returns, with no clock advance.
   expect(played).toHaveLength(1)
-  clock.store['quran.catalog'] = { ...fixtureCatalog, fetchedAt: fixtureCatalog.fetchedAt - CATALOG_MS - 1 }
   const pending = $.command.run(run('play 19'))
   await fetching
-  const queued = $.command.run(run('next'))
+  const queued = $.command.run(run(''))
   await mounted.post({ act: 'key', key: 'return' }, { in: 'quran-card' })
   expect(played[0]?.signal.aborted).toBe(true)
   expect(clock.state.quranPlaying).toBe(null)
   release()
   await pending
-  await queued
+  expect((await queued).text).toBe('Quran stopped.')
   expect(played).toHaveLength(1)
   expect(clock.state.quranPlaying).toBe(null)
 })
@@ -905,11 +923,10 @@ for (const key of ['right', 'left']) test(`Client ${key} aborts the old signal b
 
 
 
-// Real support key with unavailable 2, 3, 4, 5 and 7; names remain fixture data.
-const limitedRecording = { ...fixtureCatalog.reciters[0]!, key: '102:102' }
-const availabilityCatalog = { ...fixtureCatalog, reciters: [...fixtureCatalog.reciters, limitedRecording] }
-for (const value of ['2', '٢', 'البقرة']) test(`unavailable command ${value} refuses before even an expired catalog refresh`, async ($, on) => {
-  const clock = setup(on, { 'quran.catalog': { ...availabilityCatalog, fetchedAt: -CATALOG_MS }, 'quran.reciter': limitedRecording.key }, {}, 'desktop', false)
+// Real shipped recording with unavailable 2, 3, 4, 5 and 7.
+const limitedRecording = QURAN_CATALOG.reciters.find(r => r.key === '102:102')!
+for (const value of ['2', '٢', 'البقرة']) test(`unavailable command ${value} refuses before any network work`, async ($, on) => {
+  const clock = setup(on, { 'quran.reciter': limitedRecording.key }, {}, 'desktop', false)
   const requests: string[] = [], processes: string[][] = [], played = audio(on, clock)
   on('http.fetch', async (_$, e) => { requests.push(e.url); throw new Error('unexpected network') })
   on('process.run', async (_$, e) => { processes.push([...e.argv]); throw new Error('unexpected process') })
@@ -922,7 +939,7 @@ for (const value of ['2', '٢', 'البقرة']) test(`unavailable command ${val
   expect(clock.toasts).toEqual([])
 })
 for (const playing of [false, true]) test(`reciter switch chooses next available surah while ${playing ? 'playing' : 'stopped'}`, async ($, on) => {
-  const clock = setup(on, { 'quran.catalog': availabilityCatalog })
+  const clock = setup(on, {})
   const played = audio(on, clock)
   await $.command.run(run('play 2'))
   if (!playing) await $.command.run(run('stop'))
@@ -937,7 +954,7 @@ for (const playing of [false, true]) test(`reciter switch chooses next available
   await $.command.run(run('stop'))
 })
 test('next, previous and natural ends skip unsupported surahs without probing them', async ($, on) => {
-  const clock = setup(on, { 'quran.catalog': availabilityCatalog, 'quran.reciter': limitedRecording.key }, {}, 'desktop', false)
+  const clock = setup(on, { 'quran.reciter': limitedRecording.key }, {}, 'desktop', false)
   const heads: string[] = [], played = audio(on, clock)
   on('http.fetch', async (_$, e) => { heads.push(e.url); return { value: { ok: true, status: 200, headers: { 'content-length': '1000000' }, text: '' } } })
   await $.command.run(run('play 1'))
@@ -956,7 +973,7 @@ test('next, previous and natural ends skip unsupported surahs without probing th
   await $.command.run(run('stop'))
 })
 test('restored unsupported selection moves at startup and renders without any network work', async ($, on) => {
-  const clock = setup(on, { 'quran.catalog': availabilityCatalog, 'quran.reciter': limitedRecording.key }, {}, 'desktop', false)
+  const clock = setup(on, { 'quran.reciter': limitedRecording.key }, {}, 'desktop', false)
   const requests: string[] = [], played = audio(on, clock)
   on('http.fetch', async (_$, e) => { requests.push(e.url); throw new Error('unexpected network') })
   on('state.get', { plugin: 'muslim', key: 'quranSurah' }, async () => ({ value: { value: clock.state.quranSurah ?? 2, version: 1 } }))
@@ -967,7 +984,7 @@ test('restored unsupported selection moves at startup and renders without any ne
   const mounted = await panel($)
   const shown = await mounted.read()
   expect(clock.state.quranSurah).toBe(6)
-  expect(shown?.surah).toBe('سورة Fixture 6')
+  expect(shown?.surah).toBe(`سورة ${QURAN_CATALOG.surahs[5]!.name}`)
   expect(requests).toEqual([])
   expect(played).toEqual([])
   expect(clock.toasts).toEqual([])

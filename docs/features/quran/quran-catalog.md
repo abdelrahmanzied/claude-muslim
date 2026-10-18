@@ -12,11 +12,11 @@ Every recording in the earlier 155-recording audit had at least surah 2 above th
 
 Without shipped availability metadata, users would discover unsupported surahs only after selecting them and waiting for an error. Checking every recording and surah at runtime would require thousands of remote requests, add delay, and repeat work on each user's machine. Instead, the support tool generates compact metadata for review and distribution with the plugin. Catalog-generation probes never run on users' machines. The hooks module has no Node APIs; the scripts run separately under Node 24.
 
-The plugin imports the shipped support catalog to filter unavailable surahs. The support tool and its offline tests remain the source of availability metadata. Existing playback checks remain necessary because remote files can change after generation.
+The plugin imports `catalog-data.ts` for the full player lists and the initial selection, and `reciter-support.ts` to filter unavailable surahs. A fresh install needs no catalog fetch or store seed; the Quran card is filled on its first draw. `quran.reciter` still remembers the selected recording. Old `quran.catalog` values are ignored and left untouched; there is no weekly player-catalog refresh. The support tool and its offline tests remain the source of availability metadata. Existing playback checks remain necessary because remote files can change after generation.
 
 ## Support tool and format
 
-`scripts/quran/support.ts` fetches recordings and timing reads, then performs HEAD requests for every recording × all 114 surahs. Six workers bound all requests. Each request has a 15-second timeout, an explicit User-Agent, and an initial attempt plus three retries with 0.5/1/2-second backoff. Invalid or missing content-length is retried as a failed HEAD.
+`scripts/quran/support.ts` fetches recordings, the 114 Arabic surah names (on full runs) and timing reads, then performs HEAD requests for every recording × all 114 surahs. Six workers bound all requests. Each request has a 15-second timeout, an explicit User-Agent, and an initial attempt plus three retries with 0.5/1/2-second backoff. Invalid or missing content-length is retried as a failed HEAD.
 
 For a large file with a matching read, it fetches `ayat_timing?surah=S&read=R` and a Range prefix of at most 128 KiB. It rejects an ignored or inconsistent Range before consuming the body and bounds the body length. `cbrStream()` supplies the bitrate and audio start; duration is rounded from `(size - audioStart) * 8000 / bitrate`. A non-CBR prefix or failed prefix leaves duration unknown, matching playback's optional-duration path; the run reports unknown durations and failed requests. This tool never downloads a full MP3 or decodes audio.
 
@@ -43,9 +43,21 @@ This is a schema illustration, not an audit result. `split` stores the full sour
 | `clip-too-big` | The existing planner raises `CLIP_ERROR` because a segment cannot fit its conservative time/size estimate. |
 | `unreachable` | HEAD still fails or has no usable size after retries. |
 
-Output has sorted recording and surah keys, one compact line per recording, and no dates or timestamps. Identical API results generate identical bytes. Whole files are implicit to keep the file small. A complete run replaces the catalog atomically only after scanning finishes; source-catalog failures abort without overwriting it. A partial run merges checked recordings into an existing output. It cannot replace the shipped file on a partial first run; use a separate `--out` path. Changes in availability are printed per recording, together with totals, reason counts, audit cross-checks, elapsed time and request-attempt counts. Automatic HTTP redirects are handled by fetch and are not separate entries in that count.
+Output has sorted recording and surah keys, one compact line per recording, and no dates or timestamps. Identical API results generate identical bytes. Whole files are implicit to keep the file small. A complete run writes both generated outputs only after scanning finishes; each uses a sibling `.tmp` file followed by rename. Source-catalog failures, including an incomplete surah list, abort before either output is replaced. A partial `--only` run merges checked recordings into the support output and leaves `catalog-data.ts` untouched; it does not fetch surah names. It cannot replace the shipped file on a partial first run; use a separate `--out` path. Changes in availability are printed per recording, together with totals, reason counts, audit cross-checks, elapsed time and request-attempt counts. Automatic HTTP redirects are handled by fetch and are not separate entries in that count.
 
 The shipped catalog is populated. Its offline validity test rejects an empty placeholder. No new package or dependency is needed: `scripts/tsconfig.json` uses small Node ambient declarations because this checkout has no `@types/node`; the root tsconfig excludes scripts already.
+
+## Shipped generated files
+
+All runtime data stays under `plugin/src/features/quran/`, inside the installed plugin:
+
+| File | Contents | Regeneration |
+| --- | --- | --- |
+| `catalog-data.ts` | `QURAN_RECITERS: Reciter[]` (`key`, `name`, `label`, `server`, exactly `filterReciters` output), `QURAN_SURAHS: Surah[]` (114 authored names ordered by ID, from `readSurahs`), and their combined `QURAN_CATALOG` | A full `scripts/quran/support.ts` run, from the same source recordings used for the support audit |
+| `reciter-support.ts` | `QURAN_SUPPORT_VERSION` and per-recording availability/size metadata | The same script; `--only` updates selected recordings only |
+| `quarter-boundaries.ts` | Fixed version-1 numeric map: 114 surahs, 240 quarters, 313 surah/quarter intersections and 6,236 ayahs | Extracted from the AlQuran Cloud quarter map during research; the support audit consumes this map and does not rewrite it |
+
+The two support-tool outputs carry the generated-file header and regeneration command. The player catalog preserves API order for reciters and copies authored names without synthesizing text. Neither output carries timestamps; identical source results produce identical bytes. The offline catalog tests require 114 ordered surahs, at least one recording, the default server and support metadata for every recording key.
 
 ## Local runs
 
@@ -57,10 +69,11 @@ node --experimental-strip-types scripts/quran/support.ts --only 112:112 --out /t
 npx tsc -p scripts
 npx tsc -p .
 claude plugin validate .
-claude plugin test .
+claude plugin validate plugin
+claude plugin test plugin
 ```
 
-`--only` accepts comma-separated moshaf keys and still checks all 114 surahs for each selected recording. `--out` accepts an alternate generated TypeScript path, with a relative type import adjusted for that location. Review the printed availability changes and source failures before replacing shipped metadata. A full run is required for the first catalog. No live remote audit belongs in normal CI; CI checks the shipped file offline (keys, surah bounds, reason union, size bounds, disjoint split/unavailable maps, and nonempty data).
+`--only` accepts comma-separated moshaf keys and still checks all 114 surahs for each selected recording. `--out` accepts an alternate support TypeScript path, with relative type imports adjusted for that location. On a full run it also writes `catalog-data.ts` beside that output, so a scratch audit does not update the installed plugin. `--only` always leaves that sibling catalog untouched, even if all recording keys were explicitly listed; run without `--only` to regenerate both outputs. Review the printed availability changes and source failures before replacing shipped metadata. A full run is required for the first player catalog. If network access is unavailable, do not invent or hand-type a replacement: run the command later with network access before validating or shipping the plugin. No live remote audit belongs in normal CI; CI checks the shipped file offline (keys, surah bounds, reason union, size bounds, disjoint split/unavailable maps, and nonempty data).
 
 ## Automatic support refresh
 

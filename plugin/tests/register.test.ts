@@ -1,4 +1,7 @@
 import { VERSION } from '../src/constants.ts'
+import { defaultReciter } from '../src/features/quran/catalog.ts'
+import { QURAN_CATALOG } from '../src/features/quran/catalog-data.ts'
+import { terminalArabic } from '../src/shared/arabic/terminal.ts'
 import { expect, mock, test } from 'claude-code/testing'
 
 const muslim = (args: string) => ({
@@ -21,7 +24,7 @@ test('/muslim shows each setting with its state and how to change it', { options
   expect(ran.text).toContain('### Shared\n\n| Setting | Description | State |')
   expect(ran.text).toContain('| Tashkeel | Arabic diacritics on desktop; the terminal never shows them | off |')
   expect(ran.text).toContain('| Terminal Arabic | How Arabic shows in this terminal | terminal only |')
-  expect(ran.text).toContain('| Quran | Desktop recitation player; the selected recording | Muhammad Siddiq Al-Minshawi — murattal |')
+  expect(ran.text).toContain(`| Quran | Desktop recitation player; the selected recording | ${defaultReciter(QURAN_CATALOG).label} |`)
 })
 
 test('/muslim help shows every feature\'s table; with a feature, only its own', async $ => {
@@ -182,7 +185,7 @@ test('terminal /muslim retains its complete version, feature and shared table by
     "| Thikr | Tasbih in Claude's working line | on |",
     '| Athkar | Morning, evening and after-salah athkar above the prompt | on |',
     '| Salah | Pray times and the next pray under the prompt | not set up |',
-    '| Quran | Desktop recitation player; the selected recording | Muhammad Siddiq Al-Minshawi — murattal |',
+    `| Quran | Desktop recitation player; the selected recording | ${terminalArabic('terminal', 'plain', defaultReciter(QURAN_CATALOG).label)} |`,
     '', '### Shared', '',
     '| Setting | Description | State |', '| --- | --- | --- |',
     '| Color | The main color in every feature | orange |',

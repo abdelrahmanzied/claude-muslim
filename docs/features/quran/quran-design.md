@@ -2,7 +2,7 @@
 
 The Quran feature's visual means, design principles and surface scope, following [DESIGN.md](../../../DESIGN.md). Behavior is in [quran spec](quran.md).
 
-The [recording catalog design](quran-catalog.md) covers developer audits and the shipped support catalog. The pane hides unavailable surahs and shows one dim unavailable-count note.
+The [recording catalog design](quran-catalog.md) covers developer audits, the shipped player catalog and support metadata. The reciter and surah lists are ready on the first pane draw with an empty store and no catalog network call. The pane hides unavailable surahs and shows one dim unavailable-count note.
 
 ## Visual means
 
@@ -53,7 +53,7 @@ Desktop is the supported v1 surface, a stated scope exception to the shared cros
 
 ## Settings exception
 
-**Stated exception to CLAUDE.md's “settings are userConfig” rule:** all durable Quran data—remembered recording, catalog, duration numbers and recording segment metadata—stays in `$.store` (`quran.reciter`, `quran.catalog`, `quran.durations`, `quran.segmentCache`), not userConfig. `$.config.set` reloads the module and would cut playback continuity by losing the AbortController; an old clip may remain audible without a handle. Choosing a recording must not reload the module. No new userConfig fields are added. The `/muslim` feature row shows the selected recording in the shared status-table shape; `/muslim help quran` and `/quran help` use the shared help-table shape, including `/quran reciter`. Stop is the user's off action; there is no unsolicited playback or enabled switch. Loudness is controlled by the OS.
+**Stated exception to CLAUDE.md's “settings are userConfig” rule:** all durable Quran data—remembered recording, duration numbers and recording segment metadata—stays in `$.store` (`quran.reciter`, `quran.durations`, `quran.segmentCache`), not userConfig. `$.config.set` reloads the module and would cut playback continuity by losing the AbortController; an old clip may remain audible without a handle. Choosing a recording must not reload the module. The player catalog is imported from shipped `catalog-data.ts`; an obsolete `quran.catalog` store entry is ignored. No new userConfig fields are added. The `/muslim` feature row shows the selected recording in the shared status-table shape; `/muslim help quran` and `/quran help` use the shared help-table shape, including `/quran reciter`. Stop is the user's off action; there is no unsolicited playback or enabled switch. Loudness is controlled by the OS.
 
 Playback state stays in the declared session contract; handles stay in the runtime only. On reload, existing `session.start` clears tracking and does not resume. A reload orphans the clip: the mod cannot stop it, and it ends with the surah, a documented v1 limitation.
 
@@ -71,15 +71,15 @@ No seeking, pause/resume, persistent audio cache, separate ayah clips, gapless s
 
 ## Demo scenes (planned)
 
-Quran demo is deferred to a separate task and is not included in the shared sequence. Planned scenes: stopped with Minshawi/Al-Fatiha selected; playing Al-Kahf with known duration; unknown total; catalog/play error; terminal fallback. Use a fake clock and mocked playback/catalog, changing no remembered choice.
+Quran demo is deferred to a separate task and is not included in the shared sequence. Planned scenes: stopped with Minshawi/Al-Fatiha selected; playing Al-Kahf with known duration; unknown total; playback error; terminal fallback. Use the shipped catalog, a fake clock and mocked playback, changing no remembered choice.
 
 ## Checklist for a change
 
 - [ ] The Muslim pane's Quran card, embedded Tajawal and silent picks render on Desktop; no Quran toasts and no footer item; a terminal gets the `/quran` text status through shared Arabic.
 - [ ] Whole-surah audio, abort on stop/replacement, advance only on the active generation’s natural end; stop after 114.
 - [ ] Redraw timer runs only while playing; per-clip watchdog cancels on settlement; elapsed remains explicitly approximate.
-- [ ] No config reload from recording changes; all durable Quran data in store.
-- [ ] Both full lists open without pages; Up/Down scrolls, search filters, and choosing clears/closes the panel. Catalog is reused for seven days and refreshes on demand, retaining stale data on failure; duration failure is silent.
+- [ ] No config reload from recording changes; remembered choices and playback metadata in store, catalog shipped in code.
+- [ ] Both full lists open without pages; Up/Down scrolls, search filters, and choosing clears/closes the panel. Both lists and the initial player model use shipped data with no fetch or catalog-cache state; duration failure is silent.
 - [ ] Every `<svg>` nested in the card (control icons, avatar) carries `xmlns="http://www.w3.org/2000/svg"`. Desktop draws the pane as an SVG image parsed as XML, so a nested `<svg>` without it falls into the XHTML namespace and silently disappears; HTML preview renders hide this. A card test checks it.
 - [ ] Engine gates pass; live sound and native paint verified separately.
 
@@ -92,6 +92,6 @@ Native Desktop validation on macOS confirmed both drag scrollbars reach the last
 
 ### Muslim pane settings connector
 
-Quran also connects a read-only recording/selection/repeat feed, a catalog-load action, a recording-key selection action and an explicit session-repeat action. The pane routes through the existing Quran selection and repeat logic; reciter remains in `quran.reciter` and repeat in session state.
+Quran also connects a read-only recording/selection/repeat feed, a recording-key selection action and an explicit session-repeat action. The pane routes through the existing Quran selection and repeat logic; reciter remains in `quran.reciter` and repeat in session state.
 
 In light mode only, the pixel-art avatar carries `filter: drop-shadow(0 1px 1.5px rgba(31,30,29,.35))` (light media query and `.theme-light`; `.theme-dark` sets `filter:none`) so it stands out on the light card; dark mode and the art are unchanged.
