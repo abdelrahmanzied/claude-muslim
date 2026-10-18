@@ -28,39 +28,24 @@
 
 ## Install
 
-It installs for your user: every project, in the desktop app and the terminal.
+It installs for every project, in the desktop app and the terminal.
 
-**In a Claude Code session** (terminal or desktop), send these one at a time, each as its own message:
+**Desktop app or any Claude session:** paste this to Claude. It installs muslim, or updates it if it is already installed.
 
-1. ```
-   /plugin marketplace add abdelrahmanzied/claude-muslim --sparse .claude-plugin plugin
-   ```
-2. ```
-   /plugin install muslim@claude-muslim
-   ```
-3. ```
-   /reload-plugins
-   ```
+```text
+Set up the Claude Code plugin "muslim":
+1. Run `claude plugin marketplace list`. If `claude-muslim` is not listed, run `claude plugin marketplace add abdelrahmanzied/claude-muslim --sparse .claude-plugin plugin`; otherwise run `claude plugin marketplace update claude-muslim`.
+2. Run `claude plugin list`. If `muslim@claude-muslim` is not installed, run `claude plugin install muslim@claude-muslim`; otherwise run `claude plugin update muslim@claude-muslim`.
+3. When done, tell me in one line to run /reload-plugins, or to start a new session.
+```
 
-<details>
-<summary>From your shell, or by asking Claude</summary>
-
-**From your shell**, in one line. Then start Claude Code, or run `/reload-plugins` in a session that is already open:
+**Terminal:** in your shell, not inside Claude Code:
 
 ```bash
 claude plugin marketplace add abdelrahmanzied/claude-muslim --sparse .claude-plugin plugin && claude plugin install muslim@claude-muslim
 ```
 
-**Or paste this to Claude** in any session:
-
-```text
-Set up the Claude Code plugin "muslim" for all my sessions (user scope):
-1. Run `claude plugin marketplace list`. If `claude-muslim` is not listed, run `claude plugin marketplace add abdelrahmanzied/claude-muslim --sparse .claude-plugin plugin`; otherwise run `claude plugin marketplace update claude-muslim`.
-2. Run `claude plugin list`. If `muslim@claude-muslim` is not installed, run `claude plugin install muslim@claude-muslim --scope user`; otherwise run `claude plugin update muslim@claude-muslim`.
-3. Show me what each step printed, then tell me to run /reload-plugins.
-```
-
-</details>
+Then run `claude` to start a session; muslim loads by itself. A Claude session that was already open needs `/reload-plugins`.
 
 ## Get started
 
