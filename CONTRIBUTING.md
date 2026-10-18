@@ -13,7 +13,7 @@ Thank you for helping.
 - **Religious text** (Quran, athkar, thikr, translations) comes from a named, trusted source, with its tashkeel. Never generated or reworded. Name the source in the pull request.
 - **Design:** follow [DESIGN.md](DESIGN.md) and the feature's docs in `docs/features/<feature>/`, and update them with your change.
 - **Commits:** `feat:`, `fix:`, `content:` (religious text), `refactor:`, `docs:`, `chore:`.
-- **Pull request:** `npm run check` passes, a note under `## Unreleased` in [CHANGELOG.md](CHANGELOG.md), and the version unchanged.
+- **Pull request:** `npm run check` passes, a user-facing note in the top version section of [CHANGELOG.md](CHANGELOG.md), and the version in `plugin.json` unchanged.
 - Contributions are released under the [MIT License](LICENSE).
 
 ## Setup

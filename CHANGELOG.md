@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.1.0
 
-The first public release, **0.1.0**.
+The first public release.
 
 ### Thikr line
 
