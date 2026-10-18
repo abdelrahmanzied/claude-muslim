@@ -6,7 +6,7 @@
 
 <p align="center">
   Thikr, athkar, prayer times and the Quran, inside Claude Code.<br>
-  In the terminal and the desktop app.
+  In the desktop app and the terminal.
 </p>
 
 ## Features

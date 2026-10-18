@@ -13,7 +13,16 @@
   "license": "MIT",
   "keywords": [
     "muslim",
+    "claude-muslim",
     "islam",
+    "thikr",
+    "dhikr",
+    "athkar",
+    "adhkar",
+    "quran",
+    "salah",
+    "prayer-times",
+    "athan",
     "mod"
   ],
   "types": "./types/index.d.ts",
