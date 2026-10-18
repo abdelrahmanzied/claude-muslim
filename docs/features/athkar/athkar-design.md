@@ -26,6 +26,10 @@ Everything else (font, size) stays Claude's: the API sets neither, so the reader
 | Reading | AbovePrompt band | The reader (Client module), folded or open |
 | Settings | Command reply | `/athkar` status and help, one line per change |
 
+The real AbovePrompt render yields the existing tree, just as for a hidden reading, while first-run automatic opening is quiet. The salah setup card stays visible. The shared pure first-run policy lives in `plugin/src/shared/pray/first-run.ts`; salah writes the first answer, athkar reads its store key and subscribes to `firstRunRemindFrom` and `salahSetupLater`. Pending follows the installed setup card, including with the footer off. Timer setup precedes the gate, so the next period still opens on time.
+
+Only automatic selections are gated. Morning/evening need a period start at or after the first answer; after-salah uses the athan timestamp, not the delayed offer start. For periods, `mayOpenPeriod` tests whether the first boundary at or after the answer has passed, using bounds for answer minus 1 ms to include exact equality, including before Fajr and across midnight. No timestamp preserves existing-user behavior. Explicit commands (including reset), pane opens and matching `requested` signals bypass this check. Demos use their existing separate path.
+
 ## Reading
 
 - **Cover:** the title (أَذْكَارُ الصَّبَاحِ, أَذْكَارُ الْمَسَاءِ or أَذْكَارُ بَعْدَ الصَّلَاةِ) and the keys. Faded, it folds to one slim row (24px, the reading's folded height): the title on the right, a muted one-line hint (`click to start`, or `click to continue`) at the left, the × at the left edge and the thin progress line. The first click only opens it (full cover with the keys); the next starts the reading; neither counts.

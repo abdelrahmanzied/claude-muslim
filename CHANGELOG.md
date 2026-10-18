@@ -13,6 +13,7 @@ The first public release.
 
 ### Athkar
 
+- On a fresh install nothing opens by itself until prayer times are set up or put off; reminders start from the next morning, evening or athan.
 - Morning and evening athkar from Hisn al-Muslim in a reader above the prompt: click, Space or Enter to count, and it moves on by itself. Your reading is saved for the day.
 - Morning and evening follow Fajr and Maghrib when prayer times are set, otherwise 05:00 and 17:00.
 - The athkar after salah, offered after each athan.
@@ -21,6 +22,7 @@ The first public release.
 
 ### Prayer times
 
+- If Yes cannot find the city setting on a fresh install, it asks you to run `/reload-plugins`, then try again; the setup card stays available.
 - `/salah city`: your city by name in any language, or by coordinates; the times are calculated on your machine, with your country's method by default.
 - The next prayer under the prompt, all day or only in the minutes before it, with a countdown.
 - An athan moment when a prayer comes in: a photo card on desktop, a rising minaret in the terminal.

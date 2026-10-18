@@ -2,6 +2,14 @@
 
 A reader above the prompt for the morning athkar (Fajr to Maghrib) and the evening athkar (Maghrib to the next Fajr) when a salah place is saved; without prayer times, morning remains 05:00 to 17:00 and evening 17:00 to 05:00, from Hisn al-Muslim 75 to 98 (`plugin/src/features/athkar/data.ts`). 92 and 93 are the same words: 92 (10 times) is in the evening, 93 (100 times, «إذا أصبح») in the morning.
 
+## Quiet first run
+
+Until the salah setup card is answered, no athkar reader opens automatically. Pending means no saved city, no stored/session `salahSetupLater`, and no `firstRun.remindFrom` answer timestamp, while salah's setup card is enabled. Salah currently installs that card even with `salahShow off`; footer visibility does not bypass this rule.
+
+The first saved city (Yes or a city picked through Another city / Pick city) or Not now records `firstRun.remindFrom` in milliseconds since epoch, mirrored in `firstRunRemindFrom` session state. Automatic morning/evening readers require a period that began at or after that answer; automatic after-salah requires the prayer's original athan time at or after it, even if its 15-minute offer deadline is later. Equality is included. The current period and earlier athans stay quiet across reloads. Existing city/Not now choices without a timestamp keep their behavior, and later city changes never move the cutoff.
+
+Manual access always works: `/athkar`, named sets and resets, the Muslim pane, and the matching athan-card start request bypass the quiet gate. Status and pane progress still describe today's readings. Period and offer timers remain armed while quiet. Demos are unchanged.
+
 ## Athkar after salah
 
 The third set, **Athkar after salah** (أَذْكَارُ بَعْدَ الصَّلَاةِ), is said after the salam of an obligatory prayer. Its authored data is in `plugin/src/features/athkar/after-salah.ts`, from Hisn al-Muslim chapter 25, [hisn:66–72](https://sunnah.com/hisn:66) (through [hisn:72](https://sunnah.com/hisn:72)). The order follows Sheikh Ibn Baz's fatwa ([binbaz.org.sa/fatwas/9879](https://binbaz.org.sa/fatwas/9879)): `66-istighfar`, `66-salam`, `67`, `68`, `72` (Fajr and Maghrib), `69-tasbih`, `69-tahlil`, `71`, the three Quls (`70-*`). Arabic wording is kept exactly as authored.

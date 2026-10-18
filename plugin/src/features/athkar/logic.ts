@@ -1,4 +1,5 @@
 import { IN_MS } from '../../shared/pray/line.ts'
+import { mayOpenByItself } from '../../shared/pray/first-run.ts'
 import { ATHKAR } from './data.ts'
 import type { Period, Thikr } from './data.ts'
 import { afterSalah } from './after-salah.ts'
@@ -111,8 +112,20 @@ export const periodOn = (date: Date, times?: SalahAthkarTimes | null): Period =>
   ? date.getTime() >= times.fajr && date.getTime() < times.maghrib ? 'morning' : 'evening'
   : periodAt(date.getHours())
 
-export const nextPeriodAt = (date: Date, times: SalahAthkarTimes): number =>
-  date.getTime() < times.fajr ? times.fajr : date.getTime() < times.maghrib ? times.maghrib : times.nextFajr
+export const nextPeriodAt = (date: Date, times?: SalahAthkarTimes | null): number => {
+  if (times) return date.getTime() < times.fajr ? times.fajr : date.getTime() < times.maghrib ? times.maghrib : times.nextFajr
+  const next = new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours() < MORNING_FROM ? MORNING_FROM : date.getHours() < EVENING_FROM ? EVENING_FROM : MORNING_FROM)
+  if (date.getHours() >= EVENING_FROM) next.setDate(next.getDate() + 1)
+  return next.getTime()
+}
+
+// A period began at/after the answer iff its first eligible boundary has passed.
+// Bounds belong to answer - 1 ms, so an answer exactly at a boundary includes it.
+export const mayOpenPeriod = (pending: boolean, remindFrom: number | null, now: Date, answerBounds?: SalahAthkarTimes | null): boolean => {
+  if (remindFrom === null) return mayOpenByItself(pending, null, null)
+  const firstStart = nextPeriodAt(new Date(remindFrom - 1), answerBounds)
+  return now.getTime() >= firstStart && mayOpenByItself(pending, remindFrom, firstStart)
+}
 
 // The prayer-place day at Fajr, or the original local 05:00 boundary.
 export const dayOf = (date: Date, times?: SalahAthkarTimes | null): string => {

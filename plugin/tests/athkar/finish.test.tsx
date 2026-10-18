@@ -11,7 +11,7 @@ const band = (surface: 'terminal' | 'desktop') => ({ plugin: 'muslim', surface, 
 const fixture = (on: On, day: Day) => {
   mock.env(on, {})
   const kept = { day }
-  on('store.get', async (_$, e) => ({ value: e.key === 'athkar' ? kept.day : e.key === 'arabicTerminals' ? { unknown: 'plain' } : undefined }))
+  on('store.get', async (_$, e) => ({ value: e.key === 'salahSetupLater' ? true : e.key === 'athkar' ? kept.day : e.key === 'arabicTerminals' ? { unknown: 'plain' } : undefined }))
   on('store.set', async (_$, e) => { if (e.key === 'athkar') kept.day = e.value as Day; return { value: undefined } })
   on('config.list', async () => ({ value: [] }))
   on('ui.render', { component: 'AbovePrompt' }, async ($, e) => { const { Box } = $.ui.resolve(e); return <Box /> })

@@ -28,7 +28,7 @@ const engineBand = (on: On, surface: 'desktop' | 'terminal' = 'desktop') => {
 // Read-only fixtures; record ALL persistent writes, not only the reading key.
 const savedReading = (on: On, day = emptyDay(dayOf(new Date(NOW)))) => {
   const written: unknown[] = []
-  on('store.get', async (_$, e) => ({ value: e.key === 'athkar' ? day : e.key === 'arabicTerminals' ? { unknown: 'plain' } : undefined }))
+  on('store.get', async (_$, e) => ({ value: e.key === 'salahSetupLater' ? true : e.key === 'athkar' ? day : e.key === 'arabicTerminals' ? { unknown: 'plain' } : undefined }))
   on('store.set', async (_$, e) => (written.push(e), { value: undefined }))
   on('config.set', async (_$, e) => (written.push(e), { value: e.value }))
   on('state.set', async (_$, e, next) => {

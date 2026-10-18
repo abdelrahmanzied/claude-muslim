@@ -8,6 +8,7 @@ import type { Options } from '../../config.ts'
 import { withTashkeel } from '../../shared/arabic/visual.ts'
 import { connectAthkar, connectPanelAction, type PanelAthkar } from '../../shared/panel/signal.ts'
 import { athkarTimesAt } from '../../shared/pray/bounds.ts'
+import { mayOpenByItself, REMIND_FROM_KEY, SETUP_LATER_KEY, readRemindFrom, setupPending } from '../../shared/pray/first-run.ts'
 import { helpHint, statusTable } from '../../table.ts'
 import { athkarHelp } from './help.ts'
 import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, KEY_REST_MS, LEAVE_MS, LINE_PX, REST_PX } from '../../shared/card/card.ts'
@@ -15,7 +16,7 @@ import { bandHeight, closeArea, pixelOf, questionAreas } from './band.ts'
 import type { BandModel } from './band.ts'
 import { canUndoReset, resetReading, resetSnapshot, setNamed, undoReset, UNDO_MS, type ResetSnapshot } from './reset.ts'
 import type { AthkarSet } from './logic.ts'
-import { ADVANCE_MS, asksToFinish, countKey, countOf, currentOf, dayOf, emptyReading, END, holdsFinished, listFor, overall, offerStart, nextPeriodAt, questionKey, setAt, syncAfterSalah, readDay, shouldAdvance, skyOn, step, textOf, timesOf, TITLE } from './logic.ts'
+import { ADVANCE_MS, asksToFinish, countKey, countOf, currentOf, dayOf, emptyReading, END, holdsFinished, listFor, mayOpenPeriod, overall, offerStart, nextPeriodAt, questionKey, setAt, syncAfterSalah, readDay, shouldAdvance, skyOn, step, textOf, timesOf, TITLE } from './logic.ts'
 import type { Act, FinishedHold, FinishQuestion, Reading } from './logic.ts'
 import { lookFor, plain, readerProps, resetHint } from './look.ts'
 import type { Style } from './look.ts'
@@ -258,7 +259,7 @@ const resetSet = async ($: EngineInterface, selected: AthkarSet, undoable = fals
     undoTimer = $.clock.after(UNDO_MS, () => { dropUndo(); $.ui.invalidate('ui.render') })
   }
   await save($, resetReading(day, selected))
-  if (selected === 'afterSalah') view.chosen = selected
+  view.chosen = selected
   view.isOpen = false
   view.question = undefined
   view.revision++
@@ -393,6 +394,8 @@ export const install = (on: On, options: Options) => {
   let startTimer: { cancel: () => void } | undefined
   let periodDeadline: number | undefined
   let periodTimer: { cancel: () => void } | undefined
+  // Historical bounds only change with the answer or a settings/module reload.
+  let answerPeriod: { from: number; bounds: SalahAthkarTimes | null } | undefined
   // Refresh the prayer-based or fixed-hour sky, including clock/time-zone changes.
   let clock: { cancel: () => void } | undefined
   // The glow eases from where it last stood.
@@ -439,7 +442,7 @@ export const install = (on: On, options: Options) => {
     if (word === '') {
       const { now, day, last, requested, bounds } = await today($)
       const period = periodOf(now, day, last, requested, bounds)
-      if (day[period].isHidden) await save($, { ...day, [period]: { ...day[period], isHidden: false } })
+      await chooseSet($, period)
 
       return {
         text: [
@@ -725,7 +728,7 @@ export const install = (on: On, options: Options) => {
       }
     }
     const bounds = hasPrayerTimes ? athkarTimesAt(now.getTime()) : null
-    const boundary = bounds ? nextPeriodAt(now, bounds) : undefined
+    const boundary = nextPeriodAt(now, bounds)
     if (boundary !== periodDeadline) {
       periodTimer?.cancel()
       periodDeadline = boundary
@@ -746,6 +749,18 @@ export const install = (on: On, options: Options) => {
     }
     shownSlot = { key: slotKey, period }
     if (reading.isHidden) return theirs
+    // Only automatic sets are quiet. Keep both period/offer timers armed above.
+    const answered = (await $.state.get({ plugin: 'muslim', key: 'firstRunRemindFrom' })).value
+    const from = readRemindFrom(answered ?? (await $.store.get(REMIND_FROM_KEY)))
+    const later = (await $.state.get({ plugin: 'muslim', key: 'salahSetupLater' })).value === true
+      || (await $.store.get(SETUP_LATER_KEY).catch(() => undefined)) === true
+    const pending = setupPending(!!options.salahPlace, later, from)
+    const isRequested = period === 'afterSalah' && !!last && requested?.at === last.at && requested.pray === last.pray
+    if (from !== null && answerPeriod?.from !== from) answerPeriod = { from, bounds: hasPrayerTimes ? athkarTimesAt(from - 1) : null }
+    const mayOpen = period === 'afterSalah'
+      ? mayOpenByItself(pending, from, last?.at ?? null)
+      : mayOpenPeriod(pending, from, now, answerPeriod?.bounds)
+    if (!view.chosen && !view.finished && !isRequested && !mayOpen) return theirs
     if (period === 'afterSalah' && last && requested?.at === last.at && requested.pray === last.pray
       && !reading.isDone && openedRequest !== last.at) {
       openedRequest = last.at

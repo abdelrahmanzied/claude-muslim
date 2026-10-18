@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { dayOf, emptyDay, nextPeriodAt, periodOn, readDay, setAt } from '../../src/features/athkar/logic.ts'
+import { dayOf, emptyDay, mayOpenPeriod, nextPeriodAt, periodOn, readDay, setAt } from '../../src/features/athkar/logic.ts'
 import type { SalahAthkarTimes } from '../../types'
 
 const times: SalahAthkarTimes = {
@@ -35,5 +35,30 @@ test('after midnight retains evening progress past 05:00, and Fajr starts fresh'
   expect(readDay(saved, dayOf(new Date(times.fajr), times))).toEqual(emptyDay(times.day))
   expect(setAt(new Date(times.fajr), saved, null, 'evening', null, times)).toBe('evening')
   expect(setAt(new Date(times.maghrib), saved, null, 'morning', null, times)).toBe('morning')
+})
+
+test('first-run periods wait for Fajr/Maghrib, including equality and the next Fajr', () => {
+  for (const boundary of [times.fajr, times.maghrib, times.nextFajr]) {
+    for (const answer of [boundary - 1, boundary, boundary + 1]) {
+      for (const now of [boundary - 1, boundary, boundary + 1]) {
+        expect(mayOpenPeriod(false, answer, new Date(now), times)).toBe(answer <= boundary && now >= boundary)
+        expect(mayOpenPeriod(true, answer, new Date(now), times)).toBe(false)
+      }
+    }
+  }
+})
+
+test('fixed-hour first-run periods include 05:00/17:00 and keep the previous evening before 05:00', () => {
+  for (const boundary of [new Date(2026, 9, 11, 5).getTime(), new Date(2026, 9, 11, 17).getTime()]) {
+    for (const answer of [boundary - 1, boundary, boundary + 1]) {
+      for (const now of [boundary - 1, boundary, boundary + 1]) {
+        expect(mayOpenPeriod(false, answer, new Date(now))).toBe(answer <= boundary && now >= boundary)
+      }
+    }
+  }
+  const answer = new Date(2026, 9, 11, 0, 1).getTime()
+  expect(mayOpenPeriod(false, answer, new Date(2026, 9, 11, 4, 59))).toBe(false)
+  expect(mayOpenPeriod(false, answer, new Date(2026, 9, 11, 5))).toBe(true)
+  expect(mayOpenPeriod(false, null, new Date(answer))).toBe(true)
 })
 

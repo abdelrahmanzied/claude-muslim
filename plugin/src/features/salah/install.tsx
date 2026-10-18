@@ -20,6 +20,7 @@ import { ENGLISH, prayNamed } from '../../shared/pray/names.ts'
 import { writePlace, type Place } from './place.ts'
 import { athanText, isInWindow } from '../../shared/pray/line.ts'
 import { connectAthkarTimes } from '../../shared/pray/bounds.ts'
+import { REMIND_FROM_KEY, SETUP_LATER_KEY, readRemindFrom, setupPending } from '../../shared/pray/first-run.ts'
 import { ACCENT_ROWS, FRAME_MS, isDue, LABEL_ROW, minaretRows, minaretStage, ROWS_COUNT } from './minaret.ts'
 import { nudge, reviewRows } from './review.ts'
 import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, isOnClose, KEY_REST_MS, LEAVE_MS, LINE_PX } from '../../shared/card/card.ts'
@@ -77,7 +78,7 @@ const renderArabic = async ($: EngineInterface, surface: string, text: string, c
 
 // Setup put off with Not now: for the session here, for good in $.store.
 const setupLater = atom({ plugin: 'muslim', key: 'salahSetupLater' } as const, false)
-const SETUP_LATER_KEY = 'salahSetupLater'
+const remindFrom = atom({ plugin: 'muslim', key: 'firstRunRemindFrom' } as const, null as number | null)
 // The review form's minutes while it is open; null when closed. Kept in
 // $.state so it survives the reload that saving the place causes.
 const review = atom({ plugin: 'muslim', key: 'salahReview' } as const, null as Adjust | null)
@@ -193,12 +194,39 @@ const askCity = async ($: EngineInterface, guess: Place | undefined): Promise<Ci
 }
 
 // Saves the city and opens the review form; the module reloads with the city.
-const savePlace = async ($: EngineInterface, city: City, options: Options): Promise<string> => {
+export const savePlace = async ($: EngineInterface, city: City, options: Options): Promise<string> => {
+  const previousReview = await read($, review)
+  const later = await read($, setupLater) || (await $.store.get(SETUP_LATER_KEY)) === true
   await update($, review, () => options.salahAdjust)
-  const { deny } = await $.config.set({ key: 'muslim.salahPlace', value: writePlace(city) })
-  if (deny) await update($, review, () => null)
+  // Success reloads this module and never resolves here. Save everything first.
+  // The answer stays even if the save fails: setup still shows and reminders still wait.
+  if (setupPending(!!options.salahPlace, later, null)) await answerSetup($)
+  const value = writePlace(city)
+  let failure: string | undefined
+  try {
+    const { deny } = await $.config.set({ key: 'muslim.salahPlace', value })
+    failure = deny
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    failure = /no \/config row/i.test(message) ? 'run /reload-plugins, then try again.' : message
+  }
+  // A late error can reach a module the save already replaced: undo only when the city is not saved.
+  const rows = failure === undefined ? undefined : await $.config.list().catch(() => undefined)
+  const isSaved = failure === undefined || !rows || rows.some(row => row.key === 'muslim.salahPlace' && row.value === value)
+  if (!isSaved) {
+    await update($, review, () => previousReview)
+    return `Not changed: ${failure}`
+  }
 
-  return deny ? `Not changed: ${deny}` : `**City:** ${city.name} · ${METHODS[methodOf(options, city)].name}\nCheck today's times above the prompt.`
+  return `**City:** ${city.name} · ${METHODS[methodOf(options, city)].name}\nCheck today's times above the prompt.`
+}
+
+// Only the first answer sets the cutoff. Existing city/Not now choices stay legacy.
+const answerSetup = async ($: EngineInterface) => {
+  if (readRemindFrom((await read($, remindFrom)) ?? (await $.store.get(REMIND_FROM_KEY))) !== null) return
+  const at = await $.clock.now()
+  await $.store.set(REMIND_FROM_KEY, at)
+  await update($, remindFrom, () => at)
 }
 
 // A pane press uses the same city question, resolution and save/review path
@@ -376,6 +404,7 @@ const run = async ($: EngineInterface, options: Options, place: Place, timer: Ti
 }
 
 const putOff = async ($: EngineInterface) => {
+  await answerSetup($)
   await update($, setupLater, () => true)
   await $.store.set(SETUP_LATER_KEY, true)
 }

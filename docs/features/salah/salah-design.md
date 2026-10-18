@@ -41,6 +41,10 @@ Setup, review and terminal rows stack: each feature's AbovePrompt hook keeps wha
 | Claude works in the window | Spinner (thikr line) | حَيَّ عَلَى الصَّلَاةِ joins the thikr rotation |
 | Settings and help | Command reply | `/salah`, `/salah help` table, `/muslim help` |
 
+The setup card's appearance and controls stay the same. While it awaits the first answer, the athkar band yields its place. Salah always installs setup, independently of `salahShow` (which controls the footer). Yes, a successfully picked city and Not now record the first answer's epoch ms in `firstRun.remindFrom`, mirrored by the `firstRunRemindFrom` atom for a live redraw. Existing city/Not now choices without a timestamp keep their behavior; later changes preserve the cutoff.
+
+`savePlace` writes the timestamp and review atom before `config.set`, since success reloads the module without resolving that call. The timestamp is kept even when the save fails: the card still shows without a city, and automatic athkar wait for the next period after the answer. On a denial or thrown error the review atom goes back to its previous value only when `/config` does not hold the new city; a late error can reach a module the successful save already replaced, and an unreadable `/config` counts as saved. Save errors never escape the city hook: card and pane presses toast, and `/salah city` replies. An error mentioning `no /config row` becomes `Not changed: run /reload-plugins, then try again.`; other errors become `Not changed: <error message>`. Denial keeps its existing wording. A failed first answer leaves the setup card showing.
+
 ## Picks
 
 What the user chose:
@@ -91,4 +95,4 @@ Prayer bounds reuse a pure daily calculation cache, refreshed on the first read 
 
 ### Muslim pane settings connector
 
-Salah connects `salah-city` during Muslim pane input. It runs the same `askCity`, resolution, `savePlace` and review path as `/salah city`, using the current press context; config denials show a toast.
+Salah connects `salah-city` during Muslim pane input. It runs the same `askCity`, resolution, `savePlace` and review path as `/salah city`, using the current press context; config denials and thrown city-save errors show the toast specified above.

@@ -15,6 +15,8 @@ Prayer times for the user's city, calculated on their machine with
      A shared name (Alexandria) asks which one.
    - *Not now* puts setup off for good; `/salah city` brings it back.
    - No guess (time zone UTC): **Pick city**, **Not now**.
+   - Until this card is answered, automatic athkar readers stay quiet. The first saved city or Not now records `firstRun.remindFrom` (epoch ms) and its `firstRunRemindFrom` state mirror. Reminders start with the next eligible morning/evening period or athan (start time at or after the answer), never a period/athan already underway. Explicit athkar opens and demos remain available. The setup card still installs with `salahShow off`.
+   - Saving a city writes the answer timestamp and review state **before** `config.set`: a successful save reloads the module and does not resolve in the old one. The timestamp stays even when the save fails. A denial or thrown save error restores the review state only when `/config` does not hold the new city, since a late error can reach a module the save already replaced. Missing `/config` rows show `Not changed: run /reload-plugins, then try again.`; other thrown errors show `Not changed: <error message>`, through a toast for card/pane presses and a reply for `/salah city`. The setup card remains available after failure. Existing city/Not now choices without a timestamp retain their behavior; subsequent city changes do not record a new answer.
 2. **Review.** Saving the place shows today's times above the prompt, one row
    per prayer with − and +. The user matches them to their mosque and saves the
    minutes, or skips.
@@ -157,4 +159,4 @@ The [Muslim pane](../muslim-pane/muslim-pane.md) shows this feature on its own c
 
 ### Muslim pane settings connector
 
-Salah connects `salah-city` during Muslim pane input. It runs the same `askCity`, resolution, `savePlace` and review path as `/salah city`, using the current press context; config denials show a toast.
+Salah connects `salah-city` during Muslim pane input. It runs the same `askCity`, resolution, `savePlace` and review path as `/salah city`, using the current press context; config denials and thrown city-save errors show a toast as specified above.

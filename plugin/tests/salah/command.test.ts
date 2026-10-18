@@ -135,6 +135,8 @@ const answerCities = (on: On, cities: unknown[]) => {
 }
 
 const settingsWriter = (on: On) => {
+  mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
+  mock.store(on)
   const written: { key: string; value: unknown }[] = []
   on('config.set', async (_$, e) => (written.push({ key: e.key, value: e.value }), { value: e.value }))
 

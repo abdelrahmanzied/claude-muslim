@@ -19,6 +19,8 @@ let testClock!: ReturnType<typeof mock.clock>
 const pane = (surface: 'desktop' | 'terminal') => ({ plugin: 'muslim', component: 'Pane' as const, requestId: 'muslim', surface, props: { title: 'Muslim', isFocused: false, bodyColumns: 50, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 40 }, view: {} } })
 // Stands for the engine's own band and mode labels beneath the plugin, so the features connect as in a session.
 const engine = (on: On, surface: 'desktop' | 'terminal', open?: (args: PaneOpenArgs) => UiOpenResult, entries: Record<string, unknown> = {}, storeWrites?: {key:string;value:unknown}[], env: Record<string,string> = {}) => {
+  // Existing-user fixture: prayer setup was already put off.
+  entries = { salahSetupLater: true, ...entries }
   mock.env(on, env)
   if (storeWrites) {
     on('store.get',async(_$,e)=>({value:entries[e.key]}))

@@ -49,7 +49,7 @@ const press = (ui: Ui, key: string) => ui.post({ act: 'key', key })
 
 test('the cover folds when faded, opens on a click that does not count, then starts, then clicks count', async ($, on) => {
   mock.clock(on, { now: MORNING })
-  mock.store(on)
+  mock.store(on, { salahSetupLater: true })
   mock.env(on, {})
   engineBand(on)
 
@@ -93,7 +93,7 @@ test('Quran passages have names and desktop reading reserves room for the label'
   })
 
   mock.clock(on, { now: MORNING })
-  mock.store(on)
+  mock.store(on, { salahSetupLater: true })
   mock.env(on, {})
   engineBand(on)
   await $.command.run({ command: 'athkar', args: 'morning reset', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
@@ -118,7 +118,7 @@ test('Quran passages have names and desktop reading reserves room for the label'
 
 test('the desktop band draws in Tajawal at the slot width', async ($, on) => {
   mock.clock(on, { now: MORNING })
-  mock.store(on)
+  mock.store(on, { salahSetupLater: true })
   mock.env(on, {})
   engineBand(on)
   const ui = await $.ui.mount(band('desktop'))
@@ -133,7 +133,7 @@ test('the desktop band draws in Tajawal at the slot width', async ($, on) => {
 
 test('the shared desktop Client hovers the × and lights a press before the hooks answer', async ($, on) => {
   mock.clock(on, { now: MORNING })
-  mock.store(on)
+  mock.store(on, { salahSetupLater: true })
   mock.env(on, {})
   engineBand(on)
   // Hold the hooks' answer so the drawing thread must light the press itself.
@@ -153,7 +153,7 @@ test('the shared desktop Client hovers the × and lights a press before the hook
 
 test('the reader moves on by itself after the last count', async ($, on) => {
   const clock = mock.clock(on, { now: MORNING })
-  mock.store(on)
+  mock.store(on, { salahSetupLater: true })
   mock.env(on, {})
   engineBand(on)
   const ui = await $.ui.mount(band('terminal'))
@@ -169,7 +169,7 @@ test('the reader moves on by itself after the last count', async ($, on) => {
 
 test('finishing shows the end, and × hides the band keeping the reading', { timeoutMs: 20000 }, async ($, on) => {
   mock.clock(on, { now: MORNING })
-  mock.store(on)
+  mock.store(on, { salahSetupLater: true })
   mock.env(on, {})
   engineBand(on)
   const ui = await $.ui.mount(band('desktop'))
@@ -195,7 +195,7 @@ test('finishing shows the end, and × hides the band keeping the reading', { tim
 
 test('/athkar shows status and brings a hidden band back', async ($, on) => {
   mock.clock(on, { now: MORNING })
-  mock.store(on)
+  mock.store(on, { salahSetupLater: true })
   mock.env(on, {})
   engineBand(on)
   const ui = await $.ui.mount(band('terminal'))
@@ -208,7 +208,7 @@ test('/athkar shows status and brings a hidden band back', async ($, on) => {
 
 test('off draws nothing above the prompt', { options: { athkar: false } }, async ($, on) => {
   mock.clock(on, { now: MORNING })
-  mock.store(on)
+  mock.store(on, { salahSetupLater: true })
   mock.env(on, {})
   engineBand(on)
   const ui = await $.ui.mount(band('terminal'))
@@ -218,7 +218,7 @@ test('off draws nothing above the prompt', { options: { athkar: false } }, async
 
 test('faded, the reading folds to one row; a press opens it without counting', async ($, on) => {
   const clock = mock.clock(on, { now: MORNING })
-  mock.store(on)
+  mock.store(on, { salahSetupLater: true })
   mock.env(on, {})
   engineBand(on)
 
@@ -262,7 +262,7 @@ test('faded, the reading folds to one row; a press opens it without counting', a
 
 test('counting by keys with the pointer off the band: it folds 3 seconds after the last key', async ($, on) => {
   const clock = mock.clock(on, { now: MORNING })
-  mock.store(on)
+  mock.store(on, { salahSetupLater: true })
   mock.env(on, {})
   engineBand(on)
   await $.command.run({ command: 'athkar', args: 'morning reset', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
@@ -283,7 +283,7 @@ test('counting by keys with the pointer off the band: it folds 3 seconds after t
 
 test('counting by keys with the pointer on the band: it stays open', async ($, on) => {
   const clock = mock.clock(on, { now: MORNING })
-  mock.store(on)
+  mock.store(on, { salahSetupLater: true })
   mock.env(on, {})
   engineBand(on)
   await $.command.run({ command: 'athkar', args: 'morning reset', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
@@ -304,7 +304,7 @@ test('counting by keys with the pointer on the band: it stays open', async ($, o
 
 test('sky is desktop only: the terminal draws the frame, and /athkar style there changes nothing', async ($, on) => {
   mock.clock(on, { now: MORNING })
-  mock.store(on)
+  mock.store(on, { salahSetupLater: true })
   mock.env(on, {})
   engineBand(on, 'terminal')
   const writes: unknown[] = []
@@ -376,7 +376,7 @@ for (const surface of SURFACES) {
       options: { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berlin; DE', salahShow: 'off', salahAthan: false },
     }, async ($, on) => {
       const clock = mock.clock(on, { now: at - 1 })
-      mock.store(on)
+      mock.store(on, { salahSetupLater: true })
       mock.env(on, {})
       engineBand(on, surface)
       const ui = await $.ui.mount(band(surface))
@@ -401,7 +401,7 @@ test('desktop: the minute redraw follows real sunrise even in a manually chosen 
 }, async ($, on) => {
   // Munich sunrise is 07:26 local (05:26 UTC); the fixed-hour sky is already sunrise.
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T05:25:00Z') })
-  mock.store(on)
+  mock.store(on, { salahSetupLater: true })
   mock.env(on, {})
   engineBand(on, 'desktop')
   await $.command.run(run('evening'))

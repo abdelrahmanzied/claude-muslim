@@ -83,6 +83,8 @@ declare module 'claude-code' {
       arabicTerminalMode: { terminalId: string; mode: 'plain' | 'joined' | 'reversed' } | null
       usageLimit: UsageLimit | null
       athkar: Day | null
+      // First salah setup answer, ms since epoch; persisted as firstRun.remindFrom.
+      firstRunRemindFrom: number | null
       // Pray times setup put off with Not now, for this session.
       salahSetupLater: boolean
       // The pray times review form's minutes while it is open, else null.

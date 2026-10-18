@@ -114,7 +114,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
 
 test('without prayer times there is no automatic offer, including a stale signal; manual uses general counts', async ($, on) => {
   mock.clock(on, { now: NOW })
-  mock.store(on)
+  mock.store(on, { salahSetupLater: true })
   engine(on, 'terminal')
   const kept = savedDay(on)
   on('state.get', { plugin: 'muslim', key: 'salahLast' }, async () => ({ value: { value: { pray: 'fajr', at: NOW }, version: 0 } }))

@@ -78,6 +78,7 @@ const answerCities = (on: On, cities: unknown[]) =>
 const MUNICH = { name: 'Munich, Germany', country: 'DE', latitude: 48.14, longitude: 11.58, timeZone: 'Europe/Berlin' }
 
 test('before setup the band asks for the place; Not now puts it off for good', { options: { athkar: false } }, async ($, on) => {
+  mock.clock(on, { now: 1000 })
   mock.env(on, {})
   engineBand(on)
   // Stands for the plugin's store.
@@ -94,10 +95,11 @@ test('before setup the band asks for the place; Not now puts it off for good', {
   await shown.press({ key: 'salah-later' })
   expect(await shown.find({ type: 'Button', key: 'salah-city' })).toBeUndefined()
   await shown.unmount()
-  expect(stored).toEqual({ salahSetupLater: true })
+  expect(stored).toEqual({ salahSetupLater: true, 'firstRun.remindFrom': 1000 })
 })
 
 test('another city: typed in any language, found by Claude, saved', { options: { athkar: false } }, async ($, on) => {
+  mock.clock(on, { now: 1000 })
   mock.env(on, {})
   mock.store(on)
   engineBand(on)
@@ -113,6 +115,7 @@ test('another city: typed in any language, found by Claude, saved', { options: {
 })
 
 test('/salah city with no name asks the setup question', { options: { athkar: false } }, async ($, on) => {
+  mock.clock(on, { now: 1000 })
   mock.env(on, {})
   mock.store(on)
   const written = settingsWriter(on)
