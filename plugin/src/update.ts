@@ -41,7 +41,7 @@ export const parseUpdate = (stdout: string, stderr = '', exitCode = 0): UpdateRe
   const from = version(json.oldVersion)
   const to = version(json.newVersion) ?? (message ? /\bto v?(\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?)/.exec(message)?.[1] : undefined)
   if (json.updateOutcome === 'up_to_date' || (from && to && from === to)) return { kind: 'latest', version: to ?? from }
-  // "muslim is already at the latest version (0.2.0)." with no structured fields.
+  // "muslim is already at the latest version (0.1.0)." with no structured fields.
   if (!to && message && /already at the latest|up to date/i.test(message)) return { kind: 'latest', version: VERSION.exec(message)?.[0] }
 
   return { kind: 'updated', from, to }
