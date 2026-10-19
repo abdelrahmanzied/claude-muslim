@@ -748,11 +748,11 @@ test('session start discards stale playing state and does not resume or start a 
   expect(timers).toEqual([])
 })
 
-test('/muslim Quran row identifies the remembered recording by its list number', async ($, on) => {
+test('/muslim Quran row shows desktop only regardless of the remembered recording', async ($, on) => {
   setup(on, { 'quran.reciter': secondary.key, arabicTerminals: { WarpTerminal: 'joined' } }, {}, 'terminal')
   on('session.surfaces', async () => ({value:['terminal']}))
   const ran = await $.command.run({ ...run(''), command: 'muslim' })
-  expect(ran.text).toContain(`| Quran | Desktop recitation player; the selected recording | Recording ${QURAN_CATALOG.reciters.indexOf(secondary) + 1} (see /quran reciter) |`)
+  expect(ran.text).toContain('| Quran | Desktop recitation player | desktop only |')
 })
 
 test('after the last surah playback stops and clears tracking without wrapping', async ($, on) => {
