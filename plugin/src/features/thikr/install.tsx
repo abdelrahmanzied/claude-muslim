@@ -218,7 +218,7 @@ export const install = (on: On, options: Options) => {
           statusTable([
             ['Thikr', 'Tasbih in Claude\'s working line', onOff(options.thikr)],
             ['Speed', 'How long each phrase stays', speedText(options.thikrSpeed)],
-            ['End', `${await renderArabic($, surface, END_OF_TURN, arabicCache)} at the end of a turn`, onOff(options.thikrEnd)],
+            ['End', 'An Arabic closing word in place of Claude\'s word at the end of a turn', onOff(options.thikrEnd)],
             ['Mode', 'Which phrases play', options.thikrMode],
           ]),
         ].join('\n'),

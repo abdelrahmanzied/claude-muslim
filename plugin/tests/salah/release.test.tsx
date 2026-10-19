@@ -3,7 +3,6 @@ import { lastPray, lastSalahToday, nextSalah, NO_ADJUST, timesOn, clockText } fr
 import { prayLine } from '../../src/shared/pray/line.ts'
 import { readOptions } from '../../src/config.ts'
 import { panelSalah } from '../../src/features/salah/panel.ts'
-import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
 const place = { latitude: 42.88, longitude: -8.54, timeZone: 'Europe/Madrid' }
 const now = Date.parse('2026-06-20T22:05:00Z') // Santiago de Compostela, June 21 at 00:05, MWL 17° Isha at 00:23.
 const isha = timesOn(place, 'mwl', NO_ADJUST, Date.parse('2026-06-20T12:00:00Z')).isha
@@ -52,12 +51,4 @@ test('city completion timeout and rejection use the quiet reachability reply', a
   await clock.settle(); expect(timeout).toBe(8000)
   await clock.advance(8000)
   expect((await result).text).toContain('Could not reach Claude')
-})
-for (const surface of ['terminal', 'desktop'] as const) test(`${surface}: salah command/help Arabic follows the surface mode`, { options: { salahPlace: 'Santiago, Spain; 42.88, -8.54; Europe/Madrid; ES' } }, async ($, on) => {
-  mock.clock(on, { now }); mock.env(on, {}); mock.store(on, { arabicTerminals: { unknown: 'reversed' } })
-  on('session.surface', async () => ({ value: surface }))
-  for (const args of ['', 'help']) {
-    const reply = await $.command.run(run(args))
-    expect(reply.text).toContain(terminalArabic(surface, 'reversed', 'حان وقت صلاة …'))
-  }
 })

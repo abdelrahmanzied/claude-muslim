@@ -10,7 +10,6 @@ import { CONTROL_SPECS, Q_CONTROLS_BASE, Q_CONTROLS_H, Q_RETRY_TOP, Q_RETRY_H, s
 import { defaultReciter } from '../../src/features/quran/catalog.ts'
 import { QURAN_CATALOG } from '../../src/features/quran/catalog-data.ts'
 import { QURAN_SUPPORT } from '../../src/features/quran/reciter-support.ts'
-import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
 import { AUDIO_LIMIT_BYTES, CLIP_ERROR, SIZE_ERROR, TIMING_ERROR, makePlan, timedSegments, type RecordingPlan } from '../../src/features/quran/segments.ts'
 import { QURAN_QUARTER_BOUNDARIES } from '../../src/features/quran/quarter-boundaries.ts'
 import { encodeBase64 } from '../../src/features/quran/segment-mp3.ts'
@@ -749,11 +748,11 @@ test('session start discards stale playing state and does not resume or start a 
   expect(timers).toEqual([])
 })
 
-test('/muslim Quran row uses this terminal mode and remembered recording', async ($, on) => {
+test('/muslim Quran row identifies the remembered recording by its list number', async ($, on) => {
   setup(on, { 'quran.reciter': secondary.key, arabicTerminals: { WarpTerminal: 'joined' } }, {}, 'terminal')
   on('session.surfaces', async () => ({value:['terminal']}))
   const ran = await $.command.run({ ...run(''), command: 'muslim' })
-  expect(ran.text).toContain(terminalArabic('terminal', 'joined', secondary.label))
+  expect(ran.text).toContain(`| Quran | Desktop recitation player; the selected recording | Recording ${QURAN_CATALOG.reciters.indexOf(secondary) + 1} (see /quran reciter) |`)
 })
 
 test('after the last surah playback stops and clears tracking without wrapping', async ($, on) => {

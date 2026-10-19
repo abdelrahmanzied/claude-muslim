@@ -54,4 +54,4 @@ The usage-limit row, including its demo, yields to every visible setup form on e
 
 ## Release behavior
 
-Usage-limit drawing compares its absolute reset with the engine clock, including on reload, and never shows an expired line. The first draw re-arms a still-future reset; one cancellable timer owns the current deadline, so an older reset cannot clear a newer limit. Status, help and shared `/muslim help` examples use the same terminal Arabic mode with tashkeel stripped; desktop wording stays authored. Settings writes share the file’s preflight and quiet failure path.
+Usage-limit drawing compares its absolute reset with the engine clock, including on reload, and never shows an expired line. The first draw re-arms a still-future reset; one cancellable timer owns the current deadline, so an older reset cannot clear a newer limit. Status, help and shared `/muslim help` tables use English descriptions, including the end-of-turn setting, on every surface; the closing phrase itself stays Arabic. Settings writes share the file’s preflight and quiet failure path.

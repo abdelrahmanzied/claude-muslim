@@ -4,6 +4,8 @@
 
 The first public release.
 
+- Help and settings tables are English only, so they read the same in every terminal.
+
 ### Thikr line
 
 - Authored starting phrases, tasbih, writing phrases and longer supplications join Claude’s working line, preserving its own step text and timing through tools and subagent turns.

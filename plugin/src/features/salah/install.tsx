@@ -520,7 +520,7 @@ export const install = (on: On, options: Options) => {
 
       // The host puts `muslim: ` before the first line, so a title goes there, not a table.
       return {
-        text: ['**Muslim › Salah**', HINT, '', `### Today in ${place.name}`, '', timesTable(options, place, await $.clock.now()), '', '### Settings', '', settingsTable(options, place, await renderArabic($, surface, 'حان وقت صلاة …', arabicCache))].join('\n'),
+        text: ['**Muslim › Salah**', HINT, '', `### Today in ${place.name}`, '', timesTable(options, place, await $.clock.now()), '', '### Settings', '', settingsTable(options, place)].join('\n'),
       }
     }
     if (word === 'help') return { text: help }

@@ -1,6 +1,6 @@
 import { expect, mock, test } from 'claude-code/testing'
 import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
-import { END_OF_TURN, USAGE_LIMIT } from '../../src/features/thikr/phrases.ts'
+import { USAGE_LIMIT } from '../../src/features/thikr/phrases.ts'
 const band = { plugin: 'muslim', surface: 'terminal' as const, component: 'AbovePrompt' as const, requestId: 'limit', props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 80, scroll: { offset: 0, bodyRows: 20 }, view: {} } }
 for (const until of [9000, 11000]) test(`reload usage limit with deadline ${until} draws only before expiry`, async ($, on) => {
   const clock = mock.clock(on, { now: 10000 })
@@ -31,13 +31,4 @@ test('an older usage reset cannot clear a later limit', async ($, on) => {
   await clock.advance(2000)
   expect(await ui.find({ type: 'Text', text: terminalArabic('terminal', 'plain', USAGE_LIMIT) })).toBeUndefined()
   await ui.unmount()
-})
-for (const surface of ['terminal', 'desktop'] as const) test(`${surface}: thikr status/help use the surface Arabic path`, async ($, on) => {
-  mock.env(on, {}); mock.store(on, { arabicTerminals: { unknown: 'reversed' } })
-  on('session.surface', async () => ({ value: surface }))
-  for (const args of ['', 'help']) {
-    const reply = await $.command.run({ command: 'thikr', args, origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
-    expect(reply.text).toContain(terminalArabic(surface, 'reversed', END_OF_TURN))
-    if (surface === 'terminal') expect(reply.text).not.toContain(END_OF_TURN)
-  }
 })

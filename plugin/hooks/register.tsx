@@ -338,9 +338,8 @@ export const register: Register = (on, options) => {
     // The Arabic setup answers an empty /muslim with this terminal's mode; empty off the terminal.
     const terminal = surfaces.includes('desktop') && !surfaces.includes('terminal') ? '' : await next(e).then(result => result.text ?? '', () => '')
     const reciterKey = await $.store.get('quran.reciter')
-    const reciter = (QURAN_CATALOG.reciters.find(r => r.key === reciterKey) ?? defaultReciter(QURAN_CATALOG)).label
-    const surface = await $.session.surface()
-    const reciterLabel = await settingsArabic($, surface ?? 'desktop', reciter)
+    const reciter = QURAN_CATALOG.reciters.find(r => r.key === reciterKey) ?? defaultReciter(QURAN_CATALOG)
+    const reciterLabel = `Recording ${QURAN_CATALOG.reciters.indexOf(reciter) + 1} (see /quran reciter)`
     const autoUpdate = await readAutoUpdate($)
 
     return {

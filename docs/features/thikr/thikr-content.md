@@ -128,6 +128,6 @@ Sources in the code: `plugin/src/features/thikr/phrases.ts`, with the end-of-tur
 
 > حَيَّ عَلَى الصَّلَاةِ
 
-- END_OF_TURN: in place of Claude's word at the end of a turn.
+- END_OF_TURN: in place of Claude's word at the end of a turn. Help and status tables describe it in English; they do not show the phrase.
 
 > تَمَّ بِحَمْدِ اللَّهِ

@@ -30,7 +30,7 @@ Explicit number/name picks, including slash commands and Client posts, refuse a 
 
 ## Commands
 
-Runtime help follows the shared `Command | Description | Options` table; `/muslim` lists the selected recording in its `Feature | Description | State` table. Main accents and the footer follow `/muslim color`; secondary text and artwork retain their designed colors.
+Runtime help follows the shared `Command | Description | Options` table; `/muslim` lists the selected recording as `Recording <number> (see /quran reciter)` in its `Feature | Description | State` table, keeping Arabic names outside tables. Main accents and the footer follow `/muslim color`; secondary text and artwork retain their designed colors.
 
 | Command | Does |
 | --- | --- |
