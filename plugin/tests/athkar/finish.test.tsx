@@ -3,7 +3,7 @@ import { expect, mock, test } from 'claude-code/testing'
 import { asksToFinish, arabicDigits, dayOf, emptyDay, emptyReading, finishReading, incomplete, listFor, overall, questionKey, readDay, step, type Day, type FinishQuestion } from '../../src/features/athkar/logic.ts'
 import { readerProps, lookFor } from '../../src/features/athkar/look.ts'
 import { bandHeight, bandSvg, questionAreas, type BandModel } from '../../src/features/athkar/band.ts'
-import { hitsFor } from '../../src/features/athkar/install.tsx'
+import { hitsFor } from '../../src/features/athkar/band.ts'
 import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
 
 const NOW = new Date(2026, 9, 10, 10).getTime()
@@ -39,9 +39,9 @@ for (const period of ['morning', 'evening'] as const) {
   })
 }
 
-test('old completed readings load with full counts; unfinished readings keep their counts and no question is stored', () => {
+test('completed readings preserve authored counts; unfinished readings keep their counts and no question is stored', () => {
   const day = emptyDay('2026-10-10')
-  day.morning.isDone = true
+  day.morning = finishReading('morning', day.morning)
   day.evening.counts = { '75': 1 }
   const loaded = readDay(day, day.day)
   expect(incomplete('morning', loaded.morning)).toHaveLength(0)

@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
 import { DEMO_SKIES, demoDuration, demoReply, demoScenes, demoStep } from '../../src/features/athkar/demo.ts'
-import { countOf, currentOf, listFor, overall, timesOf } from '../../src/features/athkar/logic.ts'
+import { countOf, currentOf, listFor, overall } from '../../src/features/athkar/logic.ts'
 
 const FINALE_MS = 3200
 
@@ -28,7 +28,7 @@ for (const style of ['sky', 'frame'] as const) {
       const list = listFor(step.period)
       expect(currentOf(step.period, step.reading).id).toBe(scene.id)
       expect(step.reading.index).toBe(list.findIndex(t => t.id === scene.id))
-      for (const thikr of list.slice(0, step.reading.index)) expect(countOf(thikr, step.reading)).toBe(timesOf(thikr))
+      for (const thikr of list.slice(0, step.reading.index)) expect(countOf(thikr, step.reading)).toBe(thikr.times)
     }
     expect(elapsed).toBe(demoDuration(style, FINALE_MS))
     expect(demoStep(style, 'yellow', -1, FINALE_MS)).toBeUndefined()
@@ -51,7 +51,7 @@ for (const style of ['sky', 'frame'] as const) {
       expect(demoStep(style, 'orange', scene.startsAt + scene.countMs + 100, FINALE_MS)!.glowMs).toBe(100)
       expect(next.reading.isDone).toBe(false)
       const end = demoStep(style, 'orange', scene.startsAt + scene.duration - 1, FINALE_MS)!
-      expect(countOf(thikr, end.reading)).toBe(timesOf(thikr))
+      expect(countOf(thikr, end.reading)).toBe(thikr.times)
     }
     const last = scenes.find(s => s.kind === 'reading' && s.id === '98')!
     for (let count = 0; count <= 10; count++) {

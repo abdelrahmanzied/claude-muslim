@@ -1,3 +1,4 @@
+import type { PaneModel } from './model.ts'
 // The pane's fixed vertical layout, in CSS pixels, and what a click on it
 // means. Every height is a constant, whatever the data, so the hooks module
 // (hit testing) and the Client (drawing) agree without measuring anything.
@@ -306,3 +307,14 @@ export const isPaneMessage = (value: unknown): value is PaneMessage => {
 
 // Keys, with the pane focused: space or enter plays and stops, the arrows move.
 export const keyAct = (key: string): PaneAct | null => key === ' ' || key === 'space' || key === 'return' ? 'quran-toggle' : key === 'left' ? 'quran-prev' : key === 'right' ? 'quran-next' : null
+
+export const enabledOf = (m: PaneModel): Enabled => ({
+  athan: m.prayer.isSet,
+  quran: m.quran.isAvailable,
+  canPrev: m.quran.isAvailable && m.quran.canPrev,
+  canNext: m.quran.isAvailable && m.quran.canNext,
+  segmented: m.quran.isAvailable && m.quran.segmented,
+  athkar: m.athkar.isAvailable,
+  athkarFinish: m.athkar.isAvailable && !m.athkar.isDone,
+  athkarDone: m.athkar.isAvailable && m.athkar.isDone,
+})

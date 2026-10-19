@@ -1,3 +1,4 @@
+import { MODES_KEY } from '../../shared/arabic/terminal.ts'
 import { configFailure, hasConfigRow, MISSING_CONFIG } from '../../shared/reload/config.ts'
 import { setupForm } from '../../shared/setup/visibility.ts'
 import { stopBeforeReload } from '../../shared/reload/signal.ts'
@@ -36,6 +37,27 @@ import { lineAt, methodOf, settingsTable, showText, timesTable } from './today.t
 
 // The engine follows $ only into same-file top-level functions, so the
 // terminal's Arabic mode is resolved here as in thikr.
+// Preflight and quiet failure mapping stay in this file; callers keep their reply/rollback.
+const writeSetting = async ($: EngineInterface, key: string, value: boolean | number | string): Promise<string | undefined> => {
+  try {
+    if (!hasConfigRow(await $.config.list(), key)) return MISSING_CONFIG
+    await stopBeforeReload()
+    const { deny } = await $.config.set({ key, value })
+    return deny ? configFailure(deny) : undefined
+  } catch (error) { return configFailure(error) }
+}
+
+const ensureTracking = async ($: EngineInterface, options: Options, timer: Timer, tracking: { hasTicker: boolean; isLineCleared: boolean }) => {
+  if (options.salahPlace && !tracking.hasTicker) {
+    tracking.hasTicker = true
+    await begin($, options, options.salahPlace, timer)
+  }
+  if (!options.salahPlace && !tracking.isLineCleared) {
+    tracking.isLineCleared = true
+    clearLine($)
+  }
+}
+
 const cachedArabicMode = atom({ plugin: 'muslim', key: 'arabicTerminalMode' } as const, null as { terminalId: string; mode: ArabicMode } | null)
 
 const terminalId = async ($: EngineInterface): Promise<string> => {
@@ -69,7 +91,7 @@ const renderArabic = async ($: EngineInterface, surface: string, text: string, c
   const selected = await read($, cachedArabicMode)
   let cached = selected?.terminalId === id ? selected : cache.current
   if (cached?.terminalId !== id) {
-    const saved = await $.store.get('arabicTerminals') as Record<string, unknown> | undefined
+    const saved = await $.store.get(MODES_KEY) as Record<string, unknown> | undefined
     const storedMode = saved?.[id]
     const mode = isArabicMode(storedMode) ? storedMode : defaultArabicMode(id)
     cached = { terminalId: id, mode }
@@ -161,9 +183,15 @@ const findCities = async ($: EngineInterface, typed: string): Promise<City[] | s
 
     return [{ name: `${coordinates.latitude}, ${coordinates.longitude}`, ...coordinates, timeZone, country: system?.country ?? 'ZZ' }]
   }
-  const reply = await $.model.complete({ model: CITY_MODEL, system: CITY_SYSTEM, prompt: cityPrompt(typed, system?.country), maxTokens: 400 })
-
-  return reply.isAnswered ? parseCities(reply.text) : 'Could not reach Claude. Try again, or type coordinates: `/salah city 48.14, 11.58`'
+  const timer = new AbortController()
+  try {
+    const reply = await Promise.race([
+      $.model.complete({ model: CITY_MODEL, system: CITY_SYSTEM, prompt: cityPrompt(typed, system?.country), maxTokens: 400, timeoutMs: 8000 }),
+      $.clock.sleep(8000, { signal: timer.signal }).then(() => { throw new Error('City lookup timed out') }),
+    ])
+    return reply.isAnswered ? parseCities(reply.text) : 'Could not reach Claude. Try again, or type coordinates: `/salah city 48.14, 11.58`'
+  } catch { return 'Could not reach Claude. Try again, or type coordinates: `/salah city 48.14, 11.58`' }
+  finally { timer.abort() }
 }
 
 // One city of several, picked by the user; undefined when dismissed.
@@ -190,7 +218,8 @@ const askCity = async ($: EngineInterface, guess: Place | undefined): Promise<Ci
     : 'Which city are you in? Type it under Other, in any language.'
   const options = guess ? [guess.name, 'Cancel'] : ['Cancel', 'Not now']
   const answer = await $.ui.ask(question, { header: 'Salah', options }).catch(() => 'Cancel')
-  if (answer === 'Cancel' || answer === 'Not now') return 'Not changed.'
+  if (answer === 'Not now') { await putOff($); return 'Salah setup put off. Run /salah city when ready.' }
+  if (answer === 'Cancel') return 'Not changed.'
   if (guess && answer === guess.name) return guess
 
   return cityFrom($, answer)
@@ -212,14 +241,7 @@ export const savePlace = async ($: EngineInterface, city: City, options: Options
   // The answer stays even if the save fails: setup still shows and reminders still wait.
   if (setupPending(!!options.salahPlace, later, null)) await answerSetup($)
   const value = writePlace(city)
-  let failure: string | undefined
-  try {
-    await stopBeforeReload()
-    const { deny } = await $.config.set({ key: 'muslim.salahPlace', value })
-    failure = deny ? configFailure(deny) : undefined
-  } catch (error) {
-    failure = configFailure(error)
-  }
+  const failure = await writeSetting($, 'muslim.salahPlace', value)
   // A late error can reach a module the save already replaced: undo only when the city is not saved.
   const rows = failure === undefined ? undefined : await $.config.list().catch(() => undefined)
   const isSaved = failure === undefined || !rows || rows.some(row => row.key === 'muslim.salahPlace' && row.value === value)
@@ -231,7 +253,7 @@ export const savePlace = async ($: EngineInterface, city: City, options: Options
   return `**City:** ${city.name} · ${METHODS[methodOf(options, city)].name}\nCheck today's times above the prompt.`
 }
 
-// Only the first answer sets the cutoff. Existing city/Not now choices stay legacy.
+// Only the first setup answer sets the cutoff; changing a city never moves it.
 const answerSetup = async ($: EngineInterface) => {
   if (readRemindFrom((await read($, remindFrom)) ?? (await $.store.get(REMIND_FROM_KEY))) !== null) return
   const at = await $.clock.now()
@@ -264,7 +286,7 @@ const tick = async ($: EngineInterface, options: Options, place: Place, timer: T
   await setLine($, lineAt(options, place, now))
   if (options.salahShow !== 'off' && options.salahAthan && isDue(last.at, now, await read($, athanShown))) {
     await update($, athanShown, () => last.at)
-    await showAthan($, last.pray === 'sunrise' ? 'fajr' : last.pray, clockText(last.at, place.timeZone), now, timer, last.at)
+    await showAthan($, last.pray, clockText(last.at, place.timeZone), now, timer, last.at)
   }
 
   const isWindow = options.salahShow !== 'off' && isInWindow(next, now, countdownMinutes(options.salahShow))
@@ -286,7 +308,7 @@ const scheduleOpen = ($: EngineInterface, options: Options, place: Place, timer:
   }
   if (timer.opens?.at === opensAt) return
   timer.opens?.handle.cancel()
-  timer.opens = { at: opensAt, handle: $.clock.after(opensAt - now, () => void run($, options, place, timer)) }
+  timer.opens = { at: opensAt, handle: $.clock.after(opensAt - now, () => void run($, options, place, timer).catch(() => {})) }
 }
 
 // Re-arm only the remaining stages from persisted deadlines. Callbacks update
@@ -299,21 +321,21 @@ const scheduleMoment = async ($: EngineInterface, timer: Timer) => {
   const playing = await read($, minaret)
   if (shown) {
     timer.moment.push($.clock.after(Math.max(0, shown.foldsAt - now), () => void update($, card, current =>
-      current?.until === shown.until && current.foldsAt === shown.foldsAt ? { ...current, isFolded: true } : current)))
+      current?.until === shown.until && current.foldsAt === shown.foldsAt ? { ...current, isFolded: true } : current).catch(() => {})))
     timer.moment.push($.clock.after(Math.max(0, shown.until - now), () => void update($, card, current =>
-      current?.until === shown.until ? null : current)))
+      current?.until === shown.until ? null : current).catch(() => {})))
   }
   if (playing) {
     for (let frame = 2; frame <= ROWS_COUNT; frame++) {
       const at = playing.startedAt + (frame - 1) * FRAME_MS
       if (at <= now || playing.isFolded) continue
       timer.moment.push($.clock.after(at - now, () => void update($, minaret, current =>
-        current?.until === playing.until ? { ...current, frame } : current)))
+        current?.until === playing.until ? { ...current, frame } : current).catch(() => {})))
     }
     timer.moment.push($.clock.after(Math.max(0, playing.foldsAt - now), () => void update($, minaret, current =>
-      current?.until === playing.until ? { ...current, isFolded: true } : current)))
+      current?.until === playing.until ? { ...current, isFolded: true } : current).catch(() => {})))
     timer.moment.push($.clock.after(Math.max(0, playing.until - now), () => void update($, minaret, current =>
-      current?.until === playing.until ? null : current)))
+      current?.until === playing.until ? null : current).catch(() => {})))
   }
 }
 
@@ -379,10 +401,10 @@ const playDemo = async ($: EngineInterface, shared = false) => {
   const until = await $.session.surface() === 'terminal' ? moment.minaret.until : moment.card.until
   const playing = { ...moment, timers: [] as { cancel: () => void }[], shared, stage: 'athan' as const, until }
   demo = playing
-  playing.timers.push($.clock.every(FRAME_MS, () => void tickDemo($)))
+  playing.timers.push($.clock.every(FRAME_MS, () => void tickDemo($).catch(() => {})))
   // Exact stage boundaries alongside the rise's regular redraws.
   for (const at of [playing.card.foldsAt, playing.minaret.foldsAt, playing.minaret.until, playing.card.until]) {
-    playing.timers.push($.clock.after(at - now, () => void tickDemo($)))
+    playing.timers.push($.clock.after(at - now, () => void tickDemo($).catch(() => {})))
   }
   $.ui.invalidate('ui.render')
   return demoMoment().text
@@ -410,7 +432,7 @@ const run = async ($: EngineInterface, options: Options, place: Place, timer: Ti
   if (ms === timer.ms) return
   timer.handle?.cancel()
   timer.ms = ms
-  timer.handle = $.clock.every(ms, () => void run($, options, place, timer))
+  timer.handle = $.clock.every(ms, () => void run($, options, place, timer).catch(() => {}))
 }
 
 const putOff = async ($: EngineInterface) => {
@@ -421,18 +443,19 @@ const putOff = async ($: EngineInterface) => {
 
 // The first tick runs right after the caller.
 // Drops a line and window left by the last load, after this draw: drawing is read-only.
+const clearSignals = async ($: EngineInterface) => {
+  await setLine($, undefined)
+  await publishWindow($, null)
+  await publishLast($, null)
+}
 const clearLine = ($: EngineInterface) => {
-  $.clock.after(0, async () => {
-    await setLine($, undefined)
-    await publishWindow($, null)
-    await publishLast($, null)
+  $.clock.after(0, () => {
+    void clearSignals($).catch(() => {})
   })
 }
 
 const begin = async ($: EngineInterface, options: Options, place: Place, timer: Timer) => {
-  $.clock.after(0, async () => {
-    await run($, options, place, timer)
-  })
+  $.clock.after(0, () => { void run($, options, place, timer).catch(() => {}) })
 }
 
 const setupShowing = async ($: EngineInterface, hasPlace: boolean, surface: string, hasSurvey = false) => {
@@ -440,7 +463,7 @@ const setupShowing = async ($: EngineInterface, hasPlace: boolean, surface: stri
   const terminal = surface === 'terminal' ? {
     id: await terminalId($),
     manual: (await $.state.get({ plugin: 'muslim', key: 'arabicSurveyManualTerminal' })).value,
-    saved: await $.store.get('arabicTerminals') as Record<string, unknown> | undefined,
+    saved: await $.store.get(MODES_KEY) as Record<string, unknown> | undefined,
   } : undefined
   return setupForm({ surface, hasSurvey, hasPlace,
     hasReview: !!(await $.state.get({ plugin: 'muslim', key: 'salahReview' })).value,
@@ -475,9 +498,8 @@ export const install = (on: On, options: Options) => {
   // The prayer tracking timer, started once per module load by whichever of the
   // prompt band or the footer is drawn first (a reload, e.g. after any setting
   // change, starts it again; register also asks for a redraw at session.start).
-  let hasTicker = false
+  const tracking = { hasTicker: false, isLineCleared: false }
   let caught = 0
-  let isLineCleared = false
   const timer: Timer = { moment: [], handle: undefined, ms: 0, opens: undefined }
   // The card's photo (base64), read the first time the card is drawn.
   const photo: { base64: string | undefined } = { base64: undefined }
@@ -486,15 +508,9 @@ export const install = (on: On, options: Options) => {
 
   on('command.run', { command: 'salah' }, async ($, e) => {
     const [word = '', first = '', second = ''] = e.args.trim().split(/\s+/)
-    const set = async (field: string, to: boolean | number | string, said: string) => {
-      const key = `muslim.${field}`
-      try {
-        if (!hasConfigRow(await $.config.list(), key)) return { text: MISSING_CONFIG }
-        await stopBeforeReload()
-        const { deny } = await $.config.set({ key, value: to })
-        return { text: deny ? configFailure(deny) : said }
-      } catch (error) { return { text: configFailure(error) } }
-    }
+    const set = async (field: string, to: boolean | number | string, said: string) => ({ text: await writeSetting($, `muslim.${field}`, to) ?? said })
+    const surface = await $.session.surface().catch(() => 'desktop' as const) ?? 'desktop'
+    const help = await renderArabic($, surface, salahHelp(), arabicCache)
 
     if (word === '') {
       const place = options.salahPlace
@@ -502,10 +518,10 @@ export const install = (on: On, options: Options) => {
 
       // The host puts `muslim: ` before the first line, so a title goes there, not a table.
       return {
-        text: ['**Muslim › Salah**', HINT, '', `### Today in ${place.name}`, '', timesTable(options, place, await $.clock.now()), '', '### Settings', '', settingsTable(options, place)].join('\n'),
+        text: ['**Muslim › Salah**', HINT, '', `### Today in ${place.name}`, '', timesTable(options, place, await $.clock.now()), '', '### Settings', '', settingsTable(options, place, await renderArabic($, surface, 'حان وقت صلاة …', arabicCache))].join('\n'),
       }
     }
-    if (word === 'help') return { text: salahHelp() }
+    if (word === 'help') return { text: help }
     // `show` picks when the pray line shows: always, minutes before a pray, or off.
     if (word === 'show') {
       if (first === '') return { text: `**Show:** ${showText(options.salahShow)}\nChange: \`/salah show always\` · \`<minutes>\` · \`off\`` }
@@ -515,7 +531,7 @@ export const install = (on: On, options: Options) => {
       return set('salahShow', String(show), `**Show:** ${showText(show)}`)
     }
     // DEMO BEGIN
-    if (word === 'demo') return { text: await playDemo($) }
+    if (word === 'demo') return { text: await playDemo($) + (await setupShowing($, !!options.salahPlace, surface) ? ' It shows once the setup above is answered.' : '') }
     // DEMO END
     if (word === 'athan' && (first === 'on' || first === 'off')) return set('salahAthan', first === 'on', `**Athan:** ${first}`)
     if (word === 'city') {
@@ -548,14 +564,14 @@ export const install = (on: On, options: Options) => {
       return set('salahAdjust', writeAdjust(adjust), `**Adjust:** ${ENGLISH[pray]} ${sign}${minutes} min`)
     }
 
-    return { text: salahHelp() }
-  })
+    return { text: help }
+  }).catch(() => ({ text: 'Could not complete the command. Try again.' }))
 
   // DEMO BEGIN: connect feature-local starters; shield real input during playback.
   on('command.run', { command: 'muslim', args: /^\s*demo\s*$/ }, $ => {
     connectDemo('salah', () => playDemo($, true))
     return { text: '' }
-  })
+  }).catch(() => ({ text: 'Could not complete the command. Try again.' }))
   on('ui.press', { plugin: 'muslim', element: 'salah-athan-close' }, async ($, e, next) => {
     if (!demo) return next(e)
     await closeDemo($)
@@ -575,7 +591,7 @@ export const install = (on: On, options: Options) => {
   on('ui.focus', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (demo) return {}
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
   // DEMO END
 
   // A reload restores a real moment still showing (the demo is module-local and ends).
@@ -584,36 +600,20 @@ export const install = (on: On, options: Options) => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (!hasMomentTimers) {
       hasMomentTimers = true
-      $.clock.after(0, () => void scheduleMoment($, timer))
+      $.clock.after(0, () => void scheduleMoment($, timer).catch(() => {}))
     }
     return next(e)
   })
 
   // A saved place starts tracking independently of footer visibility; no place clears the signals.
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
-    const place = options.salahPlace
-    if (place && !hasTicker) {
-      hasTicker = true
-      await begin($, options, place, timer)
-    }
-    if (!place && !isLineCleared) {
-      isLineCleared = true
-      clearLine($)
-    }
+    await ensureTracking($, options, timer, tracking)
 
     return next(e)
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    const place = options.salahPlace
-    if (place && !hasTicker) {
-      hasTicker = true
-      await begin($, options, place, timer)
-    }
-    if (!place && !isLineCleared) {
-      isLineCleared = true
-      clearLine($)
-    }
+    await ensureTracking($, options, timer, tracking)
 
     return next(e)
   })
@@ -632,13 +632,10 @@ export const install = (on: On, options: Options) => {
       const issue = await settingIssue($, 'muslim.salahAdjust')
       if (issue) return void $.ui.toast(issue)
       await update($, review, () => null)
-      try {
-        await stopBeforeReload()
-        const { deny } = await $.config.set({ key: 'muslim.salahAdjust', value: writeAdjust(draft) })
-        if (deny) throw new Error(deny)
-      } catch (error) {
+      const failure = await writeSetting($, 'muslim.salahAdjust', writeAdjust(draft))
+      if (failure) {
         await update($, review, () => draft)
-        $.ui.toast(configFailure(error))
+        $.ui.toast(failure)
       }
     }
 
@@ -681,7 +678,7 @@ export const install = (on: On, options: Options) => {
     const last = lastPray(place, methodOf(options, place), options.salahAdjust, now)
     if (options.salahAthan && caught !== last.at && isDue(last.at, now, await read($, athanShown))) {
       caught = last.at
-      $.clock.after(0, () => void run($, options, place, timer))
+      $.clock.after(0, () => void run($, options, place, timer).catch(() => {}))
     }
     const { Box, Text } = $.ui.resolve(e)
 
@@ -798,7 +795,7 @@ export const install = (on: On, options: Options) => {
       cardView.isInside = false
       cardView.leave?.cancel()
       if (cardView.isEngaged && !cardIsFolded(current, now)) {
-        cardView.leave = $.clock.after(LEAVE_MS, () => void restCard($, current.until))
+        cardView.leave = $.clock.after(LEAVE_MS, () => void restCard($, current.until).catch(() => {}))
       }
     } else if (m.act === 'pointer' || m.act === 'key') {
       if (m.act === 'pointer') {
@@ -812,7 +809,7 @@ export const install = (on: On, options: Options) => {
         await wakeCard($, now, reopen, timer)
         if (m.act === 'key' && !cardView.isInside) {
           cardView.leave?.cancel()
-          cardView.leave = $.clock.after(KEY_REST_MS, () => void restCard($, current.until))
+          cardView.leave = $.clock.after(KEY_REST_MS, () => void restCard($, current.until).catch(() => {}))
         }
       }
     }
@@ -828,7 +825,7 @@ export const install = (on: On, options: Options) => {
     }
 
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 
   // Until a place is saved: one line above the prompt asking for it.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {

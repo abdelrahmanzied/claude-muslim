@@ -109,7 +109,7 @@ export const textLines = (model: PaneModel, show: (text: string) => string): str
   lines.push(`**${show('الصلاة')}**${p.isSet ? ` · ${p.city}` : ''}`)
   if (!p.isSet) lines.push('Not set up. /salah city')
   else {
-    lines.push(`Next: ${show(p.nextName)} ${show(p.nextTime)} · ${p.until}`)
+    lines.push(`Next: ${show(p.nextName)} ${show(p.nextTime)} · ${show(p.until)}`)
     for (const row of p.rows) lines.push(`${row.state === 'done' ? '✓' : row.state === 'next' ? '▸' : '○'} ${show(row.name)} ${show(row.time)}`)
     lines.push(`Athan ${p.isAthan ? 'on' : 'off'}`)
   }

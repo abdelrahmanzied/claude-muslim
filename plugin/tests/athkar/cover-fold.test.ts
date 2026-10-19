@@ -3,7 +3,7 @@ import { expect, test } from 'claude-code/testing'
 import { bandHeight, bandSvg, foldedHintSize, frameOf, heightOf, isFolded } from '../../src/features/athkar/band.ts'
 import type { BandModel } from '../../src/features/athkar/band.ts'
 import { END } from '../../src/features/athkar/logic.ts'
-import { hitsFor } from '../../src/features/athkar/install.tsx'
+import { hitsFor } from '../../src/features/athkar/band.ts'
 
 const cover = (over: Partial<BandModel> = {}, width = 500): BandModel => {
   const m: BandModel = {

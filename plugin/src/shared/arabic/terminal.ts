@@ -1,3 +1,5 @@
+export const MODES_KEY = 'arabicTerminals'
+
 import { arabicJoined, arabicReordered, stripTashkeel } from './visual.ts'
 
 export type ArabicMode = 'plain' | 'joined' | 'reversed'

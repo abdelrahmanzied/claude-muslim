@@ -1,10 +1,11 @@
+import { arabicDigits } from '../../shared/digits/index.ts'
 // How every surface names a segment (a quarter of a hizb, or part of one): one pure formatter.
 // `الربع ٥ - الآيات ١٥–٢٤`, and ` (١ من ٢)` when one quarter is cut into several consecutive segments.
 // A spaced hyphen separates the quarter from the ayat (never «·», which beside Arabic digits reads as ٠).
 
 import type { Segment } from './segments.ts'
 
-export const arabicDigits = (value: number): string => String(value).replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[Number(d)]!)
+export { arabicDigits } from '../../shared/digits/index.ts'
 
 type Labelled = Pick<Segment, 'quarter' | 'firstAyah' | 'lastAyah'>
 

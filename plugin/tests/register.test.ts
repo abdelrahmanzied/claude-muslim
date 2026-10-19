@@ -64,7 +64,7 @@ test('/muslim help shows every feature\'s table; with a feature, only its own', 
   expect((await $.command.run({ ...muslim('help'), command: 'quran' })).text).toBe(quran)
 })
 
-for(const surface of ['terminal','desktop'] as const) test(`${surface}: session start clears the old status line and registers every command`, async ($, on) => {
+for(const surface of ['terminal','desktop'] as const) test(`${surface}: session start registers every command without writing a status line`, async ($, on) => {
   const seen: Array<string | undefined> = []
   const commands: string[] = []
   mock.store(on)
@@ -76,7 +76,7 @@ for(const surface of ['terminal','desktop'] as const) test(`${surface}: session 
   on('ui.status', async (_$, e) => (seen.push(e.text), { value: undefined }))
   await $.session.start({ cwd: '/tmp', surface, isInteractive: true })
 
-  expect(seen).toEqual([undefined])
+  expect(seen).toEqual([])
   expect(commands).toEqual(['muslim', 'thikr', 'athkar', 'salah', 'quran'])
 })
 
@@ -124,12 +124,12 @@ test('/muslim color refuses unknown names and extra arguments', async ($, on) =>
   }
   expect(writes).toEqual([])
 })
-test('/muslim color gold writes yellow, its new name', async ($, on) => {
+test('/muslim color rejects the removed gold alias', async ($, on) => {
   const writes: unknown[] = []
   on('config.list', async () => ({ value: configRows }))
   on('config.set', async (_$, e) => (writes.push(e), { value: e.value }))
-  expect((await $.command.run(muslim('color gold'))).text).toBe('Color yellow')
-  expect(writes).toEqual([expect.objectContaining({ key: 'muslim.color', value: 'yellow' })])
+  expect((await $.command.run(muslim('color gold'))).text).toBe('Usage: /muslim color orange | green | yellow | blue')
+  expect(writes).toEqual([])
 })
 test('/muslim color reports a denied write', async ($, on) => {
   on('config.list', async () => ({ value: configRows }))
@@ -144,7 +144,7 @@ test('/athkar color redirects without writing', async ($, on) => {
     expect((await $.command.run({ ...muslim(args), command: 'athkar' })).text).toBe('Color is now /muslim color.')
   }
   expect(writes).toEqual([])
-  expect((await $.command.run(muslim('help athkar'))).text).not.toContain('/athkar color')
+  expect((await $.command.run(muslim('help athkar'))).text).toContain('/athkar color')
 })
 
 for(const surfaces of [['desktop'],['desktop','mobile'],['terminal'],['terminal','desktop'],['mobile'],[]] as const) test(`/muslim uses the full surface list ${JSON.stringify(surfaces)}`,async($,on)=>{
@@ -201,4 +201,26 @@ test('terminal /muslim retains its complete version, feature and shared table by
     '| Terminal Arabic | How Arabic shows in this terminal | plain (default, not chosen yet) for unknown |',
     '| Auto-update | Claude Code updates muslim in the background | on |',
   ].join('\n'))
+})
+
+
+test('each subcommand named in a command description has a help row or option', async ($, on) => {
+  mock.store(on); mock.env(on, {})
+  const descriptions: { name: string; description: string }[] = []
+  on('command.register', async (_$, e) => { descriptions.push(e); return { value: { command: e.name } } })
+  on('session.start', async (_$, e) => ({ cwd: e.cwd }))
+  await $.session.start({ cwd: '/tmp', surface: 'desktop', isInteractive: true })
+  for (const command of descriptions.filter(row => ['thikr', 'athkar', 'salah', 'quran'].includes(row.name))) {
+    const help = (await $.command.run({ ...muslim('help'), command: command.name })).text!
+    for (const word of command.description.split(':').at(-1)!.trim().split(', ')) {
+      expect(help).toMatch(new RegExp('`(?:/' + command.name + ' )?' + word + '`'))
+    }
+  }
+})
+
+for (const surface of ['terminal', 'desktop'] as const) test(`${surface}: Muslim help uses the shared Arabic rendering for feature rows`, async ($, on) => {
+  mock.env(on, {}); mock.store(on, { arabicTerminals: { unknown: 'reversed' } })
+  on('session.surface', async () => ({ value: surface }))
+  const help = (await $.command.run(muslim('help'))).text!
+  for (const text of ['تَمَّ بِحَمْدِ اللَّهِ', 'حان وقت صلاة …']) expect(help).toContain(terminalArabic(surface, 'reversed', text))
 })

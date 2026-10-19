@@ -51,3 +51,7 @@ The main color is the shared `/muslim color` setting, default Claude orange. It 
 Main-turn lifecycle alone owns rotation and ticker lifetime: subagent starts and completions pass through without resetting or freezing the displayed phrase. The demo's armed state also ignores child starts. Thikr does not read `salahWindow` yet. Settings commands follow the shared stop-before-reload rule in DESIGN.md.
 
 The usage-limit row, including its demo, yields to every visible setup form on every surface under DESIGN.md's shared priority decision. Its held limit is unchanged and draws again once setup closes.
+
+## Release behavior
+
+Usage-limit drawing compares its absolute reset with the engine clock, including on reload, and never shows an expired line. The first draw re-arms a still-future reset; one cancellable timer owns the current deadline, so an older reset cannot clear a newer limit. Status, help and shared `/muslim help` examples use the same terminal Arabic mode with tashkeel stripped; desktop wording stays authored. Settings writes share the file’s preflight and quiet failure path.

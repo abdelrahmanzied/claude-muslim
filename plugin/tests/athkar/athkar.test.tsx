@@ -3,7 +3,7 @@ import type { JsonValue, On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
 import { ATHKAR } from '../../src/features/athkar/data.ts'
-import { listFor, TITLE } from '../../src/features/athkar/logic.ts'
+import { emptyDay, listFor, TITLE } from '../../src/features/athkar/logic.ts'
 import { stripTashkeel } from '../../src/shared/arabic/visual.ts'
 
 const SURFACES = ['terminal', 'desktop'] as const
@@ -359,7 +359,7 @@ test('/athkar morning opens the morning reader at night and counts go to it', as
 
 test('/athkar morning replies with the reset hint when that period is done, and reset still works', async ($, on) => {
   mock.clock(on, { now: NIGHT })
-  const day = { day: '2026-10-10', morning: { index: 0, counts: {}, isDone: true, isHidden: true }, evening: { index: 0, counts: {}, isDone: false, isHidden: false } }
+  const day = { ...emptyDay('2026-10-10'), morning: { index: 0, counts: {}, isDone: true, isHidden: true }, evening: { index: 0, counts: {}, isDone: false, isHidden: false } }
   const kept = keptStore(on, day)
   mock.env(on, {})
   engineBand(on, 'terminal')

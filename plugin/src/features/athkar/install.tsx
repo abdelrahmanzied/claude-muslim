@@ -1,3 +1,4 @@
+import { MODES_KEY } from '../../shared/arabic/terminal.ts'
 import { configFailure, hasConfigRow, MISSING_CONFIG } from '../../shared/reload/config.ts'
 import { setupForm } from '../../shared/setup/visibility.ts'
 import { stopBeforeReload } from '../../shared/reload/signal.ts'
@@ -15,11 +16,11 @@ import { mayOpenByItself, REMIND_FROM_KEY, SETUP_LATER_KEY, readRemindFrom, setu
 import { helpHint, statusTable } from '../../table.ts'
 import { athkarHelp } from './help.ts'
 import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, KEY_REST_MS, LEAVE_MS, LINE_PX, REST_PX } from '../../shared/card/card.ts'
-import { bandHeight, closeArea, pixelOf, questionAreas } from './band.ts'
+import { bandHeight, pixelOf, hitsFor, glowAtTime, GLOW_MS } from './band.ts'
 import type { BandModel } from './band.ts'
 import { canUndoReset, resetReading, resetSnapshot, setNamed, undoReset, UNDO_MS, type ResetSnapshot } from './reset.ts'
 import type { AthkarSet } from './logic.ts'
-import { ADVANCE_MS, asksToFinish, countKey, countOf, currentOf, dayOf, emptyReading, END, hasBegun, holdsFinished, listFor, mayOpenPeriod, overall, offerStart, offerEnd, nextPeriodAt, questionKey, setAt, syncAfterSalah, readDay, shouldAdvance, skyOn, step, textOf, timesOf, TITLE } from './logic.ts'
+import { statusOf, ADVANCE_MS, asksToFinish, countKey, countOf, currentOf, dayOf, emptyReading, END, hasBegun, holdsFinished, listFor, mayOpenPeriod, overall, offerStart, offerEnd, nextPeriodAt, questionKey, setAt, syncAfterSalah, readDay, shouldAdvance, skyOn, step, textOf, TITLE } from './logic.ts'
 import type { Act, FinishedHold, FinishQuestion, Reading } from './logic.ts'
 import { lookFor, plain, readerProps, resetHint } from './look.ts'
 import type { Style } from './look.ts'
@@ -53,7 +54,7 @@ const playDemo = async ($: EngineInterface, style: Style, accent: Accent, shared
   demo?.timer?.cancel()
   demo?.finished?.()
   demo = { style, accent, startedAt: await $.clock.now(), shared, set, finished }
-  demo.timer = $.clock.every(DEMO_TICK_MS, () => void tickDemo($))
+  demo.timer = $.clock.every(DEMO_TICK_MS, () => void tickDemo($).catch(() => {}))
   $.ui.invalidate('ui.render')
 
   return set === 'daily' ? demoReply(style, FINALE_MS) : 'Athkar after salah demo'
@@ -108,7 +109,7 @@ const arabicModeOf = async ($: EngineInterface, surface: string, cache: { curren
   const selected = await read($, cachedArabicMode)
   let cached = selected?.terminalId === id ? selected : cache.current
   if (cached?.terminalId !== id) {
-    const saved = await $.store.get('arabicTerminals') as Record<string, unknown> | undefined
+    const saved = await $.store.get(MODES_KEY) as Record<string, unknown> | undefined
     const storedMode = saved?.[id]
     const mode = isArabicMode(storedMode) ? storedMode : defaultArabicMode(id)
     cached = { terminalId: id, mode }
@@ -142,18 +143,7 @@ const queueDay = <T,>(run: () => Promise<T>): Promise<T> => {
 const STYLES: readonly Style[] = ['sky', 'frame']
 
 
-// How long the progress glow slides to a new value.
-const GLOW_MS = 700
-// The finale when a set is finished: the band stands this tall while stars
-// fall and the dua rises, then settles to the done row.
 const FINALE_MS = 3200
-
-// Where the glow stands some time into a slide, on the slide's ease-out curve.
-const glowAtTime = (from: number, to: number, ms: number) => {
-  const t = Math.min(1, Math.max(0, ms / GLOW_MS))
-
-  return from + (to - from) * (1 - (1 - t) ** 3)
-}
 
 const isStyle = (value: string): value is Style => (STYLES as readonly string[]).includes(value)
 const REMINDER_FIELDS = { morning: 'athkarMorning', evening: 'athkarEvening', afterSalah: 'athkarAfterSalah' } as const satisfies Record<AthkarSet, keyof Options>
@@ -202,15 +192,6 @@ const save = async ($: EngineInterface, day: Day) => {
   await $.store.set(STORE_KEY, day)
 }
 
-const statusOf = (day: Day, period: AthkarSet) => {
-  const reading = day[period]
-  const list = listFor(period, reading)
-  if (reading.isDone) return 'done ✓'
-  const begun = list.filter(thikr => countOf(thikr, reading) > 0).length
-
-  return `${begun === 0 ? 'not started' : `${reading.index + 1} of ${list.length}`}${reading.isHidden ? ' (hidden)' : ''}`
-}
-
 // What the Muslim pane shows of today's reading, in the period now.
 const panelAthkar = async ($: EngineInterface, tashkeel: boolean): Promise<PanelAthkar> => {
   const { now, day, last, requested, bounds } = await today($, false)
@@ -222,7 +203,7 @@ const panelAthkar = async ($: EngineInterface, tashkeel: boolean): Promise<Panel
     set: period === 'afterSalah' ? 'after-salah' : period,
     canUndo: canUndoReset(resetUndo, day, period, now.getTime()),
     title: withTashkeel(TITLE[period], tashkeel),
-    done: list.filter(thikr => countOf(thikr, reading) >= timesOf(thikr)).length,
+    done: list.filter(thikr => countOf(thikr, reading) >= thikr.times).length,
     total: list.length,
     progress: overall(period, reading),
     isDone: reading.isDone,
@@ -234,7 +215,8 @@ const openFromPanel = async ($: EngineInterface) => {
   const { now, day, last, requested, bounds } = await today($)
   const period = periodOf(now, day, last, requested, bounds)
   if (view.chosen !== period) view.question = undefined
-  view.chosen = period
+  view.chosen = period === setAt(now, day, last, undefined, requested, bounds, reminders.afterSalah) ? undefined : period
+  view.opened = { day: day.day, period }
   if (day[period].isHidden) await save($, { ...day, [period]: { ...day[period], isHidden: false } })
   view.isOpen = true
   wake($)
@@ -252,12 +234,13 @@ const finishFromPanel = async ($: EngineInterface) => {
 }
 
 // Shared by slash commands and pane picks: same hold, cover and unhide rules.
-const chooseSet = async ($: EngineInterface, selected: AthkarSet) => {
+const chooseSet = async ($: EngineInterface, selected: AthkarSet, explicit = true) => {
   dropUndo()
-  const { day } = await today($)
+  const { now, day, last, requested, bounds } = await today($)
   const reading = day[selected]
   if (view.chosen !== selected) { view.isOpen = false; view.question = undefined; view.revision++ }
-  view.chosen = selected
+  view.chosen = explicit || selected !== setAt(now, day, last, undefined, requested, bounds, reminders.afterSalah) ? selected : undefined
+  view.opened = { day: day.day, period: selected }
   view.finished = undefined
   if (reading.isHidden) await save($, { ...day, [selected]: { ...reading, isHidden: false } })
   wake($)
@@ -266,13 +249,14 @@ const chooseSet = async ($: EngineInterface, selected: AthkarSet) => {
 
 const resetSet = async ($: EngineInterface, selected: AthkarSet, undoable = false) => {
   dropUndo()
-  const { day, now } = await today($)
+  const { day, now, last, requested, bounds } = await today($)
   if (undoable) {
     resetUndo = resetSnapshot(day, selected, now.getTime())
     undoTimer = $.clock.after(UNDO_MS, () => { dropUndo(); $.ui.invalidate('ui.render') })
   }
   await save($, resetReading(day, selected))
-  view.chosen = selected
+  view.chosen = selected === setAt(now, day, last, undefined, requested, bounds, reminders.afterSalah) ? undefined : selected
+  view.opened = { day: day.day, period: selected }
   view.isOpen = false
   view.question = undefined
   view.revision++
@@ -302,7 +286,7 @@ const connectPanel = ($: EngineInterface, options: Options) => {
   connectPanelAction('athkar-set', value => queueDay(async () => {
     const selected = setNamed(value)
     if (!selected) throw new Error('Unknown athkar set')
-    await chooseSet($, selected)
+    await chooseSet($, selected, false)
   }))
   connectPanelAction('athkar-reset', () => queueDay(() => resetFromPanel($)))
   connectPanelAction('athkar-undo', () => queueDay(() => undoFromPanel($)))
@@ -314,7 +298,7 @@ const advance = async ($: EngineInterface, period: AthkarSet, index: number, rev
   const { day } = await today($)
   const reading = day[period]
   const thikr = currentOf(period, reading)
-  if ((period === 'afterSalah' && reading.at !== at) || reading.index !== index || reading.isDone || countOf(thikr, reading) < timesOf(thikr)) return
+  if ((period === 'afterSalah' && reading.at !== at) || reading.index !== index || reading.isDone || countOf(thikr, reading) < thikr.times) return
   await apply($, { act: 'next' }, period)
 }
 
@@ -335,27 +319,18 @@ const apply = async ($: EngineInterface, act: Act, target?: AthkarSet) => {
   const after = step(period, before, act)
   await save($, { ...day, [period]: after })
   holdIfFinished(period, before, after, now)
-  if (act.act === 'hide') { view.chosen = undefined; view.finished = undefined }
+  if (act.act === 'hide') { view.opened = undefined; view.chosen = undefined; view.finished = undefined }
   if (act.act === 'count' && shouldAdvance(period, before, after)) {
     const revision = view.revision
-    $.clock.after(ADVANCE_MS, () => void queueDay(() => advance($, period, after.index, revision, after.at)))
+    $.clock.after(ADVANCE_MS, () => { void queueDay(() => advance($, period, after.index, revision, after.at)).catch(() => {}) })
   }
 }
-
-// Where the picture's controls sit, in CSS pixels as the band lays them out:
-// the × at the top left (the folded row's is its whole height). A press
-// anywhere else counts or opens the band.
-type Hit = { x0: number; x1: number; y0: number; y1: number; act: Act }
-
-export const hitsFor = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' | 'finaleMs'> & { width?: number }): Hit[] => [
-  { ...closeArea(m), act: { act: 'hide' } },
-  ...(m.phase === 'question' && m.isActive ? questionAreas(m.width ?? 0).map(a => ({ ...a, act: { act: a.act } })) : []),
-]
 
 // This session's view: past the cover, lit, and when it fades.
 const arabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
 
 const view = {
+  opened: undefined as { day: string; period: AthkarSet } | undefined,
   question: undefined as FinishQuestion | undefined,
   revision: 0,
   lastKey: undefined as string | undefined,
@@ -404,7 +379,7 @@ const setupShowing = async ($: EngineInterface, hasPlace: boolean, surface: stri
   const terminal = surface === 'terminal' ? {
     id: await terminalId($),
     manual: (await $.state.get({ plugin: 'muslim', key: 'arabicSurveyManualTerminal' })).value,
-    saved: await $.store.get('arabicTerminals') as Record<string, unknown> | undefined,
+    saved: await $.store.get(MODES_KEY) as Record<string, unknown> | undefined,
   } : undefined
   return setupForm({ surface, hasSurvey, hasPlace,
     hasReview: !!(await $.state.get({ plugin: 'muslim', key: 'salahReview' })).value,
@@ -434,7 +409,6 @@ export const install = (on: On, options: Options) => {
   let glowFrom = 0
   // When the glow last moved: every redraw is a new picture, so it slides only just after.
   let glowSince = 0
-  let isStatusCleared = false
   // The phase last drawn, and when the set was finished in front of the person.
   let lastPhase: string | undefined
   let finishedAt = 0
@@ -444,6 +418,7 @@ export const install = (on: On, options: Options) => {
   view.isOpen = false
   view.isActive = false
   view.isInside = false
+  view.opened = undefined
   view.chosen = undefined
   view.finished = undefined
   view.question = undefined
@@ -471,13 +446,13 @@ export const install = (on: On, options: Options) => {
       if (value === 'sky' && isTerminal) return { text: 'Sky is desktop only. Use `/athkar demo frame`.' }
       const style = value === '' ? (isTerminal ? 'frame' : options.athkarStyle) : value as Style
 
-      return { text: await playDemo($, style, options.color) }
+      return { text: await playDemo($, style, options.color) + (await setupShowing($, hasPrayerTimes, await $.session.surface() ?? 'desktop') ? ' It shows once the setup above is answered.' : '') }
     }
     // DEMO END
     if (word === '') {
       const { now, day, last, requested, bounds } = await today($)
-      const period = periodOf(now, day, last, requested, bounds)
-      await chooseSet($, period)
+      const period = setAt(now, day, last, undefined, requested, bounds, reminders.afterSalah)
+      await chooseSet($, period, false)
       // chooseSet has just unhidden this period; the table shows it as saved.
       const shown: Day = { ...day, [period]: { ...day[period], isHidden: false } }
 
@@ -512,23 +487,23 @@ export const install = (on: On, options: Options) => {
     if (selected && value === '') {
       const reading = await chooseSet($, selected)
 
-      return { text: reading.isDone ? `${setLabel(selected)} are done today: ${resetHint(selected)}` : `${setLabel(selected)} open above the prompt` }
+      return { text: (reading.isDone ? `${setLabel(selected)} are done today: ${resetHint(selected)}` : `${setLabel(selected)} open above the prompt`) + (await setupShowing($, hasPrayerTimes, await $.session.surface() ?? 'desktop') ? ' It shows once the setup above is answered.' : '') }
     }
 
     return { text: athkarHelp() }
-  }))
+  })).catch(() => ({ text: 'Could not complete the command. Try again.' }))
 
   // DEMO BEGIN: a separate drawing path.
   on('command.run', { command: 'muslim', args: /^\s*demo\s*$/ }, ($, e, next) => {
     connectAfterSalahDemo($, options)
     connectDemo('athkar', async () => playDemo($, await $.session.surface() === 'terminal' ? 'frame' : options.athkarStyle, options.color, true))
     return next(e)
-  })
+  }).catch(() => ({ text: 'Could not complete the command. Try again.' }))
 
   on('command.run', { command: 'salah', args: /^\s*demo(?:\s|$)/ }, ($, e, next) => {
     connectAfterSalahDemo($, options)
     return next(e)
-  })
+  }).catch(() => ({ text: 'Could not complete the command. Try again.' }))
 
   // The surface matcher distinguishes this registration from the real band.
   on('ui.render', { component: 'AbovePrompt', surface: ['desktop', 'terminal'] }, async ($, e, next) => {
@@ -569,7 +544,7 @@ export const install = (on: On, options: Options) => {
       phase: props.phase, period: scene.period, sky: scene.sky, style: scene.style,
       accent: scene.accent, isDark, isActive: scene.isActive, hasBegun: props.hasBegun,
       title: props.title, thikrId: thikr.id, text: props.text, note: props.note, position: props.position,
-      count: countOf(thikr, scene.reading), times: timesOf(thikr),
+      count: countOf(thikr, scene.reading), times: thikr.times,
       progress: scene.progress * 100, from: scene.from * 100, glowMs: scene.glowMs,
       finaleMs: scene.finaleMs, end: props.end, endHint: props.endHint, endNote: props.endNote,
       now, width, height: 0, restHeight: REST_PX, card: { ch: CELL_PX, lh: LINE_PX },
@@ -603,12 +578,12 @@ export const install = (on: On, options: Options) => {
       await save($, { ...day, afterSalah: { ...reading, ...(reading.isDone ? emptyReading() : {}), isHidden: false } })
       dropUndo()
       view.chosen = undefined
-      view.pressedAt = Date.now()
+      view.pressedAt = (await $.clock.now())
       openedRequest = undefined // The next picture opens after its slot transition.
       wake($)
     })
     return result
-  })
+  }).catch(($, e, next) => next(e))
 
   on('ui.message', { element: 'athkar' }, ($, e) => queueDay(async () => {
     const m = e.data
@@ -652,7 +627,7 @@ export const install = (on: On, options: Options) => {
     const columns = m.act === 'pointer' ? (m.columns ?? region.columns) : 0
     const rows = m.act === 'pointer' ? (m.rows ?? region.rows) : 0
     if (m.act === 'pointer') {
-      view.pressedAt = Date.now()
+      view.pressedAt = (await $.clock.now())
       view.isInside = true
     }
     // Keys with the pointer elsewhere: it fades a while after the last one,
@@ -731,10 +706,10 @@ export const install = (on: On, options: Options) => {
 
   // A click elsewhere takes the focus off the band: it fades, as at rest.
   on('ui.focus', { component: 'AbovePrompt' }, async ($, e, next) => {
-    if (e.plugin !== 'muslim' && Date.now() - view.pressedAt > FOCUS_GRACE_MS) rest($)
+    if (e.plugin !== 'muslim' && (await $.clock.now()) - view.pressedAt > FOCUS_GRACE_MS) rest($)
 
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 
   on('prompt.edit', async ($, e, next) => {
     rest($)
@@ -744,18 +719,14 @@ export const install = (on: On, options: Options) => {
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)
+    clock?.cancel()
+    clock = undefined
     connectPanel($, options)
     if (demo && (demo.style === 'frame' || e.surface === 'desktop')) return theirs
-    // An earlier build left a debugging line in the status bar: clear it once.
-    if (!isStatusCleared) {
-      isStatusCleared = true
-      $.ui.status(undefined)
-    }
     if ((e.surface !== 'terminal' && e.surface !== 'desktop') || await setupShowing($, !!options.salahPlace, e.surface, e.props.hasSurvey)) return theirs
     // Read while drawing so a save draws the band again; before the first
     // save this session, the stored day.
     const held = (await read($, dayRef)) ?? (await $.store.get(STORE_KEY))
-    clock ??= $.clock.every(60_000, () => $.ui.invalidate('ui.render'))
     const now = await localNow($)
     const signal = (await $.state.get({ plugin: 'muslim', key: 'salahLast' })).value
     const last = hasPrayerTimes ? signal ?? null : null
@@ -787,7 +758,7 @@ export const install = (on: On, options: Options) => {
     const day = signal === undefined && hasPrayerTimes ? stored : syncAfterSalah(stored, last)
     if (day !== stored) {
       if (view.chosen === 'afterSalah') view.chosen = undefined
-      $.clock.after(0, () => void queueDay(() => today($)))
+      $.clock.after(0, () => { void queueDay(() => today($)).catch(() => {}) })
     }
     const period = periodOf(now, day, last, requested, bounds)
     const reading = day[period]
@@ -807,12 +778,13 @@ export const install = (on: On, options: Options) => {
     const isRequested = period === 'afterSalah' && !!last && requested?.at === last.at && requested.pray === last.pray
     if (from !== null && answerPeriod?.from !== from) answerPeriod = { from, bounds: hasPrayerTimes ? athkarTimesAt(from - 1) : null }
     const mayOpen = period === 'afterSalah'
-      ? mayOpenByItself(pending, from, last?.at ?? null)
+      ? hasBegun(reading) || mayOpenByItself(pending, from, day.afterSalah.at)
       : mayOpenPeriod(pending, from, now, answerPeriod?.bounds)
     // A reminder switched off keeps that set from opening by itself; a reading already begun stays.
     const isReminded = reminders[period] || hasBegun(reading)
-    if (!view.chosen && !view.finished && !isRequested && (!mayOpen || !isReminded)) return theirs
-    if (period === 'afterSalah' && last && requested?.at === last.at && requested.pray === last.pray
+    const isOpened = view.opened?.day === day.day && view.opened.period === period
+    if (!isOpened && !view.chosen && !view.finished && !isRequested && (!mayOpen || !isReminded)) return theirs
+    if (isRequested && last
       && !reading.isDone && openedRequest !== last.at) {
       openedRequest = last.at
       view.isOpen = true
@@ -829,15 +801,15 @@ export const install = (on: On, options: Options) => {
     // The shared Arabic path: the tashkeel setting, then this terminal's mode.
     const arabicMode = await arabicModeOf($, e.surface, arabicCache)
     const show = (text: string) => terminalArabic(e.surface, arabicMode, withTashkeel(text, options.tashkeel))
-    if (view.question && (view.question.day !== dayOf(now) || view.question.period !== period || reading.isDone)) view.question = undefined
+    if (view.question && (view.question.day !== dayOf(now, bounds) || view.question.period !== period || reading.isDone)) view.question = undefined
     const props = readerProps(period, reading, look, show, { isOpen: view.isOpen, isActive: view.isActive, isPicture, question: view.question })
     // Finished just now, not found finished on a reload: the finale plays once.
     if (props.phase === 'done' && lastPhase !== undefined && lastPhase !== 'done') {
-      finishedAt = Date.now()
+      finishedAt = (await $.clock.now())
       $.clock.after(FINALE_MS, () => $.ui.invalidate('ui.render'))
     }
     lastPhase = props.phase
-    const finaleMs = props.phase === 'done' && Date.now() - finishedAt < FINALE_MS ? Date.now() - finishedAt : undefined
+    const finaleMs = props.phase === 'done' && (await $.clock.now()) - finishedAt < FINALE_MS ? (await $.clock.now()) - finishedAt : undefined
     const { Box, Client } = $.ui.resolve(e)
 
     if (e.surface !== 'desktop') {
@@ -856,17 +828,18 @@ export const install = (on: On, options: Options) => {
     const athan = await read($, athanCard)
     if (athan && athan.until > now.getTime()) return theirs
 
+    if (e.surface === 'desktop' && options.athkarStyle === 'sky') clock = $.clock.every(60_000, () => $.ui.invalidate('ui.render'))
     const thikr = currentOf(period, reading)
     const progress = Math.round(overall(period, reading) * 1000) / 10
     // A new value slides on from where the glow stands now, mid-slide or not,
     // so quick counts never make it jump back.
     if (progress !== glowAt) {
-      glowFrom = glowAt < 0 ? progress : glowAtTime(glowFrom, glowAt, Date.now() - glowSince)
+      glowFrom = glowAt < 0 ? progress : glowAtTime(glowFrom, glowAt, (await $.clock.now()) - glowSince)
       glowAt = progress
-      glowSince = Date.now()
+      glowSince = (await $.clock.now())
     }
-    const glowMs = Date.now() - glowSince
-    const times = timesOf(thikr)
+    const glowMs = (await $.clock.now()) - glowSince
+    const times = thikr.times
     const width = Math.round(e.props.bodyColumns * CELL_PX)
     const model: BandModel = {
       phase: props.phase,

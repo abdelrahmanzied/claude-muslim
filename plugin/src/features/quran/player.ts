@@ -11,7 +11,7 @@ export function progressBar(elapsed: number, total: number | null): string {
   const filled = total !== null && total > 0 ? Math.round(Math.max(0, Math.min(1, elapsed / total)) * 24) : 0
   return '━'.repeat(filled) + '─'.repeat(24 - filled)
 }
-export type Command = { kind: 'open' | 'help' | 'stop' | 'next' | 'prev' | 'retry' | 'repeat' | 'repeat-segment' } | { kind: 'play' | 'select'; value: string; segmentIndex?: number } | { kind: 'reciter'; value: string } | { kind: 'usage' }
+export type Command = { kind: 'open' | 'help' | 'stop' | 'next' | 'prev' | 'retry' | 'repeat' | 'repeat-segment' } | { kind: 'play'; value: string; segmentIndex?: number } | { kind: 'reciter'; value: string } | { kind: 'usage' }
 export function parseCommand(args: string): Command {
   const [word = '', ...rest] = args.trim().split(/\s+/)
   const value = rest.join(' ')
@@ -28,8 +28,8 @@ export function nextSurahAfterEnd(surah: number, endedNaturally: boolean, token:
   return endedNaturally && token === activeToken && Number.isInteger(surah) && surah >= 1 && surah < 114 ? nextAvailable(reciterKey, surah, 1) : null
 }
 
-// Stored values from older sessions were booleans; anything unknown is off.
-export const repeatMode = (value: unknown): QuranRepeat => value === 'surah' || value === true ? 'surah' : value === 'segment' ? 'segment' : 'off'
+// Unknown stored values are off.
+export const repeatMode = (value: unknown): QuranRepeat => value === 'surah' ? 'surah' : value === 'segment' ? 'segment' : 'off'
 // The two repeat buttons are exclusive: pressing the active one turns repeat off.
 export const toggleRepeat = (current: QuranRepeat, target: 'surah' | 'segment'): QuranRepeat => current === target ? 'off' : target
 // 'segment' only means something while a split surah plays; a whole file behaves as off.

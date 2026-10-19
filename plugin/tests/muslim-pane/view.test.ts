@@ -1,6 +1,7 @@
-import { listFor, emptyReading, timesOf, overall } from '../../src/features/athkar/logic.ts'
+import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
+import { listFor, emptyReading, overall } from '../../src/features/athkar/logic.ts'
 import { expect, test } from 'claude-code/testing'
-import { PANE_HEIGHT, cardRects, settingsBoxes, hitAt } from '../../src/features/muslim-pane/layout.ts'
+import { enabledOf, PANE_HEIGHT, cardRects, settingsBoxes, hitAt } from '../../src/features/muslim-pane/layout.ts'
 import { paneModel, quranLayout, textLines } from '../../src/features/muslim-pane/model.ts'
 import { CLOSED_SETTINGS, CATEGORIES, DEFAULT_SETTINGS, SETTINGS_BODY_TOP, QURAN_SETTINGS_NOTE, QURAN_SETTINGS_NOTE_H, settingsBody } from '../../src/features/muslim-pane/settings.ts'
 import { paneAlt, paneSvg, paletteCss } from '../../src/features/muslim-pane/view.ts'
@@ -399,11 +400,32 @@ test('the athkar row says ابدأ with no counts, أكمل with some, and only 
 
 test('one repetition of a triple thikr offers أكمل before any item is complete', () => {
   const reading = emptyReading()
-  const thikr = listFor('morning').find(t => timesOf(t) === 3)!
+  const thikr = listFor('morning').find(t => t.times === 3)!
   reading.counts[thikr.id] = 1
   const progress = overall('morning', reading)
   expect(progress).toBeGreaterThan(0)
   const svg = paneSvg(paneModel({ ...feeds, athkar: { ...feeds.athkar, done: 0, progress } }, NOW, 420, 'orange'))
   expect(svg).toContain('>أكمل</span>')
   expect(svg).not.toContain('>ابدأ</span>')
+})
+
+
+test('shared enabled slots disable Open for completed athkar and allow finishing an unfinished set', () => {
+  const done = paneModel({ ...feeds, athkar: { ...feeds.athkar, isDone: true } }, NOW, 420, 'orange')
+  expect(enabledOf(done).athkarDone).toBe(true)
+  expect(enabledOf(done).athkarFinish).toBe(false)
+  expect(enabledOf(paneModel(feeds, NOW, 420, 'orange')).athkarFinish).toBe(true)
+  expect(enabledOf(paneModel({ salah: null, quran: null, athkar: null }, NOW, 420, 'orange')).athkarDone).toBe(false)
+})
+test('terminal next-prayer summary shapes its Arabic countdown through show', () => {
+  const m = paneModel(feeds, NOW, 420, 'orange')
+  const line = textLines(m, s => `shaped(${s})`).find(s => s.startsWith('Next:'))!
+  expect(line).toContain(`· shaped(${m.prayer.until})`)
+})
+
+for (const surface of ['terminal', 'desktop'] as const) test(`${surface}: next-prayer text preserves the surface countdown`, () => {
+  const m = paneModel(feeds, NOW, 420, 'orange')
+  const line = textLines(m, s => terminalArabic(surface, 'reversed', s)).find(s => s.startsWith('Next:'))!
+  expect(line).toContain(`· ${terminalArabic(surface, 'reversed', m.prayer.until)}`)
+  if (surface === 'terminal') expect(line).not.toContain(m.prayer.until)
 })

@@ -1,6 +1,6 @@
 import { accentHex, type Accent } from '../../shared/color/index.ts'
 import type { AthkarSet } from './logic.ts'
-import { arabicDigits, countOf, currentOf, END, END_NOTE, hasBegun, incomplete, listFor, overall, textOf, timesOf, TITLE } from './logic.ts'
+import { arabicDigits, countOf, currentOf, END, END_NOTE, hasBegun, incomplete, listFor, overall, textOf, TITLE } from './logic.ts'
 import type { Reading, Sky } from './logic.ts'
 
 export type Style = 'sky' | 'frame'
@@ -124,7 +124,7 @@ export const readerProps = (
   const list = listFor(period, reading)
   const thikr = currentOf(period, reading)
   const n = countOf(thikr, reading)
-  const times = timesOf(thikr)
+  const times = thikr.times
 
   return plain({
     period,

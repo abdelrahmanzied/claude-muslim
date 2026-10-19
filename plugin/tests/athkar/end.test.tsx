@@ -1,5 +1,5 @@
 import { expect, mock, test } from 'claude-code/testing'
-import { ADVANCE_MS, dayOf, emptyDay, END, listFor, timesOf } from '../../src/features/athkar/logic.ts'
+import { ADVANCE_MS, dayOf, emptyDay, END, listFor } from '../../src/features/athkar/logic.ts'
 import { ARABIC_MODES, terminalArabic } from '../../src/shared/arabic/terminal.ts'
 import { withTashkeel } from '../../src/shared/arabic/visual.ts'
 
@@ -17,7 +17,7 @@ for (const set of ['morning', 'afterSalah'] as const) {
       const list = listFor(set)
       const reading = day[set]
       reading.index = list.length - 1
-      reading.counts = Object.fromEntries(list.map(thikr => [thikr.id, timesOf(thikr)]))
+      reading.counts = Object.fromEntries(list.map(thikr => [thikr.id, thikr.times]))
       reading.counts[list.at(-1)!.id]!--
       mock.store(on, { salahSetupLater: true, athkar: day, arabicTerminals: { unknown: mode } })
       mock.env(on, {})

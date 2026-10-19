@@ -6,60 +6,39 @@ The first public release.
 
 ### Thikr line
 
-- Subagent turns keep the main turn's thikr moving, with its phrase progress intact.
-- A short thikr joins Claude's working line while it works: starting phrases, tasbih while it thinks and runs tools, a pair while it writes, and a longer group during compacting, subagents and long commands. Claude's own step text stays.
-- A closing word at the end of each turn, and a thikr above the prompt when the usage limit is reached.
-- `/thikr speed`: each phrase stays for its reading time (default) or a fixed number of seconds.
-- `/thikr mode salawat`: one salawat on the Prophet ﷺ for each whole turn.
+- Authored starting phrases, tasbih, writing phrases and longer supplications join Claude’s working line, preserving its own step text and timing through tools and subagent turns.
+- Reading-time or fixed phrase speed, and a salawat mode with one phrase per turn.
+- A terminal closing phrase and a quiet usage-limit reminder that lasts until the window resets, including across reloads.
 
 ### Athkar
 
-- Three reminder switches, for morning, evening and after salah: in the pane's الأذكار tab or `/athkar <set> on · off`. Off only stops that set opening by itself; you can still open it, and a reading in progress stays. They replace the old whole-feature `athkar` switch and `/athkar on · off`.
-- An untouched after-salah offer ends 30 minutes after the athan; counting or opening it yourself keeps it available.
-- Fast counting presses all save, even when they arrive together.
-- `/athkar` no longer marks the period it just brought back as hidden in its own status table.
-- On a fresh install nothing opens by itself until prayer times are set up or put off; reminders start from the next morning, evening or athan.
-- Morning and evening athkar from Hisn al-Muslim in a reader above the prompt: click, Space or Enter to count, and it moves on by itself. Your reading is saved for the day.
-- Morning and evening follow Fajr and Maghrib when prayer times are set, otherwise 05:00 and 17:00.
-- The athkar after salah, offered after each athan.
-- `/athkar morning` · `evening` · `after-salah` open a reader at any time; `reset` reads it again.
-- On desktop, the reader sits on a sky that follows the time of day (`/athkar style sky`), or a plain frame.
+- Morning and evening athkar from Hisn al-Muslim, with a private reader, counts, undo, a finish question and a closing greeting.
+- Fajr/Maghrib periods and prayer-based desktop skies with a saved place; 05:00/17:00 periods otherwise. The terminal uses a text frame.
+- Per-set reminders in `/config`, the pane and `/athkar <set> on|off`; manual set picks can hold a reading across periods. Bare `/athkar` shows the current period without holding it.
+- After-salah readings offered automatically from fifteen to thirty minutes after each prayer. Once begun, they retain progress through midnight and take precedence until finished, hidden or replaced by the next prayer.
 
-### Prayer times
+### Salah
 
-- On a new terminal, the Arabic check comes first, then the city setup with its number keys.
-- Saving a calculation method returns to settings, and saving reviewed times closes the form; a failed save restores it.
-- The next and previous prayer stay on the right calendar day when the clocks change.
-- If Yes cannot find the city setting on a fresh install, it asks you to run `/reload-plugins`, then try again; the setup card stays available.
-- `/salah city`: your city by name in any language, or by coordinates; the times are calculated on your machine, with your country's method by default.
-- The next prayer under the prompt, all day or only in the minutes before it, with a countdown.
-- An athan moment when a prayer comes in: a photo card on desktop, a rising minaret in the terminal.
-- `/salah adjust`: match the times to your mosque, a minute at a time.
+- Local prayer-time calculation for your city, country-based methods, manual minute adjustments and a review form.
+- A next-prayer line with a live countdown, including Isha after midnight, and a quiet fifteen-minute athan moment: a photo card on desktop and a rising minaret in the terminal.
+- The athan card always offers a direct after-salah start. City setup can be put off; name lookup has an eight-second timeout and accepts coordinates too.
 
 ### Quran (desktop)
 
-- A failed play shows one quiet error in the Quran card, with a working Retry button.
-- A play error stays on its own command reply; Stop and Help keep their own words.
-- Changing a plugin setting stops Quran first and says why, so the player keeps no untracked audio.
-- The player is ready as soon as muslim is installed; the reciter and surah lists ship with it.
-- A recitation player with complete Hafs recordings: pick a reciter and a surah, play, stop, previous and next.
-- Long recordings play in quarters; repeat a whole surah or one quarter.
+- A recitation player with shipped complete Hafs recording and surah lists, Arabic names and Arabic-Indic number picks, play/stop, previous/next and natural advancement.
+- Large recordings play in consecutive quarters. Repeat a whole surah or the current quarter; settings changes reset repeat.
+- Metadata requests time out after fifteen seconds with one quiet error and Retry. Temporary audio cuts are cleaned up and metadata caches are bounded.
+- Plugin setting writes stop active playback before reload and explain why. Terminal `/quran` provides text status.
 
 ### Muslim pane (desktop)
 
-- While Quran plays or prepares, settings explain that a change stops it and the next play starts over.
-- The athkar card says «أكمل» as soon as any repetition has been counted.
-- `/muslim` opens a pane with today's prayers, the Quran player, athkar progress and every setting, with a button in the prompt footer.
-- A settings button takes a press anywhere on it, its empty padding included, not only on its word.
+- `/muslim` opens today’s prayers, the Quran player, athkar progress and tabbed settings, with a footer toggle.
+- Athkar set selection, start/resume, finish and reset with temporary undo. Daily and settings Athan switches show the same immediate feedback and roll back failed saves.
+- Unavailable pane opens give a short reply or toast. Quran failures stay in the player, with Retry.
 
-### Everywhere
+### Shared controls
 
-- Setup forms have the space above the prompt to themselves; your reminders return when setup closes.
-- A missing setting asks you to run `/reload-plugins`, keeping Quran playing and the current form open.
-- Linux terminals and classic Windows Console keep their own Arabic setting instead of being mistaken for Windows Terminal.
-- Works in the terminal and the Claude desktop app, on macOS, Windows and Linux.
-- `/muslim color`: the main color in every feature (Claude orange, green, yellow or blue).
-- `/muslim tashkeel`: Arabic diacritics on desktop; `/muslim terminal-arabic` picks how Arabic shows in your terminal.
-- `/muslim update` updates only this plugin; Claude Code also updates it in the background unless `/muslim autoupdate off`.
-- `/muslim feedback`: Claude drafts a GitHub issue for a bug, idea or content correction and sends it only after you choose Send.
-- `/muslim help` lists every command; `/muslim demo` plays every feature.
+- Setup forms own the space above the prompt. Explicit reader/demo replies explain when answering setup will reveal them; fresh-install reminders begin at the next eligible period or prayer.
+- Shared main colors, desktop tashkeel and per-terminal Arabic display modes across status, help and reminders.
+- `/muslim help` lists commands. `/muslim demo` previews thikr, athkar, salah and the desktop pane tour; Quran has no demo.
+- `/muslim update`, marketplace auto-update controls and feedback drafting that sends only after approval. Missing settings ask for `/reload-plugins` without changing the current form or playback.

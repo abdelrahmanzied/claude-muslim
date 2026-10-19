@@ -1,3 +1,5 @@
+import { setupForm } from '../src/shared/setup/visibility.ts'
+import { SETUP_LATER_KEY } from '../src/shared/pray/first-run.ts'
 import { configFailure, hasConfigRow, MISSING_CONFIG } from '../src/shared/reload/config.ts'
 import { stopBeforeReload } from '../src/shared/reload/signal.ts'
 import { isAccent } from '../src/shared/color/index.ts'
@@ -18,13 +20,34 @@ import { install as installQuran } from '../src/features/quran/install.tsx'
 import { defaultReciter } from '../src/features/quran/catalog.ts'
 import { QURAN_CATALOG } from '../src/features/quran/catalog-data.ts'
 import { nearestAvailable } from '../src/features/quran/availability.ts'
-import { terminalArabic, defaultArabicMode, isArabicMode, terminalIdFromEnv } from '../src/shared/arabic/terminal.ts'
+import { MODES_KEY, terminalArabic, defaultArabicMode, isArabicMode, terminalIdFromEnv } from '../src/shared/arabic/terminal.ts'
 import { install as installThikr } from '../src/features/thikr/install.tsx'
 import { install as installMuslimPane } from '../src/features/muslim-pane/install.tsx'
 import { connectAutoUpdate, connectPanelAction } from '../src/shared/panel/signal.ts'
 import { pendingSwitches } from '../src/features/muslim-pane/settings.ts'
 
 // $ stays in same-file helpers; Arabic transformation itself is shared pure logic.
+async function setupShowing($: EngineInterface, hasPlace: boolean): Promise<boolean> {
+  const surface = await $.session.surface().catch(() => 'desktop' as const) ?? 'desktop'
+  const id = terminalIdFromEnv({
+    TERM_PROGRAM: await $.env.get('TERM_PROGRAM'),
+    TERMINAL_EMULATOR: await $.env.get('TERMINAL_EMULATOR'),
+    __CFBundleIdentifier: await $.env.get('__CFBundleIdentifier'),
+    WT_SESSION: await $.env.get('WT_SESSION'),
+    KONSOLE_VERSION: await $.env.get('KONSOLE_VERSION'),
+    VTE_VERSION: await $.env.get('VTE_VERSION'),
+    KITTY_WINDOW_ID: await $.env.get('KITTY_WINDOW_ID'),
+    ALACRITTY_WINDOW_ID: await $.env.get('ALACRITTY_WINDOW_ID'),
+    ALACRITTY_SOCKET: await $.env.get('ALACRITTY_SOCKET'),
+    OS: await $.env.get('OS'),
+  })
+  return !!setupForm({ surface, hasSurvey: false, hasPlace,
+    hasReview: !!(await $.state.get({ plugin: 'muslim', key: 'salahReview' })).value,
+    later: (await $.state.get({ plugin: 'muslim', key: 'salahSetupLater' })).value === true || await $.store.get(SETUP_LATER_KEY) === true,
+    terminal: surface === 'terminal' ? { id, manual: (await $.state.get({ plugin: 'muslim', key: 'arabicSurveyManualTerminal' })).value, saved: await $.store.get(MODES_KEY) as Record<string, unknown> | undefined } : undefined,
+  })
+}
+
 async function settingsArabic($: EngineInterface, surface: string, text: string): Promise<string> {
   if (surface !== 'terminal') return text
   const id = terminalIdFromEnv({
@@ -40,7 +63,7 @@ async function settingsArabic($: EngineInterface, surface: string, text: string)
     OS: await $.env.get('OS'),
   })
   const cached = (await $.state.get({ plugin: 'muslim', key: 'arabicTerminalMode' })).value
-  const saved = await $.store.get('arabicTerminals') as Record<string, unknown> | undefined
+  const saved = await $.store.get(MODES_KEY) as Record<string, unknown> | undefined
   const mode = saved?.[id]
   return terminalArabic(surface, cached?.terminalId === id ? cached.mode : isArabicMode(mode) ? mode : defaultArabicMode(id), text)
 }
@@ -219,18 +242,18 @@ export const register: Register = (on, options) => {
     })
     await $.command.register({
       name: 'thikr',
-      description: "Tasabih in Claude's working line: on, off, speed, end",
+      description: "Tasabih in Claude's working line: help, on, off, speed, end, mode, demo",
     })
     await $.command.register({
       name: 'athkar',
-      description: 'Morning, evening and after-salah athkar above the prompt: help, on, off, reset, style',
+      description: 'Morning, evening and after-salah athkar above the prompt: help, morning, evening, after-salah, style, color, demo',
     })
     await $.command.register({
       name: 'salah',
-      description: 'Pray times: today, help, show, athan, city, method, adjust',
+      description: 'Pray times: help, show, athan, city, method, adjust, demo',
     })
 
-    await $.command.register({ name: 'quran', description: 'Quran player: play, stop, next, prev, repeat, reciter, help' })
+    await $.command.register({ name: 'quran', description: 'Quran player: play, stop, next, prev, repeat, reciter, retry, help' })
     // Audio handles do not survive a module reload. Never resume stale tracking.
     await $.state.set({ plugin: 'muslim', key: 'quranPlaying' }, null)
     await $.state.set({ plugin: 'muslim', key: 'quranRepeat' }, 'off')
@@ -241,9 +264,6 @@ export const register: Register = (on, options) => {
     const selected = nearestAvailable(reciterKey, storedSurah)
     if (selected !== null && selected !== storedSurah) await $.state.set({ plugin: 'muslim', key: 'quranSurah' }, selected)
 
-    // Older versions pinned the pray line in the status line; clear what a
-    // reload may have left there. The mod no longer sets it.
-    $.ui.status(undefined)
     // A reload fires this again: ask for a redraw so the salah timer re-arms.
     $.clock.after(0, () => $.ui.invalidate('ui.render'))
 
@@ -265,12 +285,11 @@ export const register: Register = (on, options) => {
       // Walk the demo-only setup hooks once; no self-command dispatch.
       await next(e)
 
-      return { text: await playDemo($) }
+      return { text: await playDemo($) + (await setupShowing($, !!settings.salahPlace) ? ' It shows once the setup above is answered.' : '') }
     }
     // DEMO END
     if (word === 'color') {
-      // "gold" is the old name of "yellow".
-      const pick = feature === 'gold' ? 'yellow' : feature
+      const pick = feature
       if (words.length > 2 || (pick !== '' && !isAccent(pick))) return { text: 'Usage: /muslim color orange | green | yellow | blue' }
       if (pick === '') return { text: `Color ${settings.color}. Usage: /muslim color orange | green | yellow | blue` }
       try {
@@ -308,7 +327,7 @@ export const register: Register = (on, options) => {
       await startFeedback($, e.args.trim().slice('feedback'.length))
       return { text: 'Feedback: Claude will ask what kind it is and show you a draft. Nothing is sent until you say yes.' }
     }
-    if (word === 'help') return { text: muslimHelp(feature) }
+    if (word === 'help') return { text: await settingsArabic($, await $.session.surface().catch(() => 'desktop' as const) ?? 'desktop', muslimHelp(feature)) }
     if (word !== '') return next(e).catch(() => ({ text: muslimHelp() }))
 
     const surfaces = await $.session.surfaces()
@@ -327,13 +346,6 @@ export const register: Register = (on, options) => {
     const surface = await $.session.surface()
     const reciterLabel = await settingsArabic($, surface ?? 'desktop', reciter)
     const autoUpdate = await readAutoUpdate($)
-    const rows = [
-      ['Tashkeel', `${onOff(settings.tashkeel)} — desktop only; the terminal never shows diacritics`, '`/muslim tashkeel on` · `off`'],
-      ['Thikr', onOff(settings.thikr), '`/thikr on` · `off` · all options: `/thikr help`'],
-      ['Salah', settings.salahPlace ? showText(settings.salahShow) : 'not set up', '`/salah show always` · `<minutes>` · `off` · all options: `/salah help`'],
-      ['Quran', reciterLabel, '`/quran reciter`'],
-      ['Terminal Arabic', terminal || 'terminal only', '`/muslim terminal-arabic`'],
-    ]
 
     return {
       text: [
@@ -359,7 +371,7 @@ export const register: Register = (on, options) => {
         ]),
       ].join('\n'),
     }
-  })
+  }).catch(() => ({ text: 'Could not complete the command. Try again.' }))
 
   // DEMO BEGIN: a session end stops the shared demo.
   on('session.end', async (_$, e, next) => {

@@ -1,3 +1,4 @@
+import { latinDigits } from '../../shared/digits/index.ts'
 import type { QuranPlaying, QuranRepeat } from '../../../types/index.d.ts'
 import { cardModel, type CardModel, type TrackSelection } from './card.ts'
 import { isAvailable, nearestAvailable, nextAvailable } from './availability.ts'
@@ -28,7 +29,7 @@ export function options(model: PaneModel, list: List, query: string): Option[] {
   if (list === 'segment') {
     const segments = model.selection?.segments ?? []
     // A number searches the quarter and the ayat the segment holds, as the label shows them.
-    const q = normalizeName(query.replace(/[0-9]/g, d => arabicDigits(Number(d))), false), digits = query.trim().replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 1632))
+    const q = normalizeName(query.replace(/[0-9]/g, d => arabicDigits(Number(d))), false), digits = latinDigits(query.trim())
     return segments.map((s, i) => ({ value: String(i), label: segmentLabel(segments, i), number: arabicDigits(i + 1), detail: formatTime(s.durationMs), selected: i === model.selection?.selectedSegment }))
       .filter((o, i) => /^\d+$/.test(digits) ? Number(digits) === segments[i]!.quarter || Number(digits) >= segments[i]!.firstAyah && Number(digits) <= segments[i]!.lastAyah : normalizeName(o.label, false).includes(q))
   }

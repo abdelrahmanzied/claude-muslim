@@ -3,7 +3,7 @@ import { terminalArabic } from '../../../src/shared/arabic/terminal.ts'
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 import { ATHKAR_QUIET, configRows } from '../../fixtures/config.ts'
-import { ADVANCE_MS, dayOf, emptyDay, listFor, timesOf } from '../../../src/features/athkar/logic.ts'
+import { ADVANCE_MS, dayOf, emptyDay, listFor } from '../../../src/features/athkar/logic.ts'
 import type { Day } from '../../../types/index.d.ts'
 import { setupForm } from '../../../src/shared/setup/visibility.ts'
 
@@ -28,7 +28,7 @@ const fixture = (on: On, surface: 'desktop' | 'terminal', saved: Record<string, 
 }
 const reading = (count = 1) => {
   const day = emptyDay(dayOf(new Date(NOW)))
-  day.morning.index = listFor('morning').findIndex(t => timesOf(t) === 3)
+  day.morning.index = listFor('morning').findIndex(t => t.times === 3)
   day.morning.counts[listFor('morning')[day.morning.index]!.id] = count
   return day
 }

@@ -97,3 +97,7 @@ Text only, in Claude's font, size and colors: [thikr design](thikr-design.md).
 Only main-agent starts and completions reset phrase progress, the usage-limit state and the ticker. Child turns leave the parent's group and elapsed reading time intact. An armed demo binds only to the next main-agent start. Salah publishes `salahWindow`, but thikr does not read it yet.
 
 The usage-limit row, including its demo, yields to every visible setup form on every surface under DESIGN.md's shared priority decision. Its held limit is unchanged and draws again once setup closes.
+
+## Release behavior
+
+Usage-limit drawing compares its absolute reset with the engine clock, including on reload, and never shows an expired line. The first draw re-arms a still-future reset; one cancellable timer owns the current deadline, so an older reset cannot clear a newer limit. Status, help and shared `/muslim help` examples use the same terminal Arabic mode with tashkeel stripped; desktop wording stays authored. Settings writes share the file’s preflight and quiet failure path.

@@ -7,11 +7,11 @@ test('the shared color reads each choice and defaults to orange', () => {
   for (const color of ['orange', 'green', 'yellow', 'blue']) expect(readOptions({ color }).color).toBe(color)
   expect(readOptions({ color: 'invalid' }).color).toBe('orange')
 })
-test('the old saved color value reads as yellow with the same shades', () => {
+test('an old saved color value falls back to orange', () => {
   const color = readOptions({ color: 'gold' }).color
-  expect(color).toBe('yellow')
-  expect(accentText(color, 'light')).toBe('#c99a1f')
-  expect(accentText(color, 'dark')).toBe('#e8b93c')
+  expect(color).toBe('orange')
+  expect(accentText(color, 'light')).toBe('claude')
+  expect(accentText(color, 'dark')).toBe('claude')
 })
 test('orange text stays the theme key; drawn and non-orange colors use the shared shades', () => {
   for (const theme of ['light', 'dark', 'light-ansi', 'dark-ansi', 'custom', undefined]) {

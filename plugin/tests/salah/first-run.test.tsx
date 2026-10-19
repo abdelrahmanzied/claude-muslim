@@ -89,7 +89,6 @@ for (const failure of ['API rejection', 'deny'] as const) {
 // crosses files. It supplies the native rejection the kit cannot inject.
 const stub = (stored: Record<string, unknown>, atoms: Record<string, unknown>, rows: unknown, error: unknown) => {
   const seen: { atWrite?: unknown } = {}
-  let listed = false
   const engine = {
     state: {
       get: async (ref: { key: string }) => ({ value: atoms[ref.key], version: 1 }),
@@ -103,7 +102,7 @@ const stub = (stored: Record<string, unknown>, atoms: Record<string, unknown>, r
     clock: { now: async () => NOW },
     config: {
       set: async () => { seen.atWrite = { timestamp: stored['firstRun.remindFrom'], review: atoms.salahReview }; throw error },
-      list: async () => { if (!listed) { listed = true; return configRows } if (rows instanceof Error) throw rows; return rows },
+      list: async () => { if (!seen.atWrite) return configRows; if (rows instanceof Error) throw rows; return rows },
     },
   } as unknown as EngineInterface
   return { engine, seen }

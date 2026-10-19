@@ -22,7 +22,7 @@ Everything below is shared by every feature. A feature's doc may add to it, neve
 2. **Quiet by default.** A reminder, never an interruption. Nothing blocks work, steals focus, or appears more than once for the same moment. Animations and reminders are silent; audio plays only when the user starts it (e.g. a recitation they chose), and stops when they ask.
 3. **Authentic content.** Every phrase is authored data with tashkeel and, where it has one, a source (Quran ayah or Hisn al-Muslim number). Nothing is generated at runtime. Display may strip tashkeel; it never changes words.
 4. **No scores.** We never count the user's worship, show streaks, rewards or guilt. Counting exists only where the user counts themselves (athkar reader), and stays private on their machine.
-5. **One feature, one switch.** Every feature can be turned off on its own, in `/config` and by its command. Off means its hooks do nothing.
+5. **Each feature controls its automatic behavior.** A feature may have a whole-feature switch, or per-reminder switches in `/config` and its command, as athkar does. Turning a reminder off stops its automatic opening; manual opening remains available. A whole-feature off switch leaves Claude untouched.
 6. **Each feature owns its visual means.** Text in Claude's font, size and colors is the default. A feature may use richer means (images, SVG, animation) only where its design doc says so and why. Anything drawn must work on every surface the feature targets, with a text fallback in the terminal when the richer surface is desktop-only, and must follow the theme and zoom.
 
 ## 2. Surfaces
@@ -91,11 +91,11 @@ Inside a card, small row icons that describe a row rather than a feature (a bell
 
 - Arabic for religious content; English for UI chrome (commands, help, settings) until languages land (issue #1). Drawn desktop panes are the exception: their labels, descriptions and buttons are Arabic ([pane design §5](docs/desktop/pane-design.md#5-words)).
 - Commands answer in one short line: what changed (`speed 3s`), or why not (`Speed is auto, or a whole number of seconds from 1 to 60.`).
-- No exclamation marks, emoji or praise in UI text.
+- No exclamation marks or praise in UI text. The one allowed emoji is 🤲 in athkar’s closing greeting.
 
 ## 6. Commands and settings
 
-- One command per feature, named in Arabic transliteration with the `th` spelling: `/thikr`, `/athkar`, `/salah`, `/quran`. Shape: `/<feature> on|off`; `/<feature> <setting> <value>`.
+- One command per feature, named in Arabic transliteration with the `th` spelling: `/thikr`, `/athkar`, `/salah`, `/quran`. Shape: `/<feature> <setting> <value>`. Features with a whole-feature switch also use `/<feature> on|off`; athkar instead uses `/<feature> <set> on|off` for each reminder.
 - Every reply that shows settings or help has the same shape, built with `plugin/src/table.ts`, the same on every surface:
   - **Status** (`/<feature>`, terminal `/muslim`): the title (`**Muslim › Thikr**`), then one line pointing to help (`To change a setting or see every option: /thikr help`), then a table `| Setting | Description | State |`: what each setting is in a few English words, and its value now. No commands in the status table.
   - **Help** (`/<feature> help`): the title (`**Muslim › Thikr › Help**`), then a table `| Command | Description | Options |`. The command stands alone (`/thikr speed`); Options lists each value and what it does, separated by ` · `, with `(default)` and `DESKTOP ONLY` beside the value they belong to; `—` when there are none.
@@ -141,7 +141,7 @@ Wire it in `plugin/hooks/register.tsx` (`install<Feature>(on, settings)`), regis
 - [ ] `docs/features/<feature>/<feature>-design.md` written: surfaces, visual means, why, and the fallback where a surface is desktop-only; linked from the index above and from the spec's Design section.
 - [ ] Spec added to `docs/features/<feature>/<feature>.md` (moments, phrases with sources, settings).
 - [ ] Phrases reviewed by a person; sources noted. Religious text shown is listed in `docs/features/<feature>/<feature>-content.md` with count and source.
-- [ ] Off switch in `/config` and the command; off leaves Claude untouched.
+- [ ] Whole-feature or per-reminder switches in `/config` and the command; off stops the corresponding automatic behavior.
 - [ ] One icon from the standard set (§3 Icons), the same on every drawn surface.
 - [ ] A drawn desktop pane follows [docs/desktop/pane-design.md](docs/desktop/pane-design.md) and its checks.
 - [ ] Main color via the shared module, other colors via theme keys; desktop tashkeel setting respected and terminal tashkeel stripped.

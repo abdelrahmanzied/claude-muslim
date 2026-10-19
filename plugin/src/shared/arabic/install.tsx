@@ -1,14 +1,14 @@
+import { MODES_KEY } from './terminal.ts'
 import { arabicSetupShowing } from '../setup/visibility.ts'
 import { accentText, type Accent } from '../color/index.ts'
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
 import type { Options } from '../../config.ts'
-import { ARABIC_MODES, defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode, type TerminalEnvironment } from './terminal.ts'
+import { ARABIC_MODES, defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from './terminal.ts'
 
 
 const manual = atom({ plugin: 'muslim', key: 'arabicSurveyManualTerminal' } as const, null as string | null)
 const cachedMode = atom({ plugin: 'muslim', key: 'arabicTerminalMode' } as const, null as { terminalId: string; mode: ArabicMode } | null)
-const MODES_KEY = 'arabicTerminals'
 export const ARABIC_SAMPLE = 'بِسْمِ اللَّهِ'
 const TITLE = 'Terminal Arabic Setup'
 const QUESTION = 'Which word is written correctly?'
@@ -69,7 +69,7 @@ export const install = (on: On, options: Options): void => {
     const id = await terminalId($)
     await update($, manual, () => id)
     return { text: 'Arabic display check opened.' }
-  })
+  }).catch(() => ({ text: 'Could not complete the command. Try again.' }))
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)

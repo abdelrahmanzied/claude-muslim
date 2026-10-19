@@ -4,7 +4,6 @@
 
 export const REPO = 'abdelrahmanzied/claude-muslim'
 export const FEEDBACK_SUBMIT_MS = 500
-export const FEEDBACK_USAGE = 'Usage: /muslim feedback [what you want to tell us]'
 
 export type Field = readonly [id: string, label: string]
 export type Kind = { name: string; label: string; file: string; fields: readonly Field[] }

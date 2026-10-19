@@ -1,4 +1,4 @@
-// The plugin's one embedded face for drawn desktop panes: Tajawal Regular (400) and Bold (700),
+// Shared Tajawal face for drawn desktop panes: Tajawal Regular (400) and Bold (700),
 // as @font-face rules with the WOFF2 inlined as data URIs (SIL OFL: fonts/OFL.txt).
 // Pure: no $. Used by the Muslim pane.
 

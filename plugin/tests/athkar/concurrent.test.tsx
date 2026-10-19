@@ -1,5 +1,5 @@
 import { expect, mock, test } from 'claude-code/testing'
-import { dayOf, emptyDay, listFor, timesOf } from '../../src/features/athkar/logic.ts'
+import { dayOf, emptyDay, listFor } from '../../src/features/athkar/logic.ts'
 import type { Day } from '../../types/index.d.ts'
 
 for (const surface of ['terminal', 'desktop'] as const) for (const fails of [false, true]) test(`overlapping count presses on ${surface}, first save fails=${fails}`, async ($, on) => {
@@ -8,7 +8,7 @@ for (const surface of ['terminal', 'desktop'] as const) for (const fails of [fal
   mock.env(on, {})
   const day = emptyDay(dayOf(new Date(now)))
   const list = listFor('morning')
-  day.morning.index = list.findIndex(t => timesOf(t) === 3)
+  day.morning.index = list.findIndex(t => t.times === 3)
   const id = list[day.morning.index]!.id
   const stored: Record<string, unknown> = { salahSetupLater: true, athkar: day, arabicTerminals: { unknown: 'plain' } }
   let state: Day | null = null

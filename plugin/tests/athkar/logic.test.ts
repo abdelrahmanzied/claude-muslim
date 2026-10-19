@@ -2,12 +2,12 @@ import { lookFor } from '../../src/features/athkar/look.ts'
 import { expect, test } from 'claude-code/testing'
 
 import { ATHKAR } from '../../src/features/athkar/data.ts'
-import { arabicDigits, dayOf, END, END_NOTE, isAct, emptyReading, listFor, overall, periodAt, readDay, shouldAdvance, skyAt, step, textOf } from '../../src/features/athkar/logic.ts'
+import { statusOf, sameSlot, arabicDigits, dayOf, END, END_NOTE, isAct, emptyDay, emptyReading, listFor, overall, periodAt, readDay, shouldAdvance, skyAt, step, textOf } from '../../src/features/athkar/logic.ts'
 import type { Reading } from '../../src/features/athkar/logic.ts'
-import { bandHeight, bandSvg, closeArea, coverFit, doneFit, endWidth, finaleSize, fitOf, pixelOf } from '../../src/features/athkar/band.ts'
+import { glowAtTime, GLOW_MS, bandHeight, bandSvg, closeArea, coverFit, doneFit, endWidth, finaleSize, fitOf, pixelOf } from '../../src/features/athkar/band.ts'
 import type { BandModel } from '../../src/features/athkar/band.ts'
 import { SIZE_DEFAULT, readOptions } from '../../src/config.ts'
-import { hitsFor } from '../../src/features/athkar/install.tsx'
+import { hitsFor } from '../../src/features/athkar/band.ts'
 
 test('morning runs 05:00 to 17:00, evening the rest', async () => {
   expect([4, 5, 12, 16, 17, 23, 0].map(periodAt)).toEqual(['evening', 'morning', 'morning', 'morning', 'evening', 'evening', 'evening'])
@@ -23,7 +23,7 @@ test('after midnight the evening still belongs to the day before', async () => {
 })
 
 test('a stored day from another day starts fresh', async () => {
-  const stored = { day: '2026-10-09', morning: { ...emptyReading(), index: 4 }, evening: emptyReading() }
+  const stored = { ...emptyDay('2026-10-09'), morning: { ...emptyReading(), index: 4 }, evening: emptyReading() }
   expect(readDay(stored, '2026-10-10').morning.index).toBe(0)
   expect(readDay(stored, '2026-10-09').morning.index).toBe(4)
   expect(readDay('junk', '2026-10-10').day).toBe('2026-10-10')
@@ -79,10 +79,10 @@ test('the last thikr alone counted to its end does not finish skipped athkar', a
   expect(r.isDone).toBe(false)
 })
 
-test('there is no 10 | 100 choice: no such act, and an old saved reading with choices still loads', async () => {
+test('there is no 10 | 100 choice: no such act, and an extra saved key is dropped', async () => {
   expect(isAct({ act: 'choose', times: 10 })).toBe(false)
   expect(isAct({ act: 'count' })).toBe(true)
-  const old = { day: '2026-10-10', morning: { index: 2, counts: { '91': 40 }, choices: { '91': 10 }, isDone: false, isHidden: false }, evening: emptyReading() }
+  const old = { day: '2026-10-10', morning: { index: 2, counts: { '91': 40 }, choices: { '91': 10 }, isDone: false, isHidden: false }, evening: emptyReading(), afterSalah: emptyDay('2026-10-10').afterSalah }
   const r = readDay(old, '2026-10-10').morning
   expect(r.index).toBe(2)
   expect(r.counts['91']).toBe(40)
@@ -310,10 +310,10 @@ test('the closing greeting takes the words color on a sky, the main color on Fra
   expect(bandSvg(model({ phase: 'done', isActive: true, end: END, style: 'frame' }))).toContain('bg-frame')
 })
 
-test('the look is sky or frame; the old outline reads as frame, the dropped sand as sky', () => {
+test('the look is sky or frame; the old outline reads as sky, the dropped sand as sky', () => {
   expect(readOptions({}).athkarStyle).toBe('sky')
   expect(readOptions({ athkarStyle: 'frame' }).athkarStyle).toBe('frame')
-  expect(readOptions({ athkarStyle: 'outline' }).athkarStyle).toBe('frame')
+  expect(readOptions({ athkarStyle: 'outline' }).athkarStyle).toBe('sky')
   expect(readOptions({ athkarStyle: 'sand' }).athkarStyle).toBe('sky')
 })
 
@@ -346,4 +346,29 @@ test('closing width ignores tashkeel and reserves the emoji separately', () => {
   expect(endWidth('تقبل الله 🤲', 16)).toBe(endWidth(END, 16))
   near(endWidth(END, 16) - endWidth('تَقَبَّلَ اللَّهُ ', 16), 24 * 1.04)
   near(endWidth(END, 18), endWidth(END, 16) * 18 / 16)
+})
+
+test('status describes the current reading, its hidden state and completion', () => {
+  const day = emptyDay('2026-10-10')
+  expect(statusOf(day, 'morning')).toBe('not started')
+  day.morning.isHidden = true
+  expect(statusOf(day, 'morning')).toBe('not started (hidden)')
+  day.morning = { ...day.morning, index: 1, counts: { '75': 1 }, isHidden: false }
+  expect(statusOf(day, 'morning')).toBe(`2 of ${listFor('morning').length}`)
+  day.morning.isDone = true
+  expect(statusOf(day, 'morning')).toBe('done ✓')
+})
+test('progress glow reaches its target smoothly and clamps before and after its animation', () => {
+  expect(glowAtTime(20, 80, -1)).toBe(20)
+  expect(glowAtTime(20, 80, 0)).toBe(20)
+  expect(glowAtTime(20, 80, GLOW_MS / 2)).toBeGreaterThan(50)
+  expect(glowAtTime(20, 80, GLOW_MS / 2)).toBeLessThan(80)
+  expect(glowAtTime(20, 80, GLOW_MS)).toBe(80)
+  expect(glowAtTime(20, 80, GLOW_MS + 1)).toBe(80)
+})
+test('slot identity requires both prayer and timestamp, with null as the general slot', () => {
+  expect(sameSlot(null, { pray: null, at: null })).toBe(true)
+  expect(sameSlot({ pray: 'isha', at: 1 }, { pray: 'isha', at: 1 })).toBe(true)
+  expect(sameSlot({ pray: 'isha', at: 1 }, { pray: 'isha', at: 2 })).toBe(false)
+  expect(sameSlot({ pray: 'isha', at: 1 }, { pray: 'fajr', at: 1 })).toBe(false)
 })

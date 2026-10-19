@@ -284,15 +284,16 @@ test('settings starts on general; tabs, sub-face back, and reopens survive redra
   expect(state().category).toBe('general')
 })
 
-test('legacy open accordion state renders general and saves normalized state on input',async($,on)=>{
+test('old accordion state draws fresh settings and input saves the current shape',async($,on)=>{
   engine(on,'desktop')
   // Deliberately inject the pre-tabs persisted shape at the engine boundary.
   const legacy={open:true,category:null,face:'main',page:0} as unknown as SettingsState
   const state=settingsState(on,legacy)
   const ui=await $.ui.mount(pane('desktop'))
   const model=(await ui.find({type:'Client',key:'muslim-pane'}))!.props.props as PaneModel
-  expect(model.settings.state).toEqual({...CLOSED_SETTINGS,open:true})
+  expect(model.settings.state).toEqual(CLOSED_SETTINGS)
   expect(state()).toBe(legacy) // Reading/rendering does not write state.
+  await settingsClick(ui,'settings:fold')
   await settingsClick(ui,'settings:tab:prayer')
   expect(state()).toEqual({open:true,category:'prayer',face:'main',page:0})
 })
@@ -769,5 +770,49 @@ test('missing method row keeps the methods face and asks for reload without savi
   expect(state()).toEqual(before)
   expect(writes).toEqual([])
   expect(toasts).toEqual(['Not changed: run /reload-plugins, then try again.'])
+  await ui.unmount()
+})
+
+
+for (const origin of ['command', 'footer'] as const) test(`refused pane open from ${origin} reports unavailable`, async ($, on) => {
+  engine(on, 'desktop', () => ({ isPlaced: false, reason: 'no-space' }))
+  on('ui.panes', async () => ({ value: [] }))
+  const toasts: string[] = []
+  on('ui.toast', async (_$, e) => { toasts.push(e.text); return { value: undefined } })
+  if (origin === 'command') {
+    const reply = await $.command.run({ command: 'muslim', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+    expect(reply.text).toBe('Muslim pane unavailable. Use /muslim.')
+    expect(reply.text).not.toContain('opened')
+  } else {
+    const ui = await $.ui.mount(modes('desktop'))
+    await ui.press({ key: 'muslim-footer' }); await testClock.settle()
+    expect(toasts).toEqual(['Muslim pane unavailable. Use /muslim.'])
+    await ui.unmount()
+  }
+})
+for (const denied of [false, true]) test(`daily Athan row immediately matches its settings switch and ${denied ? 'rolls back' : 'keeps the pending value'}`, { options: { salahPlace: MUNICH } }, async ($, on) => {
+  engine(on, 'desktop'); settingsState(on, { open: true, category: 'prayer', face: 'main', page: 0 })
+  let started!: () => void, release!: () => void
+  const writing = new Promise<void>(resolve => { started = resolve }), held = new Promise<void>(resolve => { release = resolve })
+  const toasts: string[] = []
+  on('ui.toast', async (_$, e) => { toasts.push(e.text); return { value: undefined } })
+  on('config.set', async () => { started(); await held; return denied ? { deny: 'locked' } : { value: false } })
+  const ui = await $.ui.mount(pane('desktop'))
+  await ui.resize({ columns: 50, rows: 100, in: 'muslim-pane' })
+  const m = (await ui.find({ type: 'Client', key: 'muslim-pane' }))!.props.props as PaneModel
+  const r = cardRects(m.folds, m.settings.state, m.settings.options, quranLayout(m), m.athkarMenu)
+  const fine = { x: 25, y: (PRAYER_Y + ATHAN_TOP + 15) * 100 / r.height }
+  const click = ui.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: Math.floor(fine.x), y: Math.floor(fine.y), fine })
+  try {
+    await writing
+    const pending = (await ui.find({ type: 'Client', key: 'muslim-pane' }))!.props.props as PaneModel
+    expect(pending.prayer.isAthan).toBe(false)
+    expect(pending.settings.options.salahAthan).toBe(false)
+  } finally { release() }
+  await click
+  if (denied) await until(() => toasts.length > 0)
+  const settled = (await ui.find({ type: 'Client', key: 'muslim-pane' }))!.props.props as PaneModel
+  expect(settled.prayer.isAthan).toBe(denied)
+  expect(settled.settings.options.salahAthan).toBe(denied)
   await ui.unmount()
 })

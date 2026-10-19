@@ -41,7 +41,6 @@ type Local = {
   hoverAction?: boolean
 }
 
-const TICK_MS = 100
 // How long a press lights the card here before the hooks module must agree.
 const LIT_MS = 3000
 
@@ -55,15 +54,10 @@ export const cardClient = <P extends CardProps>(build: (props: P, view: CardView
     const { Box } = surface.elements
     const local: Local = surface.state ?? { size: '' }
 
-    if (surface.state === undefined) {
-      surface.setState(local)
-      surface.every(TICK_MS, () => {
-        const s = surface.state ?? local
-        const size = `${surface.columns}x${surface.rows}`
-        if (size === s.size || surface.columns <= 0) return
-        surface.post({ act: 'size', columns: surface.columns, rows: surface.rows })
-        surface.setState({ ...s, size })
-      })
+    const size = `${surface.columns}x${surface.rows}`
+    if (surface.columns > 0 && size !== local.size) {
+      surface.post({ act: 'size', columns: surface.columns, rows: surface.rows })
+      surface.setState({ ...local, size })
     }
 
     surface.onPointer(event => {

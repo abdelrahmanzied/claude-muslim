@@ -61,18 +61,18 @@ test('/salah shows today\'s times and the settings as tables, each setting with 
   expect(ran.text).toContain('/salah help')
 })
 
-test('show reads always, off or minutes, and the old salah mode and minutes; athan reads its old name', { options: { ...ATHKAR_QUIET } }, async () => {
+test('show reads always, off or minutes, and ignores removed setting aliases', { options: { ...ATHKAR_QUIET } }, async () => {
   expect(readOptions({ salahShow: 'always' }).salahShow).toBe('always')
   expect(readOptions({ salahShow: 'off' }).salahShow).toBe('off')
   expect(readOptions({ salahShow: '90' }).salahShow).toBe(90)
   expect(readOptions({ salahShow: '0' }).salahShow).toBe(20)
   expect(readOptions({}).salahShow).toBe(20)
-  expect(readOptions({ salah: 'always' }).salahShow).toBe('always')
-  expect(readOptions({ salah: false }).salahShow).toBe('off')
-  expect(readOptions({ salah: 'reminder', salahReminder: 45 }).salahShow).toBe(45)
+  expect(readOptions({ salah: 'always' }).salahShow).toBe(20)
+  expect(readOptions({ salah: false }).salahShow).toBe(20)
+  expect(readOptions({ salah: 'reminder', salahReminder: 45 }).salahShow).toBe(20)
   expect(readOptions({ salah: 'countdown' }).salahShow).toBe(20)
   expect(readOptions({ salahAthan: false }).salahAthan).toBe(false)
-  expect(readOptions({ salahAdhan: false }).salahAthan).toBe(false)
+  expect(readOptions({ salahAdhan: false }).salahAthan).toBe(true)
   expect(readOptions({ salahAdhan: false, salahAthan: true }).salahAthan).toBe(true)
   expect(readOptions({}).salahAthan).toBe(true)
 })

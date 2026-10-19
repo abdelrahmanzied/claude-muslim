@@ -106,7 +106,7 @@ test('repeat table: off advances, surah replays through every quarter, segment r
   }
 })
 test('stored repeat values normalise, and the two repeat buttons exclude each other', () => {
-  expect([true, false, 'surah', 'segment', 'off', undefined, 7, null].map(repeatMode)).toEqual(['surah', 'off', 'surah', 'segment', 'off', 'off', 'off', 'off'])
+  expect([true, false, 'surah', 'segment', 'off', undefined, 7, null].map(repeatMode)).toEqual(['off', 'off', 'surah', 'segment', 'off', 'off', 'off', 'off'])
   expect(effectiveRepeat('segment', false)).toBe('off')
   expect(effectiveRepeat('segment', true)).toBe('segment')
   expect(effectiveRepeat('surah', false)).toBe('surah')

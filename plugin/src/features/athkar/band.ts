@@ -1,3 +1,5 @@
+import type { Act } from './logic.ts'
+import { arabicDigits as ar } from '../../shared/digits/index.ts'
 import { ACCENTS, accentHex, type Accent } from '../../shared/color/index.ts'
 import { BAND_CSS, QUESTION_CSS } from './band-css.ts'
 import type { AthkarSet } from './logic.ts'
@@ -168,8 +170,6 @@ const EXTRA_CSS = `
 @keyframes breatheIn { 0%, 100% { box-shadow: inset 0 0 8px 0 color-mix(in srgb, var(--b-acc) 16%, transparent); } 50% { box-shadow: inset 0 0 16px 1px color-mix(in srgb, var(--b-acc) 32%, transparent); } }
 `
 
-const DIGITS = '٠١٢٣٤٥٦٧٨٩'
-const ar = (n: number) => String(n).replace(/\d/g, d => DIGITS[Number(d)] ?? d)
 
 const esc = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
@@ -404,3 +404,23 @@ export const doneFit = (end: string, hint: string, width: number) => {
 
 // The finale's greeting: a fixed 18px, whatever the width.
 export const finaleSize = (_end: string, _width: number) => 18
+
+// How long the progress glow slides to a new value.
+export const GLOW_MS = 700
+// Where the glow stands some time into a slide, on the slide's ease-out curve.
+export const glowAtTime = (from: number, to: number, ms: number) => {
+  const t = Math.min(1, Math.max(0, ms / GLOW_MS))
+
+  return from + (to - from) * (1 - (1 - t) ** 3)
+}
+
+
+// Where the picture's controls sit, in CSS pixels as the band lays them out:
+// the × at the top left (the folded row's is its whole height). A press
+// anywhere else counts or opens the band.
+type Hit = { x0: number; x1: number; y0: number; y1: number; act: Act }
+
+export const hitsFor = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' | 'finaleMs'> & { width?: number }): Hit[] => [
+  { ...closeArea(m), act: { act: 'hide' } },
+  ...(m.phase === 'question' && m.isActive ? questionAreas(m.width ?? 0).map(a => ({ ...a, act: { act: a.act } })) : []),
+]

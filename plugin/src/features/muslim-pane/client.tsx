@@ -1,5 +1,6 @@
+import { enabledOf } from './layout.ts'
 import type { ClientModule, SvgProps } from 'claude-code'
-import { hitOfCells, paneHeight, type Enabled, type PaneAct } from './layout.ts'
+import { hitOfCells, paneHeight, type PaneAct } from './layout.ts'
 import { quranLayout, widthOf, type PaneModel } from './model.ts'
 import { paneAlt, paneSvg } from './view.ts'
 
@@ -8,15 +9,6 @@ import { paneAlt, paneSvg } from './view.ts'
 // does. It runs on the drawing thread.
 type Local = { hover: PaneAct | null }
 
-const enabledOf = (m: PaneModel): Enabled => ({
-  athan: m.prayer.isSet,
-  quran: m.quran.isAvailable,
-  canPrev: m.quran.isAvailable && m.quran.canPrev,
-  canNext: m.quran.isAvailable && m.quran.canNext,
-  segmented: m.quran.isAvailable && m.quran.segmented,
-  athkar: m.athkar.isAvailable,
-  athkarFinish: m.athkar.isAvailable && !m.athkar.isDone,
-})
 
 const client: ClientModule<PaneModel, Local> = (props, surface) => {
   const { Box } = surface.elements

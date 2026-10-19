@@ -66,14 +66,14 @@ The [MP3Quran permission statement](https://www.mp3quran.net/eng/privacy) says: 
 
 ## Persistence and duration
 
-The player catalog comes only from the shipped `catalog-data.ts`; it updates with the plugin. It has no `fetchedAt`, store entry or refresh timer. An obsolete `quran.catalog` value from an older install is ignored and left untouched. Remembered recording choices and all other stored values remain in use.
+The player catalog comes only from the shipped `catalog-data.ts`; it updates with the plugin. It has no `fetchedAt`, store entry or refresh timer. Remembered recording choices and all other stored values remain in use.
 
 | Value | Storage | Default |
 | --- | --- | --- |
 | Recording key `<reciterId>:<moshafId>` | `$.store` `quran.reciter` | Minshawi murattal, else first |
 | Filtered recordings and 114 surah names | Shipped `catalog-data.ts` | Ready immediately, including an empty store; no catalog network request |
 | Recording metadata keyed `<moshafKey>:<surah>` | `$.store` `quran.segmentCache` | Schema/map versions, recording names and IDs, surah/ayah count, source URL and validators, actual whole size, duration, timing read ID, segment ranges/times, frame-validated byte boundaries/checkpoints, `computedAt`, `updatedAt`, `sourceCheckedAt`; no audio |
-| Duration numbers keyed `<moshafKey>:<surah>` | `$.store` `quran.durations` | Unknown |
+| Duration numbers keyed `<moshafKey>:<surah>` | `$.store` `quran.durations` | Unknown; at most 120 recent entries |
 | Current track (key, surah, start time, duration), selected surah, pane error and command-origin error | Declared session `$.state` | Stopped, 1, no error |
 
 Duration lookup runs beside playback. Curl fetches bytes 0–131071 into temporary files under the OS temp folder (`$TMPDIR` or `/tmp`; `%TEMP%` on Windows, cleaned with `del`), `claude-muslim-quran/`; `$.fs.read(..., { as: 'bytes' })` returns base64 decoded without Node. Content-Range supplies total size. Skip ID3v2, find a valid Layer III frame (MPEG-1/2/2.5), use Xing/Info's frame count if present, otherwise estimate CBR duration from audio bytes and bitrate. Duration is approximate for VBR without Xing. The prefix is only metadata, never played, and removed after probing; cached values are small duration numbers, not audio. Without curl, valid headers or parseable bytes, total remains unknown. `$.http.fetch` supplies JSON and HEAD headers; its text body is not used for binary audio.
@@ -90,14 +90,10 @@ Range requests fetch at most 2MiB into temporary files, verify status 206, Conte
 
 `quran.segmentCache` is a separate key in the existing per-user plugin store, not a shipped cache and not a separate user-managed JSON file. It expires after seven days, rejects old schema/map versions or changed source URLs, and holds at most 120 plans with a conservative 1.5MB JSON budget to leave room for other features. Retry refreshes size and timings. Missing size shows the Claude 25MiB restriction, retry and alternate reader/surah choices. Large files with missing timings remain unavailable. Stop or replacement clears preparation immediately and late requests cannot start audio. The current bounded curl call may finish before cleanup; Stop never waits for it to finish.
 
-## Temporary debug log
-
-`QURAN_DEBUG = false` in `install.tsx` disables diagnostics for v1. Setting it to `true` for live diagnosis writes the last 200 diagnostic lines to `${TMPDIR}/claude-muslim-quran/debug.log` on macOS/Linux (fallback `/tmp/claude-muslim-quran/debug.log`), or `${TEMP}/claude-muslim-quran/debug.log` on Windows. It logs each play's generation, surah and path (`command`, `pane`, `auto-advance`), abort caller, watchdog abort, and resolved/rejected settlement with aborted flag and elapsed milliseconds. Appends are serialized and best effort; they never block playback or show UI errors. Return the constant to `false` after live diagnosis. This file holds diagnostics, not audio.
-
 ## Limits
 
 - Desktop is the only supported v1 playback surface. Commands are accepted everywhere; on other surfaces `/quran` replies with a text status ending `Playback runs in the Claude desktop app.`. All terminal Arabic uses the shared path; desktop text stays as authored.
-- No seeking, pause/resume, persistent audio cache, separate ayah playback, gapless quarter sequencing or looping. No claim of inaudible quarter boundaries.
+- No seeking, pause/resume, persistent audio cache, separate ayah playback or guaranteed gapless transitions. Whole-surah and quarter repeat and sequential quarters are supported. No claim of inaudible quarter boundaries.
 - Prayer time and salah’s athan moment leave recitation playing; no interaction with salah.
 - Before every plugin-initiated `$.config.set`, the writer first checks that its exact config row exists. If it is missing, Quran keeps playing, nothing is saved or navigated, and the existing reply/toast channel says `Not changed: run /reload-plugins, then try again.` A thrown `no /config row` error after that check receives the same friendly message, with the writer's existing rollback. When the row exists, a shared transient signal stops active Quran playback or preparation and shows one toast: `Quran stopped: changing a setting reloads the player.` Nothing playing means no stop and no toast. The writer awaits the stop before saving. Changes outside the plugin (including `/config`) and other module reloads cannot be intercepted: they can still orphan a clip by losing its AbortController, leaving it audible until the surah ends. `session.start` clears stale tracking and never resumes or advances it.
 - Duration probing uses the OS temporary folder and the verified Desktop curl behavior. The API types describe processes as CLI-only; duration-probe failures are silent. Large-recording playback needs curl Range requests; unavailable curl or rejected ranges show a feature error and retry.
@@ -117,7 +113,7 @@ Tajawal Regular and Bold (google/fonts, OFL in `plugin/src/shared/font/fonts/OFL
 | File | Holds |
 | --- | --- |
 | `install.tsx` | Hooks, `/quran` per surface, shipped catalog selection, playback, duration probing, feeds for the Muslim pane |
-| `avatar.ts` | Embedded vector avatar with playback-linked motion and still pose |
+| `plugin/src/shared/quran-avatar/` | Embedded vector avatar with playback-linked motion and still pose |
 | `card.ts` | Pure player model (status, times, progress, repeat, avatar clock) |
 | `pane.ts` | Pure model for the Muslim pane's card feed, option lists and pick-message validation |
 | `plugin/src/shared/font/` (`tajawal-embedded.ts`, `fonts/OFL.txt`, `index.ts`; shared with the Muslim pane) | Full Tajawal WOFF2 data and OFL licence |
@@ -135,7 +131,7 @@ The Quran card keeps the Mushaf book icon beside the heading «القرآن ال
 
 ## To verify live
 
-With an empty plugin store, open the Muslim pane in Desktop and confirm the Quran card and both lists are filled without catalog requests. Select Minshawi and Al-Kahf, listen for continuous whole-track playback, stop, switch reciter while playing, verify `/quran` opens the pane at the Quran card and unfolds it, test natural-end advancement and stopping after surah 114. Verify card controls never show toasts and playback errors stay inside the card unless started by a slash command. Check no acoustic overlap on fast switching and search across both full lists, Enter/row selection, keyboard scrolling and readable sheets in narrow panes and each theme. Temporarily enable diagnostics to check the watchdog for both initial and auto-advanced clips. Confirm the terminal fallback (`/quran` status) and Arabic modes. Engine tests exercise hooks and trees; they do not prove sound or native paint.
+With an empty plugin store, open the Muslim pane in Desktop and confirm the Quran card and both lists are filled without catalog requests. Select Minshawi and Al-Kahf, listen for continuous whole-track playback, stop, switch reciter while playing, verify `/quran` opens the pane at the Quran card and unfolds it, test natural-end advancement and stopping after surah 114. Verify card controls never show toasts and playback errors stay inside the card unless started by a slash command. Check no acoustic overlap on fast switching and search across both full lists, Enter/row selection, keyboard scrolling and readable sheets in narrow panes and each theme. Check the watchdog for both initial and auto-advanced clips. Confirm the terminal fallback (`/quran` status) and Arabic modes. Engine tests exercise hooks and trees; they do not prove sound or native paint.
 
 ## Muslim pane
 
@@ -149,3 +145,9 @@ The [Muslim pane](../muslim-pane/muslim-pane.md) is where this feature is drawn,
 Quran also connects a read-only recording/selection/repeat feed, a recording-key selection action and an explicit session-repeat action. The pane routes through the existing Quran selection and repeat logic; reciter remains in `quran.reciter` and repeat in session state.
 
 Pane failures carry their error through `PanelQuran`: one dim line inside the card, followed by «إعادة المحاولة». Retry uses the existing panel action channel and repeats the same failed recording, surah, segment and play/prepare intent, refreshing metadata. Retry, Stop, a new Play or a selection change clears the error. A command-origin error records the invocation's exact args and returned reply text; only a CommandOutput row matching both is replaced. Stop, help and unrelated rows keep their own replies.
+
+## Release behavior
+
+Arabic-Indic surah numbers work in `/quran play`, using the shared two-way digits helper. Every HTTP metadata fetch races a 15000 ms engine-clock sleep; a timeout aborts pending player work and shows one quiet retryable error. The API exposes no HTTP abort signal, so this ends the plugin’s wait, not the underlying host request. Retry starts fresh metadata work. Duration probes reuse the validated Range reader, its connection/file-size limits and OS temp cleanup. `quran.durations` keeps the 120 most recently learned duration numbers.
+
+`session.start` exposes only `cwd`, `surface` and `isInteractive`, with no real-start/reload distinction in the authoritative API types. Repeat therefore resets to off on every module load, including a settings change. No temporary debug logging ships.

@@ -3,8 +3,9 @@
 
 import type { Options } from '../../config.ts'
 import type { PanelPray, PanelSalah } from '../../shared/panel/signal.ts'
-import { clockText, nextSalah, timesOn } from './times.ts'
+import { clockText, lastPray, nextSalah, timesOn } from './times.ts'
 import { methodOf } from './today.ts'
+import { localTime } from './clock.ts'
 
 const FIVE: readonly PanelPray[] = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha']
 
@@ -13,8 +14,12 @@ export const panelSalah = (options: Options, now: number): PanelSalah | null => 
   const place = options.salahPlace
   if (!place) return null
   const method = methodOf(options, place)
-  const times = timesOn(place, method, options.salahAdjust, now)
   const next = nextSalah(place, method, options.salahAdjust, now)
+  const last = lastPray(place, method, options.salahAdjust, now)
+  const isha = next.pray === 'isha' ? next : last.pray === 'isha' ? last : null
+  // A post-midnight Isha still appears in its calculated day's five rows.
+  const anchor = isha && localTime(isha.at, place.timeZone).hour < 12 ? isha.at - 12 * 3600_000 : now
+  const times = timesOn(place, method, options.salahAdjust, anchor)
   const row = (pray: PanelPray, at: number) => ({ pray, at, clock: clockText(at, place.timeZone) })
 
   return {

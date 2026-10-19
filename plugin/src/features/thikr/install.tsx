@@ -1,3 +1,4 @@
+import { MODES_KEY } from '../../shared/arabic/terminal.ts'
 import { configFailure, hasConfigRow, MISSING_CONFIG } from '../../shared/reload/config.ts'
 import { SETUP_LATER_KEY } from '../../shared/pray/first-run.ts'
 import { setupForm } from '../../shared/setup/visibility.ts'
@@ -53,7 +54,7 @@ const renderArabic = async ($: EngineInterface, surface: string, text: string, c
   const selected = await read($, cachedArabicMode)
   let cached = selected?.terminalId === id ? selected : cache.current
   if (cached?.terminalId !== id) {
-    const saved = await $.store.get('arabicTerminals') as Record<string, unknown> | undefined
+    const saved = await $.store.get(MODES_KEY) as Record<string, unknown> | undefined
     const storedMode = saved?.[id]
     const mode = isArabicMode(storedMode) ? storedMode : defaultArabicMode(id)
     cached = { terminalId: id, mode }
@@ -68,15 +69,25 @@ const usageLimit = atom({ plugin: 'muslim', key: 'usageLimit' } as const, null a
 const setLimit = ($: EngineInterface, value: UsageLimit | null) =>
   $.state.set({ plugin: 'muslim', key: 'usageLimit' }, value)
 
+let limitTimer: { cancel: () => void } | undefined
+const armLimit = async ($: EngineInterface, until: number | null) => {
+  limitTimer?.cancel()
+  limitTimer = undefined
+  const now = await $.clock.now()
+  if (until === null || until <= now) return
+  limitTimer = $.clock.after(until - now, async () => {
+    try {
+      if ((await read($, usageLimit))?.until === until) await setLimit($, null)
+    } catch {}
+  })
+}
+
 // A full usage window holds the limit's thikr until it resets.
 const holdLimit = async ($: EngineInterface, windows: readonly RateLimitWindow[]) => {
   const until = limitUntil(windows)
   if (until === undefined) return
   await setLimit($, { until })
-  if (until !== null) {
-    const wait = Math.max(0, until - (await $.clock.now()))
-    $.clock.after(wait, () => void setLimit($, null))
-  }
+  await armLimit($, until)
 }
 
 const onOff = (value: boolean) => (value ? 'on' : 'off')
@@ -147,7 +158,7 @@ const setupShowing = async ($: EngineInterface, hasPlace: boolean, surface: stri
   const terminal = surface === 'terminal' ? {
     id: await terminalId($),
     manual: (await $.state.get({ plugin: 'muslim', key: 'arabicSurveyManualTerminal' })).value,
-    saved: await $.store.get('arabicTerminals') as Record<string, unknown> | undefined,
+    saved: await $.store.get(MODES_KEY) as Record<string, unknown> | undefined,
   } : undefined
   return setupForm({ surface, hasSurvey, hasPlace,
     hasReview: !!(await $.state.get({ plugin: 'muslim', key: 'salahReview' })).value,
@@ -157,7 +168,19 @@ const setupShowing = async ($: EngineInterface, hasPlace: boolean, surface: stri
   })
 }
 
+// Preflight and quiet failure mapping stay in this file; callers keep their reply/rollback.
+const writeSetting = async ($: EngineInterface, key: string, value: boolean | number | string): Promise<string | undefined> => {
+  try {
+    if (!hasConfigRow(await $.config.list(), key)) return MISSING_CONFIG
+    await stopBeforeReload()
+    const { deny } = await $.config.set({ key, value })
+    return deny ? configFailure(deny) : undefined
+  } catch (error) { return configFailure(error) }
+}
+
 export const install = (on: On, options: Options) => {
+  const arabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
+  let limitRestored = false
   // Spinner timing, per turn. Module values: a reload mid-turn only restarts the order.
   let group: Group | undefined
   let groupSince = 0
@@ -178,15 +201,9 @@ export const install = (on: On, options: Options) => {
 
   on('command.run', { command: 'thikr' }, async ($, e) => {
     const [word = '', value = ''] = e.args.trim().split(/\s+/)
-    const set = async (field: string, to: boolean | number | string, said: string) => {
-      const key = `muslim.${field}`
-      try {
-        if (!hasConfigRow(await $.config.list(), key)) return { text: MISSING_CONFIG }
-        await stopBeforeReload()
-        const { deny } = await $.config.set({ key, value: to })
-        return { text: deny ? configFailure(deny) : said }
-      } catch (error) { return { text: configFailure(error) } }
-    }
+    const set = async (field: string, to: boolean | number | string, said: string) => ({ text: await writeSetting($, `muslim.${field}`, to) ?? said })
+    const surface = await $.session.surface().catch(() => 'desktop' as const) ?? 'desktop'
+    const help = await renderArabic($, surface, thikrHelp(), arabicCache)
 
     // DEMO BEGIN: command entry; arms and starts the demo's own turn.
     if (word === 'demo') return { text: armDemo($) }
@@ -200,13 +217,13 @@ export const install = (on: On, options: Options) => {
           statusTable([
             ['Thikr', 'Tasbih in Claude\'s working line', onOff(options.thikr)],
             ['Speed', 'How long each phrase stays', speedText(options.thikrSpeed)],
-            ['End', 'تَمَّ بِحَمْدِ اللَّهِ at the end of a turn', onOff(options.thikrEnd)],
+            ['End', `${await renderArabic($, surface, END_OF_TURN, arabicCache)} at the end of a turn`, onOff(options.thikrEnd)],
             ['Mode', 'Which phrases play', options.thikrMode],
           ]),
         ].join('\n'),
       }
     }
-    if (word === 'help') return { text: thikrHelp() }
+    if (word === 'help') return { text: help }
     if (word === 'on' || word === 'off') return set('thikr', word === 'on', `thikr ${word}`)
     if (word === 'mode' && isMode(value)) return set('thikrMode', value, `mode ${value}`)
     if (word === 'end' && (value === 'on' || value === 'off')) return set('thikrEnd', value === 'on', `end ${value}`)
@@ -217,14 +234,14 @@ export const install = (on: On, options: Options) => {
       return { text: `Speed is auto, or a whole number of seconds from ${SPEED_MIN} to ${SPEED_MAX}.` }
     }
 
-    return { text: thikrHelp() }
-  })
+    return { text: help }
+  }).catch(() => ({ text: 'Could not complete the command. Try again.' }))
 
   // DEMO BEGIN: separate hooks, registered even with thikr off; they pass through unless a demo is armed.
   on('command.run', { command: 'muslim', args: /^\s*demo\s*$/ }, ($, e, next) => {
     connectDemo('thikr', () => armDemo($, true))
     return next(e)
-  })
+  }).catch(() => ({ text: 'Could not complete the command. Try again.' }))
 
   // The matchers (every turn, every ending) only tell these apart from the feature's own hooks.
   on('turn.start', { turnId: /./ }, async ($, e, next) => {
@@ -274,8 +291,6 @@ export const install = (on: On, options: Options) => {
 
   if (!options.thikr) return
 
-  const arabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
-
   on('turn.start', async ($, e, next) => {
     if (e.agentId !== undefined) return next(e)
     group = undefined
@@ -290,6 +305,8 @@ export const install = (on: On, options: Options) => {
     toolsSince.clear()
     ticker?.cancel()
     ticker = options.thikrMode === 'salawat' ? undefined : $.clock.every(TICK_MS, () => $.ui.invalidate('ui.render'))
+    limitTimer?.cancel()
+    limitTimer = undefined
     await setLimit($, null)
 
     return next(e)
@@ -313,20 +330,20 @@ export const install = (on: On, options: Options) => {
       toolsSince.delete(e.tool_use_id)
       if (isSubagent) subagents = Math.max(0, subagents - 1)
     }
-  })
+  }).catch(($, e, next) => next(e))
 
   on('classic.PreCompact', async ($, e, next) => {
     isCompacting = true
     $.ui.invalidate('ui.render')
 
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 
   on('classic.PostCompact', async ($, e, next) => {
     isCompacting = false
 
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'Spinner' }, async ($, e, next) => {
     if (demo?.phase === 'playing') return next(e)
@@ -368,7 +385,7 @@ export const install = (on: On, options: Options) => {
     if (e.error === 'rate_limit') await holdLimit($, (await $.session.usage()).rateLimits)
 
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 
   // A response that reports a full window shows it too, before any turn fails.
   on('session.measure', async ($, e, next) => {
@@ -380,7 +397,11 @@ export const install = (on: On, options: Options) => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)
     const limit = await read($, usageLimit)
-    if (!limit || await setupShowing($, !!options.salahPlace, e.surface, e.props.hasSurvey)) return theirs
+    if (!limitRestored) {
+      limitRestored = true
+      if (limit) await armLimit($, limit.until)
+    }
+    if (!limit || (limit.until !== null && limit.until <= await $.clock.now()) || await setupShowing($, !!options.salahPlace, e.surface, e.props.hasSurvey)) return theirs
     const { Box, Text } = $.ui.resolve(e)
 
     return (

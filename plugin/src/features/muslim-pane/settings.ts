@@ -20,20 +20,8 @@ export const isSettings = (v: unknown): v is SettingsState => {
   const validFace = s.face === 'main' || s.category === 'prayer' && ['methods', 'adjust', 'city'].includes(String(s.face))
   return typeof s.open === 'boolean' && CATEGORIES.some(c => c[0] === s.category) && validFace && Number.isSafeInteger(s.page) && Number(s.page) >= 0
 }
-// Older accordion state could have no open category. Normalize on read, never
-// write during render; the next input saves the normalized state naturally.
-export const loadSettings = (saved: unknown): SettingsState => {
-  if (isSettings(saved)) return saved
-  if (saved && typeof saved === 'object') {
-    const s = saved as Record<string, unknown>
-    if (s.category === 'general' && s.face === 'terminal' && isSettings({ ...s, face: 'main' })) return { ...s, face: 'main', page: 0 } as SettingsState
-    // The Quran tab was removed: its saved state opens the general tab.
-    if (s.category === 'quran' && isSettings({ ...s, category: 'general', face: 'main', page: 0 })) return { ...s, category: 'general', face: 'main', page: 0 } as SettingsState
-    const migrated = { ...s, category: 'general' }
-    if (s.category === null && s.face === 'main' && isSettings(migrated)) return { ...migrated, page: 0 }
-  }
-  return CLOSED_SETTINGS
-}
+// Unreadable or obsolete session shapes start with fresh settings.
+export const loadSettings = (saved: unknown): SettingsState => isSettings(saved) ? saved : CLOSED_SETTINGS
 export type SettingsOptions = Omit<Options, 'salahPlace'> & { salahPlace: NonNullable<Options['salahPlace']> | null }
 export const settingsOptions = (o: Options): SettingsOptions => ({ ...o, salahPlace: o.salahPlace ?? null })
 export const SWITCH_FIELDS = ['tashkeel', 'thikr', 'athkarMorning', 'athkarEvening', 'athkarAfterSalah', 'salahAthan', 'paneButton', 'thikrEnd'] as const

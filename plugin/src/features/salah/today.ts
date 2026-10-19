@@ -44,14 +44,14 @@ export const showText = (show: Show): string =>
     : `\`${show}\` — only the ${show} min before a pray, counting down`
 
 // The settings in effect, each with what it is.
-export const settingsTable = (options: Options, place: Place): string => {
+export const settingsTable = (options: Options, place: Place, call = 'حان وقت صلاة …'): string => {
   const method = METHODS[methodOf(options, place)].name + (options.salahMethod === 'auto' ? ' (auto)' : '')
   const moved = PRAYS.filter(pray => options.salahAdjust[pray] !== 0)
   return statusTable([
     ['City', 'Where the times are calculated for', place.name],
     ['Method', 'How the times are calculated', method],
     ['Show', 'The next pray under the prompt', showText(options.salahShow)],
-    ['Athan', 'حان وقت صلاة … when a pray comes in', options.salahAthan ? 'on' : 'off'],
+    ['Athan', `${call} when a pray comes in`, options.salahAthan ? 'on' : 'off'],
     ['Adjust', 'Minutes moved to match your mosque', moved.length === 0 ? 'none' : moved.map(pray => `${ENGLISH[pray]} ${options.salahAdjust[pray] > 0 ? '+' : ''}${options.salahAdjust[pray]}`).join(', ')],
   ])
 }

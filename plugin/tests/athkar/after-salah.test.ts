@@ -29,10 +29,10 @@ test('the order follows the Ibn Baz fatwa', () => {
   expect(afterSalah('dhuhr').map(t => t.id)).toEqual(['66-istighfar', '66-salam', '67', '68', '69-tasbih', '69-tahlil', '71', '70-ikhlas', '70-falaq', '70-nas'])
 })
 
-test('old stored days load an empty third slot, valid slots survive, malformed metadata and new days reset', () => {
+test('old stored days start fresh, valid slots survive, malformed metadata and new days reset', () => {
   const old = { day: '2026-10-10', morning: { ...emptyReading(), index: 2 }, evening: emptyReading() }
   expect(readDay(old, old.day).afterSalah).toEqual(emptyAfterSalah())
-  expect(readDay(old, old.day).morning.index).toBe(2)
+  expect(readDay(old, old.day).morning.index).toBe(0)
   const day = fresh()
   day.afterSalah.counts['66-istighfar'] = 2
   expect(readDay(day, day.day)).toEqual(day)
@@ -40,14 +40,14 @@ test('old stored days load an empty third slot, valid slots survive, malformed m
   expect(readDay({ ...day, afterSalah: { ...day.afterSalah, pray: 'sunrise' } }, day.day).afterSalah).toEqual(emptyAfterSalah())
 })
 
-test('one slot keeps the same prayer and resets counts, hidden and done for a different timestamp or general reading', () => {
+test('one slot keeps the same prayer and resets counts, hidden and done for a different timestamp while null keeps it', () => {
   const day = fresh()
   day.afterSalah = { ...day.afterSalah, counts: { '66-istighfar': 3 }, index: 4, isDone: true, isHidden: true }
   expect(syncAfterSalah(day, last)).toBe(day)
   const next = syncAfterSalah(day, { pray: 'asr', at: NOW + 3 * 3600_000 })
   expect(next.afterSalah).toEqual({ ...emptyReading(), pray: 'asr', at: NOW + 3 * 3600_000 })
   expect(next.morning).toBe(day.morning)
-  expect(syncAfterSalah(day, null).afterSalah).toEqual(emptyAfterSalah())
+  expect(syncAfterSalah(day, null)).toBe(day)
 })
 
 test('an untouched offer lasts from one to two shared card durations; explicit and counted readings stay', () => {

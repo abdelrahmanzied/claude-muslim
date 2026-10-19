@@ -129,17 +129,17 @@ test('four equal tabs fit the card in RTL order at every supported width',()=>{
   }
 })
 
-test('legacy null category state loads as general without closing the card',()=>{
+test('old settings shapes fall back to a fresh closed card',()=>{
   const old={open:true,category:null,face:'main',page:0}
   expect(isSettings(old)).toBe(false)
-  expect(loadSettings(old)).toEqual({open:true,category:'general',face:'main',page:0})
+  expect(loadSettings(old)).toEqual(CLOSED_SETTINGS)
   expect(loadSettings({...old,open:false})).toEqual(CLOSED_SETTINGS)
   expect(loadSettings({...old,page:-1})).toEqual(CLOSED_SETTINGS)
   expect(loadSettings(null)).toEqual(CLOSED_SETTINGS)
   const detail=make('prayer','methods',2).state
   expect(loadSettings(detail)).toBe(detail)
-  // The removed Quran tab opens the general tab.
-  expect(loadSettings({open:true,category:'quran',face:'reciters',page:2})).toEqual({open:true,category:'general',face:'main',page:0})
+  // Removed tab state also starts fresh.
+  expect(loadSettings({open:true,category:'quran',face:'reciters',page:2})).toEqual(CLOSED_SETTINGS)
 })
 
 test('terminal settings headings match the tabs, with all Arabic through show',()=>{
@@ -185,12 +185,12 @@ test('rows share label/description/control geometry, inline switches and color d
   }
 })
 
-test('terminal Arabic is one direct command-copy target; old terminal face migrates to main',()=>{
+test('terminal Arabic is one direct command-copy target; an old terminal face starts fresh',()=>{
   const m=make('general'), t=settingsBody(360,m).targets.find(t=>t.act==='settings:terminal')!
   expect(t.effect).toEqual({kind:'copy',command:'/muslim terminal-arabic'})
   expect(t.control.label).toBe('/muslim terminal-arabic')
   expect(isSettings({...m.state,face:'terminal'})).toBe(false)
-  expect(loadSettings({...m.state,face:'terminal',page:2})).toEqual({...m.state,page:0})
+  expect(loadSettings({...m.state,face:'terminal',page:2})).toEqual(CLOSED_SETTINGS)
   const city=make('prayer','city')
   expect(settingsBody(360,city).targets.find(t=>t.act==='settings:copy')!.effect).toEqual({kind:'copy',command:'/salah city'})
 })

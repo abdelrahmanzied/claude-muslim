@@ -2,7 +2,7 @@ import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
 import { demoDuration, demoScenes } from '../../src/features/athkar/demo.ts'
-import { arabicDigits, dayOf, emptyDay, listFor, timesOf, type Day } from '../../src/features/athkar/logic.ts'
+import { arabicDigits, dayOf, emptyDay, listFor, type Day } from '../../src/features/athkar/logic.ts'
 import { accentHex } from '../../src/shared/color/index.ts'
 import { athkarHelp } from '../../src/features/athkar/help.ts'
 import { ATHKAR_QUIET } from '../fixtures/config.ts'
@@ -65,7 +65,7 @@ for (const style of ['sky', 'frame'] as const) {
         expect(await model()).toMatchObject({ period: scene.period, position: `${arabicDigits(index + 1)} مِنْ ${arabicDigits(list.length)}`, count: 0 })
         const authored = list[index]!
         expect((await model()).text).toBe(scene.period === 'evening' ? authored.evening ?? authored.text : authored.text)
-        expect((await model()).times).toBe(timesOf(authored))
+        expect((await model()).times).toBe(authored.times)
         if (i === 0) expect((await model()).note).toBe(authored.note)
         const firstProgress = Number((await model()).progress)
         await clock.advance(scene.countMs)
@@ -73,7 +73,7 @@ for (const style of ['sky', 'frame'] as const) {
         expect(Number((await model()).progress)).toBeGreaterThan(firstProgress)
         expect((await model()).from).toBe(firstProgress)
         expect((await model()).glowMs).toBe(0)
-        expect(await picture()).toContain(`>${arabicDigits(timesOf(authored) - 1)}</span>`)
+        expect(await picture()).toContain(`>${arabicDigits(authored.times - 1)}</span>`)
         if (scene.id === '98') {
           await clock.advance(9 * scene.countMs)
           expect(await model()).toMatchObject({ count: 10, times: 10, progress: 100, phase: 'reading' })

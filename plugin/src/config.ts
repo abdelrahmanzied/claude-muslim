@@ -45,12 +45,10 @@ export const readOptions = (raw: Record<string, unknown>): Options => ({
   athkarMorning: raw.athkarMorning !== false,
   athkarEvening: raw.athkarEvening !== false,
   athkarAfterSalah: raw.athkarAfterSalah !== false,
-  // 'outline' is the old name of 'frame'.
-  athkarStyle: raw.athkarStyle === 'frame' || raw.athkarStyle === 'outline' ? 'frame' : 'sky',
-  color: readColor(raw.color === 'gold' ? 'yellow' : raw.color),
+  athkarStyle: raw.athkarStyle === 'frame' ? 'frame' : 'sky',
+  color: readColor(raw.color),
   salahShow: readShow(raw),
-  // "salahAdhan" is the old saved key name (data, read as is).
-  salahAthan: (raw.salahAthan ?? raw.salahAdhan) !== false,
+  salahAthan: raw.salahAthan !== false,
   salahPlace: readPlace(raw.salahPlace),
   salahMethod: isMethod(raw.salahMethod) ? raw.salahMethod : 'auto',
   salahAdjust: readAdjust(raw.salahAdjust),
@@ -81,16 +79,7 @@ export const parseShow = (value: unknown): Show | undefined => {
   return value !== '' && value !== null && typeof value !== 'boolean' && Number.isInteger(minutes) && minutes >= SHOW_MIN && minutes <= SHOW_MAX ? minutes : undefined
 }
 
-// `salahShow`; before it, the old `salah` mode (true, `reminder`, `before`,
-// `countdown` meant minutes) and its `salahReminder` minutes are read.
-export const readShow = (raw: Record<string, unknown>): Show => {
-  const show = parseShow(raw.salahShow)
-  if (show !== undefined) return show
-  if (raw.salah === 'always' || raw.salah === 'off') return raw.salah
-  if (raw.salah === false) return 'off'
-
-  return parseShow(raw.salahReminder) ?? SHOW_DEFAULT
-}
+export const readShow = (raw: Record<string, unknown>): Show => parseShow(raw.salahShow) ?? SHOW_DEFAULT
 
 // The minutes the countdown runs before a pray; 0 when off.
 export const countdownMinutes = (show: Show): number => (show === 'always' ? ALWAYS_COUNTDOWN : show === 'off' ? 0 : show)

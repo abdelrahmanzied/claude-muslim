@@ -58,30 +58,26 @@ const adjacentTimes = (place: Where, method: MethodId, adjust: Adjust, at: numbe
   return timesForDate(place, method, adjust, { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() })
 }
 
-// The next pray after `at` (sunrise included), today's or tomorrow's Fajr.
+// A late-night Isha belongs to its calculated day but may occur after midnight.
 export const nextPray = (place: Where, method: MethodId, adjust: Adjust, at: number): { pray: Pray; at: number } => {
   const today = timesOn(place, method, adjust, at)
-  const pray = PRAYS.find(name => today[name] > at)
-  if (pray) return { pray, at: today[pray] }
-
-  return { pray: 'fajr', at: adjacentTimes(place, method, adjust, at, 1).fajr }
+  const candidates = [
+    { pray: 'isha' as const, at: adjacentTimes(place, method, adjust, at, -1).isha },
+    ...PRAYS.map(pray => ({ pray, at: today[pray] })),
+    { pray: 'fajr' as const, at: adjacentTimes(place, method, adjust, at, 1).fajr },
+  ]
+  return candidates.filter(p => p.at > at).sort((a, b) => a.at - b.at)[0]!
 }
 
-// The next of the five prays after `at`: nextPray without sunrise.
 export const nextSalah = (place: Where, method: MethodId, adjust: Adjust, at: number): { pray: Pray; at: number } => {
   const next = nextPray(place, method, adjust, at)
-  if (next.pray !== 'sunrise') return next
-
-  return nextPray(place, method, adjust, next.at)
+  return next.pray === 'sunrise' ? nextPray(place, method, adjust, next.at) : next
 }
 
-// The most recent pray at or before `at` (sunrise excluded), today's or yesterday's Isha.
-export const lastPray = (place: Where, method: MethodId, adjust: Adjust, at: number): { pray: Pray; at: number } => {
-  const today = timesOn(place, method, adjust, at)
-  const pray = [...PRAYS].reverse().find(name => name !== 'sunrise' && today[name] <= at)
-  if (pray) return { pray, at: today[pray] }
-
-  return { pray: 'isha', at: adjacentTimes(place, method, adjust, at, -1).isha }
+export const lastPray = (place: Where, method: MethodId, adjust: Adjust, at: number): SalahLast => {
+  const days = [adjacentTimes(place, method, adjust, at, -1), timesOn(place, method, adjust, at)]
+  return days.flatMap(times => PRAYS.filter(pray => pray !== 'sunrise').map(pray => ({ pray, at: times[pray] })))
+    .filter(p => p.at <= at).sort((a, b) => b.at - a.at)[0]! as SalahLast
 }
 
 // HH:MM in the place's time zone, 24-hour.
@@ -91,11 +87,11 @@ export const clockText = (at: number, timeZone: string): string => {
   return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
 }
 
-// Today's last obligatory prayer only: before Fajr there is no last prayer today.
+// Last obligatory prayer whose actual instant falls on today's local calendar date.
 export const lastSalahToday = (place: Where, method: MethodId, adjust: Adjust, at: number): SalahLast | null => {
-  const times = timesOn(place, method, adjust, at)
-  const pray = [...PRAYS].reverse().find(name => name !== 'sunrise' && times[name] <= at)
-  return pray && pray !== 'sunrise' ? { pray, at: times[pray] } : null
+  const last = lastPray(place, method, adjust, at)
+  const day = localTime(at, place.timeZone), previous = localTime(last.at, place.timeZone)
+  return day.year === previous.year && day.month === previous.month && day.day === previous.day ? last : null
 }
 
 // Bounds for the place's current calendar day. Calendar arithmetic at noon keeps

@@ -1,9 +1,8 @@
 import { expect, test } from 'claude-code/testing'
 import { mayOpenByItself, readRemindFrom, setupPending } from '../../../src/shared/pray/first-run.ts'
 
-test('setup is pending only when its card is enabled and no answer exists', () => {
+test('setup is pending only when no place or answer exists', () => {
   expect(setupPending(false, false, null)).toBe(true)
-  expect(setupPending(false, false, null, false)).toBe(false)
   expect(setupPending(true, false, null)).toBe(false)
   expect(setupPending(false, true, null)).toBe(false)
   expect(setupPending(false, false, 0)).toBe(false)

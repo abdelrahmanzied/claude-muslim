@@ -3,15 +3,14 @@
 // Sunrise has no line and no countdown.
 
 import { countdownMinutes, type Show } from '../../config.ts'
+import { arabicDigits } from '../digits/index.ts'
 import { ARABIC } from './names.ts'
 import type { Pray } from './names.ts'
 
 // How long `حان وقت صلاة …` stays after a pray comes in.
 export const IN_MS = 15 * 60_000
 
-const DIGITS = '٠١٢٣٤٥٦٧٨٩'
-
-export const arabicDigits = (text: string): string => text.replace(/\d/g, digit => DIGITS[Number(digit)] ?? digit)
+export { arabicDigits }
 
 // `دقيقة`, `دقيقتين`, `٣ دقائق` … `١٠ دقائق`, `١١ دقيقة`.
 export const minutesText = (minutes: number): string => {
@@ -47,7 +46,7 @@ export const countdownText = (leftMs: number): string => {
 // its HH:MM; undefined when the line is empty (off, or minutes outside the window).
 export const prayLine = (next: Moment, nextClock: string, last: Moment, now: number, view: View): string | undefined => {
   if (view.show === 'off') return undefined
-  if (view.isAthan && now - last.at < IN_MS) return athanText(last.pray)
+  if (view.isAthan && now >= last.at && now - last.at < IN_MS) return athanText(last.pray)
   const left = next.at - now
   if (left <= countdownMinutes(view.show) * MINUTE_MS) return `☾ ${ARABIC[next.pray]} ${countdownText(left)}`
   if (view.show === 'always') return `☾ ${ARABIC[next.pray]} ${arabicDigits(nextClock)}`

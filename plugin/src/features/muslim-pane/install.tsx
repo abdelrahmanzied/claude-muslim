@@ -1,3 +1,4 @@
+import { MODES_KEY } from '../../shared/arabic/terminal.ts'
 import { configFailure, hasConfigRow, MISSING_CONFIG } from '../../shared/reload/config.ts'
 import { stopBeforeReload } from '../../shared/reload/signal.ts'
 import type { EngineInterface, On } from 'claude-code'
@@ -6,7 +7,7 @@ import type { PaneOptimistic, PanePicker } from '../../../types/index.d.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
 import { readPanelAutoUpdate, readAthkar, readQuran, readQuranOptions, readSalah, runPanelAction, type PanelAction, type PanelOption } from '../../shared/panel/signal.ts'
 import { pointerPixels } from '../../shared/card/pointer.ts'
-import { NO_FOLDS, cardRects, hitOfCells, isFolds, isPaneMessage, keyAct, paneHeight, quranRowOf, type Enabled, type Folds, type PaneAct, type PaneMessage } from './layout.ts'
+import { enabledOf, NO_FOLDS, cardRects, hitOfCells, isFolds, isPaneMessage, keyAct, paneHeight, quranRowOf, type Folds, type PaneAct, type PaneMessage } from './layout.ts'
 import { paneModel, quranLayout, textLines, widthOf, type PaneModel } from './model.ts'
 import { dragBar, dragCell, isPanePicker, openPicker, pickerKey, pickerView, pressBar, type PickerView } from './picker.ts'
 import { CATEGORIES, CLOSED_SETTINGS, COPIED_MS, changeCategory, copiedAt, isSwitchField, loadSettings, optimisticOptions, settingsBody, type SettingsState } from './settings.ts'
@@ -17,6 +18,16 @@ import { avatarSvg } from '../../shared/quran-avatar/index.ts'
 import { ATHKAR_TITLE } from '../../shared/athkar/titles.ts'
 import { connectDemo, doneDemo } from '../../shared/demo/signal.ts'
 // DEMO END
+
+// Preflight and quiet failure mapping stay in this file; callers keep their reply/rollback.
+const writeSetting = async ($: EngineInterface, key: string, value: boolean | number | string): Promise<string | undefined> => {
+  try {
+    if (!hasConfigRow(await $.config.list(), key)) return MISSING_CONFIG
+    await stopBeforeReload()
+    const { deny } = await $.config.set({ key, value })
+    return deny ? configFailure(deny) : undefined
+  } catch (error) { return configFailure(error) }
+}
 
 const playingRef = { plugin: 'muslim', key: 'quranPlaying' } as const
 const PANE_ID = 'muslim'
@@ -46,7 +57,7 @@ async function editPending($: EngineInterface, edit: (pending: PaneOptimistic) =
 async function confirmCopy($: EngineInterface, command: string): Promise<void> {
   const until = (await $.clock.now()) + COPIED_MS
   await $.state.set(copiedRef, { command, until })
-  $.clock.after(COPIED_MS, () => { void expireCopy($, until) })
+  $.clock.after(COPIED_MS, () => { void expireCopy($, until).catch(() => {}) })
 }
 async function expireCopy($: EngineInterface, until: number): Promise<void> {
   const held = await $.state.get(copiedRef)
@@ -75,7 +86,7 @@ async function arabicMode($: EngineInterface, surface: string): Promise<ArabicMo
     OS: await $.env.get('OS'),
   })
   const cached = (await $.state.get({ plugin: 'muslim', key: 'arabicTerminalMode' })).value
-  const saved = (await $.store.get('arabicTerminals') as Record<string, unknown> | undefined)?.[id]
+  const saved = (await $.store.get(MODES_KEY) as Record<string, unknown> | undefined)?.[id]
   return cached?.terminalId === id ? cached.mode : isArabicMode(saved) ? saved : defaultArabicMode(id)
 }
 
@@ -102,19 +113,11 @@ async function modelNow($: EngineInterface, options: Options, columns: unknown):
   // A segment list only means something for a split surah; a folded card shows no list.
   let view: PickerView | null = null
   if (picker && quran && !folds.quran && (picker.list !== 'segment' || quran.segmented)) view = pickerView(picker, await readQuranOptions(picker.list, picker.query))
-  return paneModel({ salah: readSalah(now), quran, athkar: await readAthkar() }, now, widthOf(columns), options.color, undefined, folds, { state: await readSettings($), options: optimisticOptions(options, (await $.state.get(optimisticRef)).value), terminalMode: 'per-terminal setup', copied: copiedAt((await $.state.get(copiedRef)).value, now), autoUpdate: await readPanelAutoUpdate(), pendingAutoUpdate: (await $.state.get({ plugin: 'muslim', key: 'paneAutoUpdate' })).value ?? null }, view, (await $.state.get(athkarMenuRef)).value === true)
+  const pending = (await $.state.get(optimisticRef)).value
+  const salah = readSalah(now)
+  if (salah) salah.isAthan = optimisticOptions(options, pending).salahAthan
+  return paneModel({ salah, quran, athkar: await readAthkar() }, now, widthOf(columns), options.color, undefined, folds, { state: await readSettings($), options: optimisticOptions(options, (await $.state.get(optimisticRef)).value), terminalMode: 'per-terminal setup', copied: copiedAt((await $.state.get(copiedRef)).value, now), autoUpdate: await readPanelAutoUpdate(), pendingAutoUpdate: (await $.state.get({ plugin: 'muslim', key: 'paneAutoUpdate' })).value ?? null }, view, (await $.state.get(athkarMenuRef)).value === true)
 }
-
-const enabledOf = (m: PaneModel): Enabled => ({
-  athan: m.prayer.isSet,
-  quran: m.quran.isAvailable,
-  canPrev: m.quran.isAvailable && m.quran.canPrev,
-  canNext: m.quran.isAvailable && m.quran.canNext,
-  segmented: m.quran.isAvailable && m.quran.segmented,
-  athkar: m.athkar.isAvailable,
-  athkarFinish: m.athkar.isAvailable && !m.athkar.isDone,
-  athkarDone: m.athkar.isAvailable && m.athkar.isDone,
-})
 
 // The athan toggle changes the salah setting itself (the module reloads); every other press is the owning feature's own action.
 async function press($: EngineInterface, options: Options, act: PaneAct): Promise<void> {
@@ -141,15 +144,7 @@ async function press($: EngineInterface, options: Options, act: PaneAct): Promis
     if (k) await runPanelAction(k.canUndo ? 'athkar-undo' : 'athkar-reset')
     return
   }
-  if (act === 'athan') {
-    try {
-      if (!hasConfigRow(await $.config.list(), 'muslim.salahAthan')) return void $.ui.toast(MISSING_CONFIG)
-      await stopBeforeReload()
-      const { deny } = await $.config.set({ key: 'muslim.salahAthan', value: !options.salahAthan })
-      if (deny) $.ui.toast(configFailure(deny))
-    } catch (error) { $.ui.toast(configFailure(error)) }
-    return
-  }
+  if (act === 'athan') { await changeSetting($, 'salahAthan', !optimisticOptions(options, (await $.state.get(optimisticRef)).value).salahAthan); return }
   if (act === 'quran-pick-reciter' || act === 'quran-pick-surah' || act === 'quran-pick-segment') {
     const list = act === 'quran-pick-reciter' ? 'reciter' : act === 'quran-pick-surah' ? 'surah' : 'segment'
     const rows = await readQuranOptions(list, '')
@@ -208,6 +203,22 @@ async function dragPress($: EngineInterface, folds: Folds, message: Extract<Pane
   if (next.scroll !== picker.scroll || next.highlight !== picker.highlight || next.drag !== picker.drag) await writePicker($, next)
 }
 
+async function changeSetting($: EngineInterface, field: keyof Options, value: boolean | string | number, s?: SettingsState): Promise<void> {
+  try {
+    if (!hasConfigRow(await $.config.list(), `muslim.${field}`)) return void $.ui.toast(MISSING_CONFIG)
+  } catch (error) { $.ui.toast(configFailure(error)); return }
+  const optimistic = isSwitchField(field) && typeof value === 'boolean'
+  if (optimistic) await editPending($, pending => ({ ...pending, [field]: value as boolean }))
+  if (s?.face === 'methods') await $.state.set(settingsRef, { ...s, face: 'main', page: 0 })
+  const failure = await writeSetting($, `muslim.${field}`, value)
+  if (failure) {
+    // Clear only this press's own entry: a newer press for the field has a different value.
+    if (optimistic) await editPending($, pending => pending[field] === value ? Object.fromEntries(Object.entries(pending).filter(([k]) => k !== field)) : null)
+    if (s?.face === 'methods') await $.state.set(settingsRef, s)
+    $.ui.toast(failure)
+  }
+}
+
 async function settingsPress($: EngineInterface, options: Options, act: PaneAct): Promise<void> {
   const model = await modelNow($, options, 50)
   const s = model.settings.state
@@ -221,24 +232,7 @@ async function settingsPress($: EngineInterface, options: Options, act: PaneAct)
     const effect = settingsBody(model.width, model.settings).targets.find(t => t.act === act)?.effect
     if (!effect) return
     if (effect.kind === 'config') {
-      // state.set redraws subscribed panes before config's reload completes.
-      const field = effect.field
-      try {
-        if (!hasConfigRow(await $.config.list(), `muslim.${field}`)) return void $.ui.toast(MISSING_CONFIG)
-      } catch (error) { $.ui.toast(configFailure(error)); return }
-      const optimistic = isSwitchField(field) && typeof effect.value === 'boolean'
-      if (optimistic) await editPending($, pending => ({ ...pending, [field]: effect.value as boolean }))
-      if (s.face === 'methods') await $.state.set(settingsRef, { ...s, face: 'main', page: 0 })
-      try {
-        await stopBeforeReload()
-        const { deny } = await $.config.set({ key: `muslim.${effect.field}`, value: effect.value })
-        if (deny) throw new Error(deny)
-      } catch (error) {
-        // Clear only this press's own entry: a newer press for the field has a different value.
-        if (optimistic) await editPending($, pending => pending[field] === effect.value ? Object.fromEntries(Object.entries(pending).filter(([k]) => k !== field)) : null)
-        if (s.face === 'methods') await $.state.set(settingsRef, s)
-        $.ui.toast(configFailure(error))
-      }
+      await changeSetting($, effect.field, effect.value, s)
     } else if (effect.kind === 'command') {
       try { await $.command.run({ command: 'muslim', args: effect.args }) }
       catch { $.ui.toast(`Run /muslim ${effect.args}.`) }
@@ -267,7 +261,11 @@ async function isPaneOpen($: EngineInterface): Promise<boolean> {
 async function togglePane($: EngineInterface): Promise<void> {
   try {
     if (await isPaneOpen($)) await $.ui.close({ id: PANE_ID })
-    else { await $.ui.open({ id: PANE_ID, title: '☾ Muslim' }); $.ui.invalidate('ui.render') }
+    else {
+      const opened = await $.ui.open({ id: PANE_ID, title: '☾ Muslim' })
+      if (!opened.isPlaced) { $.ui.toast('Muslim pane unavailable. Use /muslim.'); return }
+      $.ui.invalidate('ui.render')
+    }
   } catch { $.ui.toast('Muslim pane unavailable. Use /muslim.') }
 }
 
@@ -316,7 +314,7 @@ const playDemo = async ($: EngineInterface, shared: boolean): Promise<string> =>
     if (shared) doneDemo('pane')
     return 'Muslim pane unavailable. Use /muslim.'
   }
-  playing.timer = $.clock.every(DEMO_TICK_MS, () => { void tickDemo($, playing) })
+  playing.timer = $.clock.every(DEMO_TICK_MS, () => { void tickDemo($, playing).catch(() => {}) })
   $.ui.invalidate('ui.render')
   return demoReply()
 }
@@ -330,7 +328,7 @@ export const install = (on: On, options: Options) => {
     const { Box, Text, Button } = $.ui.resolve(e)
     // Desktop draws a Button from its label alone; the Text repeats it for a Desktop that draws the children.
     return <Box gap={1}>
-      <Button key="muslim-footer" label="☾ Muslim" plain onPress={() => { void togglePane($) }}><Text>☾ Muslim</Text></Button>
+      <Button key="muslim-footer" label="☾ Muslim" plain onPress={() => { void togglePane($).catch(() => {}) }}><Text>☾ Muslim</Text></Button>
       {theirs}
     </Box>
   })
@@ -351,14 +349,15 @@ export const install = (on: On, options: Options) => {
     // Refresh Quran's feed through its own empty-command hook before opening.
     await next(e)
     try {
-      await $.ui.open({ id: 'muslim', title: '☾ Muslim' })
+      const opened = await $.ui.open({ id: PANE_ID, title: '☾ Muslim' })
+      if (!opened.isPlaced) return { text: 'Muslim pane unavailable. Use /muslim.' }
       $.ui.invalidate('ui.render')
       return { text: 'Muslim pane opened.' }
     } catch {
       // An empty answer asks register to keep its existing text-table fallback.
       return {}
     }
-  })
+  }).catch(() => ({ text: 'Could not complete the command. Try again.' }))
 
   on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
     // Let the owning features connect even when the footer has not drawn;
@@ -424,14 +423,14 @@ export const install = (on: On, options: Options) => {
   on('ui.scroll', { component: 'Pane', requestId: PANE_ID }, ($, e, next) => {
     if (skipPaneScroll(desktopPane, paneOffset, e)) return {}
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 
   // DEMO BEGIN: the tour is the last step of /muslim demo; `/muslim demo pane` plays it alone.
   on('command.run', { command: 'muslim', args: /^\s*demo\s*$/ }, ($, e, next) => {
     connectDemo('pane', () => playDemo($, true))
     return next(e)
-  })
-  on('command.run', { command: 'muslim', args: /^\s*demo\s+pane\s*$/ }, async $ => ({ text: (await playDemo($, false)) || demoTerminalReply() }))
+  }).catch(() => ({ text: 'Could not complete the command. Try again.' }))
+  on('command.run', { command: 'muslim', args: /^\s*demo\s+pane\s*$/ }, async $ => ({ text: (await playDemo($, false)) || demoTerminalReply() })).catch(() => ({ text: 'Could not complete the command. Try again.' }))
   // DEMO END
 
   on('ui.close', { id: PANE_ID }, async ($, e, next) => {
@@ -447,6 +446,6 @@ export const install = (on: On, options: Options) => {
     desktopPane = false
     paneOffset = 0
     return next(e)
-  })
+  }).catch(($, e, next) => next(e))
 }
 

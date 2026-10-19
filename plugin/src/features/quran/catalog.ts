@@ -1,3 +1,4 @@
+import { latinDigits } from '../../shared/digits/index.ts'
 export type Reciter = { key: string; name: string; label: string; server: string }
 export type Surah = { id: number; name: string }
 export type Catalog = { reciters: Reciter[]; surahs: Surah[] }
@@ -39,6 +40,7 @@ export function audioUrl(reciter: Reciter, surah: number): string {
 
 export const normalizeName = (text: string, stripArticle = true): string => text.normalize('NFKC').replace(/[\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06ed\u0640]/g, '').replace(/[أإآٱ]/g, 'ا').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي').replace(/ء/g, '').replace(/\s/g, '').replace(/ال/g, article => stripArticle ? '' : article).toLowerCase()
 export function matchSurah(text: string, surahs: readonly Surah[]): Surah | undefined {
+  text = latinDigits(text)
   if (/^\d+$/.test(text)) return surahs.find(s => s.id === Number(text))
   const name = normalizeName(text)
   return name ? surahs.find(s => normalizeName(s.name) === name) : undefined
@@ -54,13 +56,13 @@ export function matchReciter(text: string, reciters: readonly Reciter[]): Recite
 // Keep ال in substring searches: removing it would turn صالح into صح.
 const searchName = (text: string): string => normalizeName(text, false)
 export function searchReciters(query: string, reciters: readonly Reciter[]): Reciter[] {
-  const digits = query.trim().replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 1632))
+  const digits = latinDigits(query.trim())
   if (/^\d+$/.test(digits)) return reciters[Number(digits) - 1] ? [reciters[Number(digits) - 1]!] : []
   const name = searchName(query)
   return reciters.filter(r => !name || searchName(r.name).includes(name) || searchName(r.label).includes(name))
 }
 export function searchSurahs(query: string, surahs: readonly Surah[]): Surah[] {
-  const digits = query.trim().replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 1632))
+  const digits = latinDigits(query.trim())
   if (/^\d+$/.test(digits)) return surahs.filter(s => s.id === Number(digits))
   const name = searchName(query)
   return surahs.filter(s => !name || searchName(s.name).includes(name))

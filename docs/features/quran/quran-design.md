@@ -53,17 +53,15 @@ Desktop is the supported v1 surface, a stated scope exception to the shared cros
 
 ## Settings exception
 
-**Stated exception to CLAUDE.md's “settings are userConfig” rule:** all durable Quran data—remembered recording, duration numbers and recording segment metadata—stays in `$.store` (`quran.reciter`, `quran.durations`, `quran.segmentCache`), not userConfig. `$.config.set` reloads the module and would cut playback continuity by losing the AbortController; an old clip may remain audible without a handle. Choosing a recording must not reload the module. The player catalog is imported from shipped `catalog-data.ts`; an obsolete `quran.catalog` store entry is ignored. No new userConfig fields are added. The `/muslim` feature row shows the selected recording in the shared status-table shape; `/muslim help quran` and `/quran help` use the shared help-table shape, including `/quran reciter`. Stop is the user's off action; there is no unsolicited playback or enabled switch. Loudness is controlled by the OS.
+**Stated exception to CLAUDE.md's “settings are userConfig” rule:** all durable Quran data—remembered recording, duration numbers and recording segment metadata—stays in `$.store` (`quran.reciter`, `quran.durations`, `quran.segmentCache`), not userConfig. `$.config.set` reloads the module and would cut playback continuity by losing the AbortController; an old clip may remain audible without a handle. Choosing a recording must not reload the module. The player catalog is imported from shipped `catalog-data.ts`; unknown store values are ignored. No new userConfig fields are added. The `/muslim` feature row shows the selected recording in the shared status-table shape; `/muslim help quran` and `/quran help` use the shared help-table shape, including `/quran reciter`. Stop is the user's off action; there is no unsolicited playback or enabled switch. Loudness is controlled by the OS.
 
 Playback state stays in the declared session contract; handles stay in the runtime only. On reload, existing `session.start` clears tracking and does not resume. All plugin-initiated config writes first await the shared transient stop-before-reload connector. If playback or preparation is active, Quran stops and shows the single note `Quran stopped: changing a setting reloads the player.`; otherwise it does nothing. External `/config` changes and other reloads cannot be intercepted and may still orphan a clip until the surah ends.
 
 The API has no pointer-cursor prop. The Client draws hover feedback; pointer shape remains host-controlled. Pane chrome and pointer shape remain host-controlled.
 
-## Playback watchdog and temporary diagnostics
+## Playback watchdog
 
 Every play invocation creates a 200ms `$.clock.every` beside its `$.audio.play` call. Stop/replacement still abort directly and bump generation; the old clip's own timer checks generation and calls its controller's abort from inside that timer callback. It does so even if a direct abort already marked the signal, and cancels when the play promise resolves or rejects. This addresses the live invocation-context hypothesis; engine tests do not prove audible stop. Duration work never blocks it.
-
-`QURAN_DEBUG = false` disables diagnostics for v1. Setting it to `true` temporarily enables serialized read/append/write diagnostics under the OS temp folder: `claude-muslim-quran/debug.log`. Keep the last 200 lines; log generation/surah/start path (command, pane, auto-advance), direct and watchdog aborts, resolved/rejected settlement, aborted flag and elapsed milliseconds. Failures are silent and logging never blocks playback. Return the constant to `false` after live diagnosis.
 
 ## Never
 
@@ -99,3 +97,9 @@ In light mode only, the pixel-art avatar carries `filter: drop-shadow(0 1px 1.5p
 The pane feed carries error text unchanged. The card adds a single dim 12px line and a real «إعادة المحاولة» button below the controls, with drawing and hit testing sharing layout constants in the Muslim pane. Retry refreshes the failed recording and preserves its surah, segment and play/prepare intent. Retry, Stop, new Play and selection changes clear the error; desktop Arabic stays authored. Details and geometry belong to the Muslim pane design.
 
 Settings follow the preflight order in DESIGN.md: check the exact config row before changing pending UI state or stopping playback. A missing row leaves the player running and uses the existing command reply or settings toast with the short reload-plugins message. A missing-row error during the subsequent write maps to that same message and preserves rollback.
+
+## Release behavior
+
+Arabic-Indic surah numbers work in `/quran play`, using the shared two-way digits helper. Every HTTP metadata fetch races a 15000 ms engine-clock sleep; a timeout aborts pending player work and shows one quiet retryable error. The API exposes no HTTP abort signal, so this ends the plugin’s wait, not the underlying host request. Retry starts fresh metadata work. Duration probes reuse the validated Range reader, its connection/file-size limits and OS temp cleanup. `quran.durations` keeps the 120 most recently learned duration numbers.
+
+`session.start` exposes only `cwd`, `surface` and `isInteractive`, with no real-start/reload distinction in the authoritative API types. Repeat therefore resets to off on every module load, including a settings change. No temporary debug logging ships.

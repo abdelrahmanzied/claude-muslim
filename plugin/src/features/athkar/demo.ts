@@ -1,6 +1,6 @@
 // Pure story scenes and readings; nothing here touches the saved day.
 import { ACCENTS, type Accent } from '../../shared/color/index.ts'
-import { emptyReading, listFor, overall, timesOf, type AthkarSet, type Reading, type Sky } from './logic.ts'
+import { emptyReading, listFor, overall, type AthkarSet, type Reading, type Sky } from './logic.ts'
 import type { Style } from './look.ts'
 import type { Period } from './data.ts'
 
@@ -65,10 +65,10 @@ export const demoStep = (style: Style, accent: Accent, elapsed: number, finaleMs
   const list = listFor(period, context)
   const index = list.findIndex(thikr => thikr.id === scene.id)
   const thikr = list[index]!
-  const count = scene.kind === 'reading' ? Math.min(timesOf(thikr), Math.floor(ms / scene.countMs)) : timesOf(thikr)
+  const count = scene.kind === 'reading' ? Math.min(thikr.times, Math.floor(ms / scene.countMs)) : thikr.times
   // Skip ahead through the set for filming, completing the preceding items
   // in this disposable reading only. Position and overall progress stay real.
-  const counts = Object.fromEntries(list.slice(0, index).map(t => [t.id, timesOf(t)]))
+  const counts = Object.fromEntries(list.slice(0, index).map(t => [t.id, t.times]))
   const reading: Reading = { ...context, index, counts: { ...counts, [thikr.id]: count }, isDone: scene.kind !== 'reading' }
   const previous: Reading = { ...reading, counts: { ...counts, [thikr.id]: Math.max(0, count - 1) } }
   const sinceCount = ms - count * scene.countMs

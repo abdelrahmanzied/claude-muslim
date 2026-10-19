@@ -53,7 +53,7 @@ Then start a session; muslim loads by itself. In the desktop app it appears once
 | --- | --- |
 | `/muslim` | Open the Muslim pane (desktop), or see your settings (terminal) |
 | `/muslim help` | Every command |
-| `/muslim demo` | See every feature play |
+| `/muslim demo` | Play thikr, athkar, salah and the desktop pane tour |
 | `/muslim update` | Update to the latest version |
 | `/muslim feedback` | Report a bug or send an idea |
 

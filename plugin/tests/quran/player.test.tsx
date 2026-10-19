@@ -681,7 +681,7 @@ test('duration probe uses curl Range, reads base64 bytes, caches a number and cl
     return { value: { exitCode: 0, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
   // Two valid 128 kbps MPEG-1 frames (the remainder is zero-filled).
-  const bytes = new Uint8Array(1000)
+  const bytes = new Uint8Array(131072)
   bytes.set([255, 251, 144, 0]); bytes.set([255, 251, 144, 0], 417)
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
   let base64 = ''
@@ -691,12 +691,13 @@ test('duration probe uses curl Range, reads base64 bytes, caches a number and cl
   }
   on('fs.read', async (_$, e) => {
     if (e.as === 'bytes') { bytesRead = true; return { value: { base64 } } }
-    return { value: 'Content-Range: bytes 0-131071/1600000\r\n' }
+    return { value: 'HTTP/1.1 206 Partial Content\r\nContent-Range: bytes 0-131071/1600000\r\n' }
   })
+  on('fs.stat', async () => ({ value: { size: 131072, mtimeMs: 0, kind: 'file', isFile: true, isDirectory: false, isLink: false } }))
   await $.command.run(run('play 18')); await clock.settle()
   expect(bytesRead).toBe(true)
   expect(body).toContain('/fixture-tmp/claude-muslim-quran/')
-  expect(argv[0]).toEqual(['curl', '-s', '-L', '--fail', '--max-time', '15', '-r', '0-131071', '-D', `${body}.headers`, '-o', body, 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r1/018.mp3'])
+  expect(argv[0]).toEqual(['curl', '-s', '-L', '--fail', '--connect-timeout', '8', '--max-time', '15', '--max-filesize', '131072', '-r', '0-131071', '-D', `${body}.headers`, '-o', body, 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r1/018.mp3'])
   expect(argv[1]).toEqual(['rm', '-f', '--', body, `${body}.headers`])
   expect(clock.store['quran.durations']).toEqual({ [`${primary.key}:18`]: 100000 })
   expect(clock.state.quranPlaying?.durationMs).toBe(100000)
@@ -709,9 +710,9 @@ test('on Windows the probe uses TEMP and del for cleanup', async ($, on) => {
   on('fs.write', async () => ({ value: undefined }))
   on('process.run', async (_$, e) => (argv.push([...e.argv]), { value: { exitCode: 1, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
   await $.command.run(run('play 18')); await clock.settle()
-  expect(argv[0]![11]).toContain('C:\\Users\\me\\AppData\\Local\\Temp/claude-muslim-quran/')
-  expect(argv[1]!.slice(0, 4)).toEqual(['cmd', '/c', 'del', '/q'])
-  expect(argv[1]![4]).not.toContain('/')
+  expect(argv[0]![argv[0]!.indexOf('-o') + 1]!).toContain('C:\\Users\\me\\AppData\\Local\\Temp/claude-muslim-quran/')
+  expect(argv[1]!.slice(0, 5)).toEqual(['cmd', '/d', '/c', 'del', '/q'])
+  expect(argv[1]![5]).not.toContain('/')
   await $.command.run(run('stop'))
 })
 test('missing curl silently leaves duration unknown and attempts prefix cleanup', async ($, on) => {
@@ -1147,5 +1148,38 @@ for (const origin of ['pane', 'command'] as const) test(`missing colour row from
   expect(clips).toHaveLength(1)
   expect(clips[0]!.signal.aborted).toBe(false)
   expect(clock.state.quranPlaying).not.toBeNull()
+  await $.command.run(run('stop'))
+})
+
+test('Arabic-Indic play ١٨ selects and plays Al-Kahf', async ($, on) => {
+  const clock = setup(on); const played = audio(on, clock)
+  const reply = await $.command.run(run('play ١٨')); await clock.settle()
+  expect(clock.state.quranPlaying?.surah).toBe(18)
+  expect(reply.text).toContain('الكهف')
+  expect(played).toHaveLength(1)
+  await $.command.run(run('stop'))
+})
+for (const phase of ['HEAD', 'reads', 'timing'] as const) test(`never-resolving ${phase} metadata times out with one quiet error and working Retry`, async ($, on) => {
+  const clock = setup(on, {}, {}, 'desktop', false)
+  const played = audio(on, clock)
+  let blocked = true
+  on('http.fetch', async (_$, e) => {
+    const targeted = phase === 'HEAD' ? e.init?.method === 'HEAD' : phase === 'reads' ? e.url.endsWith('/reads') : e.url.includes('ayat_timing?')
+    if (blocked && targeted) return await new Promise<never>(() => {})
+    if (e.init?.method === 'HEAD') return { value: { ok: true, status: 200, headers: { 'content-length': String(blocked ? AUDIO_LIMIT_BYTES + 1000 : 1000000) }, text: '' } }
+    return { value: { ok: true, status: 200, headers: {} as Record<string, string>, text: JSON.stringify([{ id: 1, folder_url: primary.server }]) } }
+  })
+  const request = $.command.run(run('play 18'))
+  await clock.settle(); await clock.advance(15000)
+  const reply = await request
+  expect(reply.text).toContain('timed out')
+  expect(clock.state.quranError).toBe(reply.text)
+  expect(clock.state.quranPlaying).toBe(null)
+  expect(clock.toasts).toEqual([])
+  expect(played).toHaveLength(0)
+  blocked = false
+  await $.command.run(run('retry')); await clock.settle()
+  expect(clock.state.quranPlaying?.surah).toBe(18)
+  expect(clock.state.quranError).toBe(null)
   await $.command.run(run('stop'))
 })
