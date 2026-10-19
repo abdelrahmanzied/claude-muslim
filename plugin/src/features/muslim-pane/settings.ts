@@ -26,8 +26,8 @@ export type SettingsOptions = Omit<Options, 'salahPlace'> & { salahPlace: NonNul
 export const settingsOptions = (o: Options): SettingsOptions => ({ ...o, salahPlace: o.salahPlace ?? null })
 export const SWITCH_FIELDS = ['tashkeel', 'thikr', 'athkarMorning', 'athkarEvening', 'athkarAfterSalah', 'salahAthan', 'paneButton', 'thikrEnd'] as const
 export const isSwitchField = (field: keyof Options): field is keyof PaneOptimistic => SWITCH_FIELDS.some(f => f === field)
-// Retain only pending values; called on load, outside drawing (state writes
-// are forbidden during ui.render). Also filters malformed session data.
+// Only valid, differing pending values affect drawing. The installer supplies
+// current-module presses and retires inherited entries outside ui.render.
 export const pendingSwitches = (options: Options, saved: PaneOptimistic = {}): PaneOptimistic => Object.fromEntries(
   SWITCH_FIELDS.filter(f => typeof saved[f] === 'boolean' && saved[f] !== options[f]).map(f => [f, saved[f]]),
 )

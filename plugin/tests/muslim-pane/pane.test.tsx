@@ -1,12 +1,12 @@
 import { ATHKAR_QUIET, configRows } from '../fixtures/config.ts'
 import { emptyDay, dayOf } from '../../src/features/athkar/logic.ts'
-import type { Day } from '../../types/index.d.ts'
+import type { Day, PaneOptimistic } from '../../types/index.d.ts'
 import { runPanelAction } from '../../src/shared/panel/signal.ts'
 import { quranLayout } from '../../src/features/muslim-pane/model.ts'
 import { athkarHead, athkarRow, athkarRowTop, KMENU_TOP, KMENU_PAD, KMENU_ROW_H, KMENU_GAP } from '../../src/features/muslim-pane/layout.ts'
 import type { Mounted } from 'claude-code/testing'
 import { settingsBoxes, TITLE_HIT_H, paneHeight } from '../../src/features/muslim-pane/layout.ts'
-import { CLOSED_SETTINGS, COPIED_MS, SETTINGS_BODY_TOP, settingsBody, type SettingsState } from '../../src/features/muslim-pane/settings.ts'
+import { CLOSED_SETTINGS, COPIED_MS, SETTINGS_BODY_TOP, SWITCH_FIELDS, settingsBody, type SettingsState } from '../../src/features/muslim-pane/settings.ts'
 import type { On, PaneOpenArgs, UiOpenResult } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 import { cardRects, ATHAN_TOP, ATHKAR_Y, KROW_TOP, PANE_HEIGHT, Q_CONTROLS_BASE, Q_CONTROLS_H, Q_TITLE_TOP, PRAYER_Y, QURAN_Y } from '../../src/features/muslim-pane/layout.ts'
@@ -392,6 +392,130 @@ test('terminal Arabic copy failure shows the command as a toast',async($,on)=>{
 // A press resolves before its config write does; wait for the hook's own effects.
 const until=async(done:()=>boolean)=>{for(let i=0;i<200&&!done();i++)await new Promise<void>(r=>setTimeout(()=>r(),5))}
 const optimisticRef={plugin:'muslim',key:'paneOptimistic'} as const
+
+function optimisticState(on: On, initial: PaneOptimistic = {}) {
+  let saved = initial
+  const writes: PaneOptimistic[] = []
+  on('state.get', { plugin: 'muslim', key: 'paneOptimistic' }, async (_$, e, next) => {
+    const held = await next(e)
+    return { value: { version: held.value!.version, value: saved } }
+  })
+  on('state.set', { plugin: 'muslim', key: 'paneOptimistic' }, async (_$, e, next) => {
+    const result = await next(e)
+    if (result.value?.isSet) { saved = e.value!; writes.push(saved) }
+    return result
+  })
+  return { read: () => saved, writes }
+}
+
+async function athanClick(ui: Mounted<'desktop' | 'terminal', 'Pane'>) {
+  await ui.resize({ columns: 50, rows: 100, in: 'muslim-pane' })
+  const model = (await ui.find({ type: 'Client', key: 'muslim-pane' }))!.props.props as PaneModel
+  const r = cardRects(model.folds, model.settings.state, model.settings.options, quranLayout(model), model.athkarMenu)
+  const fine = { x: 25, y: (r.prayerY + ATHAN_TOP + 15) * 100 / r.height }
+  await ui.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: Math.floor(fine.x), y: Math.floor(fine.y), fine })
+}
+
+test('a stale Athan ON entry after reload draws OFF and the next press saves ON', { options: { salahPlace: MUNICH, salahAthan: false } }, async ($, on) => {
+  engine(on, 'desktop')
+  const pending = optimisticState(on, { salahAthan: true })
+  const sets: unknown[] = []
+  on('config.set', async (_$, e) => { sets.push(e.value); return { value: e.value } })
+  const ui = await $.ui.mount(pane('desktop'))
+  expect((await athkarModel(ui)).prayer.isAthan).toBe(false)
+  expect((await athkarModel(ui)).settings.options.salahAthan).toBe(false)
+  expect(await svgOf(ui)).toContain('aria-checked="false" aria-label="الأذان"')
+  // Let the press beat the deferred cleanup of the inherited true value.
+  await athanClick(ui)
+  await until(() => sets.length > 0)
+  await testClock.advance(0)
+  expect(sets).toEqual([true])
+  expect(pending.read()).toEqual({ salahAthan: true })
+  expect((await athkarModel(ui)).prayer.isAthan).toBe(true)
+  await ui.unmount()
+})
+
+for (const field of SWITCH_FIELDS) for (const matches of [true, false]) test(`reload clears ${matches ? 'confirmed' : 'stale'} ${field} outside drawing`, { options: { [field]: false } }, async ($, on) => {
+  engine(on, 'desktop')
+  // Host state surviving a successful write/reload, or a later external change.
+  const pending = optimisticState(on, { [field]: !matches })
+  let rendering = true
+  on('state.set', optimisticRef, (_$, e, next) => { expect(rendering).toBe(false); expect(typeof e.ifVersion).toBe('number'); return next(e) })
+  const ui = await $.ui.mount(pane('desktop'))
+  expect((await athkarModel(ui)).settings.options[field]).toBe(false)
+  expect(pending.writes).toEqual([])
+  rendering = false
+  await testClock.advance(0)
+  expect(pending.read()).toEqual({})
+  expect(pending.writes).toEqual([{}])
+  await ui.redraw()
+  await testClock.advance(0)
+  expect(pending.writes).toEqual([{}])
+  await ui.unmount()
+})
+
+test('loaded pending cleanup retries a missed state version', async ($, on) => {
+  engine(on, 'desktop')
+  const pending = optimisticState(on, { salahAthan: true })
+  let missed = false, attempts = 0
+  on('state.set', optimisticRef, (_$, e, next) => {
+    attempts++
+    if (!missed) { missed = true; return { value: { isSet: false, version: 1 } } }
+    return next(e)
+  })
+  const ui = await $.ui.mount(pane('desktop'))
+  await testClock.advance(0)
+  expect(attempts).toBe(2)
+  expect(pending.read()).toEqual({})
+  await ui.unmount()
+})
+
+for (const failure of ['deny', 'throw', 'missing'] as const) test(`daily Athan ${failure} restores OFF and toasts`, { options: { salahPlace: MUNICH, salahAthan: false } }, async ($, on) => {
+  engine(on, 'desktop', undefined, {}, undefined, {}, failure === 'missing' ? [] : configRows)
+  const pending = optimisticState(on)
+  const toasts: string[] = [], sets: unknown[] = []
+  on('ui.toast', async (_$, e) => { toasts.push(e.text); return { value: undefined } })
+  on('config.set', async (_$, e) => { sets.push(e.value); if (failure === 'throw') throw new Error('locked'); return { deny: 'locked' } })
+  const ui = await $.ui.mount(pane('desktop'))
+  await athanClick(ui)
+  await until(() => toasts.length > 0)
+  expect((await athkarModel(ui)).prayer.isAthan).toBe(false)
+  expect((await athkarModel(ui)).settings.options.salahAthan).toBe(false)
+  expect(pending.read()).toEqual({})
+  expect(sets).toEqual(failure === 'missing' ? [] : [true])
+  expect(toasts).toHaveLength(1)
+  expect(toasts[0]).toMatch(/^Not changed:/)
+  if (failure !== 'throw') expect(toasts[0]).toBe(failure === 'missing' ? 'Not changed: run /reload-plugins, then try again.' : 'Not changed: locked')
+  await ui.unmount()
+})
+
+for (const denied of [false, true]) test(`two Athan presses before reload keep the second value when the older write ${denied ? 'is denied' : 'succeeds'}`, { options: { salahPlace: MUNICH, salahAthan: false } }, async ($, on) => {
+  engine(on, 'desktop')
+  const pending = optimisticState(on, { salahAthan: true })
+  const values: unknown[] = [], releases: (() => void)[] = [], toasts: string[] = []
+  on('ui.toast', async (_$, e) => { toasts.push(e.text); return { value: undefined } })
+  on('config.set', async (_$, e) => {
+    const index = values.length
+    values.push(e.value)
+    await new Promise<void>(resolve => { releases[index] = resolve })
+    return denied && index === 0 ? { deny: 'locked' } : { value: e.value }
+  })
+  const ui = await $.ui.mount(pane('desktop'))
+  try {
+    await athanClick(ui); await until(() => values.length === 1)
+    expect((await athkarModel(ui)).prayer.isAthan).toBe(true)
+    await athanClick(ui); await until(() => values.length === 2)
+    expect(values).toEqual([true, false])
+    expect(pending.read()).toEqual({ salahAthan: false })
+    releases[0]!()
+    if (denied) await until(() => toasts.length > 0)
+    await testClock.advance(0)
+    expect(pending.read()).toEqual({ salahAthan: false })
+    expect((await athkarModel(ui)).prayer.isAthan).toBe(false)
+    expect((await athkarModel(ui)).settings.options.salahAthan).toBe(false)
+  } finally { for (const release of releases) release() }
+  await ui.unmount()
+})
 
 for(const denied of [false,true]) test(`settings switch redraws while config is pending, ${denied?'then rolls back denial':'then keeps the requested value'}`,async($,on)=>{
   engine(on,'desktop'); settingsState(on,{open:true,category:'athkar',face:'main',page:0})

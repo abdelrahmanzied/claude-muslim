@@ -41,6 +41,9 @@ async function readFolds($: EngineInterface): Promise<Folds> {
 const settingsRef = { plugin: 'muslim', key: 'paneSettings' } as const
 const optimisticRef = { plugin: 'muslim', key: 'paneOptimistic' } as const
 const copiedRef = { plugin: 'muslim', key: 'paneCopied' } as const
+// A reload cancels the old writers. Only presses in this module can still be
+// pending; host state alone must never override the freshly loaded options.
+const switchPresses = new Map<keyof PaneOptimistic, object>()
 
 // Read-modify-write of the pending switches: `edit` gets a copy and returns the
 // new value, or null to leave it. A write that another press beat is redone from a fresh read.
@@ -51,6 +54,24 @@ async function editPending($: EngineInterface, edit: (pending: PaneOptimistic) =
     if (!next) return
     if ((await $.state.set(optimisticRef, next, { ifVersion: held.version })).isSet) return
   }
+}
+
+async function clearLoadedPending($: EngineInterface, observed: PaneOptimistic): Promise<void> {
+  await editPending($, pending => {
+    const next = Object.fromEntries(Object.entries(pending).filter(([key, value]) =>
+      switchPresses.has(key as keyof PaneOptimistic) || value !== observed[key as keyof PaneOptimistic],
+    ))
+    return Object.keys(next).length === Object.keys(pending).length ? null : next
+  })
+}
+async function readPending($: EngineInterface): Promise<PaneOptimistic> {
+  const saved = (await $.state.get(optimisticRef)).value ?? {}
+  if (Object.keys(saved).some(key => !switchPresses.has(key as keyof PaneOptimistic))) {
+    // A timer runs outside ui.render, where state writes are allowed. Recheck
+    // ownership inside every CAS retry so a newer press always survives.
+    $.clock.after(0, () => { void clearLoadedPending($, saved).catch(() => {}) })
+  }
+  return Object.fromEntries(Object.entries(saved).filter(([key]) => switchPresses.has(key as keyof PaneOptimistic)))
 }
 
 // The copy button's confirmation, shown until its expiry time; the timer only redraws.
@@ -113,10 +134,10 @@ async function modelNow($: EngineInterface, options: Options, columns: unknown):
   // A segment list only means something for a split surah; a folded card shows no list.
   let view: PickerView | null = null
   if (picker && quran && !folds.quran && (picker.list !== 'segment' || quran.segmented)) view = pickerView(picker, await readQuranOptions(picker.list, picker.query))
-  const pending = (await $.state.get(optimisticRef)).value
+  const pending = await readPending($)
   const salah = readSalah(now)
   if (salah) salah.isAthan = optimisticOptions(options, pending).salahAthan
-  return paneModel({ salah, quran, athkar: await readAthkar() }, now, widthOf(columns), options.color, undefined, folds, { state: await readSettings($), options: optimisticOptions(options, (await $.state.get(optimisticRef)).value), terminalMode: 'per-terminal setup', copied: copiedAt((await $.state.get(copiedRef)).value, now), autoUpdate: await readPanelAutoUpdate(), pendingAutoUpdate: (await $.state.get({ plugin: 'muslim', key: 'paneAutoUpdate' })).value ?? null }, view, (await $.state.get(athkarMenuRef)).value === true)
+  return paneModel({ salah, quran, athkar: await readAthkar() }, now, widthOf(columns), options.color, undefined, folds, { state: await readSettings($), options: optimisticOptions(options, pending), terminalMode: 'per-terminal setup', copied: copiedAt((await $.state.get(copiedRef)).value, now), autoUpdate: await readPanelAutoUpdate(), pendingAutoUpdate: (await $.state.get({ plugin: 'muslim', key: 'paneAutoUpdate' })).value ?? null }, view, (await $.state.get(athkarMenuRef)).value === true)
 }
 
 // The athan toggle changes the salah setting itself (the module reloads); every other press is the owning feature's own action.
@@ -144,7 +165,7 @@ async function press($: EngineInterface, options: Options, act: PaneAct): Promis
     if (k) await runPanelAction(k.canUndo ? 'athkar-undo' : 'athkar-reset')
     return
   }
-  if (act === 'athan') { await changeSetting($, 'salahAthan', !optimisticOptions(options, (await $.state.get(optimisticRef)).value).salahAthan); return }
+  if (act === 'athan') { await changeSetting($, 'salahAthan', !optimisticOptions(options, await readPending($)).salahAthan); return }
   if (act === 'quran-pick-reciter' || act === 'quran-pick-surah' || act === 'quran-pick-segment') {
     const list = act === 'quran-pick-reciter' ? 'reciter' : act === 'quran-pick-surah' ? 'surah' : 'segment'
     const rows = await readQuranOptions(list, '')
@@ -208,12 +229,19 @@ async function changeSetting($: EngineInterface, field: keyof Options, value: bo
     if (!hasConfigRow(await $.config.list(), `muslim.${field}`)) return void $.ui.toast(MISSING_CONFIG)
   } catch (error) { $.ui.toast(configFailure(error)); return }
   const optimistic = isSwitchField(field) && typeof value === 'boolean'
-  if (optimistic) await editPending($, pending => ({ ...pending, [field]: value as boolean }))
+  const press = {}
+  if (optimistic) {
+    switchPresses.set(field, press)
+    await editPending($, pending => ({ ...pending, [field]: value as boolean }))
+  }
   if (s?.face === 'methods') await $.state.set(settingsRef, { ...s, face: 'main', page: 0 })
   const failure = await writeSetting($, `muslim.${field}`, value)
   if (failure) {
-    // Clear only this press's own entry: a newer press for the field has a different value.
-    if (optimistic) await editPending($, pending => pending[field] === value ? Object.fromEntries(Object.entries(pending).filter(([k]) => k !== field)) : null)
+    // Check both identity and value on every retry, even after on/off/on presses.
+    if (optimistic) {
+      await editPending($, pending => switchPresses.get(field) === press && pending[field] === value ? Object.fromEntries(Object.entries(pending).filter(([k]) => k !== field)) : null)
+      if (switchPresses.get(field) === press) switchPresses.delete(field)
+    }
     if (s?.face === 'methods') await $.state.set(settingsRef, s)
     $.ui.toast(failure)
   }
