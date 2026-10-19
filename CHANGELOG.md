@@ -37,6 +37,7 @@ The first public release.
 ### Muslim pane (desktop)
 
 - `/muslim` opens a pane with today's prayers, the Quran player, athkar progress and every setting, with a button in the prompt footer.
+- A settings button takes a press anywhere on it, its empty padding included, not only on its word.
 
 ### Everywhere
 

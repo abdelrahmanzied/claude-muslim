@@ -1,3 +1,6 @@
+import { CONTROL_SLOP, settingsBoxes } from '../../src/features/muslim-pane/layout.ts'
+import { DEFAULT_SETTINGS, settingsOptions } from '../../src/features/muslim-pane/settings.ts'
+import { readOptions } from '../../src/config.ts'
 import { athkarHead, athkarRow, FOLD_W, FOLD_BLEED, KROW_OPEN_TOP, KMENU_TOP, KMENU_PAD, KMENU_ROW_H, KMENU_GAP } from '../../src/features/muslim-pane/layout.ts'
 import { expect, test } from 'claude-code/testing'
 import { AVATAR_H, CARDS_TOP, CITY_H, CITY_TOP, FOLDED_H, GAP, TOP_H, TOP_Y, NO_FOLDS, TITLE_HIT_H, cardRects, paneHeight, ATHAN_H, ATHAN_TOP, ATHKAR_H, ATHKAR_Y, CONTROL_SPECS, Q_CONTROLS_BASE, Q_CONTROLS_H, Q_RECITER_BASE, Q_SEG_TOP, Q_TITLE_TOP, Q_BASE_H, Q_PICKER_H, SHEET_BORDER, SHEET_ROWS_TOP, SHEET_ROW_H, SHEET_HEAD_TOP, SHEET_BACK_W, quranHeight, quranOffset, sheetBar, quranRowOf, NO_QURAN, KROW_TOP, PAD, SIDE, PANE_HEIGHT, PRAYER_H, PRAYER_Y, QURAN_Y, hitAt, hitOfCells, isPaneMessage, keyAct, type Enabled } from '../../src/features/muslim-pane/layout.ts'
@@ -214,5 +217,23 @@ test('the fold chevron sits at the same left x on all three folding cards, folde
     expect(hitAt(W, x, r.prayerY + 28, ALL, 0, 0, folds)).toBe('fold-prayer')
     expect(hitAt(W, x, r.quranY + 28, ALL, 0, 0, folds)).toBe('fold-quran')
     expect(hitAt(W, x, r.athkarY + 28, ALL, 0, 0, folds)).toBe('fold-athkar')
+  }
+})
+
+test('a settings control takes a press on every pixel and just outside it; a press inside one always picks it',()=>{
+  const on: Enabled = { athan: true, quran: false, canPrev: false, canNext: false, segmented: false, athkar: false, athkarFinish: false }
+  const folds = { prayer: true, quran: true, athkar: true }
+  const settings = { ...DEFAULT_SETTINGS, state: { open: true, category: 'thikr' as const, face: 'main' as const, page: 0 }, options: settingsOptions(readOptions({ thikrSpeed: '3' })) }
+  const pills = settingsBoxes(420, folds, settings).filter(b => /thikr(Mode|Speed):/.test(b.act))
+  expect(pills.length).toBe(6)
+  for (const b of pills) {
+    for (let x = b.x0; x <= b.x1; x += 2) for (let y = b.y0; y <= b.y1; y += 2) expect(hitAt(420, x, y, on, 0, 0, folds, settings)).toBe(b.act)
+    const midX = (b.x0 + b.x1) / 2, midY = (b.y0 + b.y1) / 2
+    // Just outside the edge (nearer to it than to any neighbour, the speed row's stepper sits 10px below).
+    expect(hitAt(420, midX, b.y0 - 3, on, 0, 0, folds, settings)).toBe(b.act)
+    expect(hitAt(420, midX, b.y1 + 3, on, 0, 0, folds, settings)).toBe(b.act)
+    expect(hitAt(420, b.x0 - 1, midY, on, 0, 0, folds, settings)).toBe(b.act)
+    // Past the margin above the content row nothing is pressed (the stepper's margin meets the speed row's).
+    if (b.act.startsWith('settings:thikrMode:')) expect(hitAt(420, midX, b.y0 - CONTROL_SLOP.y - 1, on, 0, 0, folds, settings)).toBe(null)
   }
 })

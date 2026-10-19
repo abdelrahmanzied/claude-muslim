@@ -241,6 +241,13 @@ const isEnabled = (act: PaneAct, on: Enabled): boolean =>
     : act === 'quran-prev' ? on.quran && on.canPrev : act === 'quran-next' ? on.quran && on.canNext
     : act === 'quran-repeat-segment' || act === 'quran-pick-segment' ? on.quran && !!on.segmented : on.quran
 
+// A settings control also takes presses just outside its drawn edge: half the 4px gap between
+// neighbours, and 6px above and below. The distance still counts from the drawn edge, so a press
+// inside a control always picks that control.
+export const CONTROL_SLOP = { x: 2, y: 6 }
+const NO_SLOP = { x: 0, y: 0 }
+const isSettingsControl = (act: PaneAct): boolean => act.startsWith('settings:') && act !== 'settings:fold' && !act.startsWith('settings:tab:')
+
 const gap = (v: number, lo: number, hi: number) => (v < lo ? lo - v : v > hi ? v - hi : 0)
 
 // `sx`/`sy` are the half-extent of the pointer's cell (see pointerSlack): a pointer
@@ -258,7 +265,8 @@ export const hitAt = (width: number, x: number, y: number, on: Enabled, sx = 0, 
   }
   for (const b of boxes(width, folds, settings, quran, athkarMenu, on.athkar)) {
     if (!isEnabled(b.act, on)) continue
-    if (gap(x, b.x0, b.x1) > sx || gap(y, b.y0, b.y1) > sy) continue
+    const m = isSettingsControl(b.act) ? CONTROL_SLOP : NO_SLOP
+    if (gap(x, b.x0, b.x1) > sx + m.x || gap(y, b.y0, b.y1) > sy + m.y) continue
     const d = Math.hypot(gap(x, b.x0, b.x1), gap(y, b.y0, b.y1))
     if (d < bestDistance) { best = b.act; bestDistance = d }
   }
