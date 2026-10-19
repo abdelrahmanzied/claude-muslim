@@ -5,6 +5,7 @@ import { demoDuration, demoScenes } from '../../src/features/athkar/demo.ts'
 import { arabicDigits, dayOf, emptyDay, listFor, timesOf, type Day } from '../../src/features/athkar/logic.ts'
 import { accentHex } from '../../src/shared/color/index.ts'
 import { athkarHelp } from '../../src/features/athkar/help.ts'
+import { ATHKAR_QUIET } from '../fixtures/config.ts'
 
 const NOW = new Date(2026, 9, 10, 10, 0).getTime()
 const FINALE_MS = 3200
@@ -191,8 +192,8 @@ for (const style of ['sky', 'frame'] as const) {
   })
 }
 
-for (const visibility of ['hidden', 'done', 'off'] as const) {
-  test(`demo overrides a ${visibility} band and restores it when the story ends`, { options: { athkar: visibility !== 'off' } }, async ($, on) => {
+for (const visibility of ['hidden', 'done', 'quiet'] as const) {
+  test(`demo overrides a ${visibility} band and restores it when the story ends`, { options: visibility === 'quiet' ? ATHKAR_QUIET : {} }, async ($, on) => {
     const clock = mock.clock(on, { now: NOW })
     engineBand(on)
     const day: Day = emptyDay(dayOf(new Date(NOW)))

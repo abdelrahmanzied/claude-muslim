@@ -1,6 +1,7 @@
 import type { SalahLast } from '../../types'
 import { expect, mock, test } from 'claude-code/testing'
 import { lastSalahToday, NO_ADJUST, timesOn } from '../../src/features/salah/times.ts'
+import { ATHKAR_QUIET } from '../fixtures/config.ts'
 
 const PLACE = { latitude: 48.1372, longitude: 11.5755, timeZone: 'Europe/Berlin' }
 const NOW = Date.parse('2026-10-10T10:00:00Z')
@@ -53,7 +54,7 @@ test('no place clears an old published prayer', async ($, on) => {
 })
 
 for (const surface of ['terminal', 'desktop'] as const) {
-  test(`${surface}: show off tracks prayers every 30 seconds without a line, window or athan`, { options: { ...MUNICH, athkar: false, salahShow: 'off', salahAthan: true } }, async ($, on) => {
+  test(`${surface}: show off tracks prayers every 30 seconds without a line, window or athan`, { options: { ...MUNICH, ...ATHKAR_QUIET, salahShow: 'off', salahAthan: true } }, async ($, on) => {
     const times = timesOn(PLACE, 'mwl', NO_ADJUST, NOW)
     const clock = mock.clock(on, { now: times.dhuhr - 1000 })
     mock.store(on)

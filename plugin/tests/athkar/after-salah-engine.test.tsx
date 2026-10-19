@@ -9,6 +9,7 @@ import { stripTashkeel } from '../../src/shared/arabic/visual.ts'
 
 const NOW = new Date(2026, 9, 10, 13, 10).getTime()
 const MUNICH = { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berlin; DE', salahAthan: false }
+const FAJR = timesOn({ latitude: 48.1372, longitude: 11.5755, timeZone: 'Europe/Berlin' }, 'mwl', NO_ADJUST, NOW).fajr
 const run = (args: string) => ({ command: 'athkar', args, origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } })
 const band = (surface: 'desktop' | 'terminal') => ({
   plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'after-salah-band',
@@ -44,7 +45,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
     mock.clock(on, { now: NOW })
     const day = emptyDay(dayOf(new Date(NOW)))
     day.afterSalah.isHidden = true
-    mock.store(on, { athkar: day })
+    mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' }, athkar: day })
     const kept = savedDay(on, day)
     engine(on, surface)
     const reply = await $.command.run(run('after-salah'))
@@ -71,7 +72,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
 
   test(`${surface}: automatic offer hides back to morning, new prayer resets the slot, done falls back, manual still opens`, { options: MUNICH, timeoutMs: 60000 }, async ($, on) => {
     const clock = mock.clock(on, { now: NOW })
-    mock.store(on)
+    mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
     engine(on, surface)
     const kept = savedDay(on)
     let last: SalahLast = { pray: 'fajr', at: NOW - IN_MS }
@@ -114,7 +115,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
 
 test('without prayer times there is no automatic offer, including a stale signal; manual uses general counts', async ($, on) => {
   mock.clock(on, { now: NOW })
-  mock.store(on, { salahSetupLater: true })
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
   engine(on, 'terminal')
   const kept = savedDay(on)
   on('state.get', { plugin: 'muslim', key: 'salahLast' }, async () => ({ value: { value: { pray: 'fajr', at: NOW }, version: 0 } }))
@@ -127,13 +128,20 @@ test('without prayer times there is no automatic offer, including a stale signal
   await ui.unmount()
 })
 
-test('the automatic offer starts at its exact deadline and stays beyond an hour', { options: MUNICH, timeoutMs: 60000 }, async ($, on) => {
-  const clock = mock.clock(on, { now: NOW })
-  mock.store(on)
+test('an untouched Fajr offer starts and expires at its exact prayer-based deadlines', { options: MUNICH, timeoutMs: 60000 }, async ($, on) => {
+  const clock = mock.clock(on, { now: FAJR + IN_MS - 1000 })
+  const entries: Record<string, unknown> = { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } }
+  on('store.get', async (_$, e) => ({ value: entries[e.key] }))
   engine(on, 'terminal')
   savedDay(on)
-  // Deadline is 13:10:01, a second after mounting, rather than the next minute tick.
-  const last: SalahLast = { pray: 'dhuhr', at: NOW - IN_MS + 1000 }
+  // Each deadline is a second after a minute tick, proving the one-shot timers.
+  const last: SalahLast = { pray: 'fajr', at: FAJR }
+  const saves: unknown[] = []
+  on('store.set', async (_$, e) => {
+    if (e.key === 'athkar') saves.push(e.value)
+    entries[e.key] = e.value
+    return { value: undefined }
+  })
   on('state.get', { plugin: 'muslim', key: 'salahLast' }, async (_$, e, next) => {
     const actual = await next(e)
     return { value: { value: last, version: actual.value?.version ?? 0 } }
@@ -144,7 +152,79 @@ test('the automatic offer starts at its exact deadline and stays beyond an hour'
   expect(await ui.find({ in: 'athkar', text: stripTashkeel(TITLE.morning) })).toBeDefined()
   await clock.advance(1)
   expect(await ui.find({ in: 'athkar', text: stripTashkeel(TITLE.afterSalah) })).toBeDefined()
-  await clock.advance(2 * 3600_000)
+  await clock.advance(IN_MS - 1)
+  expect(await ui.find({ in: 'athkar', text: stripTashkeel(TITLE.afterSalah) })).toBeDefined()
+  const beforeExpiry = saves.length
+  await clock.advance(1)
+  expect(await ui.find({ in: 'athkar', text: stripTashkeel(TITLE.morning) })).toBeDefined()
+  expect(await ui.find({ in: 'athkar', text: stripTashkeel(TITLE.afterSalah) })).toBeUndefined()
+  expect(saves.length).toBe(beforeExpiry)
+  await ui.unmount()
+})
+
+test('a repetition counted at twenty minutes keeps after-salah at forty-five minutes', { options: MUNICH, timeoutMs: 60000 }, async ($, on) => {
+  const at = FAJR
+  const clock = mock.clock(on, { now: at + IN_MS })
+  const day = emptyDay(dayOf(new Date(NOW)))
+  day.afterSalah = { ...day.afterSalah, pray: 'fajr', at }
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' }, athkar: day })
+  engine(on, 'terminal')
+  const kept = savedDay(on, day)
+  on('state.get', { plugin: 'muslim', key: 'salahLast' }, async (_$, e, next) => {
+    const actual = await next(e)
+    return { value: { value: { pray: 'fajr', at }, version: actual.value?.version ?? 0 } }
+  })
+  const ui = await $.ui.mount(band('terminal'))
+  await clock.advance(IN_MS / 3)
+  await ui.post({ act: 'key', key: 'return' }) // Wake, then open the cover.
+  await ui.post({ act: 'key', key: 'return' })
+  await ui.post({ act: 'key', key: 'space' })
+  expect(kept.day.afterSalah.counts['66-istighfar']).toBe(1)
+  await clock.advance(3 * IN_MS - (IN_MS + IN_MS / 3))
+  expect((await ui.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ period: 'afterSalah' })
+  expect(kept.day.afterSalah.counts['66-istighfar']).toBe(1)
+  await ui.unmount()
+})
+
+test('an offer waiting for morning until thirty-five minutes never takes the band', { options: MUNICH, timeoutMs: 60000 }, async ($, on) => {
+  const at = FAJR
+  const clock = mock.clock(on, { now: at + IN_MS })
+  const day = emptyDay(dayOf(new Date(NOW)))
+  day.morning.counts = { [listFor('morning')[0]!.id]: 1 }
+  day.afterSalah = { ...day.afterSalah, pray: 'fajr', at }
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' }, athkar: day })
+  engine(on, 'terminal')
+  const kept = savedDay(on, day)
+  on('state.get', { plugin: 'muslim', key: 'salahLast' }, async (_$, e, next) => {
+    const actual = await next(e)
+    return { value: { value: { pray: 'fajr', at }, version: actual.value?.version ?? 0 } }
+  })
+  const ui = await $.ui.mount(band('terminal'))
+  expect((await ui.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ period: 'morning' })
+  await clock.advance(IN_MS + IN_MS / 3)
+  kept.day = { ...kept.day, morning: { ...kept.day.morning, isDone: true } }
+  await clock.advance(0)
+  await ui.post({ act: 'key', key: 'return' })
+  expect((await ui.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ period: 'morning' })
+  await ui.unmount()
+})
+
+test('a reload after expiry keeps the untouched slot quiet but a command still opens it', { options: MUNICH }, async ($, on) => {
+  mock.clock(on, { now: FAJR + 2 * IN_MS + 1 })
+  const at = FAJR
+  const day = emptyDay(dayOf(new Date(NOW)))
+  day.afterSalah = { ...day.afterSalah, pray: 'fajr', at }
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' }, athkar: day })
+  engine(on, 'terminal')
+  const kept = savedDay(on, day)
+  on('state.get', { plugin: 'muslim', key: 'salahLast' }, async (_$, e, next) => {
+    const actual = await next(e)
+    return { value: { value: { pray: 'fajr', at }, version: actual.value?.version ?? 0 } }
+  })
+  const ui = await $.ui.mount(band('terminal'))
+  expect(await ui.find({ in: 'athkar', text: stripTashkeel(TITLE.morning) })).toBeDefined()
+  expect(kept.day).toEqual(day)
+  await $.command.run(run('after-salah'))
   expect(await ui.find({ in: 'athkar', text: stripTashkeel(TITLE.afterSalah) })).toBeDefined()
   await ui.unmount()
 })
@@ -155,7 +235,7 @@ test('a reload keeps the saved prayer reading until salah publishes its initial 
   const clock = mock.clock(on, { now: at + IN_MS })
   const day = emptyDay(dayOf(new Date(at)))
   day.afterSalah = { ...day.afterSalah, pray: 'dhuhr', at, counts: { '66-istighfar': 2 } }
-  mock.store(on, { athkar: day })
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' }, athkar: day })
   engine(on, 'terminal')
   const kept = savedDay(on, day)
   const ui = await $.ui.mount(band('terminal'))
@@ -173,7 +253,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
     const place = { latitude: 48.1372, longitude: 11.5755, timeZone: 'Europe/Berlin' }
     const at = timesOn(place, 'mwl', NO_ADJUST, NOW).dhuhr
     const clock = mock.clock(on, { now: at + IN_MS })
-    mock.store(on)
+    mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
     engine(on, surface)
     let published: SalahLast | null | undefined
     on('state.set', { plugin: 'muslim', key: 'salahLast' }, async (_$, e, next) => {

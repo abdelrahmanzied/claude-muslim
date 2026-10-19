@@ -5,10 +5,11 @@ import { dayOf, emptyDay, listFor, TITLE } from '../../src/features/athkar/logic
 import { demoDuration as momentDuration } from '../../src/features/salah/demo.ts'
 import { START_LABEL } from '../../src/features/salah/card.ts'
 import { stripTashkeel } from '../../src/shared/arabic/visual.ts'
+import { ATHKAR_QUIET } from '../fixtures/config.ts'
 
 const NOW = new Date(2026, 9, 10, 10).getTime()
 const FINALE_MS = 3200
-const OPTIONS = { thikr: false, athkar: false, salahShow: 'off', salahAthan: false }
+const OPTIONS = { thikr: false, ...ATHKAR_QUIET, salahShow: 'off', salahAthan: false }
 const run = () => ({ command: 'salah', args: 'demo', origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } })
 const band = (surface: 'desktop' | 'terminal') => ({
   plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'salah-flow',
@@ -23,7 +24,7 @@ const fixture = (on: On, surface: 'desktop' | 'terminal') => {
   const writes: string[] = []
   on('session.surface', async () => ({ value: surface }))
   on('config.list', async () => ({ value: [] }))
-  on('store.get', async (_$, e) => ({ value: e.key === 'athkar' ? day : e.key === 'arabicTerminals' ? { unknown: 'plain' } : undefined }))
+  on('store.get', async (_$, e) => ({ value: e.key === 'salahSetupLater' ? true : e.key === 'athkar' ? day : e.key === 'arabicTerminals' ? { unknown: 'plain' } : undefined }))
   on('store.set', async (_$, e) => (writes.push(`store:${e.key}`), { value: undefined }))
   on('store.delete', async (_$, e) => (writes.push(`delete:${e.key}`), { value: undefined }))
   on('config.set', async (_$, e) => (writes.push(`config:${e.key}`), { value: e.value }))

@@ -39,9 +39,9 @@ export type PaneModel = {
   athkarMenu: boolean
 }
 
-// What the Quran card's height and targets depend on.
+// Player geometry and the settings note; isPlaying includes preparation in the shared feed.
 export const quranLayout = (m: Pick<PaneModel, 'quran' | 'picker'>): QuranLayout =>
-  !m.quran.isAvailable ? NO_QURAN : { segmented: m.quran.segmented, picker: m.picker ? { list: m.picker.list, count: m.picker.count, scroll: m.picker.scroll } : null }
+  !m.quran.isAvailable ? NO_QURAN : { isPlaying: m.quran.isPlaying, error: !!m.quran.error, segmented: m.quran.segmented, picker: m.picker ? { list: m.picker.list, count: m.picker.count, scroll: m.picker.scroll } : null }
 
 export const PANE_MIN_WIDTH = 240
 export const PANE_MAX_WIDTH = 1200
@@ -84,7 +84,7 @@ export const isEvening = (title: string): boolean => title.replace(/[\u064B-\u06
 
 export const athkarCard = (athkar: PanelAthkar | null): AthkarCard => athkar === null
   ? { isAvailable: false }
-  : { isAvailable: true, set: athkar.set, canUndo: athkar.canUndo, isEvening: athkar.set === 'evening', title: athkar.title, fraction: arabicDigits(`${athkar.done} / ${athkar.total}`), progress: Math.max(0, Math.min(1, athkar.progress)), isDone: athkar.isDone, hasCounts: athkar.done > 0 }
+  : { isAvailable: true, set: athkar.set, canUndo: athkar.canUndo, isEvening: athkar.set === 'evening', title: athkar.title, fraction: arabicDigits(`${athkar.done} / ${athkar.total}`), progress: Math.max(0, Math.min(1, athkar.progress)), isDone: athkar.isDone, hasCounts: athkar.progress > 0 }
 
 export const quranCard = (quran: PanelQuran | null): QuranCard => quran === null ? { isAvailable: false } : { ...quran, isAvailable: true, progress: Math.max(0, Math.min(1, quran.progress)) }
 
@@ -121,8 +121,8 @@ export const textLines = (model: PaneModel, show: (text: string) => string): str
   }
   lines.push('', `**${show('الأذكار')}**`)
   const k = model.athkar
-  if (!k.isAvailable) lines.push('Athkar are off. /athkar on')
+  if (!k.isAvailable) lines.push('Not ready. /athkar')
   else lines.push(`${show(k.title)} ${show(k.fraction)}`)
-  lines.push('', ...terminalSettings(model.settings, show))
+  lines.push('', ...terminalSettings(model.settings, show, q.isAvailable && q.isPlaying))
   return lines
 }

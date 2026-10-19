@@ -12,7 +12,9 @@ export type Options = {
   tashkeel: boolean
   thikrEnd: boolean
   thikrMode: Mode
-  athkar: boolean
+  athkarMorning: boolean
+  athkarEvening: boolean
+  athkarAfterSalah: boolean
   athkarStyle: Style
   color: Accent
   salahShow: Show
@@ -39,7 +41,10 @@ export const readOptions = (raw: Record<string, unknown>): Options => ({
   tashkeel: raw.tashkeel !== false,
   thikrEnd: raw.thikrEnd !== false,
   thikrMode: raw.thikrMode === 'salawat' ? 'salawat' : 'all',
-  athkar: raw.athkar !== false,
+  // Reminders: each set opens above the prompt by itself; manual opening always works.
+  athkarMorning: raw.athkarMorning !== false,
+  athkarEvening: raw.athkarEvening !== false,
+  athkarAfterSalah: raw.athkarAfterSalah !== false,
   // 'outline' is the old name of 'frame'.
   athkarStyle: raw.athkarStyle === 'frame' || raw.athkarStyle === 'outline' ? 'frame' : 'sky',
   color: readColor(raw.color === 'gold' ? 'yellow' : raw.color),

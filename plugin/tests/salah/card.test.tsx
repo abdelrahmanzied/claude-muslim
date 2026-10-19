@@ -1,3 +1,4 @@
+import { ATHKAR_QUIET, configRows } from '../fixtures/config.ts'
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
@@ -39,7 +40,7 @@ const engineBand = (on: On, surface: 'desktop' | 'terminal' = 'desktop') => {
 
 const props = (photo: string, pray: 'maghrib' | 'fajr', time: string) => ({ isActive: true, isFolded: false, now: 0, pray, time, photo, width: 800, card: { ch: 8.4, lh: 20 } })
 
-test('the card markup: the shared card holding the photo, the font and both lines in Arabic', { options: { athkar: false } }, async () => {
+test('the card markup: the shared card holding the photo, the font and both lines in Arabic', { options: { ...ATHKAR_QUIET } }, async () => {
   const svg = athanSvg(props('QUJD', 'maghrib', '18:05'), { hoverClose: false, columns: 0 })
 
   expect(svg).toContain('data:image/jpeg;base64,QUJD')
@@ -58,7 +59,7 @@ test('the card with the real photo (about 40 KB of base64) stays far under the S
   expect(athanSvg(props('A'.repeat(45000), 'fajr', '05:00'), { hoverClose: false, columns: 180 }).length).toBeLessThan(110000)
 })
 
-test('/salah demo works without a city', { options: { athkar: false } }, async ($, on) => {
+test('/salah demo works without a city', { options: { ...ATHKAR_QUIET } }, async ($, on) => {
   mock.clock(on, { now: NOW })
   on('session.surface', async () => ({ value: 'desktop' }))
   expect((await $.command.run(run('demo'))).text).toBe('**Salah demo:** athan · Fajr 05:00 · athkar after salah')
@@ -69,12 +70,13 @@ test('/salah athan test is an unknown word and answers with help', { options: MU
 })
 
 for (const surface of ['desktop', 'terminal'] as const) {
-  test(`${surface}: the retired nested demo command answers with help and starts nothing`, { options: { athkar: false } }, async ($, on) => {
+  test(`${surface}: the retired nested demo command answers with help and starts nothing`, { options: { ...ATHKAR_QUIET } }, async ($, on) => {
     mock.env(on, {})
-    mock.store(on)
+    mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
     mock.clock(on, { now: NOW })
     engineBand(on)
     const written: unknown[] = []
+    on('config.list', async () => ({ value: configRows }))
     on('config.set', async (_$, e) => (written.push(e), { value: e.value }))
     on('store.set', { key: /.*/ }, async (_$, e, next) => {
       written.push(e)
@@ -94,6 +96,7 @@ test('/salah demo answers without changing settings, the store or the shown-once
   mock.env(on, {})
   mock.clock(on, { now: NOW })
   const written: unknown[] = []
+  on('config.list', async () => ({ value: configRows }))
   on('config.set', async (_$, e) => (written.push(e), { value: e.value }))
   on('store.set', async (_$, e, next) => {
     written.push(e)
@@ -114,7 +117,7 @@ test('/salah demo answers without changing settings, the store or the shown-once
 
 test('on the desktop the demo shows the shared card, never the minaret; a click on its × clears it', { options: MUNICH }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
   mock.clock(on, { now: NOW })
   engineBand(on)
   const asked: string[] = []
@@ -138,7 +141,7 @@ test('on the desktop the demo shows the shared card, never the minaret; a click 
 
 test('the demo hovers the shared × and preserves the saved reading', { options: MUNICH, timeoutMs: 15000 }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
   const clock = mock.clock(on, { now: NOW })
   engineBand(on)
   on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
@@ -177,7 +180,7 @@ test('the demo hovers the shared × and preserves the saved reading', { options:
 
 test('on the terminal the demo plays the minaret only, no card', { options: MUNICH }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
   mock.clock(on, { now: NOW })
   engineBand(on, 'terminal')
   const terminal = await $.ui.mount(band('terminal'))
@@ -191,7 +194,7 @@ test('on the terminal the demo plays the minaret only, no card', { options: MUNI
 for (const surface of ['desktop', 'terminal'] as const) {
   test(`${surface}: salah demo before the first draw survives ticker startup`, { options: MUNICH }, async ($, on) => {
     mock.env(on, {})
-    mock.store(on)
+    mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
     const clock = mock.clock(on, { now: NOW })
     engineBand(on, surface)
     on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
@@ -226,7 +229,7 @@ const BEFORE_DHUHR = Date.parse('2026-10-10T11:01:45Z')
 
 test('the real desktop athan folds, reopens until idle, then closes at its original deadline', { options: MUNICH }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
   const clock = mock.clock(on, { now: BEFORE_DHUHR })
   engineBand(on)
   on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
@@ -253,7 +256,7 @@ test('the real desktop athan folds, reopens until idle, then closes at its origi
 for (const scenario of ['leave', 'return', 'idle', 'keys', 'focus', 'grace', 'first', 'first-leave', 'input-idle'] as const) {
   test(`real athan rest: ${scenario}; expiry stays fixed`, { options: MUNICH }, async ($, on) => {
     mock.env(on, {})
-    mock.store(on)
+    mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
     const clock = mock.clock(on, { now: BEFORE_DHUHR })
     engineBand(on)
     on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
@@ -325,7 +328,7 @@ for (const scenario of ['leave', 'return', 'idle', 'keys', 'focus', 'grace', 'fi
 
 test('the folded desktop × closes without reopening', { options: MUNICH }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
   const clock = mock.clock(on, { now: BEFORE_DHUHR })
   engineBand(on)
   on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
@@ -341,7 +344,7 @@ test('the folded desktop × closes without reopening', { options: MUNICH }, asyn
 
 test('the desktop demo opens, folds after DEMO_OPEN_MS, and is gone DEMO_FOLDED_MS later', { options: MUNICH }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
   const clock = mock.clock(on, { now: NOW })
   engineBand(on)
   on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
@@ -388,7 +391,7 @@ for (const ending of ['close', 'expire'] as const) {
 for (const elapsed of [FRAME_MS, 10_000, FOLD_MS, CARD_MS]) {
   test(`reload restores both surfaces at ${elapsed}ms and re-arms remaining timers`, { options: { ...MUNICH, salahShow: 'off' } }, async ($, on) => {
     mock.env(on, {})
-    mock.store(on)
+    mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
     const clock = mock.clock(on, { now: NOW + elapsed })
     engineBand(on)
     on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
@@ -432,7 +435,7 @@ for (const elapsed of [FRAME_MS, 10_000, FOLD_MS, CARD_MS]) {
 
 test('terminal × during the rise cancels later frames and folds', { options: MUNICH }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
   const clock = mock.clock(on, { now: NOW })
   engineBand(on, 'terminal')
   await $.command.run(run('demo'))
@@ -445,7 +448,7 @@ test('terminal × during the rise cancels later frames and folds', { options: MU
 
 test("reload preserves a reopened card's later fold but its original expiry", { options: { ...MUNICH, salahShow: 'off' } }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
   const clock = mock.clock(on, { now: NOW + 2 * FOLD_MS })
   engineBand(on)
   on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
@@ -469,7 +472,7 @@ test("reload preserves a reopened card's later fold but its original expiry", { 
 
 for (const surface of ['desktop', 'terminal'] as const) {
   for (const ending of ['close', 'expire'] as const) {
-    test(`${surface}: demo ${ending} restores a real athan without writing its state`, { options: { athkar: false, salahShow: 'off', salahAthan: false } }, async ($, on) => {
+    test(`${surface}: demo ${ending} restores a real athan without writing its state`, { options: { ...ATHKAR_QUIET, salahShow: 'off', salahAthan: false } }, async ($, on) => {
       mock.env(on, {})
       const clock = mock.clock(on, { now: NOW })
       on('store.get', async (_$, e) => ({ value: e.key === 'salahSetupLater' ? true : { unknown: 'plain' } }))
@@ -488,6 +491,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
         if (e.key in seed) seed[e.key] = e.value
         return next(e)
       })
+      on('config.list', async () => ({ value: configRows }))
       on('config.set', async (_$, e) => (written.push(e), { value: e.value }))
       on('store.set', async (_$, e) => (written.push(e), { value: undefined }))
       on('store.delete', async (_$, e) => (written.push(e), { value: undefined }))
@@ -528,7 +532,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
 for (const late of [3, 10]) {
   test(`the athan card still shows when the first tick comes ${late} minutes after the call, and ends 15 minutes after it`, { options: MUNICH }, async ($, on) => {
     mock.env(on, {})
-    mock.store(on)
+    mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
     const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:02:00Z') + late * 60_000 })
     engineBand(on)
     on('fs.read', async () => ({ value: { base64: 'QUJD' } }))

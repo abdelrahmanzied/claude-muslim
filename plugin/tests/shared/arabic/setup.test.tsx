@@ -3,6 +3,7 @@ import type { On } from 'claude-code'
 import { readOptions } from '../../../src/config.ts'
 import { install } from '../../../src/shared/arabic/install.tsx'
 import { ARABIC_MODES, terminalArabic } from '../../../src/shared/arabic/terminal.ts'
+import { ATHKAR_QUIET } from '../../fixtures/config.ts'
 
 const band = (surface: 'terminal' | 'desktop', hasSurvey = false, requestId = 'arabic-check') => ({
   plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId,
@@ -12,7 +13,7 @@ const engineBand = (on: On) => on('ui.render', { component: 'AbovePrompt' }, asy
   const { Text } = $.ui.resolve(e)
   return <Text key="engine-band">engine band</Text>
 })
-const OPTIONS = { athkar: false, thikr: false, tashkeel: true, salahShow: 'off', salahPlace: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' }
+const OPTIONS = { ...ATHKAR_QUIET, thikr: false, tashkeel: true, salahShow: 'off', salahPlace: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' }
 const sample = 'بِسْمِ اللَّهِ'
 const rows = { type: 'Button' as const }
 
@@ -144,7 +145,7 @@ test('/muslim status shows the default when this terminal has no answer, and not
 })
 
 for (const [color, expected] of [['orange', 'claude'], ['yellow', '#c99a1f']] as const) {
-  test(`terminal survey label follows ${color} without coloring the other text`, { options: { athkar: false, color } }, async ($, on) => {
+  test(`terminal survey label follows ${color} without coloring the other text`, { options: { ...ATHKAR_QUIET, color } }, async ($, on) => {
     mock.env(on, {})
     mock.store(on)
     on('config.list', async () => ({ value: [{ key: 'theme', label: 'Theme', kind: 'choice', value: 'light', provider: { plugin: 'engine', tier: 'core' }, isLocked: false }] }))
@@ -158,3 +159,21 @@ for (const [color, expected] of [['orange', 'claude'], ['yellow', '#c99a1f']] as
     await shown.unmount()
   })
 }
+
+test('first terminal setup gives Arabic hotkeys priority, then shows the city row', { options: { ...ATHKAR_QUIET } }, async ($, on) => {
+  mock.env(on, { TERM_PROGRAM: 'WarpTerminal' })
+  mock.store(on)
+  mock.clock(on, { now: 0 })
+  on('config.list', async () => ({ value: [] }))
+  on('ui.toast', async () => ({ value: undefined }))
+  engineBand(on)
+  const shown = await $.ui.mount(band('terminal'))
+  expect(await shown.find({ key: 'arabic-mode-plain' })).toBeDefined()
+  expect(await shown.find({ key: 'salah-setup' })).toBeUndefined()
+  await shown.press({ key: 'arabic-mode-plain' })
+  expect(await shown.find({ key: 'arabic-mode-plain' })).toBeUndefined()
+  expect(await shown.find({ key: 'salah-setup' })).toBeDefined()
+  const buttons = await shown.findAll({ type: 'Button' })
+  expect(buttons.map(b => b.props.hotkey)).toEqual(await shown.find({ key: 'salah-yes' }) ? ['1', '2', '3'] : ['1', '2'])
+  await shown.unmount()
+})

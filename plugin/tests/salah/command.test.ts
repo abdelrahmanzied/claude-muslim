@@ -1,3 +1,4 @@
+import { ATHKAR_QUIET, configRows } from '../fixtures/config.ts'
 import type { On } from 'claude-code'
 import { describe, expect, mock, test } from 'claude-code/testing'
 
@@ -14,7 +15,7 @@ const salah = (args: string) => ({
 })
 
 describe('settings', () => {
-  test('minutes read as six whole numbers, anything else 0', { options: { athkar: false } }, async () => {
+  test('minutes read as six whole numbers, anything else 0', { options: { ...ATHKAR_QUIET } }, async () => {
     expect(readAdjust('0 0 0 5 0 -10')).toEqual({ fajr: 0, sunrise: 0, dhuhr: 0, asr: 5, maghrib: 0, isha: -10 })
     expect(readAdjust('3 x 99')).toEqual({ fajr: 3, sunrise: 0, dhuhr: 99, asr: 0, maghrib: 0, isha: 0 })
     expect(writeAdjust(readAdjust('0 0 0 90 0 -120'))).toBe('0 0 0 90 0 -120')
@@ -23,13 +24,13 @@ describe('settings', () => {
     expect(writeAdjust(readAdjust('1 2 3 4 5 6'))).toBe('1 2 3 4 5 6')
   })
 
-  test('an unknown method is auto; a place off the globe or missing a part is unset', { options: { athkar: false } }, async () => {
+  test('an unknown method is auto; a place off the globe or missing a part is unset', { options: { ...ATHKAR_QUIET } }, async () => {
     expect(readOptions({ salahMethod: 'tehran' }).salahMethod).toBe('auto')
     expect(readOptions({ salahPlace: 'Nowhere; 120, 10; Europe/Berlin; DE' }).salahPlace).toBe(undefined)
     expect(readOptions({ salahPlace: 'Munich; 48.14, 11.58; Europe/Berlin' }).salahPlace).toBe(undefined)
   })
 
-  test('a place reads back as it was written', { options: { athkar: false } }, async () => {
+  test('a place reads back as it was written', { options: { ...ATHKAR_QUIET } }, async () => {
     const place = { name: 'Munich, Germany', latitude: 48.14, longitude: 11.58, timeZone: 'Europe/Berlin', country: 'DE' }
 
     expect(readPlace(writePlace(place))).toEqual(place)
@@ -37,7 +38,7 @@ describe('settings', () => {
   })
 })
 
-test('/salah before setup says so', { options: { athkar: false } }, async $ => {
+test('/salah before setup says so', { options: { ...ATHKAR_QUIET } }, async $ => {
   const ran = await $.command.run(salah(''))
 
   expect(ran.text).toContain('Not set up yet. Run `/salah city`.')
@@ -60,7 +61,7 @@ test('/salah shows today\'s times and the settings as tables, each setting with 
   expect(ran.text).toContain('/salah help')
 })
 
-test('show reads always, off or minutes, and the old salah mode and minutes; athan reads its old name', { options: { athkar: false } }, async () => {
+test('show reads always, off or minutes, and the old salah mode and minutes; athan reads its old name', { options: { ...ATHKAR_QUIET } }, async () => {
   expect(readOptions({ salahShow: 'always' }).salahShow).toBe('always')
   expect(readOptions({ salahShow: 'off' }).salahShow).toBe('off')
   expect(readOptions({ salahShow: '90' }).salahShow).toBe(90)
@@ -78,6 +79,7 @@ test('show reads always, off or minutes, and the old salah mode and minutes; ath
 
 test('/salah show and athan save their settings and say what changed', { options: MUNICH }, async ($, on) => {
   const written: { key: string; value: unknown }[] = []
+  on('config.list', async () => ({ value: configRows }))
   on('config.set', async (_$, e) => (written.push({ key: e.key, value: e.value }), { value: e.value }))
 
   expect((await $.command.run(salah('show always'))).text).toBe('**Show:** `always` — next pray all day, counting down its last 20 min')
@@ -108,6 +110,7 @@ test('/salah adjust and method refuse what they cannot take', { options: MUNICH 
 test('/salah adjust saves one pray\'s minutes', { options: MUNICH }, async ($, on) => {
   // Stands for the engine's settings writer.
   const written: { key: string; value: unknown }[] = []
+  on('config.list', async () => ({ value: configRows }))
   on('config.set', async (_$, e) => (written.push({ key: e.key, value: e.value }), { value: e.value }))
 
   expect((await $.command.run(salah('adjust Asr +5'))).text).toBe('**Adjust:** Asr +5 min')
@@ -138,6 +141,7 @@ const settingsWriter = (on: On) => {
   mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
   mock.store(on)
   const written: { key: string; value: unknown }[] = []
+  on('config.list', async () => ({ value: configRows }))
   on('config.set', async (_$, e) => (written.push({ key: e.key, value: e.value }), { value: e.value }))
 
   return written
@@ -155,7 +159,7 @@ test('/salah city saves the one city Claude finds, with its country\'s method', 
   expect(written).toEqual([{ key: 'muslim.salahPlace', value: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' }])
 })
 
-test('/salah city asks which one when the name is shared', { options: { athkar: false } }, async ($, on) => {
+test('/salah city asks which one when the name is shared', { options: { ...ATHKAR_QUIET } }, async ($, on) => {
   answerCities(on, [ALEXANDRIA_EG, ALEXANDRIA_US])
   const written = settingsWriter(on)
   // Stands for the user picking in the dialog.
@@ -169,7 +173,7 @@ test('/salah city asks which one when the name is shared', { options: { athkar: 
   expect(written[0]?.value).toBe('Alexandria, Egypt; 31.2, 29.92; Africa/Cairo; EG')
 })
 
-test('/salah city with no match, or coordinates typed by hand', { options: { athkar: false } }, async ($, on) => {
+test('/salah city with no match, or coordinates typed by hand', { options: { ...ATHKAR_QUIET } }, async ($, on) => {
   answerCities(on, [])
   const written = settingsWriter(on)
 
@@ -178,7 +182,7 @@ test('/salah city with no match, or coordinates typed by hand', { options: { ath
   expect(String(written[0]?.value)).toMatch(/^48\.14, 11\.58; 48\.14, 11\.58; /)
 })
 
-test('/salah help is a table of every subcommand; unknown words answer with it', { options: { athkar: false } }, async $ => {
+test('/salah help is a table of every subcommand; unknown words answer with it', { options: { ...ATHKAR_QUIET } }, async $ => {
   const help = (await $.command.run(salah('help'))).text
 
   expect(help).toContain('| Command | Description | Options |')

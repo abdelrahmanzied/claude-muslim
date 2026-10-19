@@ -3,7 +3,7 @@
 // (hit testing) and the Client (drawing) agree without measuring anything.
 // Pure: no $.
 
-import { CLOSED_SETTINGS, DEFAULT_SETTINGS, SETTINGS_BODY_TOP, categoryTabs, settingsBody, settingsHeight, type SettingsAct, type SettingsModel, type SettingsOptions, type SettingsState } from './settings.ts'
+import { CLOSED_SETTINGS, DEFAULT_SETTINGS, SETTINGS_BODY_TOP, categoryTabs, settingsBody, settingsHeight, settingsNoteHeight, type SettingsAct, type SettingsModel, type SettingsOptions, type SettingsState } from './settings.ts'
 import { pointerPixels, pointerSlack } from '../../shared/card/pointer.ts'
 
 export const PAD = 12
@@ -54,6 +54,11 @@ export const Q_TIMES_BASE = 182
 export const Q_TIMES_H = 28
 export const Q_CONTROLS_BASE = 216
 export const Q_CONTROLS_H = 60
+export const Q_ERROR_TOP = 286
+export const Q_ERROR_H = 20
+export const Q_RETRY_TOP = 310
+export const Q_RETRY_H = 30
+export const Q_ERROR_EXTRA = 64
 export const Q_BASE_H = 286
 export const Q_PICKER_H = 474
 export const quranOffset = (segmented: boolean): number => segmented ? 30 : 14
@@ -93,10 +98,10 @@ export const SHEET_FOOT_H = 30
 export const SHEET_MIN_THUMB = 28
 
 export type QuranList = 'reciter' | 'surah' | 'segment'
-// What the Quran card's height and targets depend on: a split surah, and the open picker.
-export type QuranLayout = { segmented: boolean; picker: { list: QuranList; count: number; scroll: number } | null }
+// Player geometry and playback-dependent settings space, read from the shared Quran feed.
+export type QuranLayout = { isPlaying?: boolean; error?: boolean; segmented: boolean; picker: { list: QuranList; count: number; scroll: number } | null }
 export const NO_QURAN: QuranLayout = { segmented: false, picker: null }
-export const quranHeight = (q: QuranLayout): number => (q.picker ? Q_PICKER_H : Q_BASE_H) + quranOffset(q.segmented)
+export const quranHeight = (q: QuranLayout): number => (q.picker ? Q_PICKER_H : Q_BASE_H + (q.error ? Q_ERROR_EXTRA : 0)) + quranOffset(q.segmented)
 export const QURAN_H = quranHeight(NO_QURAN)
 
 // Athkar card, from its top.
@@ -154,7 +159,7 @@ export const isFolds = (value: unknown): value is Folds => !!value && typeof val
 export const cardRects = (f: Folds, settings: SettingsState = CLOSED_SETTINGS, options?: SettingsOptions, quran: QuranLayout = NO_QURAN, athkarMenu = false) => {
   const prayerH = f.prayer ? FOLDED_H : PRAYER_H, quranH = f.quran ? FOLDED_H : quranHeight(quran), athkarH = f.athkar ? FOLDED_H : athkarMenu ? ATHKAR_MENU_H : ATHKAR_H
   const prayerY = CARDS_TOP, quranY = prayerY + prayerH + GAP, athkarY = quranY + quranH + GAP
-  const settingsY = athkarY + athkarH + GAP, settingsH = settingsHeight(settings, options)
+  const settingsY = athkarY + athkarH + GAP, settingsH = settingsHeight(settings, options, quran.isPlaying)
   return { prayerY, prayerH, quranY, quranH, athkarY, athkarH, settingsY, settingsH, height: settingsY + settingsH + PAD }
 }
 export const paneHeight = (f: Folds, settings: SettingsState = CLOSED_SETTINGS, options?: SettingsOptions, quran: QuranLayout = NO_QURAN, athkarMenu = false): number => cardRects(f, settings, options, quran, athkarMenu).height
@@ -166,7 +171,7 @@ export const ATHKAR_Y = QURAN_Y + QURAN_H + GAP
 export const PANE_HEIGHT = paneHeight(NO_FOLDS)
 
 type QuranRowAct = `quran-row:${number}`
-export type PaneAct = SettingsAct | 'fold-prayer' | 'fold-quran' | 'fold-athkar' | 'athan' | 'quran-prev' | 'quran-toggle' | 'quran-next' | 'quran-repeat-surah' | 'quran-repeat-segment'
+export type PaneAct = SettingsAct | 'fold-prayer' | 'fold-quran' | 'fold-athkar' | 'athan' | 'quran-prev' | 'quran-retry' | 'quran-toggle' | 'quran-next' | 'quran-repeat-surah' | 'quran-repeat-segment'
   | 'quran-pick-reciter' | 'quran-pick-surah' | 'quran-pick-segment' | 'quran-back' | 'quran-scroll' | QuranRowAct | 'athkar-open' | 'athkar-finish' | 'athkar-picker' | 'athkar-reset' | `athkar-set:${typeof ATHKAR_SETS[number]['key']}`
 export const quranRowOf = (act: string): number | null => {
   const m = /^quran-row:(\d+)$/.exec(act)
@@ -215,6 +220,7 @@ const boxes = (width: number, f: Folds, settings: SettingsModel, q: QuranLayout,
     ]),
     ...(f.prayer ? [] : [{ act: 'athan' as const, x0: PAD + SIDE - 8, x1: width - PAD - SIDE + 8, y0: r.prayerY + ATHAN_TOP, y1: r.prayerY + ATHAN_TOP + ATHAN_H }]),
     ...(f.quran ? [] : [
+      ...(q.error ? [{ act: 'quran-retry' as const, x0: PAD + SIDE, x1: width - PAD - SIDE, y0: qy + Q_RETRY_TOP + off, y1: qy + Q_RETRY_TOP + off + Q_RETRY_H }] : []),
       // The title button spans the hero's text column, right of the avatar.
       { act: 'quran-pick-surah' as const, x0: PAD + SIDE + Q_AVATAR_W + 8, x1: width - PAD - SIDE, y0: qy + Q_TITLE_TOP, y1: qy + Q_TITLE_TOP + Q_TITLE_H },
       ...(q.segmented ? [{ act: 'quran-pick-segment' as const, x0: PAD + Q_SEG_LEFT, x1: width - PAD - SIDE, y0: qy + Q_SEG_TOP, y1: qy + Q_SEG_TOP + Q_SEG_H }] : []),
@@ -228,10 +234,11 @@ const boxes = (width: number, f: Folds, settings: SettingsModel, q: QuranLayout,
 // Settings share the existing nearest-edge/slack arbitration with daily cards.
 export const settingsBoxes = (width: number, folds: Folds, m: SettingsModel, q: QuranLayout = NO_QURAN, athkarMenu = false): Box[] => {
   const y = cardRects(folds, m.state, m.options, q, athkarMenu).settingsY
+  const bodyTop = SETTINGS_BODY_TOP + settingsNoteHeight(q.isPlaying)
   if (!m.state.open) return []
   return [
     ...categoryTabs(width).map(c => ({ act:`settings:tab:${c.category}` as const, x0:c.x0, x1:c.x1, y0:y+c.y0, y1:y+c.y1 })),
-    ...settingsBody(width,m).targets.map(b => ({ ...b, y0:y+SETTINGS_BODY_TOP+b.y0, y1:y+SETTINGS_BODY_TOP+b.y1 })),
+    ...settingsBody(width,m).targets.map(b => ({ ...b, y0:y+bodyTop+b.y0, y1:y+bodyTop+b.y1 })),
   ]
 }
 

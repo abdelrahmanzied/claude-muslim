@@ -97,7 +97,7 @@ test('six signed offsets preserve the shared parse/write order and untouched val
 test('terminal lists every config key, and all Arabic values use show',()=>{
   const m=make('general');m.options.salahPlace={name:'مدينة',latitude:1,longitude:2,timeZone:'UTC',country:'ZZ'}
   const text=terminalSettings(m,s=>`SHOWN(${s})`).join('\n')
-  for(const command of ['/salah city','/salah show','/salah athan','/salah method','/salah adjust','/athkar on','/athkar style','/thikr on','/thikr mode','/thikr speed','/thikr end','/muslim color','/muslim tashkeel','/muslim terminal-arabic']) expect(text).toContain(command)
+  for(const command of ['/salah city','/salah show','/salah athan','/salah method','/salah adjust','/athkar morning on | off','/athkar evening on | off','/athkar after-salah on | off','/athkar style','/thikr on','/thikr mode','/thikr speed','/thikr end','/muslim color','/muslim tashkeel','/muslim terminal-arabic']) expect(text).toContain(command)
   expect(text).toContain('SHOWN(مدينة)');expect(text).not.toContain('/quran')
 })
 
@@ -197,12 +197,12 @@ test('terminal Arabic is one direct command-copy target; old terminal face migra
 
 test('optimistic switches retain mismatches and drop confirmed or malformed values',()=>{
   const options=readOptions({})
-  const saved={athkar:false,tashkeel:true,thikr:false}
-  expect(pendingSwitches(options,saved)).toEqual({athkar:false,thikr:false})
-  expect(optimisticOptions(options,saved)).toMatchObject({athkar:false,tashkeel:true,thikr:false})
-  expect(pendingSwitches({...options,athkar:false,thikr:false},saved)).toEqual({})
-  expect(pendingSwitches(options,{athkar:'no',color:'blue'} as never)).toEqual({})
-  expect(options.athkar).toBe(true)
+  const saved={athkarMorning:false,tashkeel:true,thikr:false}
+  expect(pendingSwitches(options,saved)).toEqual({athkarMorning:false,thikr:false})
+  expect(optimisticOptions(options,saved)).toMatchObject({athkarMorning:false,tashkeel:true,thikr:false})
+  expect(pendingSwitches({...options,athkarMorning:false,thikr:false},saved)).toEqual({})
+  expect(pendingSwitches(options,{athkarMorning:'no',color:'blue'} as never)).toEqual({})
+  expect(options.athkarMorning).toBe(true)
 })
 
 // The last shown line of a row, from the row's top: what the 28px gap is measured from.
@@ -256,11 +256,12 @@ test('a tab is only as tall as its visible rows when the options are known',()=>
   }
 })
 
-test('the athkar tab is its two rows, with no preview box',()=>{
+test('the athkar tab is its three reminders and the look, with no preview box',()=>{
   const m=make('athkar'), model=paneModel({salah:null,quran:null,athkar:null},0,360,'orange'); model.settings=m
   const svg=paneSvg(model)
   expect(svg).not.toContain('معاينة');expect(svg).not.toContain('settings-sky')
   expect(MAIN_HEIGHTS.athkar).toBe(settingsRows(m).reduce((h,r)=>h+r.height,0)-ROW_GAP+BODY_END)
+  expect(settingsRows(m).map(r=>r.label)).toEqual(['تذكير أذكار الصباح','تذكير أذكار المساء','تذكير أذكار بعد الصلاة','المظهر'])
 })
 
 test('copy buttons confirm with «تم النسخ ✓» (no glyph) while their command was just copied',()=>{

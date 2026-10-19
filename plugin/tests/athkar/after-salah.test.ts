@@ -50,9 +50,9 @@ test('one slot keeps the same prayer and resets counts, hidden and done for a di
   expect(syncAfterSalah(day, null).afterSalah).toEqual(emptyAfterSalah())
 })
 
-test('the offer starts after the shared card duration, stays without expiry, and done, hidden or no times fall back', () => {
+test('an untouched offer lasts from one to two shared card durations; explicit and counted readings stay', () => {
   const day = fresh()
-  for (const [offset, expected] of [[-1, 'morning'], [0, 'morning'], [IN_MS - 1, 'morning'], [IN_MS, 'afterSalah'], [3 * 3600_000, 'afterSalah']] as const) {
+  for (const [offset, expected] of [[-1, 'morning'], [0, 'morning'], [IN_MS - 1, 'morning'], [IN_MS, 'afterSalah'], [2 * IN_MS - 1, 'afterSalah'], [2 * IN_MS, 'morning'], [3 * 3600_000, 'morning']] as const) {
     expect(setAt(new Date(NOW + offset), day, last)).toBe(expected)
   }
   expect(setAt(new Date(NOW), day, null)).toBe('morning')
@@ -64,6 +64,8 @@ test('the offer starts after the shared card duration, stays without expiry, and
   expect(setAt(new Date(NOW), day, last, undefined, { ...last, at: NOW - 1 })).toBe('morning')
   expect(setAt(new Date(NOW), day, last, 'evening')).toBe('evening')
   expect(setAt(new Date(NOW + 7200_000), day, null, 'afterSalah')).toBe('afterSalah')
+  expect(setAt(new Date(NOW + 3 * IN_MS), day, last, undefined, last)).toBe('afterSalah')
+  expect(setAt(new Date(NOW + 3 * IN_MS), { ...day, afterSalah: { ...day.afterSalah, counts: { '66-istighfar': 1 } } }, last)).toBe('afterSalah')
 })
 
 test('the shared count, advance, progress, undo, last-item completion and reset hint use the prayer list', () => {

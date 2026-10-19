@@ -22,6 +22,8 @@ export type PanelQuran = {
   part: string
   // True when the surah is split into segments («ابدأ من», segment repeat).
   segmented: boolean
+  // One quiet playback error line; empty when there is no error.
+  error: string
   // `يتلى الآن`, `متوقف` or a loading text; `isLive` is the first of them.
   status: string
   isLive: boolean
@@ -53,7 +55,7 @@ export type PanelAthkar = {
 }
 
 // The Quran's list picks carry a validated string: a reciter key, a surah number, a segment index.
-export type PanelAction = 'muslim-autoupdate' | 'salah-city' | 'quran-toggle' | 'quran-prev' | 'quran-next' | 'quran-reciter' | 'quran-surah' | 'quran-segment' | 'quran-repeat-surah' | 'quran-repeat-segment' | 'athkar-open' | 'athkar-finish' | 'athkar-set' | 'athkar-reset' | 'athkar-undo'
+export type PanelAction = 'muslim-autoupdate' | 'salah-city' | 'quran-toggle' | 'quran-retry' | 'quran-prev' | 'quran-next' | 'quran-reciter' | 'quran-surah' | 'quran-segment' | 'quran-repeat-surah' | 'quran-repeat-segment' | 'athkar-open' | 'athkar-finish' | 'athkar-set' | 'athkar-reset' | 'athkar-undo'
 
 export type PanelAutoUpdate = 'on' | 'off' | 'default' | 'missing' | 'unknown'
 const feeds: {

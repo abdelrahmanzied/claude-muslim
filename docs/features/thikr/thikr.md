@@ -93,3 +93,7 @@ Text only, in Claude's font, size and colors: [thikr design](thikr-design.md).
 | `plugin/src/features/thikr/rotation.ts` | pure logic: moment to group, phrase timing and speed, start pick, joining thikr to Claude's words |
 | `plugin/src/features/thikr/limit.ts` | pure logic: when a usage limit ends, from the rate-limit windows |
 | `plugin/src/features/thikr/demo.ts` | pure scenes and timing of `/thikr demo`: the demo prompt and its Bash steps, the phrase order, 1.5 s step, 3 s usage-limit hold, the reply |
+
+Only main-agent starts and completions reset phrase progress, the usage-limit state and the ticker. Child turns leave the parent's group and elapsed reading time intact. An armed demo binds only to the next main-agent start. Salah publishes `salahWindow`, but thikr does not read it yet.
+
+The usage-limit row, including its demo, yields to every visible setup form on every surface under DESIGN.md's shared priority decision. Its held limit is unchanged and draws again once setup closes.

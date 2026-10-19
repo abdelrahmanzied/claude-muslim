@@ -47,3 +47,7 @@ The shared `/muslim demo` connects a transient signal to this same feature-local
 - [ ] Claude's own words and numbers untouched.
 
 The main color is the shared `/muslim color` setting, default Claude orange. It changes only existing main-color accents; Claude's spinner keeps its own color.
+
+Main-turn lifecycle alone owns rotation and ticker lifetime: subagent starts and completions pass through without resetting or freezing the displayed phrase. The demo's armed state also ignores child starts. Thikr does not read `salahWindow` yet. Settings commands follow the shared stop-before-reload rule in DESIGN.md.
+
+The usage-limit row, including its demo, yields to every visible setup form on every surface under DESIGN.md's shared priority decision. Its held limit is unchanged and draws again once setup closes.

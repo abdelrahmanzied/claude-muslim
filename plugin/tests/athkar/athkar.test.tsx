@@ -1,3 +1,4 @@
+import { ATHKAR_QUIET, configRows } from '../fixtures/config.ts'
 import type { JsonValue, On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
@@ -14,7 +15,7 @@ const engineBand = (on: On, surface: 'terminal' | 'desktop' = 'desktop') => {
 
     return <Box />
   })
-  on('config.list', async () => ({ value: [] }))
+  on('config.list', async () => ({ value: configRows }))
   on('session.surface', async () => ({ value: surface }))
 }
 
@@ -49,7 +50,7 @@ const press = (ui: Ui, key: string) => ui.post({ act: 'key', key })
 
 test('the cover folds when faded, opens on a click that does not count, then starts, then clicks count', async ($, on) => {
   mock.clock(on, { now: MORNING })
-  mock.store(on, { salahSetupLater: true })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' }, salahSetupLater: true })
   mock.env(on, {})
   engineBand(on)
 
@@ -93,7 +94,7 @@ test('Quran passages have names and desktop reading reserves room for the label'
   })
 
   mock.clock(on, { now: MORNING })
-  mock.store(on, { salahSetupLater: true })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' }, salahSetupLater: true })
   mock.env(on, {})
   engineBand(on)
   await $.command.run({ command: 'athkar', args: 'morning reset', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
@@ -118,7 +119,7 @@ test('Quran passages have names and desktop reading reserves room for the label'
 
 test('the desktop band draws in Tajawal at the slot width', async ($, on) => {
   mock.clock(on, { now: MORNING })
-  mock.store(on, { salahSetupLater: true })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' }, salahSetupLater: true })
   mock.env(on, {})
   engineBand(on)
   const ui = await $.ui.mount(band('desktop'))
@@ -133,7 +134,7 @@ test('the desktop band draws in Tajawal at the slot width', async ($, on) => {
 
 test('the shared desktop Client hovers the × and lights a press before the hooks answer', async ($, on) => {
   mock.clock(on, { now: MORNING })
-  mock.store(on, { salahSetupLater: true })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' }, salahSetupLater: true })
   mock.env(on, {})
   engineBand(on)
   // Hold the hooks' answer so the drawing thread must light the press itself.
@@ -153,7 +154,7 @@ test('the shared desktop Client hovers the × and lights a press before the hook
 
 test('the reader moves on by itself after the last count', async ($, on) => {
   const clock = mock.clock(on, { now: MORNING })
-  mock.store(on, { salahSetupLater: true })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' }, salahSetupLater: true })
   mock.env(on, {})
   engineBand(on)
   const ui = await $.ui.mount(band('terminal'))
@@ -169,7 +170,7 @@ test('the reader moves on by itself after the last count', async ($, on) => {
 
 test('finishing shows the end, and × hides the band keeping the reading', { timeoutMs: 20000 }, async ($, on) => {
   mock.clock(on, { now: MORNING })
-  mock.store(on, { salahSetupLater: true })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' }, salahSetupLater: true })
   mock.env(on, {})
   engineBand(on)
   const ui = await $.ui.mount(band('desktop'))
@@ -195,20 +196,22 @@ test('finishing shows the end, and × hides the band keeping the reading', { tim
 
 test('/athkar shows status and brings a hidden band back', async ($, on) => {
   mock.clock(on, { now: MORNING })
-  mock.store(on, { salahSetupLater: true })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' }, salahSetupLater: true })
   mock.env(on, {})
   engineBand(on)
   const ui = await $.ui.mount(band('terminal'))
   await ui.post({ act: 'hide' })
   const ran = await $.command.run({ command: 'athkar', args: '', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
   expect(ran.text).toContain('| Style | The look; sky is desktop only | sky |')
+  // The period it just brought back is no longer marked hidden in the same reply.
+  expect(ran.text).toContain('| Morning | Today\'s morning athkar | not started |')
   expect(await ui.find({ in: 'athkar', text: stripTashkeel(TITLE.morning) })).toBeDefined()
   await ui.unmount()
 })
 
-test('off draws nothing above the prompt', { options: { athkar: false } }, async ($, on) => {
+test('every reminder off draws nothing above the prompt by itself', { options: ATHKAR_QUIET }, async ($, on) => {
   mock.clock(on, { now: MORNING })
-  mock.store(on, { salahSetupLater: true })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' }, salahSetupLater: true })
   mock.env(on, {})
   engineBand(on)
   const ui = await $.ui.mount(band('terminal'))
@@ -218,7 +221,7 @@ test('off draws nothing above the prompt', { options: { athkar: false } }, async
 
 test('faded, the reading folds to one row; a press opens it without counting', async ($, on) => {
   const clock = mock.clock(on, { now: MORNING })
-  mock.store(on, { salahSetupLater: true })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' }, salahSetupLater: true })
   mock.env(on, {})
   engineBand(on)
 
@@ -262,7 +265,7 @@ test('faded, the reading folds to one row; a press opens it without counting', a
 
 test('counting by keys with the pointer off the band: it folds 3 seconds after the last key', async ($, on) => {
   const clock = mock.clock(on, { now: MORNING })
-  mock.store(on, { salahSetupLater: true })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' }, salahSetupLater: true })
   mock.env(on, {})
   engineBand(on)
   await $.command.run({ command: 'athkar', args: 'morning reset', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
@@ -283,7 +286,7 @@ test('counting by keys with the pointer off the band: it folds 3 seconds after t
 
 test('counting by keys with the pointer on the band: it stays open', async ($, on) => {
   const clock = mock.clock(on, { now: MORNING })
-  mock.store(on, { salahSetupLater: true })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' }, salahSetupLater: true })
   mock.env(on, {})
   engineBand(on)
   await $.command.run({ command: 'athkar', args: 'morning reset', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
@@ -304,7 +307,7 @@ test('counting by keys with the pointer on the band: it stays open', async ($, o
 
 test('sky is desktop only: the terminal draws the frame, and /athkar style there changes nothing', async ($, on) => {
   mock.clock(on, { now: MORNING })
-  mock.store(on, { salahSetupLater: true })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' }, salahSetupLater: true })
   mock.env(on, {})
   engineBand(on, 'terminal')
   const writes: unknown[] = []
@@ -323,7 +326,7 @@ const NIGHT = new Date(2026, 9, 10, 22, 0).getTime()
 // A store that keeps what is written, so a test can read the saved day.
 const keptStore = (on: On, day?: unknown) => {
   const kept: { day: any } = { day }
-  on('store.get', async (_$, e) => ({ value: e.key === 'athkar' ? kept.day : undefined }))
+  on('store.get', async (_$, e) => ({ value: e.key === 'salahSetupLater' ? true : e.key === 'arabicTerminals' ? { unknown: 'plain' } : e.key === 'athkar' ? kept.day : undefined }))
   on('store.set', async (_$, e) => {
     if (e.key === 'athkar') kept.day = e.value
 
@@ -376,7 +379,7 @@ for (const surface of SURFACES) {
       options: { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berlin; DE', salahShow: 'off', salahAthan: false },
     }, async ($, on) => {
       const clock = mock.clock(on, { now: at - 1 })
-      mock.store(on, { salahSetupLater: true })
+      mock.store(on, { arabicTerminals: { unknown: 'plain' }, salahSetupLater: true })
       mock.env(on, {})
       engineBand(on, surface)
       const ui = await $.ui.mount(band(surface))
@@ -384,10 +387,9 @@ for (const surface of SURFACES) {
         ? (await picture(ui)).includes(TITLE[period])
         : (await ui.find({ in: 'athkar', text: stripTashkeel(TITLE[period]) })) !== undefined
       expect(await title(before)).toBe(true)
-      // Let prayer tracking initialize, then dismiss the existing Asr offer so
-      // this test observes the automatic morning/evening reader.
+      // Let prayer tracking initialize. Asr's untouched offer has expired,
+      // so the automatic morning/evening reader keeps the band.
       await clock.advance(0)
-      if (name === 'Maghrib') await ui.post({ act: 'hide' })
       expect(await title(before)).toBe(true)
       await clock.advance(1)
       expect(await title(after)).toBe(true)
@@ -401,7 +403,7 @@ test('desktop: the minute redraw follows real sunrise even in a manually chosen 
 }, async ($, on) => {
   // Munich sunrise is 07:26 local (05:26 UTC); the fixed-hour sky is already sunrise.
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T05:25:00Z') })
-  mock.store(on, { salahSetupLater: true })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' }, salahSetupLater: true })
   mock.env(on, {})
   engineBand(on, 'desktop')
   await $.command.run(run('evening'))

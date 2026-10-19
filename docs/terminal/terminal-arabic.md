@@ -31,7 +31,7 @@ The placeholders stand for Arabic-only samples transformed by their modes; actua
 
 Press 1–3 to save that mode for the current terminal. The plugin confirms with `muslim: Arabic for <termId> set — /muslim terminal-arabic to redo`. That terminal is not asked again automatically. A different terminal ID with no answer gets its own survey. `/muslim terminal-arabic` reopens the current terminal's survey at any time. Desktop never shows the survey.
 
-Surveys wait while Claude is showing another survey. An unanswered terminal remains eligible after a module reload; the missing saved answer restores the automatic survey, and `arabicSurveyManualTerminal` in `$.state` keeps an explicitly reopened survey tied to its terminal.
+Surveys wait while Claude is showing another survey. While this terminal needs its Arabic check (automatic or manually reopened), salah withholds its city setup row and its digit hotkeys. Choosing an Arabic mode lets city setup appear on the next draw. Both features use the same pure visibility decision from saved modes and the manual-terminal state, independent of hook order; desktop city setup is unaffected. An unanswered terminal remains eligible after a module reload; the missing saved answer restores the automatic survey, and `arabicSurveyManualTerminal` in `$.state` keeps an explicitly reopened survey tied to its terminal.
 
 `/muslim` shows a settings table on every surface. Its Terminal Arabic row shows this terminal's mode on a terminal, for example `joined for WarpTerminal`, or `plain (default, not chosen yet)` before an answer; on desktop it reads `terminal only`.
 
@@ -42,7 +42,7 @@ The terminal ID resolver checks these environment variables in order and uses th
 1. `TERM_PROGRAM` is used verbatim (`Apple_Terminal`, `WarpTerminal`, `iTerm.app`, `vscode`, `ghostty`, `WezTerm`, and other values remain valid IDs).
 2. `TERMINAL_EMULATOR` is used verbatim (for example, `JetBrains-JediTerm`).
 3. `__CFBundleIdentifier` is used verbatim (for example, `com.jetbrains.pycharm` or `com.mitchellh.ghostty`).
-4. Presence of `WT_SESSION` gives `WindowsTerminal`.
+4. A defined `WT_SESSION` gives `WindowsTerminal`, including an empty string. An explicitly undefined value is absent and lets Linux terminal IDs or `WindowsConsole` match.
 5. `KONSOLE_VERSION` gives `Konsole`; `VTE_VERSION` gives `VTE`; `KITTY_WINDOW_ID` gives `kitty`; `ALACRITTY_WINDOW_ID` or `ALACRITTY_SOCKET` gives `Alacritty`.
 6. `OS === 'Windows_NT'` gives `WindowsConsole`.
 7. If none match, the ID is `unknown`.
@@ -101,6 +101,7 @@ The `/muslim terminal-arabic` check is a terminal-only survey above the prompt. 
 - The label reads `muslim · Terminal Arabic Setup · Which word is written correctly?`, with the dim hint `Some terminals break Arabic letters apart or reverse them — pick the one you can read.` below it.
 - Three vertical plain Button rows use hotkeys 1–3; each Arabic sample is a `Text` child, and the hint reads `Press 1–3`.
 - The picker preserves the rest of the AbovePrompt band and waits while another survey is active.
+- The city setup row waits while this check is visible, so only this check owns hotkeys 1–3.
 - Selecting a row hides the picker; `/muslim terminal-arabic` opens it again for the active terminal.
 - Desktop shows no picker and replies that the check is terminal-only.
 

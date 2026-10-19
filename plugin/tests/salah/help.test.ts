@@ -2,8 +2,9 @@ import { expect, test } from 'claude-code/testing'
 
 import { salahHelp } from '../../src/features/salah/help.ts'
 import { helpTable } from '../../src/table.ts'
+import { ATHKAR_QUIET } from '../fixtures/config.ts'
 
-test('the table has a header and one row per command', { options: { athkar: false } }, async () => {
+test('the table has a header and one row per command', { options: { ...ATHKAR_QUIET } }, async () => {
   const [title, blank, ...lines] = salahHelp().split('\n')
 
   expect([title, blank]).toEqual(['**Muslim › Salah › Help**', ''])
@@ -15,6 +16,6 @@ test('the table has a header and one row per command', { options: { athkar: fals
   expect(lines).toContain('| `/salah demo` | Preview Fajr 05:00 without a city: desktop athan 5 s open + 3 s folded, terminal 3.01 s rise + 3 s folded; then after-salah 6.0 s reading + 3.2 s finale + 1.2 s folded; changes no settings or saved state | — |')
 })
 
-test('the command stands alone, its options in their own column; no options shows a dash', { options: { athkar: false } }, async () => {
+test('the command stands alone, its options in their own column; no options shows a dash', { options: { ...ATHKAR_QUIET } }, async () => {
   expect(helpTable([['/salah athan', 'x', '`on` · `off`'], ['/salah', 'y', '']])).toContain('| `/salah athan` | x | `on` · `off` |\n| `/salah` | y | — |')
 })

@@ -1,7 +1,8 @@
+import { listFor, emptyReading, timesOf, overall } from '../../src/features/athkar/logic.ts'
 import { expect, test } from 'claude-code/testing'
-import { PANE_HEIGHT } from '../../src/features/muslim-pane/layout.ts'
-import { paneModel } from '../../src/features/muslim-pane/model.ts'
-import { CLOSED_SETTINGS, CATEGORIES } from '../../src/features/muslim-pane/settings.ts'
+import { PANE_HEIGHT, cardRects, settingsBoxes, hitAt } from '../../src/features/muslim-pane/layout.ts'
+import { paneModel, quranLayout, textLines } from '../../src/features/muslim-pane/model.ts'
+import { CLOSED_SETTINGS, CATEGORIES, DEFAULT_SETTINGS, SETTINGS_BODY_TOP, QURAN_SETTINGS_NOTE, QURAN_SETTINGS_NOTE_H, settingsBody } from '../../src/features/muslim-pane/settings.ts'
 import { paneAlt, paneSvg, paletteCss } from '../../src/features/muslim-pane/view.ts'
 import { FEATURE_ICONS } from '../../src/shared/icon/index.ts'
 
@@ -19,9 +20,49 @@ const feeds = {
     next: { pray: 'asr' as const, at: NOW + 4_320_000, clock: '15:42' },
     isAthan: true,
   },
-  quran: { reciter: 'محمد صديق المنشاوي', surah: 'سورة البقرة', part: 'الربع ٥ - الآيات ١٥–٢٤ (١ من ٢)', segmented: true, status: 'يتلى الآن', isLive: true, elapsed: '12:03', total: '41:20', progress: 0.29, isPlaying: true, canPrev: true, canNext: true, repeat: 'off' as const, avatar: '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="90" viewBox="0 0 96 90"></svg>' },
+  quran: { error: '', reciter: 'محمد صديق المنشاوي', surah: 'سورة البقرة', part: 'الربع ٥ - الآيات ١٥–٢٤ (١ من ٢)', segmented: true, status: 'يتلى الآن', isLive: true, elapsed: '12:03', total: '41:20', progress: 0.29, isPlaying: true, canPrev: true, canNext: true, repeat: 'off' as const, avatar: '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="90" viewBox="0 0 96 90"></svg>' },
   athkar: { set: 'evening' as const, canUndo: false, title: 'أَذْكَارُ الْمَسَاءِ', done: 4, total: 12, progress: 0.33, isDone: false },
 }
+
+test('playing settings show the muted note on every tab and detail face, shifting body targets by its height', () => {
+  const enabled = { athan: false, quran: true, canPrev: true, canNext: true, athkar: true }
+  for (const width of [240, 420]) for (const [category] of CATEGORIES) {
+    const faces = category === 'prayer' ? ['main', 'methods', 'adjust', 'city'] as const : ['main'] as const
+    for (const face of faces) {
+      const settings = { ...DEFAULT_SETTINGS, state: { open: true, category, face, page: 0 } }
+      const stopped = paneModel({ ...feeds, quran: { ...feeds.quran, isPlaying: false } }, NOW, width, 'orange', undefined, undefined, settings)
+      const playing = paneModel(feeds, NOW, width, 'orange', undefined, undefined, settings)
+      const off = quranLayout(stopped), on = quranLayout(playing)
+      const normal = cardRects(stopped.folds, settings.state, settings.options, off)
+      const active = cardRects(playing.folds, settings.state, settings.options, on)
+      expect(active.settingsH - normal.settingsH).toBe(QURAN_SETTINGS_NOTE_H)
+      expect(active.height - normal.height).toBe(QURAN_SETTINGS_NOTE_H)
+      const first = settingsBody(width, settings).targets[0]!
+      const target = (q: typeof on) => settingsBoxes(width, playing.folds, settings, q).find(b => b.act === first.act)!
+      const a = target(off), b = target(on)
+      expect(b.y0 - a.y0).toBe(QURAN_SETTINGS_NOTE_H)
+      expect(b.y1 - a.y1).toBe(QURAN_SETTINGS_NOTE_H)
+      expect(hitAt(width, (b.x0+b.x1)/2, (b.y0+b.y1)/2, enabled, 0, 0, playing.folds, settings, on)).toBe(first.act)
+      expect(paneSvg(playing)).toContain(`<span class="setting-hint chrome-hint" style="top:${SETTINGS_BODY_TOP}px">${QURAN_SETTINGS_NOTE}</span>`)
+      expect(paneSvg(playing)).toContain(`class="settings-body" style="top:${SETTINGS_BODY_TOP + QURAN_SETTINGS_NOTE_H}px"`)
+      expect(paneSvg(stopped)).not.toContain(QURAN_SETTINGS_NOTE)
+      expect(paneSvg(stopped)).toContain(`class="settings-body" style="top:${SETTINGS_BODY_TOP}px"`)
+      // The tabs do not move with the body.
+      expect(settingsBoxes(width, playing.folds, settings, on)[0]).toEqual(settingsBoxes(width, stopped.folds, settings, off)[0])
+    }
+  }
+})
+
+test('folded settings keep their original height during playback and terminal text routes the note through show', () => {
+  const playing = paneModel(feeds, NOW, 420, 'orange')
+  const stopped = paneModel({ ...feeds, quran: { ...feeds.quran, isPlaying: false } }, NOW, 420, 'orange')
+  expect(paneSvg(playing)).not.toContain(QURAN_SETTINGS_NOTE)
+  expect(cardRects(playing.folds, playing.settings.state, playing.settings.options, quranLayout(playing)).settingsH).toBe(56)
+  const lines = textLines(playing, s => `SHOWN(${s})`)
+  expect(lines[lines.indexOf('**SHOWN(الإعدادات)**') + 1]).toBe(`SHOWN(${QURAN_SETTINGS_NOTE})`)
+  expect(textLines(stopped, s => s).join('\n')).not.toContain(QURAN_SETTINGS_NOTE)
+  expect(textLines(paneModel({ ...feeds, quran: null }, NOW, 420, 'orange'), s => s).join('\n')).not.toContain(QURAN_SETTINGS_NOTE)
+})
 
 test('the picture draws the three cards at the fixed pane height', () => {
   const svg = paneSvg(paneModel(feeds, NOW, 360, 'orange'))
@@ -81,7 +122,7 @@ test('features that are not connected leave quiet notes, never a broken picture'
   expect(svg).not.toContain('مواقيت')
   expect(svg).toContain(`height="${PANE_HEIGHT}"`)
   expect(svg).toContain('--:--')
-  expect(svg).toContain('Athkar are off: /athkar on')
+  expect(svg).toContain('Not ready: /athkar')
 })
 
 test('the main color comes from the shared palette, in both themes', () => {
@@ -353,4 +394,16 @@ test('the athkar row says ابدأ with no counts, أكمل with some, and only 
   expect(at(12, true)).not.toContain('>أكمل</span>')
   expect(at(12, true)).toContain('أتممتَ وردك ✓')
   expect(at(12, true)).toContain('<span>إعادة</span>')
+})
+
+
+test('one repetition of a triple thikr offers أكمل before any item is complete', () => {
+  const reading = emptyReading()
+  const thikr = listFor('morning').find(t => timesOf(t) === 3)!
+  reading.counts[thikr.id] = 1
+  const progress = overall('morning', reading)
+  expect(progress).toBeGreaterThan(0)
+  const svg = paneSvg(paneModel({ ...feeds, athkar: { ...feeds.athkar, done: 0, progress } }, NOW, 420, 'orange'))
+  expect(svg).toContain('>أكمل</span>')
+  expect(svg).not.toContain('>ابدأ</span>')
 })

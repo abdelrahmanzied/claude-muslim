@@ -15,8 +15,6 @@ export type Where = { latitude: number; longitude: number; timeZone: string }
 // Each pray's time, ms since epoch.
 export type DayTimes = Record<Pray, number>
 
-const DAY_MS = 24 * 60 * 60 * 1000
-
 export const paramsFor = (method: MethodId, adjust: Adjust, isRamadan: boolean, coordinates: Coordinates) => {
   const m = METHODS[method]
   const ishaMinutes = isRamadan && m.ramadanIshaMinutes ? m.ramadanIshaMinutes : m.ishaMinutes
@@ -31,9 +29,17 @@ export const paramsFor = (method: MethodId, adjust: Adjust, isRamadan: boolean, 
 
 // The pray times of the local day that `at` falls on in the place's time zone.
 export const timesOn = (place: Where, method: MethodId, adjust: Adjust, at: number): DayTimes => {
-  const { year, month, day } = localTime(at, place.timeZone)
+  return timesForDate(place, method, adjust, localTime(at, place.timeZone))
+}
+
+const timesForDate = (place: Where, method: MethodId, adjust: Adjust, date: { year: number; month: number; day: number }): DayTimes => {
+  const { year, month, day } = date
+  const noonUtc = Date.UTC(year, month - 1, day, 12)
+  const local = localTime(noonUtc, place.timeZone)
+  const localAsUtc = Date.UTC(local.year, local.month - 1, local.day, local.hour, local.minute)
+  const noon = noonUtc + noonUtc - localAsUtc
   const coordinates = new Coordinates(place.latitude, place.longitude)
-  const isRamadan = hijriMonth(at, place.timeZone) === 9
+  const isRamadan = hijriMonth(noon, place.timeZone) === 9
   const times = new PrayerTimes(coordinates, new Date(year, month - 1, day), paramsFor(method, adjust, isRamadan, coordinates))
 
   return {
@@ -46,13 +52,19 @@ export const timesOn = (place: Where, method: MethodId, adjust: Adjust, at: numb
   }
 }
 
+const adjacentTimes = (place: Where, method: MethodId, adjust: Adjust, at: number, offset: number): DayTimes => {
+  const { year, month, day } = localTime(at, place.timeZone)
+  const date = new Date(year, month - 1, day + offset, 12)
+  return timesForDate(place, method, adjust, { year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() })
+}
+
 // The next pray after `at` (sunrise included), today's or tomorrow's Fajr.
 export const nextPray = (place: Where, method: MethodId, adjust: Adjust, at: number): { pray: Pray; at: number } => {
   const today = timesOn(place, method, adjust, at)
   const pray = PRAYS.find(name => today[name] > at)
   if (pray) return { pray, at: today[pray] }
 
-  return { pray: 'fajr', at: timesOn(place, method, adjust, at + DAY_MS).fajr }
+  return { pray: 'fajr', at: adjacentTimes(place, method, adjust, at, 1).fajr }
 }
 
 // The next of the five prays after `at`: nextPray without sunrise.
@@ -69,7 +81,7 @@ export const lastPray = (place: Where, method: MethodId, adjust: Adjust, at: num
   const pray = [...PRAYS].reverse().find(name => name !== 'sunrise' && today[name] <= at)
   if (pray) return { pray, at: today[pray] }
 
-  return { pray: 'isha', at: timesOn(place, method, adjust, at - DAY_MS).isha }
+  return { pray: 'isha', at: adjacentTimes(place, method, adjust, at, -1).isha }
 }
 
 // HH:MM in the place's time zone, 24-hour.

@@ -24,7 +24,7 @@ export const terminalIdFromEnv = (env: TerminalEnvironment): string => {
   if (env.TERM_PROGRAM) return env.TERM_PROGRAM
   if (env.TERMINAL_EMULATOR) return env.TERMINAL_EMULATOR
   if (env.__CFBundleIdentifier) return env.__CFBundleIdentifier
-  if (Object.prototype.hasOwnProperty.call(env, 'WT_SESSION')) return 'WindowsTerminal'
+  if (env.WT_SESSION !== undefined) return 'WindowsTerminal'
   if (env.KONSOLE_VERSION) return 'Konsole'
   if (env.VTE_VERSION) return 'VTE'
   if (env.KITTY_WINDOW_ID) return 'kitty'
@@ -49,3 +49,7 @@ export const terminalArabic = (surface: string, mode: ArabicMode, text: string):
 
   return arabicReordered(arabicJoined(text))
 }
+
+// Shared visibility decision, independent of hook registration order.
+export const needsArabicCheck = (id: string, manual: string | null | undefined, saved: Record<string, unknown> | undefined): boolean =>
+  manual === id || !isArabicMode(saved?.[id])

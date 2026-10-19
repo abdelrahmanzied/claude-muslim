@@ -16,7 +16,7 @@ const band = (surface: typeof SURFACES[number]) => ({
 const run = (args: string) => ({ command: 'athkar', args, origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } })
 const engine = (on: On, now: number, surface: typeof SURFACES[number], saved: Record<string, unknown> = {}) => {
   mock.env(on, {})
-  mock.store(on, saved)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' }, ...saved })
   const clock = mock.clock(on, { now })
   on('session.surface', async () => ({ value: surface }))
   on('config.list', async () => ({ value: [] }))
@@ -27,7 +27,7 @@ const engine = (on: On, now: number, surface: typeof SURFACES[number], saved: Re
   return clock
 }
 
-test('the Muslim pane opens a reader while setup is pending, before the band first draws', async ($, on) => {
+test('the Muslim pane remembers an open request during setup and draws it after the answer', async ($, on) => {
   engine(on, NOW, 'desktop')
   on('ui.render', { component: 'Pane', requestId: 'muslim' }, async ($, e) => { const { Box } = $.ui.resolve(e); return <Box /> })
   const pane = await $.ui.mount({ plugin: 'muslim', component: 'Pane', requestId: 'muslim', surface: 'desktop', props: { title: 'Muslim', isFocused: false, bodyColumns: 50, placement: 'dock', scroll: { offset: 0, bodyRows: 100 }, view: {} } })
@@ -38,14 +38,16 @@ test('the Muslim pane opens a reader while setup is pending, before the band fir
   const fine = { x: (target.x0 + target.x1) / 2 * 50 / 420, y: (rects.athkarY + athkarRowTop(model.athkarMenu) + 18) * 100 / rects.height }
   await pane.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: Math.floor(fine.x), y: Math.floor(fine.y), fine })
   const ui = await $.ui.mount(band('desktop'))
-  expect((await ui.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ period: 'morning', isActive: true })
+  expect(await ui.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
   expect(await ui.find({ key: 'salah-setup' })).toBeDefined()
+  await ui.press({ key: 'salah-later' })
+  expect((await ui.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ period: 'morning' })
   await ui.unmount()
   await pane.unmount()
 })
 
 for (const surface of SURFACES) {
-  test(`${surface}: fresh install shows setup alone, even with the prayer footer off`, { options: { salahShow: 'off' } }, async ($, on) => {
+  test(`${surface}: with Arabic chosen, first prayer setup shows alone, even with the prayer footer off`, { options: { salahShow: 'off' } }, async ($, on) => {
     engine(on, NOW, surface)
     const ui = await $.ui.mount(band(surface))
     expect(await ui.find({ key: 'salah-setup' })).toBeDefined()
@@ -68,13 +70,15 @@ for (const surface of SURFACES) {
   })
 
   for (const args of ['', 'morning', 'evening', 'after-salah', 'morning reset']) {
-    test(`${surface}: /athkar ${args} opens while setup is pending`, async ($, on) => {
+    test(`${surface}: /athkar ${args} waits to draw until pending setup is answered`, async ($, on) => {
       engine(on, NOW, surface)
       const ui = await $.ui.mount(band(surface))
       expect(await ui.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
       await $.command.run(run(args))
-      expect(await ui.find({ type: 'Client', key: 'athkar' })).toBeDefined()
+      expect(await ui.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
       expect(await ui.find({ key: 'salah-setup' })).toBeDefined()
+      await ui.press({ key: 'salah-later' })
+      expect(await ui.find({ type: 'Client', key: 'athkar' })).toBeDefined()
       await ui.unmount()
     })
   }

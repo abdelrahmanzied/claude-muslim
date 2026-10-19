@@ -28,7 +28,7 @@ Everything else (font, size) stays Claude's: the API sets neither, so the reader
 
 The real AbovePrompt render yields the existing tree, just as for a hidden reading, while first-run automatic opening is quiet. The salah setup card stays visible. The shared pure first-run policy lives in `plugin/src/shared/pray/first-run.ts`; salah writes the first answer, athkar reads its store key and subscribes to `firstRunRemindFrom` and `salahSetupLater`. Pending follows the installed setup card, including with the footer off. Timer setup precedes the gate, so the next period still opens on time.
 
-Only automatic selections are gated. Morning/evening need a period start at or after the first answer; after-salah uses the athan timestamp, not the delayed offer start. For periods, `mayOpenPeriod` tests whether the first boundary at or after the answer has passed, using bounds for answer minus 1 ms to include exact equality, including before Fajr and across midnight. No timestamp preserves existing-user behavior. Explicit commands (including reset), pane opens and matching `requested` signals bypass this check. Demos use their existing separate path.
+Only automatic selections are gated. Morning/evening need a period start at or after the first answer; after-salah uses the athan timestamp, not the delayed offer start. For periods, `mayOpenPeriod` tests whether the first boundary at or after the answer has passed, using bounds for answer minus 1 ms to include exact equality, including before Fajr and across midnight. No timestamp preserves existing-user behavior. Explicit commands (including reset), pane opens and matching `requested` signals bypass this automatic-opening check, but their drawing still waits for any visible setup form. Demos use their existing separate path and also yield to setup.
 
 ## Reading
 
@@ -44,7 +44,7 @@ The title is أَذْكَارُ بَعْدَ الصَّلَاةِ; the command i
 
 One slot holds the current prayer's reading (`pray`, `at`), or the general reading with both null. A different prayer time clears counts, done and hidden state and starts on the cover. There is no history. The Fajr day boundary (05:00 without prayer times) also clears it; old days missing the slot are tolerated. The list is authored in Hisn al-Muslim chapter 25 ([hisn:66](https://sunnah.com/hisn:66)–[72](https://sunnah.com/hisn:72)); general readings use base counts, while Fajr/Maghrib carry their specified extras.
 
-Prayer tracking depends on a saved place, independently of footer visibility (`/salah show off`). The offer starts at `salahLast.at + IN_MS`, using the shared athan duration (currently 15 minutes), even on terminal or when the athan card is disabled, closed early or never drawn. A timer only wakes the drawing at this start; there is no end timer. Once offered, morning/evening wait until after-salah is done, hidden or replaced by the next prayer. Done/× immediately returns to the automatic morning/evening set. A new prayer clears the slot, discards a manual after-salah choice and starts the wait again; a manual morning/evening choice keeps its existing hold. No prayer times means no automatic offer; manual access remains available.
+Prayer tracking depends on a saved place, independently of footer visibility (`/salah show off`). The offer starts at `salahLast.at + IN_MS`, using the shared athan duration (currently 15 minutes), even on terminal or when the athan card is disabled, closed early or never drawn. Separate one-shot timers wake drawing at this start and at `salahLast.at + 2 * IN_MS` (currently 30 minutes from the athan), including after a module reload. `offerEnd` shares the same `IN_MS` constant; `setAt` derives eligibility from the prayer timestamp, the slot counts and the clock, with no persisted expiry flag. An untouched automatic offer stops claiming the band at that end, even if morning/evening kept it waiting throughout. Any positive count before the deadline keeps the unfinished, visible reading until done, hidden or replaced by the next prayer. A matching athan-card request or a manual command/pane choice bypasses expiry. The pane retains manual access after expiry. Done/× immediately returns to the automatic morning/evening set. A new prayer clears the slot, discards a manual after-salah choice and starts the wait again; a manual morning/evening choice keeps its existing hold. No prayer times means no automatic offer; manual access remains available.
 
 The desktop athan action **ابدأ أذكار بعد الصلاة** hands off immediately: salah closes its moment and writes `salahAfterSalahStart` with that prayer's identity. Athkar checks it against `salahLast`, unhides/resumes the reading (restarts if completed), and opens it lit, past the cover; the next count counts. The signal overrides a manual choice, survives a module reload for the same prayer, and cannot carry over to another prayer. The automatic offer after the normal deadline starts on the usual folded cover. The sky, reader layout and counting paths are unchanged; no setting or demo scene is added.
 
@@ -111,7 +111,7 @@ The command reply reports each style's real scene count and total duration.
 Sky is desktop only; no-word playback uses the current style on desktop and
 Frame in the terminal. Another demo command restarts playback; there is no
 input handler, including for ×. It uses its own `athkar-demo` Client and a
-separate render hook even with athkar off; the real render only yields its
+separate render hook; the real render only yields its
 place during playback. For standalone athkar previews, the desktop athan card keeps precedence. The demo
 never changes the real reading, view or timers and never writes settings,
 store or state. At the end the real band redraws normally. Scenes and timings
@@ -175,6 +175,15 @@ The terminal draws the question, muted line and two native text buttons through 
 - No signal for a click elsewhere or for Esc (see rules 4 and 5).
 - No cursor shape: the × shows its hover with a light disc instead of a pointer cursor.
 
+## Reminder switches
+
+The three reminders (`athkarMorning`, `athkarEvening`, `athkarAfterSalah`) change no drawing. They only decide whether the band opens by itself. The pane's الأذكار tab shows them as three switch rows above the look pills:
+- «تذكير أذكار الصباح», «يظهر فوق خانة الكتابة من الفجر»;
+- «تذكير أذكار المساء», «يظهر فوق خانة الكتابة من المغرب»;
+- «تذكير أذكار بعد الصلاة», «يظهر ربع ساعة بعد كل أذان».
+
+The terminal pane text lists them with `/athkar <set> on | off`.
+
 ## Checklist for a change
 
 - [ ] The rule is changed here first, then the code and its tests.
@@ -197,7 +206,7 @@ The whole day at a glance: the period, the sky and the after-salah offer, with p
 | Maghrib | min(Maghrib + 1 h, Isha) | evening | blue hour | 18:00–19:00 blue hour |
 | that | next Fajr | evening (after midnight: the day before) | crescent | 19:00–04:00 crescent; day turns at 05:00 |
 
-After each obligatory prayer, the after-salah reading takes the band at prayer + 15 min (or at once from the athan card's start action) until it is done, closed or the next prayer comes; then the row's period returns. If the morning or evening reading is being counted at that moment, after-salah waits until it is done or closed, so a reading is never cut off. Without prayer times there is no offer. Sunrise falls back to Fajr + 1.5 h when missing. On a short day the phases are cut, not scaled: dawn always keeps Fajr to Sunrise; the day phase goes first, then the sunrise phase shortens, and only on a very short day does rose start later than Maghrib − 1 h (see `skyBoundaries` above). Demos keep their authored skies.
+After each obligatory prayer, the automatic after-salah reading may take the band from prayer + `IN_MS` to prayer + `2 * IN_MS` (currently 15–30 minutes). Untouched at expiry, it gives the band back without a save. Once counted, it stays until done, closed or the next prayer; explicit athan-card, command and pane starts keep that same hold without expiry. If morning/evening is already being counted, after-salah waits only within its automatic offer window; finishing after that window never surfaces the untouched offer. A started reading is never cut off. Without prayer times there is no offer. Sunrise falls back to Fajr + 1.5 h when missing. On a short day the phases are cut, not scaled: dawn always keeps Fajr to Sunrise; the day phase goes first, then the sunrise phase shortens, and only on a very short day does rose start later than Maghrib − 1 h (see `skyBoundaries` above). Demos keep their authored skies.
 
 Salah connects prayer-day bounds through `plugin/src/shared/pray/bounds.ts`: each read calculates current bounds and date keys from the current clock, configured place, method and adjustments. With no place it returns null. It is available before the first ticker publication and cannot retain yesterday’s bounds at midnight or after a settings reload. Athkar reads it for commands, input, drawing and timers, with the same bounds in timers as in hooks. A one-shot redraw wakes at the next Fajr/Maghrib; the existing minute ticker refreshes prayer-based or fixed-hour skies and handles clock changes. Manual choices, after-salah precedence and demos keep their rules.
 
@@ -206,3 +215,7 @@ Prayer bounds reuse a pure daily calculation cache, refreshed on the first read 
 ## Muslim pane card
 
 The pane's athkar card (set menu, progress row, «ابدأ/أكمل · ✓ أتممتُها · إعادة») is drawn by the Muslim pane; its look and sizes are in [the pane design](../muslim-pane/muslim-pane-design.md), its behaviour in [athkar.md](athkar.md). It never changes the band's 77px open and 24px folded heights or any religious text.
+
+Input, pane actions, commands and timed advancement serialize their day read-modify-save operations in one transient queue. Each step reads after the preceding save; inner helpers never enqueue again. Rejections do not break the queue. Rendering stays read-only; deferred prayer-slot synchronization joins that same queue. Settings commands use the shared stop-before-reload rule in DESIGN.md.
+
+Setup forms follow DESIGN.md's exclusive AbovePrompt rule. The reader, folded row, finish question and finale all yield to city setup, review and the terminal Arabic check. Their reading is retained; hiding does not open the reader or advance its current item. A pending automatic item advance is skipped while a form is open, without replaying that advance on return. Explicit opens are remembered and draw after the form closes.

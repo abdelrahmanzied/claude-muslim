@@ -1,3 +1,4 @@
+import { ATHKAR_QUIET, configRows } from '../fixtures/config.ts'
 import { emptyDay, dayOf } from '../../src/features/athkar/logic.ts'
 import type { Day } from '../../types/index.d.ts'
 import { runPanelAction } from '../../src/shared/panel/signal.ts'
@@ -18,7 +19,7 @@ declare const setTimeout: (fn: () => void, ms: number) => unknown
 let testClock!: ReturnType<typeof mock.clock>
 const pane = (surface: 'desktop' | 'terminal') => ({ plugin: 'muslim', component: 'Pane' as const, requestId: 'muslim', surface, props: { title: 'Muslim', isFocused: false, bodyColumns: 50, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 40 }, view: {} } })
 // Stands for the engine's own band and mode labels beneath the plugin, so the features connect as in a session.
-const engine = (on: On, surface: 'desktop' | 'terminal', open?: (args: PaneOpenArgs) => UiOpenResult, entries: Record<string, unknown> = {}, storeWrites?: {key:string;value:unknown}[], env: Record<string,string> = {}) => {
+const engine = (on: On, surface: 'desktop' | 'terminal', open?: (args: PaneOpenArgs) => UiOpenResult, entries: Record<string, unknown> = {}, storeWrites?: {key:string;value:unknown}[], env: Record<string,string> = {}, rows = configRows) => {
   // Existing-user fixture: prayer setup was already put off.
   entries = { salahSetupLater: true, ...entries }
   mock.env(on, env)
@@ -29,7 +30,7 @@ const engine = (on: On, surface: 'desktop' | 'terminal', open?: (args: PaneOpenA
   testClock = mock.clock(on, { now: NOON })
   on('session.surface', async () => ({ value: surface }))
   on('session.surfaces', async () => ({ value: [surface] }))
-  on('config.list', async () => ({ value: [] }))
+  on('config.list', async () => ({ value: rows }))
   on('ui.render', { component: 'AbovePrompt' }, async ($, e) => { const { Box } = $.ui.resolve(e); return <Box /> })
   on('ui.render', { component: 'SessionMode' }, async ($, e) => { const { Text } = $.ui.resolve(e); return <Text>x</Text> })
   on('ui.render', { component: 'Pane', requestId: 'muslim' }, async ($, e) => { const { Box } = $.ui.resolve(e); return <Box /> })
@@ -48,7 +49,7 @@ test('/muslim opens the Muslim pane on desktop', { options: { salahPlace: MUNICH
   expect(result.text).toBe('Muslim pane opened.')
 })
 
-test('the pane draws prayers and the shipped Quran catalog immediately, with a quiet note for disabled athkar', { options: { salahPlace: MUNICH, athkar: false } }, async ($, on) => {
+test('the pane draws prayers and the shipped Quran catalog immediately, and the athkar card even with every reminder off', { options: { salahPlace: MUNICH, ...ATHKAR_QUIET } }, async ($, on) => {
   engine(on, 'desktop')
   const ui = await $.ui.mount(pane('desktop'))
   const model = (await ui.find({ type: 'Client', key: 'muslim-pane' }))!.props.props as PaneModel
@@ -57,7 +58,7 @@ test('the pane draws prayers and the shipped Quran catalog immediately, with a q
   expect(model.prayer.rows).toHaveLength(5)
   expect(model.prayer.rows.filter(r => r.state === 'next')).toHaveLength(1)
   expect(model.quran.isAvailable).toBe(true)
-  expect(model.athkar.isAvailable).toBe(false)
+  expect(model.athkar.isAvailable).toBe(true)
 })
 
 test('the athkar card reads today\'s progress once the athkar band has drawn', { options: { salahPlace: MUNICH } }, async ($, on) => {
@@ -227,7 +228,9 @@ const settingCases: {category:SettingsState['category'];face?:SettingsState['fac
   {category:'thikr',act:'thikrMode:salawat',field:'thikrMode',value:'salawat'},
   {category:'general',act:'tashkeel',field:'tashkeel',value:false},
   {category:'general',act:'color:blue',field:'color',value:'blue'},
-  {category:'athkar',act:'athkar',field:'athkar',value:false},
+  {category:'athkar',act:'athkarMorning',field:'athkarMorning',value:false},
+  {category:'athkar',act:'athkarEvening',field:'athkarEvening',value:false},
+  {category:'athkar',act:'athkarAfterSalah',field:'athkarAfterSalah',value:false},
   {category:'athkar',act:'athkarStyle:frame',field:'athkarStyle',value:'frame'},
   {category:'prayer',act:'salahShow:always',field:'salahShow',value:'always'},
   {category:'prayer',act:'salahShow:off',field:'salahShow',value:'off'},
@@ -253,7 +256,7 @@ test('settings config deny shows a toast and leaves the category open',async($,o
   on('config.set',async()=>({deny:'locked'}))
   on('ui.toast',async(_$,e)=>{toasts.push(e.text);return {value:undefined}})
   const ui=await $.ui.mount(pane('desktop'))
-  await settingsClick(ui,'settings:athkar')
+  await settingsClick(ui,'settings:athkarMorning')
   expect(toasts).toEqual(['Not changed: locked'])
   expect(state().category).toBe('athkar')
 })
@@ -400,27 +403,27 @@ for(const denied of [false,true]) test(`settings switch redraws while config is 
   on('ui.toast',async(_$,e)=>{toasts.push(e.text);return {value:undefined}})
   on('config.set',async()=>{started();await held;return denied?{deny:'locked'}:{value:false}})
   const ui=await $.ui.mount(pane('desktop'))
-  const click=settingsClick(ui,'settings:athkar')
+  const click=settingsClick(ui,'settings:athkarMorning')
   try {
     await writing
-    expect(optimistic).toEqual({athkar:false})
+    expect(optimistic).toEqual({athkarMorning:false})
     const model=(await ui.find({type:'Client',key:'muslim-pane'}))!.props.props as PaneModel
-    expect(model.settings.options.athkar).toBe(false)
+    expect(model.settings.options.athkarMorning).toBe(false)
     const svg=String((await ui.find({in:'muslim-pane',type:'Svg'}))?.props.source)
     expect(svg).toContain('role="switch" aria-checked="false"')
   } finally {release()}
   await click
   if(denied) await until(()=>toasts.length>0)
-  expect(optimistic).toEqual(denied?{}:{athkar:false})
+  expect(optimistic).toEqual(denied?{}:{athkarMorning:false})
   const model=(await ui.find({type:'Client',key:'muslim-pane'}))!.props.props as PaneModel
-  expect(model.settings.options.athkar).toBe(denied)
+  expect(model.settings.options.athkarMorning).toBe(denied)
 })
 
 test('a denied write clears only its own pending value, never a newer press for the same field',async($,on)=>{
   engine(on,'desktop'); settingsState(on,{open:true,category:'athkar',face:'main',page:0})
   let newer=false
   const writes:unknown[]=[]
-  on('state.get',optimisticRef,async(_$,e,next)=>newer?{value:{value:{athkar:true,thikr:false},version:99}}:next(e))
+  on('state.get',optimisticRef,async(_$,e,next)=>newer?{value:{value:{athkarMorning:true,thikr:false},version:99}}:next(e))
   on('state.set',optimisticRef,async(_$,e,next)=>{writes.push(e.value);return next(e)})
   let started!:()=>void, release!:()=>void
   const writing=new Promise<void>(resolve=>{started=resolve})
@@ -429,14 +432,14 @@ test('a denied write clears only its own pending value, never a newer press for 
   on('ui.toast',async(_$,e)=>{toasts.push(e.text);return {value:undefined}})
   on('config.set',async()=>{started();await held;return {deny:'locked'}})
   const ui=await $.ui.mount(pane('desktop'))
-  const click=settingsClick(ui,'settings:athkar')
+  const click=settingsClick(ui,'settings:athkarMorning')
   await writing
   // A newer press for the same switch (the opposite value) lands while the first is still pending.
   newer=true
   release()
   await click
   await until(()=>toasts.length>0)
-  expect(writes).toEqual([{athkar:false}])
+  expect(writes).toEqual([{athkarMorning:false}])
 })
 
 test('a denied write is retried when another press beat its version',async($,on)=>{
@@ -452,9 +455,9 @@ test('a denied write is retried when another press beat its version',async($,on)
   on('ui.toast',async(_$,e)=>{toasts.push(e.text);return {value:undefined}})
   on('config.set',async()=>{denying=true;return {deny:'locked'}})
   const ui=await $.ui.mount(pane('desktop'))
-  await settingsClick(ui,'settings:athkar')
+  await settingsClick(ui,'settings:athkarMorning')
   await until(()=>toasts.length>0)
-  expect(writes).toEqual([{athkar:false},{},{}])
+  expect(writes).toEqual([{athkarMorning:false},{},{}])
 })
 
 const athkarModel = async (ui: Mounted<'desktop' | 'terminal', 'Pane'>) => (await ui.find({ type: 'Client', key: 'muslim-pane' }))!.props.props as PaneModel
@@ -470,6 +473,25 @@ async function athkarClick(ui: Mounted<'desktop' | 'terminal', 'Pane'>, target: 
   const fine = { x: x * 50 / 420, y: (r.athkarY + y) * 100 / r.height }
   await ui.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: Math.floor(fine.x), y: Math.floor(fine.y), fine })
 }
+
+test('the pane can select and open an untouched after-salah slot after automatic expiry', { options: { salahPlace: MUNICH, salahAthan: false } }, async ($, on) => {
+  const day = emptyDay(dayOf(new Date(NOON)))
+  day.afterSalah = { ...day.afterSalah, pray: 'fajr', at: Date.parse('2026-10-10T03:42:00Z') }
+  engine(on, 'desktop', undefined, { athkar: day })
+  const reader = await $.ui.mount(band('desktop'))
+  await testClock.advance(0)
+  expect((await reader.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ period: 'morning' })
+  const ui = await $.ui.mount(pane('desktop'))
+  await athkarClick(ui, 'title')
+  await athkarClick(ui, 2)
+  expect((await athkarModel(ui)).athkar).toMatchObject({ set: 'after-salah', progress: 0 })
+  await athkarClick(ui, 'open')
+  expect((await reader.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ period: 'afterSalah' })
+  await testClock.advance(60_000)
+  expect((await reader.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ period: 'afterSalah' })
+  await ui.unmount()
+  await reader.unmount()
+})
 
 for (const [i, set] of (['morning', 'evening', 'after-salah'] as const).entries()) {
   test(`athkar picker ${set}: works before band draw, shares manual hold, Finish, Open and reset/undo`, async ($, on) => {
@@ -703,5 +725,49 @@ test('pane messages reconcile auto-update only while a boolean press is pending,
   await ui.post({act:'drag',y:12,rows:40,end:true},{in:'muslim-pane'})
   expect(reads).toBeGreaterThan(before+1)
   expect(pending).toBeNull()
+  await ui.unmount()
+})
+
+for (const failure of ['pending', 'deny', 'throw'] as const) test(`method selection returns to main before config completes: ${failure}`, async ($, on) => {
+  engine(on, 'desktop')
+  const before: SettingsState = { open: true, category: 'prayer', face: 'methods', page: 0 }
+  const state = settingsState(on, before)
+  let started!: () => void
+  const writing = new Promise<void>(resolve => { started = resolve })
+  const toasts: string[] = []
+  on('ui.toast', async (_$, e) => { toasts.push(e.text); return { value: undefined } })
+  on('config.set', async (_$, e) => {
+    expect(state().face).toBe('main')
+    started()
+    if (failure === 'pending') await new Promise<void>(() => {})
+    if (failure === 'throw') throw new Error('locked')
+    return { deny: 'locked' }
+  })
+  const ui = await $.ui.mount(pane('desktop'))
+  void settingsClick(ui, 'settings:pick:mwl')
+  await writing
+  if (failure === 'pending') expect(state().face).toBe('main')
+  else {
+    await until(() => toasts.length > 0)
+    expect(state()).toEqual(before)
+    expect(toasts).toHaveLength(1)
+    expect(toasts[0]).toMatch(/^Not changed:/)
+    if (failure === 'deny') expect(toasts[0]).toBe('Not changed: locked')
+  }
+  await ui.unmount()
+})
+
+test('missing method row keeps the methods face and asks for reload without saving', async ($, on) => {
+  engine(on, 'desktop', undefined, {}, undefined, {}, [])
+  const before: SettingsState = { open: true, category: 'prayer', face: 'methods', page: 0 }
+  const state = settingsState(on, before)
+  const writes: unknown[] = [], toasts: string[] = []
+  on('config.set', async (_$, e) => { writes.push(e); return { value: e.value } })
+  on('ui.toast', async (_$, e) => { toasts.push(e.text); return { value: undefined } })
+  const ui = await $.ui.mount(pane('desktop'))
+  await settingsClick(ui, 'settings:pick:mwl')
+  expect(state()).toEqual(before)
+  expect(writes).toEqual([])
+  expect(toasts).toEqual(['Not changed: run /reload-plugins, then try again.'])
   await ui.unmount()
 })

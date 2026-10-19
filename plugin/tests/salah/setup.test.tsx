@@ -1,3 +1,4 @@
+import { ATHKAR_QUIET, configRows } from '../fixtures/config.ts'
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
@@ -54,6 +55,7 @@ const mountFooter = async ($: any, surface: (typeof SURFACES)[number]) => {
 
 const settingsWriter = (on: On) => {
   const written: { key: string; value: unknown }[] = []
+  on('config.list', async () => ({ value: configRows }))
   on('config.set', async (_$, e) => (written.push({ key: e.key, value: e.value }), { value: e.value }))
 
   return written
@@ -77,13 +79,13 @@ const answerCities = (on: On, cities: unknown[]) =>
 
 const MUNICH = { name: 'Munich, Germany', country: 'DE', latitude: 48.14, longitude: 11.58, timeZone: 'Europe/Berlin' }
 
-test('before setup the band asks for the place; Not now puts it off for good', { options: { athkar: false } }, async ($, on) => {
+test('before setup the band asks for the place; Not now puts it off for good', { options: { ...ATHKAR_QUIET } }, async ($, on) => {
   mock.clock(on, { now: 1000 })
   mock.env(on, {})
   engineBand(on)
   // Stands for the plugin's store.
   const stored: Record<string, unknown> = {}
-  on('store.get', async () => ({ value: undefined }))
+  on('store.get', async (_$, e) => ({ value: e.key === 'arabicTerminals' ? { unknown: 'plain' } : undefined }))
   on('store.set', async (_$, e) => (stored[e.key] = e.value, { value: undefined }))
   for (const surface of SURFACES) {
     const shown = await $.ui.mount(band(surface))
@@ -98,10 +100,10 @@ test('before setup the band asks for the place; Not now puts it off for good', {
   expect(stored).toEqual({ salahSetupLater: true, 'firstRun.remindFrom': 1000 })
 })
 
-test('another city: typed in any language, found by Claude, saved', { options: { athkar: false } }, async ($, on) => {
+test('another city: typed in any language, found by Claude, saved', { options: { ...ATHKAR_QUIET } }, async ($, on) => {
   mock.clock(on, { now: 1000 })
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   engineBand(on)
   const written = settingsWriter(on)
   answerDialog(on, 'ميونخ')
@@ -114,10 +116,10 @@ test('another city: typed in any language, found by Claude, saved', { options: {
   expect(written).toEqual([{ key: 'muslim.salahPlace', value: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' }])
 })
 
-test('/salah city with no name asks the setup question', { options: { athkar: false } }, async ($, on) => {
+test('/salah city with no name asks the setup question', { options: { ...ATHKAR_QUIET } }, async ($, on) => {
   mock.clock(on, { now: 1000 })
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   const written = settingsWriter(on)
   answerDialog(on, 'Munich')
   answerCities(on, [MUNICH])
@@ -128,9 +130,9 @@ test('/salah city with no name asks the setup question', { options: { athkar: fa
   expect(written[0]?.value).toBe('Munich, Germany; 48.14, 11.58; Europe/Berlin; DE')
 })
 
-test('a saved place shows no setup band', { options: { athkar: false, salahPlace: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' } }, async ($, on) => {
+test('a saved place shows no setup band', { options: { ...ATHKAR_QUIET, salahPlace: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' } }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   engineBand(on)
   const shown = await $.ui.mount(band('terminal'))
 
@@ -143,9 +145,9 @@ const AT_MUNICH = { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berli
 const prayRow = async (shown: { find: (query: { key: string }) => Promise<{ text?: string } | undefined> }) =>
   (await shown.find({ key: 'salah-line' }))?.text
 
-test('review buttons cross the old minute bounds and save on both surfaces', { options: { athkar: false, ...AT_MUNICH, salahAdjust: '0 0 0 60 0 -60' } }, async ($, on) => {
+test('review buttons cross the old minute bounds and save on both surfaces', { options: { ...ATHKAR_QUIET, ...AT_MUNICH, salahAdjust: '0 0 0 60 0 -60' } }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
   engineBand(on)
   const written = settingsWriter(on)
@@ -163,7 +165,7 @@ test('review buttons cross the old minute bounds and save on both surfaces', { o
 
 test('/salah adjust opens the review form: minutes move a pray, Save keeps them', { options: AT_MUNICH }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
   engineBand(on)
   const written = settingsWriter(on)
@@ -189,7 +191,7 @@ test('/salah adjust opens the review form: minutes move a pray, Save keeps them'
 
 test('Skip closes the review form without saving', { options: AT_MUNICH }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
   engineBand(on)
   const written = settingsWriter(on)
@@ -204,9 +206,9 @@ test('Skip closes the review form without saving', { options: AT_MUNICH }, async
   await shown.unmount()
 })
 
-test('always: the pray row shows the next pray, then counts down, and never toasts', { options: { athkar: false, ...AT_MUNICH, salahShow: 'always' } }, async ($, on) => {
+test('always: the pray row shows the next pray, then counts down, and never toasts', { options: { ...ATHKAR_QUIET, ...AT_MUNICH, salahShow: 'always' }, timeoutMs: 20000 }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   // 13:30 in Munich on 10 October 2026; Asr is at 15:59.
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
   engineBand(on)
@@ -225,9 +227,9 @@ test('always: the pray row shows the next pray, then counts down, and never toas
   await shown.unmount()
 })
 
-test('always: the call shows once the pray is in, and never toasts', { options: { athkar: false, ...AT_MUNICH, salahShow: 'always' } }, async ($, on) => {
+test('always: the call shows once the pray is in, and never toasts', { options: { ...ATHKAR_QUIET, ...AT_MUNICH, salahShow: 'always' } }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   // 15:58 in Munich, a minute before Asr.
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:58:00Z') })
   engineBand(on)
@@ -242,9 +244,9 @@ test('always: the call shows once the pray is in, and never toasts', { options: 
   await shown.unmount()
 })
 
-test('off leaves no pray row', { options: { athkar: false, ...AT_MUNICH, salahShow: 'off' } }, async ($, on) => {
+test('off leaves no pray row', { options: { ...ATHKAR_QUIET, ...AT_MUNICH, salahShow: 'off' } }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   engineBand(on)
   engineModes(on)
 
@@ -253,9 +255,9 @@ test('off leaves no pray row', { options: { athkar: false, ...AT_MUNICH, salahSh
   await shown.unmount()
 })
 
-test('show off hides a line left by the last load and clears it after drawing, not during it', { options: { athkar: false, ...AT_MUNICH, salahShow: 'off' } }, async ($, on) => {
+test('show off hides a line left by the last load and clears it after drawing, not during it', { options: { ...ATHKAR_QUIET, ...AT_MUNICH, salahShow: 'off' } }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
   engineBand(on)
   engineModes(on)
@@ -280,9 +282,9 @@ test('show off hides a line left by the last load and clears it after drawing, n
 const leftLine = (on: On, text: string | null) =>
   on('state.get', { plugin: 'muslim', key: 'salahLine' }, async () => ({ value: { value: text, version: 1 } }))
 
-test('after a change to minutes, a line left by the last load is not drawn outside the window', { options: { athkar: false, ...AT_MUNICH, salahShow: '20' } }, async ($, on) => {
+test('after a change to minutes, a line left by the last load is not drawn outside the window', { options: { ...ATHKAR_QUIET, ...AT_MUNICH, salahShow: '20' } }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
   engineBand(on)
   engineModes(on)
@@ -293,9 +295,9 @@ test('after a change to minutes, a line left by the last load is not drawn outsi
   await shown.unmount()
 })
 
-test('after off then always, the line shows at once, before any timer', { options: { athkar: false, ...AT_MUNICH, salahShow: 'always' } }, async ($, on) => {
+test('after off then always, the line shows at once, before any timer', { options: { ...ATHKAR_QUIET, ...AT_MUNICH, salahShow: 'always' } }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
   engineBand(on)
   engineModes(on)
@@ -308,7 +310,7 @@ test('after off then always, the line shows at once, before any timer', { option
 
 test('show minutes: the line is empty until the window, then counts down', { options: AT_MUNICH, timeoutMs: 20000 }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
   engineBand(on)
   engineModes(on)
@@ -322,7 +324,7 @@ test('show minutes: the line is empty until the window, then counts down', { opt
 
 test('show minutes: the call shows once the pray is in, then the line clears', { options: AT_MUNICH }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   // 15:58 in Munich, a minute before Asr.
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:58:00Z') })
   engineBand(on)
@@ -336,9 +338,9 @@ test('show minutes: the call shows once the pray is in, then the line clears', {
   await shown.unmount()
 })
 
-test('fewer show minutes move the window; no athan skips the call', { options: { athkar: false, ...AT_MUNICH, salahShow: '5', salahAthan: false }, timeoutMs: 20000 }, async ($, on) => {
+test('fewer show minutes move the window; no athan skips the call', { options: { ...ATHKAR_QUIET, ...AT_MUNICH, salahShow: '5', salahAthan: false }, timeoutMs: 20000 }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:44:00Z') })
   engineBand(on)
   engineModes(on)
@@ -354,7 +356,7 @@ test('fewer show minutes move the window; no athan skips the call', { options: {
 
 test('the countdown ticks every second in the window, every 30 s outside it', { options: AT_MUNICH, timeoutMs: 20000 }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
   engineBand(on)
   engineModes(on)
@@ -377,7 +379,7 @@ test('the countdown ticks every second in the window, every 30 s outside it', { 
 
 test('when the pray comes in a minaret rises once, folds, and leaves the footer independent', { options: AT_MUNICH }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   // 15:58:45 in Munich; Asr is at 15:59.
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:58:45Z') })
   engineBand(on)
@@ -414,9 +416,9 @@ test('when the pray comes in a minaret rises once, folds, and leaves the footer 
   await shown.unmount()
 })
 
-test('no minaret with athan off, nor during a survey', { options: { athkar: false, ...AT_MUNICH, salahAthan: false } }, async ($, on) => {
+test('no minaret with athan off, nor during a survey', { options: { ...ATHKAR_QUIET, ...AT_MUNICH, salahAthan: false } }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:58:45Z') })
   engineBand(on)
 
@@ -428,7 +430,7 @@ test('no minaret with athan off, nor during a survey', { options: { athkar: fals
 
 test('a survey hides the minaret', { options: AT_MUNICH }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:58:45Z') })
   engineBand(on)
 
@@ -441,7 +443,7 @@ test('a survey hides the minaret', { options: AT_MUNICH }, async ($, on) => {
 
 test('the countdown starts the second the window opens, not on the next 30 s tick', { options: AT_MUNICH }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   // 15:38:10 in Munich: the window (20 min before Asr at 15:59) opens at 15:39:00.
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:38:10Z') })
   engineBand(on)
@@ -459,7 +461,7 @@ test('the countdown starts the second the window opens, not on the next 30 s tic
 
 test('the pray line sits in the footer modes in claude color, beside the engine\'s labels, on both surfaces', { options: { ...AT_MUNICH, salahShow: 'always' } }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
   engineBand(on)
   engineModes(on)
@@ -480,7 +482,7 @@ test('the pray line sits in the footer modes in claude color, beside the engine\
 
 test('the review form shows in the band while the pray line shows in the footer', { options: AT_MUNICH }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T13:45:00Z') })
   engineBand(on)
   engineModes(on)
@@ -495,9 +497,9 @@ test('the review form shows in the band while the pray line shows in the footer'
   await shown.unmount()
 })
 
-test('the countdown ticks from the load alone: no prompt draw needed (off, then show 60)', { options: { athkar: false, ...AT_MUNICH, salahShow: '60' } }, async ($, on) => {
+test('the countdown ticks from the load alone: no prompt draw needed (off, then show 60)', { options: { ...ATHKAR_QUIET, ...AT_MUNICH, salahShow: '60' } }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on)
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   // 14:30 in Munich: Asr at 15:59 is 89 minutes off, the 60-minute window opens at 14:59.
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T12:30:00Z') })
   engineModes(on)
@@ -521,7 +523,7 @@ test('the countdown ticks from the load alone: no prompt draw needed (off, then 
 
 for (const surface of ['terminal', 'desktop'] as const) {
   for (const [color, theme, expected] of [['orange', 'light', 'claude'], ['orange', 'dark', 'claude'], ['green', 'light', '#0b7a50'], ['green', 'dark', '#1a9466']] as const) {
-    test(`salah setup color ${surface} ${color} ${theme}`, { options: { athkar: false, color,  } }, async ($, on) => {
+    test(`salah setup color ${surface} ${color} ${theme}`, { options: { ...ATHKAR_QUIET, color,  } }, async ($, on) => {
       mock.env(on, {})
       mock.store(on, { arabicTerminals: { unknown: 'plain' } })
       mock.clock(on, { now: Date.parse('2026-10-10T12:00:00Z') })
@@ -540,7 +542,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
 }
 
 for (const [color, expected] of [['orange', 'claude'], ['blue', '#4a7fc0']] as const) {
-  test(`salah prayer, review and minaret accents follow ${color}`, { options: { ...AT_MUNICH, color, athkar: false, salahShow: 'always' } }, async ($, on) => {
+  test(`salah prayer, review and minaret accents follow ${color}`, { options: { ...AT_MUNICH, color, ...ATHKAR_QUIET, salahShow: 'always' } }, async ($, on) => {
     on('session.surface', async () => ({ value: 'terminal' }))
     mock.env(on, {})
     mock.store(on, { arabicTerminals: { unknown: 'plain' } })

@@ -23,7 +23,7 @@ const fixture = (on: On, surface: 'desktop' | 'terminal', startsOpen: boolean) =
   on('turn.start', async (_$, e) => ({ turnId: e.turnId }))
   on('turn.complete', async (_$, e) => ({ text: e.answer }))
   on('config.list', async () => ({ value: [] }))
-  on('store.get', async (_$, e) => ({ value: e.key === 'arabicTerminals' ? { unknown: 'plain' } : undefined }))
+  on('store.get', async (_$, e) => ({ value: e.key === 'salahSetupLater' ? true : e.key === 'arabicTerminals' ? { unknown: 'plain' } : undefined }))
   on('store.set', async (_$, e) => (writes.push(`store:${e.key}`), { value: undefined }))
   on('config.set', async (_$, e) => (writes.push(`config:${e.key}`), { value: e.value }))
   on('state.set', async (_$, e, next) => (writes.push(`state:${e.key}`), next(e)))

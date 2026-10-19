@@ -1,3 +1,5 @@
+import { configFailure, hasConfigRow, MISSING_CONFIG } from '../src/shared/reload/config.ts'
+import { stopBeforeReload } from '../src/shared/reload/signal.ts'
 import { isAccent } from '../src/shared/color/index.ts'
 import { install as installArabicFix } from '../src/shared/arabic/install.tsx'
 import type { EngineInterface, Register } from 'claude-code'
@@ -271,15 +273,23 @@ export const register: Register = (on, options) => {
       const pick = feature === 'gold' ? 'yellow' : feature
       if (words.length > 2 || (pick !== '' && !isAccent(pick))) return { text: 'Usage: /muslim color orange | green | yellow | blue' }
       if (pick === '') return { text: `Color ${settings.color}. Usage: /muslim color orange | green | yellow | blue` }
-      const { deny } = await $.config.set({ key: 'muslim.color', value: pick })
-      return { text: deny ? `Not changed: ${deny}` : `Color ${pick}` }
+      try {
+        if (!hasConfigRow(await $.config.list(), 'muslim.color')) return { text: MISSING_CONFIG }
+        await stopBeforeReload()
+        const { deny } = await $.config.set({ key: 'muslim.color', value: pick })
+        return { text: deny ? configFailure(deny) : `Color ${pick}` }
+      } catch (error) { return { text: configFailure(error) } }
     }
     if (word === 'tashkeel') {
       const value = feature
       if (words.length > 2 || (value !== '' && value !== 'on' && value !== 'off')) return { text: 'Usage: /muslim tashkeel on | off' }
       if (value === '') return { text: `Tashkeel ${settings.tashkeel ? 'on' : 'off'} on desktop; the terminal never shows diacritics. Usage: /muslim tashkeel on | off` }
-      const { deny } = await $.config.set({ key: 'muslim.tashkeel', value: value === 'on' })
-      return { text: deny ? `Not changed: ${deny}` : `Tashkeel ${value} on desktop; the terminal never shows diacritics` }
+      try {
+        if (!hasConfigRow(await $.config.list(), 'muslim.tashkeel')) return { text: MISSING_CONFIG }
+        await stopBeforeReload()
+        const { deny } = await $.config.set({ key: 'muslim.tashkeel', value: value === 'on' })
+        return { text: deny ? configFailure(deny) : `Tashkeel ${value} on desktop; the terminal never shows diacritics` }
+      } catch (error) { return { text: configFailure(error) } }
     }
     if (word === 'update') {
       if (words.length !== 1) return { text: 'Usage: /muslim update' }
@@ -334,7 +344,7 @@ export const register: Register = (on, options) => {
         '',
         statusTable([
           ['Thikr', 'Tasbih in Claude\'s working line', onOff(settings.thikr)],
-          ['Athkar', 'Morning, evening and after-salah athkar above the prompt', onOff(settings.athkar)],
+          ['Athkar', 'Morning, evening and after-salah athkar above the prompt; reminders morning · evening · after salah', [settings.athkarMorning, settings.athkarEvening, settings.athkarAfterSalah].map(onOff).join(' · ')],
           ['Salah', 'Pray times and the next pray under the prompt', settings.salahPlace ? showText(settings.salahShow) : 'not set up'],
           ['Quran', 'Desktop recitation player; the selected recording', reciterLabel],
         ], 'Feature'),

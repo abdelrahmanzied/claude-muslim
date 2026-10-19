@@ -60,7 +60,7 @@ test('athkar shows done of total in Arabic digits and clamps the bar', () => {
 
 test('quran card is unavailable without a feed and clamps progress with one', () => {
   expect(quranCard(null)).toEqual({ isAvailable: false })
-  const card = quranCard({ reciter: 'a', surah: 'سورة البقرة', part: '', segmented: false, status: 'متوقف', isLive: false, elapsed: '00:01', total: '00:10', progress: -1, isPlaying: true, canPrev: true, canNext: false, repeat: 'off', avatar: '' })
+  const card = quranCard({ error: '', reciter: 'a', surah: 'سورة البقرة', part: '', segmented: false, status: 'متوقف', isLive: false, elapsed: '00:01', total: '00:10', progress: -1, isPlaying: true, canPrev: true, canNext: false, repeat: 'off', avatar: '' })
   expect(card).toMatchObject({ isAvailable: true, progress: 0, canNext: false })
 })
 
@@ -81,7 +81,7 @@ test('the terminal fallback lists the three cards and passes Arabic through the 
   expect(lines).toContain('▸ <العصر> <١٥:٤٢>')
   expect(lines).toContain('✓ <الفجر> <٠٥:٤٨>')
   expect(lines).toContain('Not ready. /quran (desktop player)')
-  expect(lines).toContain('Athkar are off. /athkar on')
+  expect(lines).toContain('Not ready. /athkar')
   const unset = textLines(paneModel({ salah: null, quran: null, athkar: null }, DAY, 360, 'orange'), t => t)
   expect(unset).toContain('Not set up. /salah city')
 })

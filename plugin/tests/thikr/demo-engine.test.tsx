@@ -23,7 +23,7 @@ const engine = (on: On, submit: (text: string) => Promise<{ text: string; drop?:
   const submitted: string[] = []
   mock.env(on, {})
   const clock = mock.clock(on, { now })
-  on('store.get', async (_$, e) => ({ value: e.key === 'arabicTerminals' ? { unknown: 'plain' } : undefined }))
+  on('store.get', async (_$, e) => ({ value: e.key === 'salahSetupLater' ? true : e.key === 'arabicTerminals' ? { unknown: 'plain' } : undefined }))
   on('store.set', async (_$, e) => (written.push(e), { value: undefined }))
   on('config.set', async (_$, e) => (written.push(e), { value: e.value }))
   on('state.set', async (_$, e, next) => (written.push(e), next(e)))
@@ -241,5 +241,19 @@ test('not armed: spinner, end of turn and limit behave as before', async ($, on)
 
   expect(words).toEqual([stripTashkeel(THINKING[0]!)])
   expect(seen).toEqual([stripTashkeel(END_OF_TURN)])
+  expect(await hasLimit($)).toBe(false)
+})
+
+test('an armed demo ignores child starts and binds to the next main turn', { options: { thikr: false } }, async ($, on) => {
+  engine(on)
+  recordSpinner(on)
+  await $.command.run(run('demo'))
+  await $.turn.start({ text: 'child', turnId: 'child', agentId: 'agent' })
+  await $.ui.render(spinner('terminal'))
+  expect(words).toEqual(['Sauteing'])
+  await $.turn.start({ text: 'main', turnId: 'main' })
+  await $.turn.complete({ answer: 'ok', durationMs: 1, isAborted: false, reason: 'answer', turnId: 'child', agentId: 'agent' } as never)
+  await $.ui.render(spinner('terminal'))
+  expect(words.at(-1)).toBe(stripTashkeel(demoScenes()[0]!.text))
   expect(await hasLimit($)).toBe(false)
 })

@@ -19,7 +19,7 @@ for (const set of ['morning', 'afterSalah'] as const) {
       reading.index = list.length - 1
       reading.counts = Object.fromEntries(list.map(thikr => [thikr.id, timesOf(thikr)]))
       reading.counts[list.at(-1)!.id]!--
-      mock.store(on, { athkar: day, arabicTerminals: { unknown: mode } })
+      mock.store(on, { salahSetupLater: true, athkar: day, arabicTerminals: { unknown: mode } })
       mock.env(on, {})
       on('session.surface', async () => ({ value: surface }))
       on('config.list', async () => ({ value: [] }))

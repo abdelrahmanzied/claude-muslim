@@ -38,7 +38,7 @@ const RECITER_TOTAL_MS = 52_000
 export const demoQuran = (elapsed: number, avatar: string): PanelQuran => {
   const at = RECITER_START_MS + Math.max(0, elapsed)
   return {
-    reciter: 'محمد صديق المنشاوي · مرتل', surah: 'سورة الفاتحة', part: '', segmented: false,
+    error: '', reciter: 'محمد صديق المنشاوي · مرتل', surah: 'سورة الفاتحة', part: '', segmented: false,
     status: 'يتلى الآن', isLive: true, elapsed: clockText(at), total: clockText(RECITER_TOTAL_MS), progress: at / RECITER_TOTAL_MS,
     isPlaying: true, canPrev: true, canNext: true, repeat: 'off', avatar,
   }

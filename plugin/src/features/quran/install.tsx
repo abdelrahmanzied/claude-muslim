@@ -1,3 +1,4 @@
+import { connectBeforeReload } from '../../shared/reload/signal.ts'
 import type { EngineInterface, On } from 'claude-code'
 import type { Options } from '../../config.ts'
 import type { QuranPlaying } from '../../../types/index.d.ts'
@@ -19,6 +20,8 @@ const QURAN_DEBUG = false
 type Preparing = { moshafKey: string; surah: number; stage: 'checking' | 'preparing' }
 type PreparedSegment = { plan: RecordingPlan; source: { base64: string; mime: string } }
 type PrefetchTarget = { key: string; index: number }
+type CommandRow = { args: string; text: string; error?: string }
+type Retry = { reciter: Reciter; surah: number; index: number; intent: 'play' | 'select' | 'inspect' }
 type PlayPath = 'command' | 'pane' | 'auto-advance'
 const repeatRef = { plugin: 'muslim', key: 'quranRepeat' } as const
 const playingRef = { plugin: 'muslim', key: 'quranPlaying' } as const
@@ -26,7 +29,7 @@ const commandErrorRef = { plugin: 'muslim', key: 'quranCommandError' } as const
 const errorRef = { plugin: 'muslim', key: 'quranError' } as const
 const surahRef = { plugin: 'muslim', key: 'quranSurah' } as const
 // Handles cannot survive reload; only these ephemeral resources stay here.
-const runtime: { controller?: AbortController; prefetch?: PrefetchTarget & { controller: AbortController; source: Promise<PreparedSegment> }; plan?: RecordingPlan; preparing?: Preparing; selectedSegment: number; reads?: unknown; timer?: { cancel(): void }; queue: Promise<unknown>; probe: number; generation: number; stopEpoch: number; debugQueue: Promise<unknown>; cacheQueue: Promise<unknown>; clip?: { generation: number; surah: number } } = { selectedSegment: 0, queue: Promise.resolve(), probe: 0, generation: 0, stopEpoch: 0, debugQueue: Promise.resolve(), cacheQueue: Promise.resolve() }
+const runtime: { controller?: AbortController; retry?: Retry; prefetch?: PrefetchTarget & { controller: AbortController; source: Promise<PreparedSegment> }; plan?: RecordingPlan; preparing?: Preparing; selectedSegment: number; reads?: unknown; timer?: { cancel(): void }; queue: Promise<unknown>; probe: number; generation: number; stopEpoch: number; debugQueue: Promise<unknown>; cacheQueue: Promise<unknown>; clip?: { generation: number; surah: number } } = { selectedSegment: 0, queue: Promise.resolve(), probe: 0, generation: 0, stopEpoch: 0, debugQueue: Promise.resolve(), cacheQueue: Promise.resolve() }
 
 
 async function writeDebug($: EngineInterface, message: string): Promise<void> {
@@ -83,12 +86,13 @@ async function selectedSurah($: EngineInterface, reciter: Reciter): Promise<numb
   if (selected !== stored) await $.state.set(surahRef, selected)
   return selected
 }
-async function fail($: EngineInterface, error: unknown, fromCommand = false): Promise<string> {
+async function fail($: EngineInterface, error: unknown, fromCommand: CommandRow | false = false): Promise<string> {
   // Keep external errors short and free of multiline process output.
   const known = error instanceof Error && [SIZE_ERROR, TIMING_ERROR, CLIP_ERROR, UNAVAILABLE_ERROR].includes(error.message)
   const rawMessage = known ? (error as Error).message : `Quran: ${error instanceof Error ? error.message.replace(/^.*?\$\.[\w.]+:\s*/, '').replace(/[\r\n|]/g, ' ').slice(0, 160) : 'Unable to play the recording'}`
   const message = rawMessage === UNAVAILABLE_ERROR ? await arabic($, await $.session.surface() ?? 'desktop', rawMessage) : rawMessage
-  try { await $.state.set(commandErrorRef, fromCommand ? message : null); await $.state.set(errorRef, message); $.ui.invalidate('ui.render') } catch { /* A refused state write must not escape a hook. */ }
+  if (fromCommand) fromCommand.error = message
+  try { await $.state.set(commandErrorRef, fromCommand ? { args: fromCommand.args, text: fromCommand.text, message } : null); await $.state.set(errorRef, message); $.ui.invalidate('ui.render') } catch { /* A refused state write must not escape a hook. */ }
   return message
 }
 async function stop($: EngineInterface, from = 'stop', preserve?: PrefetchTarget): Promise<void> {
@@ -109,12 +113,12 @@ async function stop($: EngineInterface, from = 'stop', preserve?: PrefetchTarget
   await $.state.set(playingRef, null)
   $.ui.invalidate('ui.render')
 }
-async function finish($: EngineInterface, controller: AbortController, token: number, reciter: Reciter, surah: number, fromCommand: boolean, error?: unknown): Promise<void> {
+async function finish($: EngineInterface, controller: AbortController, token: number, reciter: Reciter, surah: number, fromCommand: CommandRow | false, error?: unknown): Promise<void> {
   const task = runtime.queue.then(() => complete($, controller, token, reciter, surah, fromCommand, error)).catch(error => fail($, error, fromCommand))
   runtime.queue = task
   await task
 }
-async function complete($: EngineInterface, controller: AbortController, token: number, reciter: Reciter, surah: number, fromCommand: boolean, error?: unknown): Promise<void> {
+async function complete($: EngineInterface, controller: AbortController, token: number, reciter: Reciter, surah: number, fromCommand: CommandRow | false, error?: unknown): Promise<void> {
   if (runtime.controller !== controller || controller.signal.aborted || token !== runtime.generation) return
   // A reload clears tracking; an orphaned clip can never continue the sequence.
   const active = (await $.state.get(playingRef)).value
@@ -315,7 +319,8 @@ function prefetchSegment($: EngineInterface, plan: RecordingPlan, index: number)
   runtime.prefetch = { key, index, controller, source }
 }
 
-async function play($: EngineInterface, reciter: Reciter, surah: number, fromCommand: boolean, path: PlayPath = fromCommand ? 'command' : 'pane', index = 0, intent: 'play' | 'select' | 'inspect' = 'play', refresh = false): Promise<void> {
+async function play($: EngineInterface, reciter: Reciter, surah: number, fromCommand: CommandRow | false, path: PlayPath = fromCommand ? 'command' : 'pane', index = 0, intent: 'play' | 'select' | 'inspect' = 'play', refresh = false): Promise<void> {
+  runtime.retry = { reciter, surah, index, intent }
   if (!isAvailable(reciter.key, surah)) { await fail($, new Error(UNAVAILABLE_ERROR), fromCommand); return }
   const generation = runtime.generation
   await stop($, `replace:${path}`, path === 'auto-advance' ? { key: planKey(reciter.key, surah), index } : undefined)
@@ -417,10 +422,10 @@ async function statusText($: EngineInterface, surface: string): Promise<string> 
   lines.push(`Time: ${state.elapsed} / ${state.total}`, `Status: ${state.isPlaying ? 'playing' : 'stopped'}`, 'Playback runs in the Claude desktop app.')
   return lines.join('\n')
 }
-async function action($: EngineInterface, command: Command, fromCommand: boolean): Promise<string> {
+async function action($: EngineInterface, command: Command, fromCommand: CommandRow | false): Promise<string> {
   const generation = runtime.generation
   if (command.kind === 'help' || command.kind === 'usage') return quranHelp()
-  if (command.kind === 'stop') { await stop($, fromCommand ? 'command:stop' : 'pane:stop'); await $.state.set(errorRef, null); return 'Quran stopped.' }
+  if (command.kind === 'stop') { runtime.retry = undefined; await stop($, fromCommand ? 'command:stop' : 'pane:stop'); await $.state.set(errorRef, null); return 'Quran stopped.' }
   if (command.kind === 'repeat' || command.kind === 'repeat-segment') {
     const target = command.kind === 'repeat' ? 'surah' : 'segment'
     if (target === 'segment' && !(await splitSelected($))) return 'Quarter repeat works only while a split surah is selected.'
@@ -457,7 +462,8 @@ async function action($: EngineInterface, command: Command, fromCommand: boolean
     return `Quran reciter: ${await arabic($, await $.session.surface() ?? 'desktop', reciter.label)}.`
   }
   if (command.kind === 'retry') {
-    await play($, reciter, current, fromCommand, fromCommand ? 'command' : 'pane', runtime.selectedSegment, 'select', true)
+    const retry = runtime.retry ?? { reciter, surah: current, index: runtime.selectedSegment, intent: 'select' as const }
+    await play($, retry.reciter, retry.surah, fromCommand, fromCommand ? 'command' : 'pane', retry.index, retry.intent, true)
     return (await $.state.get(errorRef)).value ?? 'Quran recording checked again.'
   }
   if ((command.kind === 'next' || command.kind === 'prev') && runtime.plan?.moshafKey === reciter.key && runtime.plan.surah === current && runtime.plan.segments.length) {
@@ -481,7 +487,7 @@ async function action($: EngineInterface, command: Command, fromCommand: boolean
   return `Quran playing: ${await arabic($, await $.session.surface() ?? 'desktop', c.surahs[surah - 1]!.name)}.`
 }
 // Serialize user actions; play completions check generation and controller identity.
-async function dispatch($: EngineInterface, command: Command, fromCommand = true): Promise<string> {
+async function dispatch($: EngineInterface, command: Command, fromCommand: CommandRow | false = false): Promise<string> {
   // Stop must abort now, even if recording preparation is holding the action queue.
   if (command.kind === 'stop') {
     ++runtime.stopEpoch
@@ -490,10 +496,14 @@ async function dispatch($: EngineInterface, command: Command, fromCommand = true
   const requestedEpoch = runtime.stopEpoch
   // Refuse known picks before replacement or any track work.
   if (command.kind === 'play' || command.kind === 'select') {
-    const key = (await chosen($)).key
+    const reciter = await chosen($)
+    const key = reciter.key
     const value = command.value.replace(/[٠-٩]/g, d => String(d.charCodeAt(0) - 1632))
     const surah = matchSurah(value, QURAN_CATALOG.surahs)?.id
-    if (surah !== undefined && Number.isInteger(surah) && surah >= 1 && surah <= 114 && !isAvailable(key, surah)) return fail($, new Error(UNAVAILABLE_ERROR), fromCommand)
+    if (surah !== undefined && Number.isInteger(surah) && surah >= 1 && surah <= 114 && !isAvailable(key, surah)) {
+      runtime.retry = { reciter, surah, index: command.kind === 'play' ? command.segmentIndex ?? 0 : 0, intent: command.kind === 'select' ? 'select' : 'play' }
+      return fail($, new Error(UNAVAILABLE_ERROR), fromCommand)
+    }
   }
   if (requestedEpoch !== runtime.stopEpoch) return 'Quran stopped.'
   if (runtime.preparing && command.kind !== 'open' && command.kind !== 'help' && command.kind !== 'usage' && command.kind !== 'repeat' && command.kind !== 'repeat-segment' && !(command.kind === 'reciter' && !command.value)) { ++runtime.stopEpoch; await stop($, 'prepare:replace') }
@@ -523,7 +533,7 @@ async function panelModel($: EngineInterface, width = 480) {
   const playing = (await $.state.get(playingRef)).value
   const selection = trackSelection(reciter, surah)
   const repeat = repeatMode((await $.state.get(repeatRef)).value)
-  const model = paneModel(raw, reciter, surah, playing, await $.clock.now(), width, runtime.generation, 0, false, null, selection, repeat)
+  const model = paneModel(raw, reciter, surah, playing, await $.clock.now(), width, runtime.generation, 0, false, (await $.state.get(errorRef)).value, selection, repeat)
   return { raw, reciter, playing, selection, model }
 }
 // What the Muslim pane shows of the player.
@@ -537,6 +547,7 @@ async function panelQuran($: EngineInterface): Promise<PanelQuran> {
     surah: model.title,
     part: selection.segments.length ? segmentLabel(selection.segments, index) : '',
     segmented: selection.segments.length > 0,
+    error: model.error,
     status: model.status,
     isLive: model.playing,
     elapsed: model.elapsed,
@@ -578,7 +589,14 @@ async function pick($: EngineInterface, list: List, value: string): Promise<void
 }
 // Connect on footer/pane draws (Quran adds nothing to the footer) and again in the Muslim press's own context.
 function connectToPanel($: EngineInterface): void {
+  connectBeforeReload(async () => {
+    if (!runtime.controller && !runtime.preparing) return
+    ++runtime.stopEpoch
+    await stop($, 'setting:reload')
+    $.ui.toast('Quran stopped: changing a setting reloads the player.')
+  })
   connectQuran(() => panelQuran($))
+  connectPanelAction('quran-retry', () => paneAction($, { kind: 'retry' }))
   connectPanelAction('quran-toggle', () => togglePlayback($))
   connectPanelAction('quran-prev', () => paneAction($, { kind: 'prev' }))
   connectPanelAction('quran-next', () => paneAction($, { kind: 'next' }))
@@ -608,11 +626,17 @@ export const install = (on: On, _options: Options) => {
     connectToPanel($)
     return next(e)
   })
-  on('command.run', { command: 'quran' }, async ($, e) => (connectToPanel($), { text: await dispatch($, parseCommand(e.args)) }))
+  on('command.run', { command: 'quran' }, async ($, e) => {
+    connectToPanel($)
+    const row: CommandRow = { args: e.args, text: '' }
+    row.text = await dispatch($, parseCommand(e.args), row)
+    if (row.error) await $.state.set(commandErrorRef, { args: row.args, text: row.text, message: row.error })
+    return { text: row.text }
+  })
   on('ui.render', { component: 'CommandOutput', props: { command: 'quran' } }, async ($, e, next) => {
     const error = (await $.state.get(commandErrorRef)).value
-    if (!error) return next(e)
+    if (!error || error.args !== e.props.args || error.text !== e.props.text) return next(e)
     const { Text } = $.ui.resolve(e)
-    return <Text dimColor>{error}</Text>
+    return <Text dimColor>{error.message}</Text>
   })
 }

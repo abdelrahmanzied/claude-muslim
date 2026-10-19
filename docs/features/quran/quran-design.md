@@ -16,7 +16,7 @@ The card's geometry, type scale, palette and picker sheet are the Muslim pane's 
 
 - **Avatar as state.** The Quran avatar (`plugin/src/shared/quran-avatar/`) is the player's face and its state indicator. It moves only while playback is active (from the audio request, since the API has no audible-start event) and is still when stopped, preparing or failed, and under reduced motion. Negative animation delays follow the elapsed clock, so redraws keep the phase. It draws pixel runs as paths to stay inside the Client tree limit.
 - **Controls.** Play/stop is the only filled control, so the main action is unmistakable. Previous/next dim when nothing remains in that direction. Repeat is one state, `off` | `surah` | `segment`: pressing one turns the other off, pressing the lit one turns repeat off, so what is lit is exactly what will happen. The segment repeat is always drawn (no reflow) but dimmed and not hit on a whole surah; a stale segment repeat resets when a whole surah starts.
-- **Quiet hints, never toasts.** «الوقت تقريبي» under the times, because the clock is approximate. Unavailable surahs and errors are dim text inside the card, with «إعادة المحاولة» on failure.
+- **Quiet playback hints.** «الوقت تقريبي» under the times, because the clock is approximate. Unavailable surahs and errors are dim text inside the card, with «إعادة المحاولة» on failure.
 - **Lists.** Reciter, surah and segment lists show everything with no pages. Search is Arabic-normalized substring (article letters kept); Arabic or Latin digits pick exact surah or reciter numbers. Segments are named by one formatter, `الربع ٥ - الآيات ١٥–٢٤`. The segment list appears only once a large recording has valid timing metadata.
 - **Well-formed picture.** Desktop parses the pane as XML: every nested `<svg>` carries `xmlns="http://www.w3.org/2000/svg"` (without it, it silently disappears), and the font and avatar are embedded, with no network assets. A test checks both.
 
@@ -43,8 +43,8 @@ Its text forms are: 1 → «سورة واحدة غير متاحة لهذا ال�
 | User plays | Muslim pane's Quran card | The player drawn by the Muslim pane's Client, hit-tested controls (two repeat buttons), RTL Arabic and embedded Tajawal; dim hints |
 | `/quran` elsewhere | Terminal, mobile, vscode command reply | Text status ending «Playback runs in the Claude desktop app.» |
 | Commands/help/settings | Command reply on all surfaces | Short status or requested catalog/help; Quran row in `/muslim` |
-| Playback failure after command | Quran CommandOutput and card | Dim error line; command output only for playback started by a command |
-| Playback failure after card action | Muslim pane's Quran card | Dim error line only; no toast or command-row rewrite |
+| Playback failure after command | Quran CommandOutput and card | Dim error line; command output only for playback started by the matching invocation (exact args and returned reply text) |
+| Playback failure after card action | Muslim pane's Quran card | One dim error line and «إعادة المحاولة»; no toast or command-row rewrite |
 | Playing | The Muslim pane's Quran card | Clock-based approximate elapsed/progress, redraw once per second |
 | AbovePrompt | All surfaces | No Quran band |
 | Stopped | Muslim pane's Quran card | No redraw timer; per-clip watchdog ends when its play promise settles; play starts from beginning |
@@ -55,7 +55,7 @@ Desktop is the supported v1 surface, a stated scope exception to the shared cros
 
 **Stated exception to CLAUDE.md's “settings are userConfig” rule:** all durable Quran data—remembered recording, duration numbers and recording segment metadata—stays in `$.store` (`quran.reciter`, `quran.durations`, `quran.segmentCache`), not userConfig. `$.config.set` reloads the module and would cut playback continuity by losing the AbortController; an old clip may remain audible without a handle. Choosing a recording must not reload the module. The player catalog is imported from shipped `catalog-data.ts`; an obsolete `quran.catalog` store entry is ignored. No new userConfig fields are added. The `/muslim` feature row shows the selected recording in the shared status-table shape; `/muslim help quran` and `/quran help` use the shared help-table shape, including `/quran reciter`. Stop is the user's off action; there is no unsolicited playback or enabled switch. Loudness is controlled by the OS.
 
-Playback state stays in the declared session contract; handles stay in the runtime only. On reload, existing `session.start` clears tracking and does not resume. A reload orphans the clip: the mod cannot stop it, and it ends with the surah, a documented v1 limitation.
+Playback state stays in the declared session contract; handles stay in the runtime only. On reload, existing `session.start` clears tracking and does not resume. All plugin-initiated config writes first await the shared transient stop-before-reload connector. If playback or preparation is active, Quran stops and shows the single note `Quran stopped: changing a setting reloads the player.`; otherwise it does nothing. External `/config` changes and other reloads cannot be intercepted and may still orphan a clip until the surah ends.
 
 The API has no pointer-cursor prop. The Client draws hover feedback; pointer shape remains host-controlled. Pane chrome and pointer shape remain host-controlled.
 
@@ -75,7 +75,7 @@ Quran demo is deferred to a separate task and is not included in the shared sequ
 
 ## Checklist for a change
 
-- [ ] The Muslim pane's Quran card, embedded Tajawal and silent picks render on Desktop; no Quran toasts and no footer item; a terminal gets the `/quran` text status through shared Arabic.
+- [ ] The Muslim pane's Quran card, embedded Tajawal and silent picks render on Desktop; no playback-error toasts (only the settings-reload stop note) and no footer item; a terminal gets the `/quran` text status through shared Arabic.
 - [ ] Whole-surah audio, abort on stop/replacement, advance only on the active generation’s natural end; stop after 114.
 - [ ] Redraw timer runs only while playing; per-clip watchdog cancels on settlement; elapsed remains explicitly approximate.
 - [ ] No config reload from recording changes; remembered choices and playback metadata in store, catalog shipped in code.
@@ -95,3 +95,7 @@ Native Desktop validation on macOS confirmed both drag scrollbars reach the last
 Quran also connects a read-only recording/selection/repeat feed, a recording-key selection action and an explicit session-repeat action. The pane routes through the existing Quran selection and repeat logic; reciter remains in `quran.reciter` and repeat in session state.
 
 In light mode only, the pixel-art avatar carries `filter: drop-shadow(0 1px 1.5px rgba(31,30,29,.35))` (light media query and `.theme-light`; `.theme-dark` sets `filter:none`) so it stands out on the light card; dark mode and the art are unchanged.
+
+The pane feed carries error text unchanged. The card adds a single dim 12px line and a real «إعادة المحاولة» button below the controls, with drawing and hit testing sharing layout constants in the Muslim pane. Retry refreshes the failed recording and preserves its surah, segment and play/prepare intent. Retry, Stop, new Play and selection changes clear the error; desktop Arabic stays authored. Details and geometry belong to the Muslim pane design.
+
+Settings follow the preflight order in DESIGN.md: check the exact config row before changing pending UI state or stopping playback. A missing row leaves the player running and uses the existing command reply or settings toast with the short reload-plugins message. A missing-row error during the subsequent write maps to that same message and preserves rollback.

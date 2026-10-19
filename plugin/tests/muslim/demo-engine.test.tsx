@@ -8,9 +8,10 @@ import { DEMO_DURATION_MS as PANE_MS } from '../../src/features/muslim-pane/demo
 import { demoPrompt, DEMO_LIMIT_MS, DEMO_SUBMIT_MS } from '../../src/features/thikr/demo.ts'
 import { USAGE_LIMIT } from '../../src/features/thikr/phrases.ts'
 import { stripTashkeel } from '../../src/shared/arabic/visual.ts'
+import { ATHKAR_QUIET } from '../fixtures/config.ts'
 
 const NOW = Date.parse('2026-10-10T10:00:00Z')
-const OPTIONS = { thikr: false, athkar: false, salahShow: 'off', salahAthan: false }
+const OPTIONS = { thikr: false, ...ATHKAR_QUIET, salahShow: 'off', salahAthan: false }
 const run = (args = 'demo') => ({ command: 'muslim', args, origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } })
 const band = (surface: 'desktop' | 'terminal') => ({
   plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'muslim-demo',
@@ -24,7 +25,7 @@ const fixture = (on: On, surface: 'desktop' | 'terminal' = 'desktop', submit: 'a
   const submitted: string[] = []
   on('session.surface', async () => ({ value: surface }))
   on('config.list', async () => ({ value: [] }))
-  on('store.get', async (_$, e) => ({ value: e.key === 'arabicTerminals' ? { unknown: 'plain' } : undefined }))
+  on('store.get', async (_$, e) => ({ value: e.key === 'salahSetupLater' ? true : e.key === 'arabicTerminals' ? { unknown: 'plain' } : undefined }))
   on('store.set', async (_$, e) => (written.push(e), { value: undefined }))
   on('store.delete', async (_$, e) => (written.push({ key: e.key, value: undefined }), { value: undefined }))
   on('config.set', async (_$, e) => (written.push(e), { value: e.value }))

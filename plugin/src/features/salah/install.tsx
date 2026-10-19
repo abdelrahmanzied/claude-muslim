@@ -1,3 +1,6 @@
+import { configFailure, hasConfigRow, MISSING_CONFIG } from '../../shared/reload/config.ts'
+import { setupForm } from '../../shared/setup/visibility.ts'
+import { stopBeforeReload } from '../../shared/reload/signal.ts'
 import { accentText, isDarkTheme, type Accent } from '../../shared/color/index.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
 import { atom, read, update } from 'claude-code'
@@ -193,8 +196,15 @@ const askCity = async ($: EngineInterface, guess: Place | undefined): Promise<Ci
   return cityFrom($, answer)
 }
 
+const settingIssue = async ($: EngineInterface, key: string): Promise<string | undefined> => {
+  try { return hasConfigRow(await $.config.list(), key) ? undefined : MISSING_CONFIG }
+  catch (error) { return configFailure(error) }
+}
+
 // Saves the city and opens the review form; the module reloads with the city.
 export const savePlace = async ($: EngineInterface, city: City, options: Options): Promise<string> => {
+  const issue = await settingIssue($, 'muslim.salahPlace')
+  if (issue) return issue
   const previousReview = await read($, review)
   const later = await read($, setupLater) || (await $.store.get(SETUP_LATER_KEY)) === true
   await update($, review, () => options.salahAdjust)
@@ -204,18 +214,18 @@ export const savePlace = async ($: EngineInterface, city: City, options: Options
   const value = writePlace(city)
   let failure: string | undefined
   try {
+    await stopBeforeReload()
     const { deny } = await $.config.set({ key: 'muslim.salahPlace', value })
-    failure = deny
+    failure = deny ? configFailure(deny) : undefined
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    failure = /no \/config row/i.test(message) ? 'run /reload-plugins, then try again.' : message
+    failure = configFailure(error)
   }
   // A late error can reach a module the save already replaced: undo only when the city is not saved.
   const rows = failure === undefined ? undefined : await $.config.list().catch(() => undefined)
   const isSaved = failure === undefined || !rows || rows.some(row => row.key === 'muslim.salahPlace' && row.value === value)
   if (!isSaved) {
     await update($, review, () => previousReview)
-    return `Not changed: ${failure}`
+    return failure!
   }
 
   return `**City:** ${city.name} · ${METHODS[methodOf(options, city)].name}\nCheck today's times above the prompt.`
@@ -425,6 +435,21 @@ const begin = async ($: EngineInterface, options: Options, place: Place, timer: 
   })
 }
 
+const setupShowing = async ($: EngineInterface, hasPlace: boolean, surface: string, hasSurvey = false) => {
+  if (hasSurvey) return 'survey'
+  const terminal = surface === 'terminal' ? {
+    id: await terminalId($),
+    manual: (await $.state.get({ plugin: 'muslim', key: 'arabicSurveyManualTerminal' })).value,
+    saved: await $.store.get('arabicTerminals') as Record<string, unknown> | undefined,
+  } : undefined
+  return setupForm({ surface, hasSurvey, hasPlace,
+    hasReview: !!(await $.state.get({ plugin: 'muslim', key: 'salahReview' })).value,
+    later: (await $.state.get({ plugin: 'muslim', key: 'salahSetupLater' })).value === true
+      || (await $.store.get(SETUP_LATER_KEY).catch(() => undefined)) === true,
+    terminal,
+  })
+}
+
 export const install = (on: On, options: Options) => {
   // The Muslim pane reads today's times from here; it needs no engine call.
   connectSalah(now => panelSalah(options, now))
@@ -462,9 +487,13 @@ export const install = (on: On, options: Options) => {
   on('command.run', { command: 'salah' }, async ($, e) => {
     const [word = '', first = '', second = ''] = e.args.trim().split(/\s+/)
     const set = async (field: string, to: boolean | number | string, said: string) => {
-      const { deny } = await $.config.set({ key: `muslim.${field}`, value: to })
-
-      return { text: deny ? `Not changed: ${deny}` : said }
+      const key = `muslim.${field}`
+      try {
+        if (!hasConfigRow(await $.config.list(), key)) return { text: MISSING_CONFIG }
+        await stopBeforeReload()
+        const { deny } = await $.config.set({ key, value: to })
+        return { text: deny ? configFailure(deny) : said }
+      } catch (error) { return { text: configFailure(error) } }
     }
 
     if (word === '') {
@@ -595,14 +624,22 @@ export const install = (on: On, options: Options) => {
     const theirs = await next(e)
     const place = options.salahPlace
     const draft = await read($, review)
-    if (!place || !draft || e.props.hasSurvey) return theirs
+    if (!place || !draft || await setupShowing($, !!place, e.surface, e.props.hasSurvey) !== 'review') return theirs
     const { Box, Button, Text } = $.ui.resolve(e)
     const rows = reviewRows(place, methodOf(options, place), draft, await $.clock.now())
     const move = (pray: Pray, step: number) => update($, review, now => (now ? nudge(now, pray, step) : now))
     const save = async () => {
-      const { deny } = await $.config.set({ key: 'muslim.salahAdjust', value: writeAdjust(draft) })
-      if (deny) return void $.ui.toast(`Not changed: ${deny}`)
+      const issue = await settingIssue($, 'muslim.salahAdjust')
+      if (issue) return void $.ui.toast(issue)
       await update($, review, () => null)
+      try {
+        await stopBeforeReload()
+        const { deny } = await $.config.set({ key: 'muslim.salahAdjust', value: writeAdjust(draft) })
+        if (deny) throw new Error(deny)
+      } catch (error) {
+        await update($, review, () => draft)
+        $.ui.toast(configFailure(error))
+      }
     }
 
     return (
@@ -663,7 +700,7 @@ export const install = (on: On, options: Options) => {
     const theirs = await next(e)
     if (demo?.stage === 'afterSalah') return theirs
     const playing = (demo && demoMinaretAt(await $.clock.now())) ?? await read($, minaret)
-    if (!playing || e.props.hasSurvey || e.surface === 'desktop') return theirs
+    if (!playing || e.surface === 'desktop' || await setupShowing($, !!options.salahPlace, e.surface, e.props.hasSurvey)) return theirs
     const { Box, Button, Text } = $.ui.resolve(e)
     const stage = minaretStage(playing, await $.clock.now())
     if (stage.isGone) return theirs
@@ -701,7 +738,7 @@ export const install = (on: On, options: Options) => {
   // it (the minaret is its look).
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)
-    if (e.surface !== 'desktop' || e.props.hasSurvey) return theirs
+    if (e.surface !== 'desktop' || await setupShowing($, !!options.salahPlace, e.surface, e.props.hasSurvey)) return theirs
     if (demo?.stage === 'afterSalah') return theirs
     const shown = (demo && demoCardAt(await $.clock.now())) ?? await read($, card)
     if (!shown) return theirs
@@ -711,7 +748,7 @@ export const install = (on: On, options: Options) => {
     if (!photo.base64) return theirs
     const { Box, Client } = $.ui.resolve(e)
     const theme = (await $.config.list().catch(() => [])).find(row => row.key === 'theme')
-    const props = { canStart: !!demo || options.athkar, accent: options.color, isDark: isDarkTheme(theme?.value), isActive: true, isFolded: cardIsFolded(shown, now), now, pray: shown.pray, time: shown.time, photo: photo.base64, width: Math.round(e.props.bodyColumns * CELL_PX), card: { ch: CELL_PX, lh: LINE_PX } }
+    const props = { canStart: true, accent: options.color, isDark: isDarkTheme(theme?.value), isActive: true, isFolded: cardIsFolded(shown, now), now, pray: shown.pray, time: shown.time, photo: photo.base64, width: Math.round(e.props.bodyColumns * CELL_PX), card: { ch: CELL_PX, lh: LINE_PX } }
     athan.props = props
 
     return (
@@ -796,8 +833,7 @@ export const install = (on: On, options: Options) => {
   // Until a place is saved: one line above the prompt asking for it.
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)
-    if (options.salahPlace || e.props.hasSurvey) return theirs
-    if ((await read($, setupLater)) || (await $.store.get(SETUP_LATER_KEY).catch(() => undefined)) === true) return theirs
+    if (await setupShowing($, !!options.salahPlace, e.surface, e.props.hasSurvey) !== 'city') return theirs
     const { Box, Button, Text } = $.ui.resolve(e)
     const done = (said: string) => void $.ui.toast(said)
     const choose = async () => {

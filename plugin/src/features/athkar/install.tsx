@@ -1,3 +1,6 @@
+import { configFailure, hasConfigRow, MISSING_CONFIG } from '../../shared/reload/config.ts'
+import { setupForm } from '../../shared/setup/visibility.ts'
+import { stopBeforeReload } from '../../shared/reload/signal.ts'
 import { isDarkTheme } from '../../shared/color/index.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
 import { atom, read } from 'claude-code'
@@ -16,7 +19,7 @@ import { bandHeight, closeArea, pixelOf, questionAreas } from './band.ts'
 import type { BandModel } from './band.ts'
 import { canUndoReset, resetReading, resetSnapshot, setNamed, undoReset, UNDO_MS, type ResetSnapshot } from './reset.ts'
 import type { AthkarSet } from './logic.ts'
-import { ADVANCE_MS, asksToFinish, countKey, countOf, currentOf, dayOf, emptyReading, END, holdsFinished, listFor, mayOpenPeriod, overall, offerStart, nextPeriodAt, questionKey, setAt, syncAfterSalah, readDay, shouldAdvance, skyOn, step, textOf, timesOf, TITLE } from './logic.ts'
+import { ADVANCE_MS, asksToFinish, countKey, countOf, currentOf, dayOf, emptyReading, END, hasBegun, holdsFinished, listFor, mayOpenPeriod, overall, offerStart, offerEnd, nextPeriodAt, questionKey, setAt, syncAfterSalah, readDay, shouldAdvance, skyOn, step, textOf, timesOf, TITLE } from './logic.ts'
 import type { Act, FinishedHold, FinishQuestion, Reading } from './logic.ts'
 import { lookFor, plain, readerProps, resetHint } from './look.ts'
 import type { Style } from './look.ts'
@@ -121,11 +124,20 @@ const athanCard = atom({ plugin: 'muslim', key: 'salahCard' } as const, null as 
 
 // On reload, wait for salah's first tick before replacing a saved prayer slot.
 let hasPrayerTimes = false
+// The reminder settings: which sets open above the prompt by themselves.
+let reminders = { morning: true, evening: true, afterSalah: true }
 
 const dayRef = atom({ plugin: 'muslim', key: 'athkar' } as const, null as Day | null)
 
 // Kept across sessions; today's reading for all three sets.
 const STORE_KEY = 'athkar'
+
+let dayQueue: Promise<unknown> = Promise.resolve()
+const queueDay = <T,>(run: () => Promise<T>): Promise<T> => {
+  const task = dayQueue.then(run)
+  dayQueue = task.catch(() => undefined)
+  return task
+}
 
 const STYLES: readonly Style[] = ['sky', 'frame']
 
@@ -144,13 +156,14 @@ const glowAtTime = (from: number, to: number, ms: number) => {
 }
 
 const isStyle = (value: string): value is Style => (STYLES as readonly string[]).includes(value)
+const REMINDER_FIELDS = { morning: 'athkarMorning', evening: 'athkarEvening', afterSalah: 'athkarAfterSalah' } as const satisfies Record<AthkarSet, keyof Options>
 const setLabel = (set: AthkarSet) => set === 'afterSalah' ? 'Athkar after salah' : `${set} athkar`
 
 // Manual choices hold; otherwise offer after-salah after the card, then the
 // automatic period. After-salah finished just now stays for its celebration.
 const periodOf = (now: Date, day: Day, last: SalahLast | null, requested?: SalahLast | null, bounds?: SalahAthkarTimes | null): AthkarSet => {
   if (view.finished && !holdsFinished(view.finished, day.afterSalah, now.getTime(), view.isActive)) view.finished = undefined
-  return setAt(now, day, last, view.chosen ?? (view.finished ? 'afterSalah' : undefined), requested, bounds)
+  return setAt(now, day, last, view.chosen ?? (view.finished ? 'afterSalah' : undefined), requested, bounds, reminders.afterSalah)
 }
 
 // Holds an after-salah slot finished in front of the person on the band.
@@ -284,20 +297,20 @@ const undoFromPanel = async ($: EngineInterface) => {
 
 const connectPanel = ($: EngineInterface, options: Options) => {
   connectAthkar(() => panelAthkar($, options.tashkeel))
-  connectPanelAction('athkar-open', () => openFromPanel($))
-  connectPanelAction('athkar-finish', () => finishFromPanel($))
-  connectPanelAction('athkar-set', async value => {
+  connectPanelAction('athkar-open', () => queueDay(() => openFromPanel($)))
+  connectPanelAction('athkar-finish', () => queueDay(() => finishFromPanel($)))
+  connectPanelAction('athkar-set', value => queueDay(async () => {
     const selected = setNamed(value)
     if (!selected) throw new Error('Unknown athkar set')
     await chooseSet($, selected)
-  })
-  connectPanelAction('athkar-reset', () => resetFromPanel($))
-  connectPanelAction('athkar-undo', () => undoFromPanel($))
+  }))
+  connectPanelAction('athkar-reset', () => queueDay(() => resetFromPanel($)))
+  connectPanelAction('athkar-undo', () => queueDay(() => undoFromPanel($)))
 }
 
 // Moves on after a thikr's last count, unless the reader moved meanwhile.
 const advance = async ($: EngineInterface, period: AthkarSet, index: number, revision: number, at?: number | null) => {
-  if (view.revision !== revision || view.question) return
+  if (view.revision !== revision || view.question || await setupShowing($, hasPrayerTimes, await $.session.surface() ?? 'desktop')) return
   const { day } = await today($)
   const reading = day[period]
   const thikr = currentOf(period, reading)
@@ -325,7 +338,7 @@ const apply = async ($: EngineInterface, act: Act, target?: AthkarSet) => {
   if (act.act === 'hide') { view.chosen = undefined; view.finished = undefined }
   if (act.act === 'count' && shouldAdvance(period, before, after)) {
     const revision = view.revision
-    $.clock.after(ADVANCE_MS, () => void advance($, period, after.index, revision, after.at))
+    $.clock.after(ADVANCE_MS, () => void queueDay(() => advance($, period, after.index, revision, after.at)))
   }
 }
 
@@ -386,12 +399,30 @@ const rest = ($: EngineInterface) => {
   $.ui.invalidate('ui.render')
 }
 
+const setupShowing = async ($: EngineInterface, hasPlace: boolean, surface: string, hasSurvey = false) => {
+  if (hasSurvey) return 'survey'
+  const terminal = surface === 'terminal' ? {
+    id: await terminalId($),
+    manual: (await $.state.get({ plugin: 'muslim', key: 'arabicSurveyManualTerminal' })).value,
+    saved: await $.store.get('arabicTerminals') as Record<string, unknown> | undefined,
+  } : undefined
+  return setupForm({ surface, hasSurvey, hasPlace,
+    hasReview: !!(await $.state.get({ plugin: 'muslim', key: 'salahReview' })).value,
+    later: (await $.state.get({ plugin: 'muslim', key: 'salahSetupLater' })).value === true
+      || (await $.store.get(SETUP_LATER_KEY).catch(() => undefined)) === true,
+    terminal,
+  })
+}
+
 export const install = (on: On, options: Options) => {
   hasPrayerTimes = !!options.salahPlace
+  reminders = { morning: options.athkarMorning, evening: options.athkarEvening, afterSalah: options.athkarAfterSalah }
   let shownSlot: { key: string; period: AthkarSet } | undefined
   let openedRequest: number | undefined
   let startsAt: number | null = null
   let startTimer: { cancel: () => void } | undefined
+  let expiresAt: number | null = null
+  let expiryTimer: { cancel: () => void } | undefined
   let periodDeadline: number | undefined
   let periodTimer: { cancel: () => void } | undefined
   // Historical bounds only change with the answer or a settings/module reload.
@@ -420,13 +451,17 @@ export const install = (on: On, options: Options) => {
   view.lastKey = undefined
   dropUndo()
 
-  on('command.run', { command: 'athkar' }, async ($, e) => {
+  on('command.run', { command: 'athkar' }, ($, e) => queueDay(async () => {
     const [word = '', value = ''] = e.args.trim().split(/\s+/)
     const selected = setNamed(word)
     const set = async (field: string, to: boolean | string, said: string) => {
-      const { deny } = await $.config.set({ key: `muslim.${field}`, value: to })
-
-      return { text: deny ? `Not changed: ${deny}` : said }
+      const key = `muslim.${field}`
+      try {
+        if (!hasConfigRow(await $.config.list(), key)) return { text: MISSING_CONFIG }
+        await stopBeforeReload()
+        const { deny } = await $.config.set({ key, value: to })
+        return { text: deny ? configFailure(deny) : said }
+      } catch (error) { return { text: configFailure(error) } }
     }
 
     // DEMO BEGIN: command entry; playback only, no input handling.
@@ -443,6 +478,8 @@ export const install = (on: On, options: Options) => {
       const { now, day, last, requested, bounds } = await today($)
       const period = periodOf(now, day, last, requested, bounds)
       await chooseSet($, period)
+      // chooseSet has just unhidden this period; the table shows it as saved.
+      const shown: Day = { ...day, [period]: { ...day[period], isHidden: false } }
 
       return {
         text: [
@@ -450,21 +487,23 @@ export const install = (on: On, options: Options) => {
           helpHint('/athkar'),
           '',
           statusTable([
-            ['Athkar', 'Morning, evening and after-salah athkar above the prompt', options.athkar ? 'on' : 'off'],
+            ['Reminders', 'Morning · evening · after salah open by themselves', [options.athkarMorning, options.athkarEvening, options.athkarAfterSalah].map(isOn => isOn ? 'on' : 'off').join(' · ')],
             ['Style', 'The look; sky is desktop only', await $.session.surface() === 'terminal' ? 'frame (terminal)' : options.athkarStyle],
             ['Periods', 'Morning / evening', hasPrayerTimes ? 'Fajr / Maghrib' : '05:00 / 17:00'],
-            ['Morning', 'Today\'s morning athkar', statusOf(day, 'morning')],
-            ['Evening', 'Today\'s evening athkar', statusOf(day, 'evening')],
-            ['Athkar after salah', 'The current prayer or general reading', statusOf(day, 'afterSalah')],
+            ['Morning', 'Today\'s morning athkar', statusOf(shown, 'morning')],
+            ['Evening', 'Today\'s evening athkar', statusOf(shown, 'evening')],
+            ['Athkar after salah', 'The current prayer or general reading', statusOf(shown, 'afterSalah')],
           ]),
         ].join('\n'),
       }
     }
     if (word === 'help') return { text: athkarHelp() }
-    if (word === 'on' || word === 'off') return set('athkar', word === 'on', `athkar ${word}`)
     if (word === 'style' && await $.session.surface() === 'terminal') return { text: 'The terminal always shows the frame; sky is desktop only. Change the style from the desktop app.' }
     if (word === 'style' && isStyle(value)) return set('athkarStyle', value, `style ${value}`)
     if (word === 'color') return { text: 'Color is now /muslim color.' }
+    if (selected && (value === 'on' || value === 'off')) {
+      return set(REMINDER_FIELDS[selected], value === 'on', `${setLabel(selected)} reminder ${value}`)
+    }
     if (selected && value === 'reset') {
       await resetSet($, selected)
 
@@ -477,9 +516,9 @@ export const install = (on: On, options: Options) => {
     }
 
     return { text: athkarHelp() }
-  })
+  }))
 
-  // DEMO BEGIN: a separate drawing path, registered even with athkar off.
+  // DEMO BEGIN: a separate drawing path.
   on('command.run', { command: 'muslim', args: /^\s*demo\s*$/ }, ($, e, next) => {
     connectAfterSalahDemo($, options)
     connectDemo('athkar', async () => playDemo($, await $.session.surface() === 'terminal' ? 'frame' : options.athkarStyle, options.color, true))
@@ -495,7 +534,7 @@ export const install = (on: On, options: Options) => {
   on('ui.render', { component: 'AbovePrompt', surface: ['desktop', 'terminal'] }, async ($, e, next) => {
     const theirs = await next(e)
     const playing = demo
-    if (!playing || e.props.hasSurvey || (playing.style === 'sky' && e.surface !== 'desktop')) return theirs
+    if (!playing || await setupShowing($, !!options.salahPlace, e.surface, e.props.hasSurvey) || (playing.style === 'sky' && e.surface !== 'desktop')) return theirs
     const now = await $.clock.now()
     const bounds = playing.set === 'afterSalah' && hasPrayerTimes
       ? athkarTimesAt(now) : null
@@ -548,7 +587,6 @@ export const install = (on: On, options: Options) => {
   })
 
   // DEMO END
-  if (!options.athkar) return
 
   on('ui.render', { component: 'Pane', requestId: 'muslim' }, ($, e, next) => { connectPanel($, options); return next(e) })
   on('ui.message', { element: 'muslim-pane' }, ($, e, next) => { connectPanel($, options); return next(e) })
@@ -556,20 +594,23 @@ export const install = (on: On, options: Options) => {
   on('state.set', { plugin: 'muslim', key: 'salahAfterSalahStart' }, async ($, e, next) => {
     const result = await next(e)
     if (!result.value?.isSet || !e.value) return result
-    const { day, last } = await today($)
-    if (!last || last.at !== e.value.at || last.pray !== e.value.pray) return result
-    // This explicit start resumes an unfinished reading, or restarts a finished one.
-    const reading = day.afterSalah
-    await save($, { ...day, afterSalah: { ...reading, ...(reading.isDone ? emptyReading() : {}), isHidden: false } })
-    dropUndo()
-    view.chosen = undefined
-    view.pressedAt = Date.now()
-    openedRequest = undefined // The next picture opens after its slot transition.
-    wake($)
+    const signal = e.value
+    await queueDay(async () => {
+      const { day, last } = await today($)
+      if (!last || last.at !== signal.at || last.pray !== signal.pray) return result
+      // This explicit start resumes an unfinished reading, or restarts a finished one.
+      const reading = day.afterSalah
+      await save($, { ...day, afterSalah: { ...reading, ...(reading.isDone ? emptyReading() : {}), isHidden: false } })
+      dropUndo()
+      view.chosen = undefined
+      view.pressedAt = Date.now()
+      openedRequest = undefined // The next picture opens after its slot transition.
+      wake($)
+    })
     return result
   })
 
-  on('ui.message', { element: 'athkar' }, async ($, e) => {
+  on('ui.message', { element: 'athkar' }, ($, e) => queueDay(async () => {
     const m = e.data
     // Terminal native choice buttons use the same finish/resume operations.
     if (m && typeof m === 'object' && 'act' in m && (m.act === 'finish' || m.act === 'resume')) {
@@ -686,7 +727,7 @@ export const install = (on: On, options: Options) => {
     else if (m.act === 'key' && m.key === 'right') await apply($, { act: 'previous' })
 
     return {}
-  })
+  }))
 
   // A click elsewhere takes the focus off the band: it fades, as at rest.
   on('ui.focus', { component: 'AbovePrompt' }, async ($, e, next) => {
@@ -710,7 +751,7 @@ export const install = (on: On, options: Options) => {
       isStatusCleared = true
       $.ui.status(undefined)
     }
-    if (e.props.hasSurvey || (e.surface !== 'terminal' && e.surface !== 'desktop')) return theirs
+    if ((e.surface !== 'terminal' && e.surface !== 'desktop') || await setupShowing($, !!options.salahPlace, e.surface, e.props.hasSurvey)) return theirs
     // Read while drawing so a save draws the band again; before the first
     // save this session, the stored day.
     const held = (await read($, dayRef)) ?? (await $.store.get(STORE_KEY))
@@ -727,6 +768,14 @@ export const install = (on: On, options: Options) => {
         startTimer = $.clock.after(deadline - now.getTime(), () => $.ui.invalidate('ui.render'))
       }
     }
+    const expiry = last ? offerEnd(last) : null
+    if (expiresAt !== expiry) {
+      expiryTimer?.cancel()
+      expiresAt = expiry
+      if (expiry !== null && expiry > now.getTime()) {
+        expiryTimer = $.clock.after(expiry - now.getTime(), () => $.ui.invalidate('ui.render'))
+      }
+    }
     const bounds = hasPrayerTimes ? athkarTimesAt(now.getTime()) : null
     const boundary = nextPeriodAt(now, bounds)
     if (boundary !== periodDeadline) {
@@ -738,7 +787,7 @@ export const install = (on: On, options: Options) => {
     const day = signal === undefined && hasPrayerTimes ? stored : syncAfterSalah(stored, last)
     if (day !== stored) {
       if (view.chosen === 'afterSalah') view.chosen = undefined
-      $.clock.after(0, () => void today($))
+      $.clock.after(0, () => void queueDay(() => today($)))
     }
     const period = periodOf(now, day, last, requested, bounds)
     const reading = day[period]
@@ -760,7 +809,9 @@ export const install = (on: On, options: Options) => {
     const mayOpen = period === 'afterSalah'
       ? mayOpenByItself(pending, from, last?.at ?? null)
       : mayOpenPeriod(pending, from, now, answerPeriod?.bounds)
-    if (!view.chosen && !view.finished && !isRequested && !mayOpen) return theirs
+    // A reminder switched off keeps that set from opening by itself; a reading already begun stays.
+    const isReminded = reminders[period] || hasBegun(reading)
+    if (!view.chosen && !view.finished && !isRequested && (!mayOpen || !isReminded)) return theirs
     if (period === 'afterSalah' && last && requested?.at === last.at && requested.pray === last.pray
       && !reading.isDone && openedRequest !== last.at) {
       openedRequest = last.at

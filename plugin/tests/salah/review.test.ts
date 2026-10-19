@@ -2,6 +2,7 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import { nudge, reviewRows } from '../../src/features/salah/review.ts'
 import { NO_ADJUST } from '../../src/features/salah/times.ts'
+import { ATHKAR_QUIET } from '../fixtures/config.ts'
 
 const MUNICH = { name: 'Munich, Germany', latitude: 48.1372, longitude: 11.5755, timeZone: 'Europe/Berlin', country: 'DE' }
 
@@ -15,7 +16,7 @@ describe('review', () => {
     ])
   })
 
-  test('nudge moves one pray beyond an hour in either direction', { options: { athkar: false } }, async () => {
+  test('nudge moves one pray beyond an hour in either direction', { options: { ...ATHKAR_QUIET } }, async () => {
     expect(nudge(NO_ADJUST, 'fajr', 1).fajr).toBe(1)
     expect(nudge({ ...NO_ADJUST, fajr: 60 }, 'fajr', 1).fajr).toBe(61)
     expect(nudge({ ...NO_ADJUST, fajr: -60 }, 'fajr', -1).fajr).toBe(-61)

@@ -18,7 +18,7 @@ const band = (surface: 'desktop' | 'terminal') => ({
 const setup = (on: On, now: number, surface: 'desktop' | 'terminal', photo = true) => {
   const clock = mock.clock(on, { now })
   const day = emptyDay(dayOf(new Date(now)))
-  mock.store(on, { athkar: day })
+  mock.store(on, { arabicTerminals: { unknown: 'plain' }, athkar: day })
   mock.env(on, {})
   on('session.surface', async () => ({ value: surface }))
   on('config.list', async () => ({ value: [{ key: 'theme', label: 'Theme', kind: 'choice', value: 'light', provider: { plugin: 'engine', tier: 'core' }, isLocked: false }] }))
@@ -40,6 +40,23 @@ const setup = (on: On, now: number, surface: 'desktop' | 'terminal', photo = tru
   })
   return { clock, held }
 }
+
+test('an untouched reader explicitly started on the athan card at five minutes stays at forty minutes', { options: MUNICH, timeoutMs: 60000 }, async ($, on) => {
+  const { clock, held } = setup(on, TIMES.fajr + CARD_MS / 3, 'desktop')
+  const ui = await $.ui.mount(band('desktop'))
+  await clock.advance(0)
+  const card = (await ui.find({ type: 'Client', key: 'salah-athan' }))?.props.props as Parameters<typeof athanFrame>[0]
+  const area = startArea(athanFrame(card, 100))
+  const x = Math.floor(((area.x0 + area.x1) / 2 + card.card.ch) / card.card.ch)
+  const y = Math.floor(((area.y0 + area.y1) / 2 + card.card.lh / 2) / card.card.lh)
+  await ui.resize({ columns: 100, rows: 5, in: 'salah-athan' })
+  await ui.pointer({ type: 'down', button: 'left', x, y, in: 'salah-athan' })
+  expect(held.request).toEqual({ pray: 'fajr', at: TIMES.fajr })
+  await clock.advance(2 * CARD_MS + CARD_MS / 3)
+  expect((await ui.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ period: 'afterSalah', count: 0 })
+  expect(held.day.afterSalah.counts).toEqual({})
+  await ui.unmount()
+})
 
 for (const folded of [false, true]) {
   test(`desktop start button ${folded ? 'folded' : 'open'} closes the moment and opens Fajr's reading ready to count`, { options: { ...MUNICH, color: 'green' } }, async ($, on) => {
@@ -138,7 +155,7 @@ test('desktop: June Fajr before 05:00 keeps the prayer day when the last-count t
 })
 
 for (const close of [false, true]) {
-  test(`desktop ${close ? '× waits for' : 'untouched card hands off at'} prayer + duration; after-salah stays until done or next prayer`, { options: MUNICH, timeoutMs: 60000 }, async ($, on) => {
+  test(`desktop ${close ? '× waits for' : 'untouched card hands off at'} prayer + duration; counted after-salah stays until done or next prayer`, { options: MUNICH, timeoutMs: 60000 }, async ($, on) => {
     const { clock, held } = setup(on, TIMES.dhuhr, 'desktop')
     const ui = await $.ui.mount(band('desktop'))
     await clock.advance(0)
@@ -153,6 +170,10 @@ for (const close of [false, true]) {
     await clock.advance(1)
     expect(await ui.find({ type: 'Client', key: 'salah-athan' })).toBeUndefined()
     expect((await ui.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ period: 'afterSalah' })
+    await ui.key({ key: 'space', in: 'athkar' }) // Wake, open the cover, then count.
+    await ui.key({ key: 'space', in: 'athkar' })
+    await ui.key({ key: 'space', in: 'athkar' })
+    expect(held.day.afterSalah.counts['66-istighfar']).toBe(1)
     await clock.advance(90 * 60_000)
     expect((await ui.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ period: 'afterSalah' })
     if (close) {

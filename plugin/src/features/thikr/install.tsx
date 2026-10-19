@@ -1,3 +1,7 @@
+import { configFailure, hasConfigRow, MISSING_CONFIG } from '../../shared/reload/config.ts'
+import { SETUP_LATER_KEY } from '../../shared/pray/first-run.ts'
+import { setupForm } from '../../shared/setup/visibility.ts'
+import { stopBeforeReload } from '../../shared/reload/signal.ts'
 import { accentText, type Accent } from '../../shared/color/index.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
 import { atom, read } from 'claude-code'
@@ -138,6 +142,21 @@ const holdDemoLimit = ($: EngineInterface) => {
 }
 // DEMO END
 
+const setupShowing = async ($: EngineInterface, hasPlace: boolean, surface: string, hasSurvey = false) => {
+  if (hasSurvey) return 'survey'
+  const terminal = surface === 'terminal' ? {
+    id: await terminalId($),
+    manual: (await $.state.get({ plugin: 'muslim', key: 'arabicSurveyManualTerminal' })).value,
+    saved: await $.store.get('arabicTerminals') as Record<string, unknown> | undefined,
+  } : undefined
+  return setupForm({ surface, hasSurvey, hasPlace,
+    hasReview: !!(await $.state.get({ plugin: 'muslim', key: 'salahReview' })).value,
+    later: (await $.state.get({ plugin: 'muslim', key: 'salahSetupLater' })).value === true
+      || (await $.store.get(SETUP_LATER_KEY).catch(() => undefined)) === true,
+    terminal,
+  })
+}
+
 export const install = (on: On, options: Options) => {
   // Spinner timing, per turn. Module values: a reload mid-turn only restarts the order.
   let group: Group | undefined
@@ -160,9 +179,13 @@ export const install = (on: On, options: Options) => {
   on('command.run', { command: 'thikr' }, async ($, e) => {
     const [word = '', value = ''] = e.args.trim().split(/\s+/)
     const set = async (field: string, to: boolean | number | string, said: string) => {
-      const { deny } = await $.config.set({ key: `muslim.${field}`, value: to })
-
-      return { text: deny ? `Not changed: ${deny}` : said }
+      const key = `muslim.${field}`
+      try {
+        if (!hasConfigRow(await $.config.list(), key)) return { text: MISSING_CONFIG }
+        await stopBeforeReload()
+        const { deny } = await $.config.set({ key, value: to })
+        return { text: deny ? configFailure(deny) : said }
+      } catch (error) { return { text: configFailure(error) } }
     }
 
     // DEMO BEGIN: command entry; arms and starts the demo's own turn.
@@ -205,6 +228,7 @@ export const install = (on: On, options: Options) => {
 
   // The matchers (every turn, every ending) only tell these apart from the feature's own hooks.
   on('turn.start', { turnId: /./ }, async ($, e, next) => {
+    if (e.agentId !== undefined) return next(e)
     if (demo?.phase === 'armed') await startDemo($, e.turnId)
 
     return next(e)
@@ -236,7 +260,7 @@ export const install = (on: On, options: Options) => {
 
   on('ui.render', { component: 'AbovePrompt', surface: ['desktop', 'terminal'] }, async ($, e, next) => {
     const theirs = await next(e)
-    if (demo?.phase !== 'limit' || e.props.hasSurvey) return theirs
+    if (demo?.phase !== 'limit' || await setupShowing($, !!options.salahPlace, e.surface, e.props.hasSurvey)) return theirs
     const { Box, Text } = $.ui.resolve(e)
 
     return (
@@ -253,6 +277,7 @@ export const install = (on: On, options: Options) => {
   const arabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
 
   on('turn.start', async ($, e, next) => {
+    if (e.agentId !== undefined) return next(e)
     group = undefined
     lastStep = undefined
     played.clear()
@@ -271,6 +296,7 @@ export const install = (on: On, options: Options) => {
   })
 
   on('turn.complete', async ($, e, next) => {
+    if (e.agentId !== undefined) return next(e)
     ticker?.cancel()
     ticker = undefined
 
@@ -354,7 +380,7 @@ export const install = (on: On, options: Options) => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)
     const limit = await read($, usageLimit)
-    if (!limit || e.props.hasSurvey) return theirs
+    if (!limit || await setupShowing($, !!options.salahPlace, e.surface, e.props.hasSurvey)) return theirs
     const { Box, Text } = $.ui.resolve(e)
 
     return (

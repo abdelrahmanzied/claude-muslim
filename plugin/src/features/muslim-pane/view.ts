@@ -9,10 +9,10 @@ import { accentHex } from '../../shared/color/index.ts'
 import { FEATURE_ICONS } from '../../shared/icon/index.ts'
 import {
   ATHAN_H, ATHAN_TOP, CITY_H, CITY_TOP, CONTROL_SPECS, FOLDED_H, HEAD_H, HEAD_TOP, KROW_H, KROW_TOP, athkarRow, KROW_GAP, NX_H, NX_TOP, Q_AVATAR_H, Q_AVATAR_W, Q_BAR_BASE, Q_CONTROLS_BASE, Q_CONTROLS_H, Q_HERO_H, Q_HERO_TOP,
-  Q_RECITER_BASE, Q_RECITER_H, Q_SEG_H, Q_SEG_LEFT, Q_SEG_TOP, Q_TIMES_BASE, Q_TIMES_H, Q_TITLE_H, Q_TITLE_TOP, SHEET_BACK_W, SHEET_BAR_LEFT, SHEET_BAR_W, SHEET_BORDER, SHEET_FOOT_H, SHEET_FOOT_TOP, SHEET_H, SHEET_HEAD_H, SHEET_HEAD_TOP,
+  Q_ERROR_TOP, Q_ERROR_H, Q_RETRY_TOP, Q_RETRY_H, Q_RECITER_BASE, Q_RECITER_H, Q_SEG_H, Q_SEG_LEFT, Q_SEG_TOP, Q_TIMES_BASE, Q_TIMES_H, Q_TITLE_H, Q_TITLE_TOP, SHEET_BACK_W, SHEET_BAR_LEFT, SHEET_BAR_W, SHEET_BORDER, SHEET_FOOT_H, SHEET_FOOT_TOP, SHEET_H, SHEET_HEAD_H, SHEET_HEAD_TOP,
   SHEET_MIN_THUMB, SHEET_ROWS_H, SHEET_ROWS_LEFT, SHEET_ROWS_RIGHT, SHEET_ROWS_TOP, SHEET_ROW_H, SHEET_SEARCH_H, SHEET_SEARCH_TOP, AVATAR_H, PAD, TOP_H, TOP_Y, ROWS_TOP, ROW_H, SIDE, cardRects, controlScale, quranOffset, type PaneAct,
 } from './layout.ts'
-import { SETTINGS_TOP, SETTINGS_BODY_TOP, TABS_H, TAB_INSET, TAB_PAD, LIST_CHOICE_H, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, EXTRA_TOP, ADJUST_NOTE_TOP, categoryTabs, settingsBody, type SettingRow, type SettingsTarget } from './settings.ts'
+import { SETTINGS_TOP, SETTINGS_BODY_TOP, TABS_H, TAB_INSET, TAB_PAD, LIST_CHOICE_H, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, EXTRA_TOP, ADJUST_NOTE_TOP, QURAN_SETTINGS_NOTE, settingsNoteHeight, categoryTabs, settingsBody, type SettingRow, type SettingsTarget } from './settings.ts'
 import { quranLayout, type PaneModel } from './model.ts'
 import { arabicDigits } from '../../shared/pray/line.ts'
 import { avatar } from './avatar.ts'
@@ -216,8 +216,9 @@ const quranCard = (m: PaneModel, hover: PaneAct | null): string => {
     const aria = c.act === 'quran-prev' ? 'Previous' : c.act === 'quran-next' ? 'Next' : on ? 'Stop' : 'Play'
     return `<div class="cb ${cls(c.act, c.act === 'quran-toggle' ? 'pl' : '', disabled)}" role="button" aria-label="${aria}" style="${size}">${icon(name)}</div>`
   }).join('')
+  const error = ok && q.error ? `<div class="quiet" style="position:absolute;top:${Q_ERROR_TOP + off}px;left:${SIDE}px;right:${SIDE}px;height:${Q_ERROR_H}px;line-height:${Q_ERROR_H}px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px">${escape(q.error)}</div><div class="dbtn ${cls('quran-retry')}" role="button" aria-label="إعادة المحاولة" style="position:absolute;top:${Q_RETRY_TOP + off}px;left:${SIDE}px;right:${SIDE}px;height:${Q_RETRY_H}px"><span>إعادة المحاولة</span></div>` : ''
   const sheet = m.picker ? quranSheet(m, r.quranY, hover) : ''
-  return `<section class="dcard" style="top:${r.quranY}px;height:${r.quranH}px">${header('qpane', 'القرآن الكريم', '', false, hover === 'fold-quran')}${hero}${start}${reciter}${bar}${times}${controls}</section>${sheet}`
+  return `<section class="dcard" style="top:${r.quranY}px;height:${r.quranH}px">${header('qpane', 'القرآن الكريم', '', false, hover === 'fold-quran')}${hero}${start}${reciter}${bar}${times}${controls}${error}</section>${sheet}`
 }
 
 // The open picker: a sheet over the card with the list's head, a search box, eight rows, a scrollbar and a footer.
@@ -256,7 +257,7 @@ const athkarCard = (m: PaneModel, hover: PaneAct | null): string => {
     ? `<div class="in menu" role="menu" aria-label="اختر الورد" style="top:${KMENU_TOP}px">${ATHKAR_SETS.map((s, i) => `<div class="menu-row${hover === `athkar-set:${s.key}` ? ' hot' : ''}" role="menuitemradio" aria-checked="${s.key === k.set}" style="top:${KMENU_PAD - 1 + i * (KMENU_ROW_H + KMENU_GAP)}px">${icon(s.icon)}<span>${s.title}</span>${s.key === k.set ? '<span class="tick">✓</span>' : ''}</div>`).join('')}</div>` : ''
   const bar = k.isAvailable
     ? `<div class="pbar" role="progressbar" aria-label="تقدّم ${escape(k.title)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(k.progress * 100)}"><i style="width:${Math.round(k.progress * 1000) / 10}%"></i></div>`
-    : `<span class="none">Athkar are off: /athkar on</span>`
+    : `<span class="none">Not ready: /athkar</span>`
   const btn = (act: string, cls: string, width: number, aria: string, inner: string) => `<span class="dbtn ${cls}${hover === act ? ' hot' : ''}" role="button" aria-label="${aria}" style="width:${width}px">${inner}</span>`
   const openLabel = k.isAvailable && k.hasCounts ? 'أكمل' : 'ابدأ'
   const undo = k.isAvailable && k.canUndo
@@ -344,7 +345,9 @@ const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
 
     }
     body+=b.controls.filter(t=>!t.act.startsWith('settings:pick:')).map(t=>settingControl(t,hover)).join('')
-    content+=`<div class="settings-body" style="top:${SETTINGS_BODY_TOP}px">${body}</div>`
+    const noteHeight=settingsNoteHeight(quranLayout(m).isPlaying)
+    if (noteHeight) content+=`<span class="setting-hint chrome-hint" style="top:${SETTINGS_BODY_TOP}px">${QURAN_SETTINGS_NOTE}</span>`
+    content+=`<div class="settings-body" style="top:${SETTINGS_BODY_TOP+noteHeight}px">${body}</div>`
   }
   // Swatches use the shared light/dark accent palette, not a second palette.
   const swatches=(['orange','green','yellow','blue'] as const).map(color=>`--${color}:${accentHex(color,true)}`).join(';')

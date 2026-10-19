@@ -1,3 +1,4 @@
+import { configRows } from '../fixtures/config.ts'
 import type { QuranPlaying, QuranRepeat } from '../../types/index.d.ts'
 import type { On, HttpResponse } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
@@ -5,7 +6,7 @@ import type { Mounted } from 'claude-code/testing'
 import type { PanelAction, PanelQuran } from '../../src/shared/panel/signal.ts'
 import type { PaneModel } from '../../src/features/muslim-pane/model.ts'
 import { quranLayout } from '../../src/features/muslim-pane/model.ts'
-import { CONTROL_SPECS, Q_CONTROLS_BASE, Q_CONTROLS_H, Q_RECITER_BASE, Q_SEG_TOP, Q_TITLE_TOP, cardRects, controlScale, quranOffset } from '../../src/features/muslim-pane/layout.ts'
+import { CONTROL_SPECS, Q_CONTROLS_BASE, Q_CONTROLS_H, Q_RETRY_TOP, Q_RETRY_H, settingsBoxes, Q_RECITER_BASE, Q_SEG_TOP, Q_TITLE_TOP, cardRects, controlScale, quranOffset } from '../../src/features/muslim-pane/layout.ts'
 import { defaultReciter } from '../../src/features/quran/catalog.ts'
 import { QURAN_CATALOG } from '../../src/features/quran/catalog-data.ts'
 import { QURAN_SUPPORT } from '../../src/features/quran/reciter-support.ts'
@@ -22,7 +23,7 @@ const alternateCommand = `reciter ${QURAN_CATALOG.reciters.indexOf(secondary) + 
 
 const run = (args: string) => ({ command: 'quran', args, origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } })
 const muslimPane = { plugin: 'muslim', component: 'Pane' as const, requestId: 'muslim', surface: 'desktop' as const, props: { title: 'Muslim', isFocused: true, bodyColumns: 50, placement: 'dock' as const, scroll: { offset: 0, bodyRows: 40 }, view: {} } }
-type Panel = { post(message: { act: string; list?: string; value?: string; key?: string }, _target?: unknown): Promise<void>; press(action: PanelAction): Promise<void>; read(): Promise<PanelQuran | null>; count(list: 'reciter' | 'surah'): Promise<number> }
+type Panel = { svg(): Promise<string>; post(message: { act: string; list?: string; value?: string; key?: string }, _target?: unknown): Promise<void>; press(action: PanelAction): Promise<void>; read(): Promise<PanelQuran | null>; count(list: 'reciter' | 'surah'): Promise<number> }
 // The Muslim card's side of the player, driven the way a person does: its keys, its buttons and its pickers.
 async function panel($: { ui: { mount(args: typeof muslimPane): Promise<Mounted<'desktop', 'Pane'>> } }): Promise<Panel> {
   const ui = await $.ui.mount(muslimPane)
@@ -52,6 +53,7 @@ async function panel($: { ui: { mount(args: typeof muslimPane): Promise<Mounted<
     await key('return')
   }
   return {
+    svg: async () => String((await ui.find({ in: 'muslim-pane', type: 'Svg' }))?.props.source ?? ''),
     async post(m) {
       if (m.act === 'pick') await pickList(m.list as 'reciter' | 'surah' | 'segment', m.value ?? '')
       else if (m.act === 'key') await key(m.key ?? '')
@@ -60,7 +62,9 @@ async function panel($: { ui: { mount(args: typeof muslimPane): Promise<Mounted<
       if (action === 'quran-toggle') return key('return')
       if (action === 'quran-prev') return key('left')
       if (action === 'quran-next') return key('right')
-      const { r, q } = await layout(), spec = CONTROL_SPECS.find(c => c.act === action)!
+      const { r, q } = await layout()
+      if (action === 'quran-retry') return click(210, r.quranY + Q_RETRY_TOP + quranOffset(q.segmented) + Q_RETRY_H / 2)
+      const spec = CONTROL_SPECS.find(c => c.act === action)!
       await click(420 / 2 + spec.dx * controlScale(420), r.quranY + Q_CONTROLS_BASE + quranOffset(q.segmented) + Q_CONTROLS_H / 2 + spec.dy)
     },
     async count(list) {
@@ -109,8 +113,8 @@ function setup(on: On, entries: Record<string, unknown> = {}, env: Record<string
     logs[e.path] = e.text
     return { value: undefined }
   })
-  const config = { theme: 'auto' as string }
-  on('config.list', async () => ({ value: [{ key: 'theme', label: 'Theme', kind: 'choice' as const, value: config.theme, provider: { plugin: 'engine', tier: 'core' as const }, isLocked: false }] }))
+  const config = { theme: 'auto' as string, rows: configRows }
+  on('config.list', async () => ({ value: [...config.rows, { key: 'theme', label: 'Theme', kind: 'choice' as const, value: config.theme, provider: { plugin: 'engine', tier: 'core' as const }, isLocked: false }] }))
   const toasts: string[] = []
   on('ui.toast', async (_$, e) => { toasts.push(e.text); return { value: undefined } })
   return { ...clock, state, store, opened, toasts, logs, config }
@@ -645,10 +649,10 @@ test('an obsolete store catalog is ignored and the remembered recording is kept'
 test('play rejection clears playing and renders a dim pane/command-output error', async ($, on) => {
   const clock = setup(on)
   on('audio.play', async () => ({ deny: 'Playback unavailable' }))
-  await $.command.run(run('play 18')); await clock.settle()
+  const reply = await $.command.run(run('play 18')); await clock.settle()
   expect(clock.state.quranPlaying).toBe(null)
   expect((await (await panel($)).read())?.isLive).toBe(false)
-  const output = await $.ui.mount({ plugin: 'muslim', surface: 'desktop', component: 'CommandOutput', requestId: 'quran-output', props: { command: 'quran', args: 'play 18', text: 'Quran playing: الكهف.', isErrored: false } })
+  const output = await $.ui.mount({ plugin: 'muslim', surface: 'desktop', component: 'CommandOutput', requestId: 'quran-output', props: { command: 'quran', args: 'play 18', text: reply.text!, isErrored: false } })
   expect(await output.find({ text: 'Quran: Playback unavailable' })).toBeDefined()
 })
 test('cached duration skips process probing; a failed probe leaves total unknown silently', async ($, on) => {
@@ -1015,5 +1019,133 @@ test('/quran in a terminal replies with the player status and opens nothing', as
   expect(played).toHaveLength(1)
   expect((await $.command.run(run(''))).text).toContain('Status: playing')
   expect(clock.opened).toEqual([])
+  await $.command.run(run('stop'))
+})
+
+test('pane failure draws a dim error and a hit-tested Retry replays and clears it', async ($, on) => {
+  const clock = setup(on)
+  let attempts = 0
+  on('audio.play', async () => {
+    if (++attempts === 1) return { deny: 'Playback unavailable' }
+    await clock.sleep(10000)
+    return { value: undefined }
+  })
+  const ui = await panel($)
+  await ui.press('quran-toggle'); await clock.settle()
+  expect((await ui.read())?.error).toBe('Quran: Playback unavailable')
+  expect(await ui.svg()).toContain('class="quiet"')
+  expect(await ui.svg()).toContain('Quran: Playback unavailable')
+  expect(await ui.svg()).toContain('aria-label="إعادة المحاولة"')
+  await ui.press('quran-retry'); await clock.settle()
+  expect(attempts).toBe(2)
+  expect((await ui.read())?.isPlaying).toBe(true)
+  expect((await ui.read())?.error).toBe('')
+  expect(await ui.svg()).not.toContain('aria-label="إعادة المحاولة"')
+  expect(clock.toasts).toEqual([])
+  await $.command.run(run('stop'))
+})
+
+test('a command playback error only replaces the originating args and reply text', async ($, on) => {
+  const clock = setup(on)
+  on('audio.play', async () => ({ deny: 'Playback unavailable' }))
+  on('ui.render', { component: 'CommandOutput' }, async ($, e) => { const { Text } = $.ui.resolve(e); return <Text>{e.props.text}</Text> })
+  const reply = await $.command.run(run('play 18')); await clock.settle()
+  const stopped = await $.command.run(run('stop'))
+  const help = await $.command.run(run('help'))
+  for (const [args, text, expected] of [
+    ['play 18', reply.text!, 'Quran: Playback unavailable'],
+    ['stop', stopped.text!, 'Quran stopped.'],
+    ['help', help.text!, help.text!],
+    ['play 18', 'Another reply', 'Another reply'],
+    ['play 1', reply.text!, reply.text!],
+  ]) {
+    const ui = await $.ui.mount({ plugin: 'muslim', surface: 'desktop', component: 'CommandOutput', requestId: `row-${args}-${text}`, props: { command: 'quran', args: args!, text: text!, isErrored: false } })
+    expect(await ui.find({ text: expected! })).toBeDefined()
+    await ui.unmount()
+  }
+})
+
+for (const playing of [true, false]) test(`pane colour change stops before config and toasts once: playing=${playing}`, async ($, on) => {
+  const clock = setup(on)
+  const clips = audio(on, clock)
+  on('state.get', { plugin: 'muslim', key: 'paneSettings' }, async () => ({ value: { value: { open: true, category: 'general', face: 'main', page: 0 }, version: 1 } }))
+  const writes: string[] = []
+  on('config.set', async (_$, e) => {
+    writes.push(e.key)
+    if (playing) expect(clips[0]!.signal.aborted).toBe(true)
+    expect(clock.state.quranPlaying ?? null).toBe(null)
+    expect(clock.toasts).toEqual(playing ? ['Quran stopped: changing a setting reloads the player.'] : [])
+    return { value: e.value }
+  })
+  if (playing) { await $.command.run(run('play 1')); await clock.settle() }
+  const ui = await $.ui.mount(muslimPane)
+  await ui.resize({ columns: 50, rows: 100, in: 'muslim-pane' })
+  const model = (await ui.find({ type: 'Client', key: 'muslim-pane' }))!.props.props as PaneModel
+  const q = quranLayout(model)
+  const r = cardRects(model.folds, model.settings.state, model.settings.options, q, model.athkarMenu)
+  const target = settingsBoxes(420, model.folds, model.settings, q).find(t => t.act === 'settings:color:blue')!
+  const fine = { x: (target.x0 + target.x1) / 2 * 50 / 420, y: (target.y0 + target.y1) / 2 * 100 / r.height }
+  await ui.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: Math.floor(fine.x), y: Math.floor(fine.y), fine })
+  await clock.settle()
+  expect(writes).toEqual(['muslim.color'])
+  expect(clips).toHaveLength(playing ? 1 : 0)
+  await ui.unmount()
+})
+
+test('Retry after a split pane Play retries playback rather than leaving the recording merely prepared', async ($, on) => {
+  const plan = quarterPlan()
+  const clock = setup(on, { 'quran.segmentCache': { [`${primary.key}:2`]: plan } }, {}, 'desktop', false)
+  // Refresh after failure must still see a large, timed recording.
+  on('http.fetch', async (_$, e) => ({ value: (e.init?.method === 'HEAD'
+    ? { ok: true, status: 200, headers: { 'content-length': String(plan.sizeBytes), etag: 'fixture' }, text: '' }
+    : { ok: true, status: 200, headers: {}, text: JSON.stringify(e.url.endsWith('/reads') ? [{ id: 112, folder_url: primary.server }] : Array.from({ length: 286 }, (_, i) => ({ ayah: i + 1, start_time: i * 1000, end_time: (i + 1) * 1000 }))) }) as HttpResponse }))
+  mockRanges(on, plan)
+  let attempts = 0
+  on('audio.play', async () => {
+    if (++attempts === 1) return { deny: 'Playback unavailable' }
+    await clock.sleep(10000)
+    return { value: undefined }
+  })
+  const ui = await panel($)
+  await ui.post({ act: 'pick', list: 'surah', value: '2' }); await clock.settle()
+  expect((await ui.read())?.error).toBe('Quran: Playback unavailable')
+  await ui.press('quran-retry'); await clock.settle()
+  expect(attempts).toBe(2)
+  expect(clock.state.quranPlaying?.surah).toBe(2)
+  expect(clock.state.quranPlaying?.segmentIndex).toBe(0)
+  expect((await ui.read())?.error).toBe('')
+  await $.command.run(run('stop'))
+})
+
+for (const origin of ['pane', 'command'] as const) test(`missing colour row from ${origin} leaves Quran playing and reports reload-plugins`, async ($, on) => {
+  const clock = setup(on)
+  clock.config.rows = []
+  const clips = audio(on, clock)
+  const settings = { open: true, category: 'general' as const, face: 'main' as const, page: 0 }
+  on('state.get', { plugin: 'muslim', key: 'paneSettings' }, async () => ({ value: { value: settings, version: 1 } }))
+  const writes: string[] = []
+  on('config.set', async (_$, e) => { writes.push(e.key); return { value: e.value } })
+  await $.command.run(run('play 1')); await clock.settle()
+  const note = 'Not changed: run /reload-plugins, then try again.'
+  if (origin === 'command') {
+    const reply = await $.command.run({ ...run('color blue'), command: 'muslim' })
+    expect(reply.text).toBe(note)
+    expect(clock.toasts).toEqual([])
+  } else {
+    const ui = await $.ui.mount(muslimPane)
+    await ui.resize({ columns: 50, rows: 100, in: 'muslim-pane' })
+    const model = (await ui.find({ type: 'Client', key: 'muslim-pane' }))!.props.props as PaneModel
+    const q = quranLayout(model), r = cardRects(model.folds, model.settings.state, model.settings.options, q, model.athkarMenu)
+    const target = settingsBoxes(420, model.folds, model.settings, q).find(t => t.act === 'settings:color:blue')!
+    const fine = { x: (target.x0 + target.x1) / 2 * 50 / 420, y: (target.y0 + target.y1) / 2 * 100 / r.height }
+    await ui.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: Math.floor(fine.x), y: Math.floor(fine.y), fine })
+    await clock.settle()
+    expect(clock.toasts).toEqual([note])
+    await ui.unmount()
+  }
+  expect(writes).toEqual([])
+  expect(clips).toHaveLength(1)
+  expect(clips[0]!.signal.aborted).toBe(false)
+  expect(clock.state.quranPlaying).not.toBeNull()
   await $.command.run(run('stop'))
 })

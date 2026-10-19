@@ -3,6 +3,7 @@ import { expect, mock, test } from 'claude-code/testing'
 
 import { END_OF_TURN, LONG, SALAWAT, STARTING, THINKING, USAGE_LIMIT, WRITING } from '../../src/features/thikr/phrases.ts'
 import { stripTashkeel } from '../../src/shared/arabic/visual.ts'
+import { ATHKAR_QUIET } from '../fixtures/config.ts'
 
 const SURFACES = ['terminal', 'desktop'] as const
 
@@ -21,7 +22,7 @@ const spinner = (surface: (typeof SURFACES)[number], mode: Mode) => ({
 const shown = (surface: (typeof SURFACES)[number], text: string) => surface === 'terminal' ? stripTashkeel(text) : text
 
 test('spinner shows the thikr in order, keeping the desktop step', async ($, on) => {
-  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   const clock = mock.clock(on, { now: 0 })
   answerTurns(on)
@@ -52,7 +53,7 @@ test('spinner shows the thikr in order, keeping the desktop step', async ($, on)
 })
 
 test('a subagent plays the long group, then thinking returns', async ($, on) => {
-  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   mock.clock(on, { now: 0 })
   answerTurns(on)
@@ -79,7 +80,7 @@ test('a subagent plays the long group, then thinking returns', async ($, on) => 
 })
 
 test('compacting plays the long group', async ($, on) => {
-  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   mock.clock(on, { now: 0 })
   answerTurns(on)
@@ -103,7 +104,7 @@ test('compacting plays the long group', async ($, on) => {
 })
 
 test('each turn opens on a different starting phrase', async ($, on) => {
-  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   mock.clock(on, { now: 0 })
   answerTurns(on)
@@ -125,7 +126,7 @@ test('each turn opens on a different starting phrase', async ($, on) => {
 })
 
 test('a group resumes where it left off', async ($, on) => {
-  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   const clock = mock.clock(on, { now: 0 })
   answerTurns(on)
@@ -149,7 +150,7 @@ test('a group resumes where it left off', async ($, on) => {
 })
 
 test('salawat mode keeps one salawat for a whole turn, the next one each turn', { options: { thikrMode: 'salawat' } }, async ($, on) => {
-  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   const clock = mock.clock(on, { now: 0 })
   answerTurns(on)
@@ -176,7 +177,7 @@ test('salawat mode keeps one salawat for a whole turn, the next one each turn', 
 })
 
 test('desktop keeps the step row\'s words after its tool ends', async ($, on) => {
-  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   mock.clock(on, { now: 0 })
   answerTurns(on)
@@ -200,7 +201,7 @@ test('desktop keeps the step row\'s words after its tool ends', async ($, on) =>
 })
 
 test('terminal always strips tashkeel even when the desktop setting is on', { options: { tashkeel: true } }, async ($, on) => {
-  mock.store(on, { arabicTerminals: { unknown: 'reversed' } })
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'reversed' } })
   mock.env(on, {})
   mock.clock(on, { now: 0 })
   answerTurns(on)
@@ -219,7 +220,7 @@ test('terminal always strips tashkeel even when the desktop setting is on', { op
 
 test('desktop follows the tashkeel setting', { options: { tashkeel: false } }, async ($, on) => {
   mock.env(on, {})
-  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
   mock.clock(on, { now: 0 })
   answerTurns(on)
   let word = ''
@@ -236,7 +237,7 @@ test('desktop follows the tashkeel setting', { options: { tashkeel: false } }, a
 })
 
 test('off leaves Claude\'s words alone', { options: { thikr: false } }, async ($, on) => {
-  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   let word = ''
   on('ui.render', { component: 'Spinner' }, async ($, e) => {
@@ -251,7 +252,7 @@ test('off leaves Claude\'s words alone', { options: { thikr: false } }, async ($
 })
 
 test('end of turn says tamma bihamdillah, and end off keeps Claude\'s word', async ($, on) => {
-  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   let word = ''
   on('ui.render', { component: 'TurnDuration' }, async ($, e) => {
@@ -295,8 +296,8 @@ test('/thikr speed refuses out-of-range values', async $ => {
   expect(ran.text).toContain('auto, or a whole number of seconds from 1 to 60')
 })
 
-test('a usage limit shows hasbiyallah above the prompt until it resets', { options: { athkar: false } }, async ($, on) => {
-  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+test('a usage limit shows hasbiyallah above the prompt until it resets', { options: { ...ATHKAR_QUIET } }, async ($, on) => {
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   const clock = mock.clock(on, { now: Date.parse('2026-10-10T12:00:00Z') })
   on('session.usage', async () => ({
@@ -330,9 +331,9 @@ test('a usage limit shows hasbiyallah above the prompt until it resets', { optio
   await cleared.unmount()
 })
 
-test('a response reporting a full usage window shows hasbiyallah before any turn fails', { options: { athkar: false } }, async ($, on) => {
+test('a response reporting a full usage window shows hasbiyallah before any turn fails', { options: { ...ATHKAR_QUIET } }, async ($, on) => {
   mock.clock(on, { now: Date.parse('2026-10-10T12:00:00Z') })
-  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   on('session.measure', async (_$, e) => ({ changed: e.changed }))
   on('ui.render', { component: 'AbovePrompt' }, async ($, e) => {
@@ -362,9 +363,9 @@ test('a response reporting a full usage window shows hasbiyallah before any turn
 
 for (const surface of ['terminal', 'desktop'] as const) {
   for (const [color, theme, expected] of [['orange', 'light', 'claude'], ['orange', 'dark', 'claude'], ['green', 'light', '#0b7a50'], ['green', 'dark', '#1a9466']] as const) {
-    test(`usage-limit color ${surface} ${color} ${theme}`, { options: { athkar: false, color,  } }, async ($, on) => {
+    test(`usage-limit color ${surface} ${color} ${theme}`, { options: { ...ATHKAR_QUIET, color,  } }, async ($, on) => {
       mock.env(on, {})
-      mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+      mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
       mock.clock(on, { now: Date.parse('2026-10-10T12:00:00Z') })
       on('config.list', async () => ({ value: [{ key: 'theme', label: 'Theme', kind: 'choice', value: theme, provider: { plugin: 'engine', tier: 'core' }, isLocked: false }] }))
       on('ui.render', { component: 'AbovePrompt' }, async ($, e) => {
@@ -381,3 +382,35 @@ for (const surface of ['terminal', 'desktop'] as const) {
     })
   }
 }
+
+test('child lifecycle preserves the main phrase progress, usage limit and running ticker', { options: { thikrSpeed: '2' } }, async ($, on) => {
+  mock.env(on, {})
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
+  const clock = mock.clock(on, { now: 0 })
+  answerTurns(on)
+  on('turn.complete', async (_$, e) => ({ text: e.answer }))
+  const limitWrites: unknown[] = []
+  on('state.set', { plugin: 'muslim', key: 'usageLimit' }, async (_$, e, next) => { limitWrites.push(e.value); return next(e) })
+  let invalidations = 0
+  on('ui.invalidate', async () => { invalidations++; return { value: undefined } })
+  const words: string[] = []
+  on('ui.render', { component: 'Spinner' }, async ($, e) => {
+    words.push(e.props.word)
+    const { Text } = $.ui.resolve(e)
+    return <Text>{e.props.word}</Text>
+  })
+  await $.turn.start({ text: 'main', turnId: 'main' })
+  await $.ui.render(spinner('terminal', 'thinking'))
+  await clock.advance(2000)
+  await $.ui.render(spinner('terminal', 'thinking'))
+  await $.ui.render(spinner('terminal', 'responding'))
+  await $.turn.start({ text: 'child', turnId: 'child', agentId: 'agent' })
+  await $.turn.complete({ answer: 'ok', durationMs: 1, isAborted: false, reason: 'answer', turnId: 'child', agentId: 'agent' } as never)
+  await $.ui.render(spinner('terminal', 'responding'))
+  await $.ui.render(spinner('terminal', 'thinking'))
+  expect(words).toEqual([THINKING[0], THINKING[1], WRITING[0], WRITING[0], THINKING[1]].map(s => stripTashkeel(s!)))
+  expect(limitWrites).toEqual([null])
+  const before = invalidations
+  await clock.advance(500)
+  expect(invalidations).toBeGreaterThan(before)
+})

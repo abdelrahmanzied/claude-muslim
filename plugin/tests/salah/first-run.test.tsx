@@ -1,3 +1,4 @@
+import { configRows } from '../fixtures/config.ts'
 import type { EngineInterface, On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 import { NO_ADJUST } from '../../src/features/salah/times.ts'
@@ -13,14 +14,14 @@ const band = {
   plugin: 'muslim', surface: 'desktop' as const, component: 'AbovePrompt' as const, requestId: 'save-first-run',
   props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} },
 }
-const engine = (on: On, entries: Record<string, unknown> = {}) => {
+const engine = (on: On, entries: Record<string, unknown> = {}, rows = configRows) => {
   mock.env(on, {})
   const clock = mock.clock(on, { now: NOW })
   const saved = { ...entries }
   on('store.get', async (_$, e) => ({ value: saved[e.key] }))
   on('store.set', async (_$, e) => { saved[e.key] = e.value; return { value: undefined } })
   on('store.delete', async (_$, e) => { delete saved[e.key]; return { value: undefined } })
-  on('config.list', async () => ({ value: [] }))
+  on('config.list', async () => ({ value: rows }))
   on('ui.render', { component: 'AbovePrompt' }, async ($, e) => { const { Box } = $.ui.resolve(e); return <Box /> })
   on('session.surface', async () => ({ value: 'desktop' }))
   const atoms: Record<string, unknown> = {}
@@ -88,6 +89,7 @@ for (const failure of ['API rejection', 'deny'] as const) {
 // crosses files. It supplies the native rejection the kit cannot inject.
 const stub = (stored: Record<string, unknown>, atoms: Record<string, unknown>, rows: unknown, error: unknown) => {
   const seen: { atWrite?: unknown } = {}
+  let listed = false
   const engine = {
     state: {
       get: async (ref: { key: string }) => ({ value: atoms[ref.key], version: 1 }),
@@ -101,7 +103,7 @@ const stub = (stored: Record<string, unknown>, atoms: Record<string, unknown>, r
     clock: { now: async () => NOW },
     config: {
       set: async () => { seen.atWrite = { timestamp: stored['firstRun.remindFrom'], review: atoms.salahReview }; throw error },
-      list: async () => { if (rows instanceof Error) throw rows; return rows },
+      list: async () => { if (!listed) { listed = true; return configRows } if (rows instanceof Error) throw rows; return rows },
     },
   } as unknown as EngineInterface
   return { engine, seen }
@@ -156,3 +158,53 @@ for (const [label, options, saved] of [
     expect(store['firstRun.remindFrom']).toBe('firstRun.remindFrom' in saved ? saved['firstRun.remindFrom'] : undefined)
   })
 }
+
+for (const failure of ['pending', 'deny', 'throw'] as const) test(`review Save clears before config completes: ${failure}`, { options: { salahPlace: MUNICH } }, async ($, on) => {
+  const { atoms, toasts, clock } = engine(on)
+  let started!: () => void
+  const writing = new Promise<void>(resolve => { started = resolve })
+  on('config.set', async () => {
+    expect(atoms.salahReview).toBe(null)
+    started()
+    if (failure === 'pending') await new Promise<void>(() => {})
+    if (failure === 'throw') throw new Error('locked')
+    return { deny: 'locked' }
+  })
+  await $.command.run({ ...run, args: 'adjust' })
+  const ui = await $.ui.mount(band)
+  void ui.press({ key: 'salah-save' })
+  await writing
+  if (failure === 'pending') expect(atoms.salahReview).toBe(null)
+  else {
+    await clock.settle()
+    expect(atoms.salahReview).toEqual(NO_ADJUST)
+    expect(toasts).toHaveLength(1)
+    expect(toasts[0]).toMatch(/^Not changed:/)
+    if (failure === 'deny') expect(toasts[0]).toBe('Not changed: locked')
+  }
+  await ui.unmount()
+})
+
+test('missing city row changes no setup answer or review state', async () => {
+  const stored: Record<string, unknown> = {}, atoms = { salahReview: null }
+  const { engine, seen } = stub(stored, atoms, [], new Error('must not write'))
+  engine.config.list = async () => []
+  expect(await savePlace(engine, CITY, readOptions({}))).toBe('Not changed: run /reload-plugins, then try again.')
+  expect(seen.atWrite).toBeUndefined()
+  expect(stored).toEqual({})
+  expect(atoms).toEqual({ salahReview: null })
+})
+
+test('missing review row leaves the draft open and shows the friendly toast', { options: { salahPlace: MUNICH } }, async ($, on) => {
+  const { atoms, toasts } = engine(on, {}, [])
+  const writes: unknown[] = []
+  on('config.set', async (_$, e) => { writes.push(e); return { value: e.value } })
+  await $.command.run({ ...run, args: 'adjust' })
+  const ui = await $.ui.mount(band)
+  await ui.press({ key: 'salah-save' })
+  expect(atoms.salahReview).toEqual(NO_ADJUST)
+  expect(await ui.find({ key: 'salah-save' })).toBeDefined()
+  expect(writes).toEqual([])
+  expect(toasts).toEqual(['Not changed: run /reload-plugins, then try again.'])
+  await ui.unmount()
+})

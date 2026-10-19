@@ -67,10 +67,22 @@
       ],
       "default": "all"
     },
-    "athkar": {
+    "athkarMorning": {
       "type": "boolean",
-      "title": "Athkar",
-      "description": "Morning and evening athkar above the prompt, to read and count",
+      "title": "Morning athkar reminder",
+      "description": "Open the morning athkar above the prompt by itself, from Fajr",
+      "default": true
+    },
+    "athkarEvening": {
+      "type": "boolean",
+      "title": "Evening athkar reminder",
+      "description": "Open the evening athkar above the prompt by itself, from Maghrib",
+      "default": true
+    },
+    "athkarAfterSalah": {
+      "type": "boolean",
+      "title": "After-salah athkar reminder",
+      "description": "Offer the athkar after salah above the prompt for 15 minutes, starting 15 minutes after each athan",
       "default": true
     },
     "athkarStyle": {

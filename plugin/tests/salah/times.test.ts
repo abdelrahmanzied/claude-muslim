@@ -2,7 +2,8 @@ import { describe, expect, test } from 'claude-code/testing'
 
 import { hijriMonth, localTime } from '../../src/features/salah/clock.ts'
 import { PRAYS } from '../../src/features/salah/methods.ts'
-import { athkarTimes, clockText, lastPray, NO_ADJUST, nextPray, timesOn } from '../../src/features/salah/times.ts'
+import { athkarTimes, clockText, lastPray, NO_ADJUST, nextPray, nextSalah, timesOn } from '../../src/features/salah/times.ts'
+import { ATHKAR_QUIET } from '../fixtures/config.ts'
 
 const MUNICH = { latitude: 48.1372, longitude: 11.5755, timeZone: 'Europe/Berlin' }
 const CAIRO = { latitude: 30.05, longitude: 31.25, timeZone: 'Africa/Cairo' }
@@ -19,15 +20,15 @@ const day = (where: typeof MUNICH, method: Parameters<typeof timesOn>[1], at = O
 }
 
 describe('timesOn', () => {
-  test('Munich, Muslim World League, in local time', { options: { athkar: false } }, async () => {
+  test('Munich, Muslim World League, in local time', { options: { ...ATHKAR_QUIET } }, async () => {
     expect(day(MUNICH, 'mwl')).toEqual(['05:42', '07:26', '13:02', '15:59', '18:35', '20:12'])
   })
 
-  test('Cairo, Egyptian General Authority', { options: { athkar: false } }, async () => {
+  test('Cairo, Egyptian General Authority', { options: { ...ATHKAR_QUIET } }, async () => {
     expect(day(CAIRO, 'egypt')).toEqual(['05:27', '06:54', '12:43', '16:00', '18:30', '19:47'])
   })
 
-  test('Makkah, Umm al-Qura: Isha 90 minutes after Maghrib, 120 in Ramadan', { options: { athkar: false } }, async () => {
+  test('Makkah, Umm al-Qura: Isha 90 minutes after Maghrib, 120 in Ramadan', { options: { ...ATHKAR_QUIET } }, async () => {
     const before = timesOn(MAKKAH, 'ummAlQura', NO_ADJUST, OCT_10)
     const ramadan = timesOn(MAKKAH, 'ummAlQura', NO_ADJUST, Date.parse('2027-02-20T10:00:00Z'))
 
@@ -40,7 +41,7 @@ describe('timesOn', () => {
       .toEqual(['05:42', '07:26', '13:02', '16:04', '18:35', '20:02'])
   })
 
-  test('the local day decides the date, not UTC', { options: { athkar: false } }, async () => {
+  test('the local day decides the date, not UTC', { options: { ...ATHKAR_QUIET } }, async () => {
     // 23:30 in Cairo on 10 October is 20:30 UTC; just after midnight is 11 October.
     const late = timesOn(CAIRO, 'egypt', NO_ADJUST, Date.parse('2026-10-10T20:30:00Z'))
     const next = timesOn(CAIRO, 'egypt', NO_ADJUST, Date.parse('2026-10-10T21:30:00Z'))
@@ -51,7 +52,7 @@ describe('timesOn', () => {
 })
 
 describe('nextPray and lastPray', () => {
-  test('mid-morning: Dhuhr is next, Fajr was last', { options: { athkar: false } }, async () => {
+  test('mid-morning: Dhuhr is next, Fajr was last', { options: { ...ATHKAR_QUIET } }, async () => {
     expect(nextPray(MUNICH, 'mwl', NO_ADJUST, Date.parse('2026-10-10T08:00:00Z')).pray).toBe('dhuhr')
     expect(lastPray(MUNICH, 'mwl', NO_ADJUST, Date.parse('2026-10-10T08:00:00Z')).pray).toBe('fajr')
   })
@@ -73,12 +74,12 @@ describe('nextPray and lastPray', () => {
 })
 
 describe('clock', () => {
-  test('reads summer and winter time in the zone', { options: { athkar: false } }, async () => {
+  test('reads summer and winter time in the zone', { options: { ...ATHKAR_QUIET } }, async () => {
     expect(localTime(Date.parse('2026-07-01T12:00:00Z'), 'Europe/Berlin').hour).toBe(14)
     expect(localTime(Date.parse('2026-12-01T12:00:00Z'), 'Europe/Berlin').hour).toBe(13)
   })
 
-  test('Ramadan 1448 is the ninth Hijri month', { options: { athkar: false } }, async () => {
+  test('Ramadan 1448 is the ninth Hijri month', { options: { ...ATHKAR_QUIET } }, async () => {
     expect(hijriMonth(Date.parse('2027-02-20T10:00:00Z'), 'Asia/Riyadh')).toBe(9)
     expect(hijriMonth(OCT_10, 'Asia/Riyadh')).not.toBe(9)
   })
@@ -108,4 +109,15 @@ test('athkar bounds refresh at place midnight before the Fajr day changes', () =
   expect(second.day).toBe('2026-10-11')
   expect(second.previousDay).toBe(first.day)
   expect(second.fajr).toBe(first.nextFajr)
+})
+
+for (const [label, nextAt, lastAt, month, expectedDay] of [
+  ['spring', '2026-03-28T22:30:00Z', '2026-03-29T22:30:00Z', 3, 29],
+  ['autumn', '2026-10-24T21:30:00Z', '2026-10-25T23:30:00Z', 10, 25],
+] as const) test(`${label} DST: adjacent prayer days follow the place calendar`, () => {
+  const next = nextSalah(MUNICH, 'mwl', NO_ADJUST, Date.parse(nextAt))
+  const last = lastPray(MUNICH, 'mwl', NO_ADJUST, Date.parse(lastAt))
+  expect(next.pray).toBe('fajr')
+  expect(last.pray).toBe('isha')
+  for (const p of [next, last]) expect(localTime(p.at, MUNICH.timeZone)).toMatchObject({ year: 2026, month, day: expectedDay })
 })

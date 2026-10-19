@@ -51,7 +51,7 @@ export type PaneCopied = { command: string; until: number }
 // The Muslim pane's open Quran picker: which list, the typed query, the highlighted row, the first visible row and a
 // scrollbar drag in progress (`cell` is the pane pixels one pointer row stood for at the press; null when unknown).
 export type PanePicker = { list: 'reciter' | 'surah' | 'segment'; query: string; highlight: number; scroll: number; drag: { y: number; scroll: number; cell: number | null } | null }
-export type PaneOptimistic = Partial<Record<'tashkeel' | 'thikr' | 'athkar' | 'salahAthan' | 'paneButton' | 'thikrEnd', boolean>>
+export type PaneOptimistic = Partial<Record<'tashkeel' | 'thikr' | 'athkarMorning' | 'athkarEvening' | 'athkarAfterSalah' | 'salahAthan' | 'paneButton' | 'thikrEnd', boolean>>
 
 declare module 'claude-code' {
   interface PluginState {
@@ -59,7 +59,7 @@ declare module 'claude-code' {
       quranPlaying: QuranPlaying | null
       quranRepeat: QuranRepeat
       quranError: string | null
-      quranCommandError: string | null
+      quranCommandError: { args: string; text: string; message: string } | null
       quranSurah: number
 
       // Settings hub, one selected tab and its detail/page, kept across reloads.

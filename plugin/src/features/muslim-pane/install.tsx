@@ -1,3 +1,5 @@
+import { configFailure, hasConfigRow, MISSING_CONFIG } from '../../shared/reload/config.ts'
+import { stopBeforeReload } from '../../shared/reload/signal.ts'
 import type { EngineInterface, On } from 'claude-code'
 import type { Options } from '../../config.ts'
 import type { PaneOptimistic, PanePicker } from '../../../types/index.d.ts'
@@ -140,8 +142,12 @@ async function press($: EngineInterface, options: Options, act: PaneAct): Promis
     return
   }
   if (act === 'athan') {
-    const { deny } = await $.config.set({ key: 'muslim.salahAthan', value: !options.salahAthan })
-    if (deny) $.ui.toast(`Not changed: ${deny}`)
+    try {
+      if (!hasConfigRow(await $.config.list(), 'muslim.salahAthan')) return void $.ui.toast(MISSING_CONFIG)
+      await stopBeforeReload()
+      const { deny } = await $.config.set({ key: 'muslim.salahAthan', value: !options.salahAthan })
+      if (deny) $.ui.toast(configFailure(deny))
+    } catch (error) { $.ui.toast(configFailure(error)) }
     return
   }
   if (act === 'quran-pick-reciter' || act === 'quran-pick-surah' || act === 'quran-pick-segment') {
@@ -161,10 +167,10 @@ async function press($: EngineInterface, options: Options, act: PaneAct): Promis
     if (option) await choose($, picker, option)
     return
   }
-  const action: PanelAction | null = act === 'quran-toggle' || act === 'quran-prev' || act === 'quran-next' || act === 'quran-repeat-surah' || act === 'quran-repeat-segment' || act === 'athkar-open' || act === 'athkar-finish' ? act : null
+  const action: PanelAction | null = act === 'quran-retry' || act === 'quran-toggle' || act === 'quran-prev' || act === 'quran-next' || act === 'quran-repeat-surah' || act === 'quran-repeat-segment' || act === 'athkar-open' || act === 'athkar-finish' ? act : null
   if (!action) return
   const took = await runPanelAction(action)
-  if (!took) $.ui.toast((act === 'athkar-open' || act === 'athkar-finish') ? 'Athkar are off. /athkar on' : 'Quran is not ready yet. /quran')
+  if (!took) $.ui.toast((act === 'athkar-open' || act === 'athkar-finish') ? 'Athkar is not ready yet. /athkar' : 'Quran is not ready yet. /quran')
 }
 
 // A row chosen: the list closes first, then the Quran feature makes the pick it validates itself.
@@ -217,15 +223,22 @@ async function settingsPress($: EngineInterface, options: Options, act: PaneAct)
     if (effect.kind === 'config') {
       // state.set redraws subscribed panes before config's reload completes.
       const field = effect.field
+      try {
+        if (!hasConfigRow(await $.config.list(), `muslim.${field}`)) return void $.ui.toast(MISSING_CONFIG)
+      } catch (error) { $.ui.toast(configFailure(error)); return }
       const optimistic = isSwitchField(field) && typeof effect.value === 'boolean'
       if (optimistic) await editPending($, pending => ({ ...pending, [field]: effect.value as boolean }))
-      const { deny } = await $.config.set({ key: `muslim.${effect.field}`, value: effect.value })
-      if (deny) {
+      if (s.face === 'methods') await $.state.set(settingsRef, { ...s, face: 'main', page: 0 })
+      try {
+        await stopBeforeReload()
+        const { deny } = await $.config.set({ key: `muslim.${effect.field}`, value: effect.value })
+        if (deny) throw new Error(deny)
+      } catch (error) {
         // Clear only this press's own entry: a newer press for the field has a different value.
         if (optimistic) await editPending($, pending => pending[field] === effect.value ? Object.fromEntries(Object.entries(pending).filter(([k]) => k !== field)) : null)
-        $.ui.toast(`Not changed: ${deny}`)
+        if (s.face === 'methods') await $.state.set(settingsRef, s)
+        $.ui.toast(configFailure(error))
       }
-      else if (s.face === 'methods') await $.state.set(settingsRef, { ...s, face: 'main', page: 0 })
     } else if (effect.kind === 'command') {
       try { await $.command.run({ command: 'muslim', args: effect.args }) }
       catch { $.ui.toast(`Run /muslim ${effect.args}.`) }

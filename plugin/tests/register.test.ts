@@ -1,3 +1,4 @@
+import { configRows } from './fixtures/config.ts'
 import { VERSION } from '../src/constants.ts'
 import { defaultReciter } from '../src/features/quran/catalog.ts'
 import { QURAN_CATALOG } from '../src/features/quran/catalog-data.ts'
@@ -19,7 +20,7 @@ test('/muslim shows each setting with its state and how to change it', { options
   expect(ran.text?.split('\n')[1]).toContain('To change a setting or see every option: `/muslim help`')
   expect(ran.text).toContain('### Features\n\n| Feature | Description | State |')
   expect(ran.text).toContain('| Thikr | Tasbih in Claude\'s working line | on |')
-  expect(ran.text).toContain('| Athkar | Morning, evening and after-salah athkar above the prompt | on |')
+  expect(ran.text).toContain('| Athkar | Morning, evening and after-salah athkar above the prompt; reminders morning · evening · after salah | on · on · on |')
   expect(ran.text).toContain('| Salah | Pray times and the next pray under the prompt | not set up |')
   expect(ran.text).toContain('### Shared\n\n| Setting | Description | State |')
   expect(ran.text).toContain('| Tashkeel | Arabic diacritics on desktop; the terminal never shows them | off |')
@@ -52,7 +53,7 @@ test('/muslim help shows every feature\'s table; with a feature, only its own', 
   expect((await $.command.run(muslim('help quran'))).text).toContain('| `/quran play` |')
   expect(all).toContain('/quran reciter')
   expect((await $.command.run(muslim('help unknown'))).text).toContain('Features: thikr, athkar, salah, quran, color, tashkeel, terminal-arabic')
-  expect(all).toContain('| `/athkar morning` · `evening` · `after-salah` | Open that reader above the prompt. `morning` · `evening`: that period\'s athkar, even outside its hours. `after-salah`: the athkar after salah, also offered by itself after the athan card when prayer times are set; the desktop athan button opens it at once | `reset`: read it again from the start |')
+  expect(all).toContain('| `/athkar morning` · `evening` · `after-salah` | Open that reader above the prompt. `morning` · `evening`: that period\'s athkar, even outside its hours. `after-salah`: the athkar after salah, also offered by itself after the athan card when prayer times are set; the desktop athan button opens it at once | `reset`: read it again from the start · `on` (default) · `off`: its reminder, opening by itself in its time; off still opens by hand |')
   expect((await $.command.run(muslim('help athkar'))).text?.split('\n')[0]).toBe('**Muslim › Athkar › Help**')
   const quran = (await $.command.run(muslim('help quran'))).text
   expect(quran?.split('\n')[0]).toBe('**Muslim › Quran › Help**')
@@ -81,6 +82,7 @@ for(const surface of ['terminal','desktop'] as const) test(`${surface}: session 
 
 test('/muslim tashkeel reads and changes the plugin-wide setting', async ($, on) => {
   const writes: unknown[] = []
+  on('config.list', async () => ({ value: configRows }))
   on('config.set', async (_$, e) => (writes.push(e), { value: e.value }))
   expect((await $.command.run(muslim('tashkeel'))).text).toContain('Tashkeel on')
   expect((await $.command.run(muslim('tashkeel off'))).text).toContain('Tashkeel off on desktop')
@@ -90,6 +92,7 @@ test('/muslim tashkeel reads and changes the plugin-wide setting', async ($, on)
 
 test('the old arabic-fix subcommand no longer handles or changes settings', async ($, on) => {
   const writes: unknown[] = []
+  on('config.list', async () => ({ value: configRows }))
   on('config.set', async (_$, e) => (writes.push(e), { value: e.value }))
   on('command.run', { command: 'muslim' }, async () => ({ text: 'passed through' }))
   const result = await $.command.run(muslim('arabic-fix on'))
@@ -103,6 +106,7 @@ for (const color of ['orange', 'green', 'yellow', 'blue']) {
     on('session.surface', async () => ({ value: 'desktop' }))
     on('session.surfaces', async () => ({ value: ['terminal'] }))
     const writes: unknown[] = []
+    on('config.list', async () => ({ value: configRows }))
     on('config.set', async (_$, e) => (writes.push(e), { value: e.value }))
     expect((await $.command.run(muslim('color'))).text).toContain(`Color ${color}.`)
     expect((await $.command.run(muslim(`color ${color}`))).text).toBe(`Color ${color}`)
@@ -113,6 +117,7 @@ for (const color of ['orange', 'green', 'yellow', 'blue']) {
 }
 test('/muslim color refuses unknown names and extra arguments', async ($, on) => {
   const writes: unknown[] = []
+  on('config.list', async () => ({ value: configRows }))
   on('config.set', async (_$, e) => (writes.push(e), { value: e.value }))
   for (const args of ['color red', 'color green extra', 'color Orange']) {
     expect((await $.command.run(muslim(args))).text).toBe('Usage: /muslim color orange | green | yellow | blue')
@@ -121,16 +126,19 @@ test('/muslim color refuses unknown names and extra arguments', async ($, on) =>
 })
 test('/muslim color gold writes yellow, its new name', async ($, on) => {
   const writes: unknown[] = []
+  on('config.list', async () => ({ value: configRows }))
   on('config.set', async (_$, e) => (writes.push(e), { value: e.value }))
   expect((await $.command.run(muslim('color gold'))).text).toBe('Color yellow')
   expect(writes).toEqual([expect.objectContaining({ key: 'muslim.color', value: 'yellow' })])
 })
 test('/muslim color reports a denied write', async ($, on) => {
+  on('config.list', async () => ({ value: configRows }))
   on('config.set', async () => ({ deny: 'locked' }))
   expect((await $.command.run(muslim('color blue'))).text).toBe('Not changed: locked')
 })
 test('/athkar color redirects without writing', async ($, on) => {
   const writes: unknown[] = []
+  on('config.list', async () => ({ value: configRows }))
   on('config.set', async (_$, e) => (writes.push(e), { value: e.value }))
   for (const args of ['color', 'color green', 'color unknown']) {
     expect((await $.command.run({ ...muslim(args), command: 'athkar' })).text).toBe('Color is now /muslim color.')
@@ -183,7 +191,7 @@ test('terminal /muslim retains its complete version, feature and shared table by
     '', '### Features', '',
     '| Feature | Description | State |', '| --- | --- | --- |',
     "| Thikr | Tasbih in Claude's working line | on |",
-    '| Athkar | Morning, evening and after-salah athkar above the prompt | on |',
+    '| Athkar | Morning, evening and after-salah athkar above the prompt; reminders morning · evening · after salah | on · on · on |',
     '| Salah | Pray times and the next pray under the prompt | not set up |',
     `| Quran | Desktop recitation player; the selected recording | ${terminalArabic('terminal', 'plain', defaultReciter(QURAN_CATALOG).label)} |`,
     '', '### Shared', '',

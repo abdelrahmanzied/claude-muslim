@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'claude-code/testing'
 
 import { CalculationMethod, Coordinates, PrayerTimes } from '../../src/features/salah/athan/Athan.ts'
+import { ATHKAR_QUIET } from '../fixtures/config.ts'
 
 // Minutes from midnight UTC.
 const minutes = (date: Date) => date.getUTCHours() * 60 + date.getUTCMinutes()
@@ -17,7 +18,7 @@ const CASES = [
 
 describe('athan', () => {
   for (const { place, at, method, apiReference } of CASES) {
-    test(`${place}, 10 October 2026, within 3 minutes of the public API`, { options: { athkar: false } }, async () => {
+    test(`${place}, 10 October 2026, within 3 minutes of the public API`, { options: { ...ATHKAR_QUIET } }, async () => {
       const times = new PrayerTimes(new Coordinates(at[0], at[1]), new Date(2026, 9, 10), method)
       const ours = [times.fajr, times.sunrise, times.dhuhr, times.asr, times.maghrib, times.isha].map(minutes)
 

@@ -36,7 +36,7 @@ export const loadSettings = (saved: unknown): SettingsState => {
 }
 export type SettingsOptions = Omit<Options, 'salahPlace'> & { salahPlace: NonNullable<Options['salahPlace']> | null }
 export const settingsOptions = (o: Options): SettingsOptions => ({ ...o, salahPlace: o.salahPlace ?? null })
-export const SWITCH_FIELDS = ['tashkeel', 'thikr', 'athkar', 'salahAthan', 'paneButton', 'thikrEnd'] as const
+export const SWITCH_FIELDS = ['tashkeel', 'thikr', 'athkarMorning', 'athkarEvening', 'athkarAfterSalah', 'salahAthan', 'paneButton', 'thikrEnd'] as const
 export const isSwitchField = (field: keyof Options): field is keyof PaneOptimistic => SWITCH_FIELDS.some(f => f === field)
 // Retain only pending values; called on load, outside drawing (state writes
 // are forbidden during ui.render). Also filters malformed session data.
@@ -77,6 +77,9 @@ export const CONTROL_TOP = HINT_TOP + HINT_H + 10
 export const CONTROL_H = 28
 // The space between a row's last line and the next row's label, the same in every tab.
 export const ROW_GAP = 28
+export const QURAN_SETTINGS_NOTE = 'تغيير أي إعداد يوقف التلاوة، وتبدأ من جديد عند التشغيل'
+export const QURAN_SETTINGS_NOTE_H = HINT_H + ROW_GAP
+export const settingsNoteHeight = (isPlaying = false): number => isPlaying ? QURAN_SETTINGS_NOTE_H : 0
 // A row's height ends with the gap after its last shown line; the extra line (a stepper) counts only while shown.
 export const ROW_H = CONTROL_TOP + CONTROL_H + ROW_GAP // 108
 export const SWITCH_ROW_H = HINT_TOP + HINT_H + ROW_GAP // 70
@@ -97,7 +100,7 @@ export const LIST_CHOICE_H = LIST_ROW_H - 12
 export const LIST_H = 548
 // Constants, per tab, for the tallest row set: «عرض الصلاة» and the speed row count their stepper line (EXTRA_ROW_H) here.
 export const MAIN_HEIGHTS = {
-  prayer: bodyH(EXTRA_ROW_H, SWITCH_ROW_H, ROW_H, ROW_H, ROW_H), athkar: bodyH(SWITCH_ROW_H, ROW_H),
+  prayer: bodyH(EXTRA_ROW_H, SWITCH_ROW_H, ROW_H, ROW_H, ROW_H), athkar: bodyH(SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H, ROW_H),
   thikr: bodyH(SWITCH_ROW_H, ROW_H, EXTRA_ROW_H, TWO_LINE_SWITCH_ROW_H), general: bodyH(SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H, ROW_H, DIVIDER_H, SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H),
 } as const
 export const FACE_HEIGHTS = { methods: LIST_H, adjust: ADJUST_NOTE_TOP + 50, city: 310 } as const
@@ -110,7 +113,7 @@ export const mainHeight = (c: SettingsState['category'], o?: StepperOptions): nu
   : c === 'thikr' ? bodyH(SWITCH_ROW_H, ROW_H, o.thikrSpeed === 'auto' ? ROW_H : EXTRA_ROW_H, TWO_LINE_SWITCH_ROW_H)
   : MAIN_HEIGHTS[c]
 export const settingsBodyHeight = (s: SettingsState, o?: StepperOptions): number => !s.open ? 0 : s.face === 'main' ? mainHeight(s.category, o) : FACE_HEIGHTS[s.face]
-export const settingsHeight = (s: SettingsState, o?: StepperOptions): number => s.open ? SETTINGS_BODY_TOP + settingsBodyHeight(s, o) + 12 : SETTINGS_TOP
+export const settingsHeight = (s: SettingsState, o?: StepperOptions, isPlaying = false): number => s.open ? SETTINGS_BODY_TOP + settingsNoteHeight(isPlaying) + settingsBodyHeight(s, o) + 12 : SETTINGS_TOP
 // width is the whole pane; rectangles are pane-relative in x, card-relative in y.
 export const categoryTabs = (width: number) => {
   const left = 12 + TAB_INSET + TAB_PAD
@@ -156,7 +159,12 @@ export const settingsRows = (m: SettingsModel): SettingRow[] => {
       row('طريقة الحساب',face('methods',METHOD_CHOICES.find(c => c[0] === o.salahMethod)?.[1] ?? 'تلقائي'),'التلقائي يستخدم طريقة بلدك'),
       row('تعديل المواقيت',face('adjust','− / + دقيقة'),'ستة مواقيت، منها الشروق'),
     ]
-    case 'athkar': return [row('أذكار الصباح والمساء',toggle(o,'athkar'),'يعرض الأذكار فوق خانة الكتابة'),row('المظهر',pills('athkarStyle',o.athkarStyle,[['sky','سماء'],['frame','إطار']]),'سماء على سطح المكتب، وإطار في الترمينال')]
+    case 'athkar': return [
+      row('تذكير أذكار الصباح',toggle(o,'athkarMorning'),'يظهر فوق خانة الكتابة من الفجر'),
+      row('تذكير أذكار المساء',toggle(o,'athkarEvening'),'يظهر فوق خانة الكتابة من المغرب'),
+      row('تذكير أذكار بعد الصلاة',toggle(o,'athkarAfterSalah'),'يظهر ربع ساعة بعد كل أذان'),
+      row('المظهر',pills('athkarStyle',o.athkarStyle,[['sky','سماء'],['frame','إطار']]),'سماء على سطح المكتب، وإطار في الترمينال'),
+    ]
     case 'thikr': return [
       row('الذكر',toggle(o,'thikr'),'عبارات في Spinner (سطر العمل) في Claude Code'),
       row('المحتوى',pills('thikrMode',o.thikrMode,[['all','الكل'],['salawat','الصلاة على النبي']]),'كل الأذكار أو صلاة على النبي في كل رد'),
@@ -224,10 +232,11 @@ export const settingsBody = (width: number, m: SettingsModel): SettingsBody => {
   }
   return out
 }
-export const terminalSettings = (m: SettingsModel, show: (s:string)=>string): string[] => {
+export const terminalSettings = (m: SettingsModel, show: (s:string)=>string, isPlaying = false): string[] => {
   const o=m.options, on=(v:boolean)=>v?'on':'off'
   return [
     `**${show('الإعدادات')}**`,
+    ...(isPlaying ? [show(QURAN_SETTINGS_NOTE)] : []),
     `**${show('عام')}**`,
     `Color: ${o.color} · /muslim color orange | green | yellow | blue`, `Tashkeel: ${on(o.tashkeel)} · /muslim tashkeel on | off`,
     `Terminal Arabic: ${m.terminalMode} · /muslim terminal-arabic`,
@@ -238,7 +247,10 @@ export const terminalSettings = (m: SettingsModel, show: (s:string)=>string): st
     `Prayer · method: ${o.salahMethod} · /salah method <auto or name>`,
     `Prayer · adjust: ${writeAdjust(o.salahAdjust)} · /salah adjust <pray> <±min>`,
     `**${show('الأذكار')}**`,
-    `Athkar: ${on(o.athkar)} · /athkar on | off`, `Athkar · style: ${o.athkarStyle} · /athkar style sky | frame`,
+    `Athkar · morning reminder: ${on(o.athkarMorning)} · /athkar morning on | off`,
+    `Athkar · evening reminder: ${on(o.athkarEvening)} · /athkar evening on | off`,
+    `Athkar · after-salah reminder: ${on(o.athkarAfterSalah)} · /athkar after-salah on | off`,
+    `Athkar · style: ${o.athkarStyle} · /athkar style sky | frame`,
     `**${show('الذكر')}**`,
     show('يتحكّم في الذكر المعروض في Spinner (سطر العمل) في Claude Code'),
     `Thikr: ${on(o.thikr)} · /thikr on | off`, `Thikr · mode: ${o.thikrMode} · /thikr mode all | salawat`,

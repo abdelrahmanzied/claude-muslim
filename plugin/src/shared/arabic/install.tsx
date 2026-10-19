@@ -1,3 +1,4 @@
+import { arabicSetupShowing } from '../setup/visibility.ts'
 import { accentText, type Accent } from '../color/index.ts'
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
@@ -74,9 +75,9 @@ export const install = (on: On, options: Options): void => {
     const theirs = await next(e)
     if (e.surface !== 'terminal' || e.props.hasSurvey) return theirs
     const id = await terminalId($)
-    const isManual = (await read($, manual)) === id
+    const manualId = await read($, manual)
     const saved = await $.store.get(MODES_KEY) as Record<string, unknown> | undefined
-    if (!isManual && isArabicMode(saved?.[id])) return theirs
+    if (!arabicSetupShowing(e.surface, e.props.hasSurvey, { id, manual: manualId, saved })) return theirs
 
     const { Box, Text, Button } = $.ui.resolve(e)
 
