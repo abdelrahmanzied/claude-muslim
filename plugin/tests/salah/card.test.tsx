@@ -62,7 +62,7 @@ test('the card with the real photo (about 40 KB of base64) stays far under the S
 test('/salah demo works without a city', { options: { ...ATHKAR_QUIET } }, async ($, on) => {
   mock.clock(on, { now: NOW })
   on('session.surface', async () => ({ value: 'desktop' }))
-  expect((await $.command.run(run('demo'))).text).toBe('**Salah demo:** athan · Fajr 05:00 · athkar after salah It shows once the setup above is answered.')
+  expect((await $.command.run(run('demo'))).text).toBe('**Salah demo:** athan · Fajr 05:00 · athkar after salah. It shows once the setup above is answered.')
 })
 
 test('/salah athan test is an unknown word and answers with help', { options: MUNICH }, async $ => {

@@ -1,3 +1,5 @@
+import { withSetupHint } from '../../shared/setup/hint.ts'
+import { commandFailure } from '../../shared/command/failure.ts'
 import { MODES_KEY } from '../../shared/arabic/terminal.ts'
 import { configFailure, hasConfigRow, MISSING_CONFIG } from '../../shared/reload/config.ts'
 import { setupForm } from '../../shared/setup/visibility.ts'
@@ -531,7 +533,7 @@ export const install = (on: On, options: Options) => {
       return set('salahShow', String(show), `**Show:** ${showText(show)}`)
     }
     // DEMO BEGIN
-    if (word === 'demo') return { text: await playDemo($) + (await setupShowing($, !!options.salahPlace, surface) ? ' It shows once the setup above is answered.' : '') }
+    if (word === 'demo') return { text: withSetupHint(await playDemo($), !!(await setupShowing($, !!options.salahPlace, surface))) }
     // DEMO END
     if (word === 'athan' && (first === 'on' || first === 'off')) return set('salahAthan', first === 'on', `**Athan:** ${first}`)
     if (word === 'city') {
@@ -565,13 +567,13 @@ export const install = (on: On, options: Options) => {
     }
 
     return { text: help }
-  }).catch(() => ({ text: 'Could not complete the command. Try again.' }))
+  }).catch(($, e, next) => next.called ? next(e) : { text: commandFailure(e.command, e.args, next.error) })
 
   // DEMO BEGIN: connect feature-local starters; shield real input during playback.
   on('command.run', { command: 'muslim', args: /^\s*demo\s*$/ }, $ => {
     connectDemo('salah', () => playDemo($, true))
     return { text: '' }
-  }).catch(() => ({ text: 'Could not complete the command. Try again.' }))
+  }).catch(($, e, next) => next.called ? next(e) : { text: commandFailure(e.command, e.args, next.error) })
   on('ui.press', { plugin: 'muslim', element: 'salah-athan-close' }, async ($, e, next) => {
     if (!demo) return next(e)
     await closeDemo($)

@@ -38,6 +38,7 @@ The first public release.
 
 ### Shared controls
 
+- Command errors now say why the command failed.
 - Setup forms own the space above the prompt. Explicit reader/demo replies explain when answering setup will reveal them; fresh-install reminders begin at the next eligible period or prayer.
 - Shared main colors, desktop tashkeel and per-terminal Arabic display modes across status, help and reminders.
 - `/muslim help` lists commands. `/muslim demo` previews thikr, athkar, salah and the desktop pane tour; Quran has no demo.

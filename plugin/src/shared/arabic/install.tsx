@@ -1,3 +1,4 @@
+import { commandFailure } from '../command/failure.ts'
 import { MODES_KEY } from './terminal.ts'
 import { arabicSetupShowing } from '../setup/visibility.ts'
 import { accentText, type Accent } from '../color/index.ts'
@@ -69,7 +70,7 @@ export const install = (on: On, options: Options): void => {
     const id = await terminalId($)
     await update($, manual, () => id)
     return { text: 'Arabic display check opened.' }
-  }).catch(() => ({ text: 'Could not complete the command. Try again.' }))
+  }).catch(($, e, next) => next.called ? next(e) : { text: commandFailure(e.command, e.args, next.error) })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)

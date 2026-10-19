@@ -1,3 +1,4 @@
+import { commandFailure } from '../../shared/command/failure.ts'
 import { readDurations, trimDurations } from './durations.ts'
 import { MODES_KEY } from '../../shared/arabic/terminal.ts'
 import { latinDigits } from '../../shared/digits/index.ts'
@@ -579,7 +580,7 @@ export const install = (on: On, _options: Options) => {
   on('command.run', { command: 'muslim', args: /^\s*$/ }, ($, e, next) => {
     connectToPanel($)
     return next(e)
-  }).catch(() => ({ text: 'Could not complete the command. Try again.' }))
+  }).catch(($, e, next) => next(e))
   on('ui.render', { component: 'Pane', requestId: 'muslim' }, ($, e, next) => {
     connectToPanel($)
     return next(e)
@@ -599,7 +600,7 @@ export const install = (on: On, _options: Options) => {
     row.text = await dispatch($, parseCommand(e.args), row)
     if (row.error) await $.state.set(commandErrorRef, { args: row.args, text: row.text, message: row.error })
     return { text: row.text }
-  }).catch(() => ({ text: 'Could not complete the command. Try again.' }))
+  }).catch(($, e, next) => next.called ? next(e) : { text: commandFailure(e.command, e.args, next.error) })
   on('ui.render', { component: 'CommandOutput', props: { command: 'quran' } }, async ($, e, next) => {
     const error = (await $.state.get(commandErrorRef)).value
     if (!error || error.args !== e.props.args || error.text !== e.props.text) return next(e)

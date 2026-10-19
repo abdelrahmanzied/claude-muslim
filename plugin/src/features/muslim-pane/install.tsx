@@ -1,3 +1,4 @@
+import { commandFailure } from '../../shared/command/failure.ts'
 import { MODES_KEY } from '../../shared/arabic/terminal.ts'
 import { configFailure, hasConfigRow, MISSING_CONFIG } from '../../shared/reload/config.ts'
 import { stopBeforeReload } from '../../shared/reload/signal.ts'
@@ -385,7 +386,7 @@ export const install = (on: On, options: Options) => {
       // An empty answer asks register to keep its existing text-table fallback.
       return {}
     }
-  }).catch(() => ({ text: 'Could not complete the command. Try again.' }))
+  }).catch(($, e, next) => next.called ? next(e) : { text: commandFailure(e.command, e.args, next.error) })
 
   on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e, next) => {
     // Let the owning features connect even when the footer has not drawn;
@@ -457,8 +458,8 @@ export const install = (on: On, options: Options) => {
   on('command.run', { command: 'muslim', args: /^\s*demo\s*$/ }, ($, e, next) => {
     connectDemo('pane', () => playDemo($, true))
     return next(e)
-  }).catch(() => ({ text: 'Could not complete the command. Try again.' }))
-  on('command.run', { command: 'muslim', args: /^\s*demo\s+pane\s*$/ }, async $ => ({ text: (await playDemo($, false)) || demoTerminalReply() })).catch(() => ({ text: 'Could not complete the command. Try again.' }))
+  }).catch(($, e, next) => next(e))
+  on('command.run', { command: 'muslim', args: /^\s*demo\s+pane\s*$/ }, async $ => ({ text: (await playDemo($, false)) || demoTerminalReply() })).catch(($, e, next) => next.called ? next(e) : { text: commandFailure(e.command, e.args, next.error) })
   // DEMO END
 
   on('ui.close', { id: PANE_ID }, async ($, e, next) => {

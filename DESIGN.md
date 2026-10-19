@@ -90,6 +90,7 @@ Inside a card, small row icons that describe a row rather than a feature (a bell
 ## 5. Voice
 
 - Arabic for religious content; English for UI chrome (commands, help, settings) until languages land (issue #1). Drawn desktop panes are the exception: their labels, descriptions and buttons are Arabic ([pane design §5](docs/desktop/pane-design.md#5-words)).
+- Command failures use `plugin/src/shared/command/failure.ts` to name the command and give a short, single-line reason when known; pass-through hooks preserve the command below.
 - Commands answer in one short line: what changed (`speed 3s`), or why not (`Speed is auto, or a whole number of seconds from 1 to 60.`).
 - No exclamation marks or praise in UI text. The one allowed emoji is 🤲 in athkar’s closing greeting.
 

@@ -1,3 +1,4 @@
+import { commandFailure } from '../../shared/command/failure.ts'
 import { MODES_KEY } from '../../shared/arabic/terminal.ts'
 import { configFailure, hasConfigRow, MISSING_CONFIG } from '../../shared/reload/config.ts'
 import { SETUP_LATER_KEY } from '../../shared/pray/first-run.ts'
@@ -235,13 +236,13 @@ export const install = (on: On, options: Options) => {
     }
 
     return { text: help }
-  }).catch(() => ({ text: 'Could not complete the command. Try again.' }))
+  }).catch(($, e, next) => next.called ? next(e) : { text: commandFailure(e.command, e.args, next.error) })
 
   // DEMO BEGIN: separate hooks, registered even with thikr off; they pass through unless a demo is armed.
   on('command.run', { command: 'muslim', args: /^\s*demo\s*$/ }, ($, e, next) => {
     connectDemo('thikr', () => armDemo($, true))
     return next(e)
-  }).catch(() => ({ text: 'Could not complete the command. Try again.' }))
+  }).catch(($, e, next) => next(e))
 
   // The matchers (every turn, every ending) only tell these apart from the feature's own hooks.
   on('turn.start', { turnId: /./ }, async ($, e, next) => {

@@ -1,3 +1,5 @@
+import { withSetupHint } from '../../shared/setup/hint.ts'
+import { commandFailure } from '../../shared/command/failure.ts'
 import { MODES_KEY } from '../../shared/arabic/terminal.ts'
 import { configFailure, hasConfigRow, MISSING_CONFIG } from '../../shared/reload/config.ts'
 import { setupForm } from '../../shared/setup/visibility.ts'
@@ -446,7 +448,7 @@ export const install = (on: On, options: Options) => {
       if (value === 'sky' && isTerminal) return { text: 'Sky is desktop only. Use `/athkar demo frame`.' }
       const style = value === '' ? (isTerminal ? 'frame' : options.athkarStyle) : value as Style
 
-      return { text: await playDemo($, style, options.color) + (await setupShowing($, hasPrayerTimes, await $.session.surface() ?? 'desktop') ? ' It shows once the setup above is answered.' : '') }
+      return { text: withSetupHint(await playDemo($, style, options.color), !!(await setupShowing($, hasPrayerTimes, await $.session.surface() ?? 'desktop'))) }
     }
     // DEMO END
     if (word === '') {
@@ -487,23 +489,23 @@ export const install = (on: On, options: Options) => {
     if (selected && value === '') {
       const reading = await chooseSet($, selected)
 
-      return { text: (reading.isDone ? `${setLabel(selected)} are done today: ${resetHint(selected)}` : `${setLabel(selected)} open above the prompt`) + (await setupShowing($, hasPrayerTimes, await $.session.surface() ?? 'desktop') ? ' It shows once the setup above is answered.' : '') }
+      return { text: withSetupHint(reading.isDone ? `${setLabel(selected)} are done today: ${resetHint(selected)}` : `${setLabel(selected)} open above the prompt`, !!(await setupShowing($, hasPrayerTimes, await $.session.surface() ?? 'desktop'))) }
     }
 
     return { text: athkarHelp() }
-  })).catch(() => ({ text: 'Could not complete the command. Try again.' }))
+  })).catch(($, e, next) => next.called ? next(e) : { text: commandFailure(e.command, e.args, next.error) })
 
   // DEMO BEGIN: a separate drawing path.
   on('command.run', { command: 'muslim', args: /^\s*demo\s*$/ }, ($, e, next) => {
     connectAfterSalahDemo($, options)
     connectDemo('athkar', async () => playDemo($, await $.session.surface() === 'terminal' ? 'frame' : options.athkarStyle, options.color, true))
     return next(e)
-  }).catch(() => ({ text: 'Could not complete the command. Try again.' }))
+  }).catch(($, e, next) => next(e))
 
   on('command.run', { command: 'salah', args: /^\s*demo(?:\s|$)/ }, ($, e, next) => {
     connectAfterSalahDemo($, options)
     return next(e)
-  }).catch(() => ({ text: 'Could not complete the command. Try again.' }))
+  }).catch(($, e, next) => next(e))
 
   // The surface matcher distinguishes this registration from the real band.
   on('ui.render', { component: 'AbovePrompt', surface: ['desktop', 'terminal'] }, async ($, e, next) => {

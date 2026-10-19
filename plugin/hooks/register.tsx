@@ -1,3 +1,5 @@
+import { withSetupHint } from '../src/shared/setup/hint.ts'
+import { commandFailure } from '../src/shared/command/failure.ts'
 import { setupForm } from '../src/shared/setup/visibility.ts'
 import { SETUP_LATER_KEY } from '../src/shared/pray/first-run.ts'
 import { configFailure, hasConfigRow, MISSING_CONFIG } from '../src/shared/reload/config.ts'
@@ -279,7 +281,7 @@ export const register: Register = (on, options) => {
       // Walk the demo-only setup hooks once; no self-command dispatch.
       await next(e)
 
-      return { text: await playDemo($) + (await setupShowing($, !!settings.salahPlace) ? ' It shows once the setup above is answered.' : '') }
+      return { text: withSetupHint(await playDemo($), !!(await setupShowing($, !!settings.salahPlace))) }
     }
     // DEMO END
     if (word === 'color') {
@@ -365,7 +367,7 @@ export const register: Register = (on, options) => {
         ]),
       ].join('\n'),
     }
-  }).catch(() => ({ text: 'Could not complete the command. Try again.' }))
+  }).catch(($, e, next) => next.called ? next(e) : { text: commandFailure(e.command, e.args, next.error) })
 
   // DEMO BEGIN: a session end stops the shared demo.
   on('session.end', async (_$, e, next) => {
