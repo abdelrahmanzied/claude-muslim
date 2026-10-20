@@ -53,3 +53,4 @@ The first public release.
 - `/muslim update`, marketplace auto-update controls and feedback drafting that sends only after approval. Missing settings ask for `/reload-plugins` without changing the current form or playback; on a fresh install the city setup asks for it before the city question.
 - `/muslim` with an unknown word shows the help table.
 - Issues sent with `/muslim feedback` end with a `Sent with /muslim feedback` line and get the `via-plugin` label and their kind label, even when the sender cannot set labels.
+- The issue forms and `/muslim feedback` take an «interface language» feature for asking the mod in another language, such as English; it adds the `language` label.

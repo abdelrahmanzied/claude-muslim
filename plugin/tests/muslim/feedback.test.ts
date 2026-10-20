@@ -26,6 +26,7 @@ test('the prompt asks before sending and gates on an explicit yes', () => {
   expect(prompt).toContain('"Send", "Change it" and "Don\'t send"')
   expect(prompt).toContain('Only "Send" is a yes')
   for (const feature of FEATURES) expect(prompt).toContain(feature)
+  expect(prompt).toContain('interface language -> language')
   expect(prompt).toContain(`gh issue create --repo ${REPO} --label <kind label> --label via-plugin --label <feature label, if any> --label <surface label> --title <title> --body <body>`)
   expect(prompt).toContain('Only after "Send"')
   expect(prompt).toContain(`https://github.com/${REPO}/issues/new?template=<template>`)

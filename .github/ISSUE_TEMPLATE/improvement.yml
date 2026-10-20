@@ -28,6 +28,7 @@ body:
         - quran
         - Muslim pane
         - /muslim commands and settings
+        - interface language
         - other or new
     validations:
       required: true

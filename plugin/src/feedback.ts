@@ -16,11 +16,11 @@ export const COMMON_FIELDS: readonly Field[] = [
   ['os', 'Operating system'],
 ]
 
-export const FEATURES: readonly string[] = ['thikr', 'athkar', 'salah', 'quran', 'Muslim pane', '/muslim commands and settings', 'other or new']
+export const FEATURES: readonly string[] = ['thikr', 'athkar', 'salah', 'quran', 'Muslim pane', '/muslim commands and settings', 'interface language', 'other or new']
 
 // The label each feature adds (the issue-labels workflow does the same from the form).
 export const FEATURE_LABELS: Readonly<Record<string, string>> = {
-  thikr: 'thikr', athkar: 'athkar', salah: 'salah', quran: 'quran', 'Muslim pane': 'pane', '/muslim commands and settings': 'muslim',
+  thikr: 'thikr', athkar: 'athkar', salah: 'salah', quran: 'quran', 'Muslim pane': 'pane', '/muslim commands and settings': 'muslim', 'interface language': 'language',
 }
 
 export const KINDS: readonly Kind[] = [

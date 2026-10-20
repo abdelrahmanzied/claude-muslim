@@ -29,6 +29,7 @@ jobs:
                 'quran': 'quran',
                 'Muslim pane': 'pane',
                 '/muslim commands and settings': 'muslim',
+                'interface language': 'language',
               },
               Surface: {
                 'terminal': 'terminal',
