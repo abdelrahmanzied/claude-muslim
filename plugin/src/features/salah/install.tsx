@@ -1,7 +1,7 @@
 import { withSetupHint } from '../../shared/setup/hint.ts'
 import { commandFailure } from '../../shared/command/failure.ts'
 import { MODES_KEY } from '../../shared/arabic/terminal.ts'
-import { configFailure, hasConfigRow, MISSING_CONFIG } from '../../shared/reload/config.ts'
+import { configFailure, hasConfigRow, MISSING_CONFIG, RELOAD_TO_FINISH } from '../../shared/reload/config.ts'
 import { setupForm } from '../../shared/setup/visibility.ts'
 import { stopBeforeReload } from '../../shared/reload/signal.ts'
 import { accentText, isDarkTheme, type Accent } from '../../shared/color/index.ts'
@@ -215,6 +215,7 @@ const cityFrom = async ($: EngineInterface, typed: string): Promise<City | strin
 
 // The setup question: the guessed city, or one typed under Other.
 const askCity = async ($: EngineInterface, guess: Place | undefined): Promise<City | string> => {
+  if (await rowMissing($)) return RELOAD_TO_FINISH
   const question = guess
     ? `Pray times for ${guess.name}, or type your city under Other?`
     : 'Which city are you in? Type it under Other, in any language.'
@@ -226,6 +227,11 @@ const askCity = async ($: EngineInterface, guess: Place | undefined): Promise<Ci
 
   return cityFrom($, answer)
 }
+
+// A fresh install has no /config rows until /reload-plugins: the city cannot be saved yet.
+// An unreadable /config counts as present; the save reports its own failure.
+const rowMissing = async ($: EngineInterface): Promise<boolean> =>
+  $.config.list().then(rows => !hasConfigRow(rows, 'muslim.salahPlace'), () => false)
 
 const settingIssue = async ($: EngineInterface, key: string): Promise<string | undefined> => {
   try { return hasConfigRow(await $.config.list(), key) ? undefined : MISSING_CONFIG }
@@ -834,6 +840,17 @@ export const install = (on: On, options: Options) => {
     const theirs = await next(e)
     if (await setupShowing($, !!options.salahPlace, e.surface, e.props.hasSurvey) !== 'city') return theirs
     const { Box, Button, Text } = $.ui.resolve(e)
+    if (await rowMissing($)) {
+      return (
+        <Box flexDirection="column">
+          <Box key="salah-setup" gap={1}>
+            <Text color={await mainColor($, options.color)}>{RELOAD_TO_FINISH}</Text>
+            <Button key="salah-later" label="Not now" hotkey="1" plain dimColor onPress={() => putOff($)} />
+          </Box>
+          {theirs}
+        </Box>
+      )
+    }
     const done = (said: string) => void $.ui.toast(said)
     const choose = async () => {
       const city = await askCity($, guess)

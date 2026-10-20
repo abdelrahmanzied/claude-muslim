@@ -12,9 +12,8 @@ import { QURAN_CATALOG } from './catalog-data.ts'
 import { decodeBase64, durationMs } from './mp3.ts'
 import { AUDIO_LIMIT_BYTES, CLIP_ERROR, SIZE_ERROR, TIMING_ERROR, cachedPlan, fileSize, lowerHeaders, makePlan, planKey, rangeHeader, readCache, timedSegments, timingRead, trimCache, sameRecording, withSegmentCut, type Checkpoint, type RecordingPlan, type Segment } from './segments.ts'
 import { SegmentScanner, SEGMENT_LEAD_MS, cbrByte, cbrCheckpoint, cbrStream, encodeBase64, seekCheckpoint } from './segment-mp3.ts'
-import { formatTime, nextPlaybackItem, parseCommand, repeatMode, toggleRepeat, type Command } from './player.ts'
+import { formatTime, nextPlaybackItem, repeatMode, toggleRepeat, type Command } from './player.ts'
 import { isAvailable, nearestAvailable, nextAvailable, UNAVAILABLE_ERROR } from './availability.ts'
-import { quranHelp } from './help.ts'
 import { connectPanelAction, connectQuran, connectQuranOptions, type PanelList, type PanelOption, type PanelQuran } from '../../shared/panel/signal.ts'
 import { isPickMessage, options as listOptions, paneModel, type List } from './pane.ts'
 import { segmentLabel } from './label.ts'
@@ -386,18 +385,10 @@ async function showCard($: EngineInterface): Promise<void> {
   if (!placed.isPlaced) throw new Error(placed.reason)
   $.ui.invalidate('ui.render')
 }
-// /quran off the desktop: where the player stands, in text.
-async function statusText($: EngineInterface, surface: string): Promise<string> {
-  const state = await panelQuran($)
-  const say = (text: string) => arabic($, surface, text)
-  const lines = [`Reciter: ${await say(state.reciter)}`, `Surah: ${await say(state.surah)}`]
-  if (state.part) lines.push(`Segment: ${await say(state.part)}`)
-  lines.push(`Time: ${state.elapsed} / ${state.total}`, `Status: ${state.isPlaying ? 'playing' : 'stopped'}`, 'Playback runs in the Claude desktop app.')
-  return lines.join('\n')
-}
+// /quran off the desktop: the player lives in the Muslim pane only.
+const DESKTOP_ONLY = 'Quran is a desktop feature: open the Muslim pane in the Claude desktop app.'
 async function action($: EngineInterface, command: Command, fromCommand: CommandRow | false): Promise<string> {
   const generation = runtime.generation
-  if (command.kind === 'help' || command.kind === 'usage') return quranHelp()
   if (command.kind === 'stop') { runtime.retry = undefined; await stop($, fromCommand ? 'command:stop' : 'pane:stop'); await $.state.set(errorRef, null); return 'Quran stopped.' }
   if (command.kind === 'repeat' || command.kind === 'repeat-segment') {
     const target = command.kind === 'repeat' ? 'surah' : 'segment'
@@ -415,15 +406,14 @@ async function action($: EngineInterface, command: Command, fromCommand: Command
   if (generation !== runtime.generation) return 'Quran stopped.'
   if (command.kind === 'open') {
     const surface = await $.session.surface() ?? 'desktop'
-    if (surface !== 'desktop') return statusText($, surface)
+    if (surface !== 'desktop') return DESKTOP_ONLY
     await showCard($)
     if (!playing && !planFor(reciter, current)) await play($, reciter, current, fromCommand, 'command', 0, 'inspect')
     return 'Muslim pane opened at القرآن الكريم (desktop only).'
   }
   if (command.kind === 'reciter') {
-    if (!command.value) return '**Quran › Reciters**\n\n' + (await Promise.all(QURAN_CATALOG.reciters.map(async (r, i) => `${i + 1}. ${await arabic($, await $.session.surface() ?? 'desktop', r.label)}`))).join('\n')
     const choice = matchReciter(command.value, QURAN_CATALOG.reciters)
-    if (!choice) return 'Reciter not found or ambiguous. Use /quran reciter and choose a number.'
+    if (!choice) return 'Reciter not found or ambiguous.'
     reciter = choice
     await $.store.set('quran.reciter', reciter.key)
     if (generation !== runtime.generation) return 'Quran stopped.'
@@ -447,7 +437,7 @@ async function action($: EngineInterface, command: Command, fromCommand: Command
     }
   }
   const surah = command.kind === 'play' ? matchSurah(command.value, QURAN_CATALOG.surahs)?.id : nextAvailable(reciter.key, current, command.kind === 'next' ? 1 : -1)
-  if (surah === undefined) return 'Surah not found. Use /quran play <1-114 or Arabic name>.'
+  if (surah === undefined) return 'Surah not found.'
   if (surah === null) return command.kind === 'prev' ? 'Already at the first surah.' : 'Already at the last surah.'
   if (!isAvailable(reciter.key, surah)) return fail($, new Error(UNAVAILABLE_ERROR), fromCommand)
   await play($, reciter, surah, fromCommand, fromCommand ? 'command' : 'pane', command.kind === 'play' ? command.segmentIndex ?? 0 : 0, 'play')
@@ -476,7 +466,7 @@ async function dispatch($: EngineInterface, command: Command, fromCommand: Comma
     }
   }
   if (requestedEpoch !== runtime.stopEpoch) return 'Quran stopped.'
-  if (runtime.preparing && command.kind !== 'open' && command.kind !== 'help' && command.kind !== 'usage' && command.kind !== 'repeat' && command.kind !== 'repeat-segment' && !(command.kind === 'reciter' && !command.value)) { ++runtime.stopEpoch; await stop($, 'prepare:replace') }
+  if (runtime.preparing && command.kind !== 'open' && command.kind !== 'repeat' && command.kind !== 'repeat-segment' && !(command.kind === 'reciter' && !command.value)) { ++runtime.stopEpoch; await stop($, 'prepare:replace') }
   const epoch = runtime.stopEpoch
   const task = runtime.queue.then(() => epoch === runtime.stopEpoch ? action($, command, fromCommand) : 'Quran stopped.').catch(error => fail($, error, fromCommand))
   runtime.queue = task
@@ -597,7 +587,7 @@ export const install = (on: On, _options: Options) => {
   on('command.run', { command: 'quran' }, async ($, e) => {
     connectToPanel($)
     const row: CommandRow = { args: e.args, text: '' }
-    row.text = await dispatch($, parseCommand(e.args), row)
+    row.text = await dispatch($, { kind: 'open' }, row)
     if (row.error) await $.state.set(commandErrorRef, { args: row.args, text: row.text, message: row.error })
     return { text: row.text }
   }).catch(($, e, next) => next.called ? next(e) : { text: commandFailure(e.command, e.args, next.error) })

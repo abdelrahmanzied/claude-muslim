@@ -47,18 +47,18 @@ test('/muslim help shows every feature\'s table; with a feature, only its own', 
   expect(salah).not.toContain('/thikr')
   expect(thikr).toContain('/thikr mode')
   expect(thikr).not.toContain('/salah')
-  expect((await $.command.run(muslim('help quran'))).text).toContain('| `/quran play` |')
-  expect(all).toContain('/quran reciter')
+  expect((await $.command.run(muslim('help quran'))).text).toContain('| `/quran` | Desktop only: open the Muslim pane at its Quran card |')
+  expect(all).not.toContain('/quran play')
+  expect(all).not.toContain('/quran reciter')
   expect((await $.command.run(muslim('help unknown'))).text).toContain('Features: thikr, athkar, salah, quran, color, tashkeel, terminal-arabic')
   expect(all).toContain('| `/athkar morning` · `evening` · `after-salah` | Open that reader above the prompt. `morning` · `evening`: that period\'s athkar, even outside its hours. `after-salah`: the athkar after salah, also offered by itself after the athan card when prayer times are set; the desktop athan button opens it at once | `reset`: read it again from the start · `on` (default) · `off`: its reminder, opening by itself in its time; off still opens by hand |')
   expect((await $.command.run(muslim('help athkar'))).text?.split('\n')[0]).toBe('**Muslim › Athkar › Help**')
   const quran = (await $.command.run(muslim('help quran'))).text
   expect(quran?.split('\n')[0]).toBe('**Muslim › Quran › Help**')
   expect(quran).toContain('| Command | Description | Options |')
-  expect(quran).toContain('| `/quran repeat segment` |')
+  expect(quran).not.toContain('/quran play')
   expect(quran).not.toContain('/athkar')
   expect(quran).not.toContain('/quran demo')
-  expect((await $.command.run({ ...muslim('help'), command: 'quran' })).text).toBe(quran)
 })
 
 for(const surface of ['terminal','desktop'] as const) test(`${surface}: session start registers every command without writing a status line`, async ($, on) => {
@@ -184,7 +184,7 @@ test('terminal /muslim shows its complete version, English feature and shared ta
   on('settings.read',async()=>({value:{extraKnownMarketplaces:{'claude-muslim':{autoUpdate:true}}}}))
   expect((await $.command.run(muslim(''))).text).toBe([
     `**Muslim** · v${VERSION}`,
-    "To change a setting or see every option: `/muslim help`; each feature's: `/thikr help` · `/athkar help` · `/salah help` · `/quran help`",
+    "To change a setting or see every option: `/muslim help`; each feature's: `/thikr help` · `/athkar help` · `/salah help`",
     '', '### Features', '',
     '| Feature | Description | State |', '| --- | --- | --- |',
     "| Thikr | Tasbih in Claude's working line | on |",
@@ -207,10 +207,39 @@ test('each subcommand named in a command description has a help row or option', 
   on('command.register', async (_$, e) => { descriptions.push(e); return { value: { command: e.name } } })
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
   await $.session.start({ cwd: '/tmp', surface: 'desktop', isInteractive: true })
-  for (const command of descriptions.filter(row => ['thikr', 'athkar', 'salah', 'quran'].includes(row.name))) {
+  for (const command of descriptions.filter(row => ['thikr', 'athkar', 'salah'].includes(row.name))) {
     const help = (await $.command.run({ ...muslim('help'), command: command.name })).text!
     for (const word of command.description.split(':').at(-1)!.trim().split(', ')) {
       expect(help).toMatch(new RegExp('`(?:/' + command.name + ' )?' + word + '`'))
     }
   }
+})
+
+for (const surface of ['desktop', 'terminal'] as const) {
+  test(`${surface}: /muslim with a word nothing answers shows the help table, not the engine fallback`, async ($, on) => {
+    mock.store(on); mock.env(on, {})
+    on('session.surface', async () => ({ value: surface }))
+    on('session.surfaces', async () => ({ value: [surface] }))
+    const help = (await $.command.run(muslim('help'))).text
+    for (const args of ['nonsense', 'nonsense more words']) {
+      const text = (await $.command.run(muslim(args))).text
+      expect(text).toBe(help)
+      expect(text).toContain('**Muslim › Help**')
+      expect(text).not.toContain('no command.run hook answered')
+    }
+  })
+}
+
+test('/muslim terminal-arabic and /muslim demo pane still reach their own hooks', async ($, on) => {
+  mock.store(on); mock.env(on, {})
+  on('session.surface', async () => ({ value: 'terminal' }))
+  on('session.surfaces', async () => ({ value: ['terminal'] }))
+  const help = (await $.command.run(muslim('help'))).text
+  const arabic = (await $.command.run(muslim('terminal-arabic'))).text
+  expect(arabic).not.toBe(help)
+  expect(arabic).not.toContain('no command.run hook answered')
+  expect((await $.command.run(muslim('terminal-arabic extra'))).text).toBe('Usage: /muslim terminal-arabic')
+  const pane = (await $.command.run(muslim('demo pane'))).text
+  expect(pane).not.toBe(help)
+  expect(pane).not.toContain('no command.run hook answered')
 })

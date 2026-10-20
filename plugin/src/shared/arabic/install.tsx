@@ -64,7 +64,7 @@ export const install = (on: On, options: Options): void => {
     const words = args ? args.split(/\s+/) : []
     const [command] = words
     if (command === undefined) return { text: await terminalLine($) }
-    if (command !== 'terminal-arabic') return next(e).catch(() => ({ text: 'Usage: /muslim terminal-arabic' }))
+    if (command !== 'terminal-arabic') return next(e)
     if (words.length !== 1) return { text: 'Usage: /muslim terminal-arabic' }
     if (await $.session.surface() !== 'terminal') return { text: 'The Arabic display check is available in the terminal only.' }
     const id = await terminalId($)

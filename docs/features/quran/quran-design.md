@@ -8,7 +8,7 @@ The [recording catalog design](quran-catalog.md) covers developer audits, the sh
 
 The player is drawn only inside the Muslim pane's «القرآن الكريم» card (one Client, design and geometry in [muslim-pane-design.md](../muslim-pane/muslim-pane-design.md)); there is no standalone Quran pane. This feature builds the pure model (`pane.ts`, `card.ts`) and the segment label (`label.ts`) and passes them through the panel signal; the avatar (`avatarSvg`, 96 wide) lives in `plugin/src/shared/quran-avatar/`. Shared color helpers supply main accents.
 
-**Visual means and why:** native controls cannot draw the selected design's typography, radius, fill and spacing consistently, so the picker fields, optional segment picker and player live in one picture. The terminal and other surfaces get the text status of `/quran` (see Surfaces).
+**Visual means and why:** native controls cannot draw the selected design's typography, radius, fill and spacing consistently, so the picker fields, optional segment picker and player live in one picture. The terminal and other surfaces get one sentence from `/quran`: it is a desktop feature (see Surfaces).
 
 ## Design principles
 
@@ -22,7 +22,7 @@ The card's geometry, type scale, palette and picker sheet are the Muslim pane's 
 
 **No footer item.** The footer is one shared slot sized by Desktop and holds only `☾ Muslim` and salah's prayer line. Quran's `SessionMode` hook only reconnects the panel feeds and returns `next(e)` unchanged.
 
-**`/quran` per surface.** With no arguments: on Desktop it opens the Muslim pane (`$.ui.open({ id: 'muslim', title: '☾ Muslim', focus: true })`), unfolds the Quran card if the shared `paneFolds` state has it folded (Quran writes that one key and does not import the pane) and silently inspects the selected surah; the reply is «Muslim pane opened at القرآن الكريم (desktop only).». Anywhere else it replies with a text status: «القرآن الكريم» heading, reciter, surah, segment label if split, elapsed / total, playing or stopped, then `Playback runs in the Claude desktop app.`; Arabic goes through `plugin/src/shared/arabic`. `play`, `stop`, `next`, `prev`, `reciter`, `repeat`, `repeat segment` and `help` work on every surface.
+**`/quran` per surface.** With no arguments: on Desktop it opens the Muslim pane (`$.ui.open({ id: 'muslim', title: '☾ Muslim', focus: true })`), unfolds the Quran card if the shared `paneFolds` state has it folded (Quran writes that one key and does not import the pane) and silently inspects the selected surah; the reply is «Muslim pane opened at القرآن الكريم (desktop only).». Anywhere else (terminal, mobile, vscode) it replies exactly `Quran is a desktop feature: open the Muslim pane in the Claude desktop app.` with no status text and no Arabic. There are no `/quran` subcommands (`play`, `stop`, `next`, `prev`, `reciter`, `repeat`, `repeat segment`, `retry`, `help` were removed for v0.1.0): `/quran <anything>` is the same as bare `/quran` on its surface, and the pane's Quran card is the player.
 
 **Why:** listening is an explicit activity with choices and controls; the Pane keeps those together without interrupting Claude's transcript. No AbovePrompt band or automatic opening at startup. Whole-track natural ends continue to the next available surah with the same recording, stopping when none remains. Split segments continue within the surah and then to the next available surah; previous/next skip unavailable surahs when crossing surah boundaries. Salah’s athan moment does not interrupt recitation.
 
@@ -41,9 +41,9 @@ Its text forms are: 1 → «سورة واحدة غير متاحة لهذا ال�
 | Footer | SessionMode | Nothing on any surface; the Muslim pane is the way in |
 | `/quran` on Desktop | Muslim pane | Opens at the «القرآن الكريم» card, unfolded |
 | User plays | Muslim pane's Quran card | The player drawn by the Muslim pane's Client, hit-tested controls (two repeat buttons), RTL Arabic and embedded Tajawal; dim hints |
-| `/quran` elsewhere | Terminal, mobile, vscode command reply | Text status ending «Playback runs in the Claude desktop app.» |
-| Commands/help/settings | Command reply on all surfaces | Short status or requested catalog/help; Quran row in `/muslim` |
-| Playback failure after command | Quran CommandOutput and card | Dim error line; command output only for playback started by the matching invocation (exact args and returned reply text) |
+| `/quran` elsewhere | Terminal, mobile, vscode command reply | `Quran is a desktop feature: open the Muslim pane in the Claude desktop app.` |
+| Help/settings | Command reply on all surfaces | `/muslim help quran` (one row: `/quran`); Quran row in `/muslim` says desktop only |
+| Pane open failure from `/quran` | Quran CommandOutput | Dim error line for the matching invocation (exact args and returned reply text) |
 | Playback failure after card action | Muslim pane's Quran card | One dim error line and «إعادة المحاولة»; no toast or command-row rewrite |
 | Playing | The Muslim pane's Quran card | Clock-based approximate elapsed/progress, redraw once per second |
 | AbovePrompt | All surfaces | No Quran band |
@@ -69,11 +69,11 @@ No seeking, pause/resume, persistent audio cache, separate ayah clips, gapless s
 
 ## Demo scenes (planned)
 
-Quran demo is deferred to a separate task and is not included in the shared sequence. Planned scenes: stopped with Minshawi/Al-Fatiha selected; playing Al-Kahf with known duration; unknown total; playback error; terminal fallback. Use the shipped catalog, a fake clock and mocked playback, changing no remembered choice.
+Quran demo is deferred to a separate task and is not included in the shared sequence. Planned scenes: stopped with Minshawi/Al-Fatiha selected; playing Al-Kahf with known duration; unknown total; playback error; terminal fallback (the `/quran` sentence). Use the shipped catalog, a fake clock and mocked playback, changing no remembered choice.
 
 ## Checklist for a change
 
-- [ ] The Muslim pane's Quran card, embedded Tajawal and silent picks render on Desktop; no playback-error toasts (only the settings-reload stop note) and no footer item; a terminal gets the `/quran` text status through shared Arabic.
+- [ ] The Muslim pane's Quran card, embedded Tajawal and silent picks render on Desktop; no playback-error toasts (only the settings-reload stop note) and no footer item; a terminal gets the desktop-only `/quran` sentence.
 - [ ] Whole-surah audio, abort on stop/replacement, advance only on the active generation’s natural end; stop after 114.
 - [ ] Redraw timer runs only while playing; per-clip watchdog cancels on settlement; elapsed remains explicitly approximate.
 - [ ] No config reload from recording changes; remembered choices and playback metadata in store, catalog shipped in code.
@@ -100,6 +100,6 @@ Settings follow the preflight order in DESIGN.md: check the exact config row bef
 
 ## Release behavior
 
-Arabic-Indic surah numbers work in `/quran play`, using the shared two-way digits helper. Every HTTP metadata fetch races a 15000 ms engine-clock sleep; a timeout aborts pending player work and shows one quiet retryable error. The API exposes no HTTP abort signal, so this ends the plugin’s wait, not the underlying host request. Retry starts fresh metadata work. Duration probes reuse the validated Range reader, its connection/file-size limits and OS temp cleanup. `quran.durations` keeps the 120 most recently learned duration numbers.
+Arabic-Indic surah numbers work in the pane's surah search, using the shared two-way digits helper. Every HTTP metadata fetch races a 15000 ms engine-clock sleep; a timeout aborts pending player work and shows one quiet retryable error. The API exposes no HTTP abort signal, so this ends the plugin’s wait, not the underlying host request. Retry starts fresh metadata work. Duration probes reuse the validated Range reader, its connection/file-size limits and OS temp cleanup. `quran.durations` keeps the 120 most recently learned duration numbers.
 
 `session.start` exposes only `cwd`, `surface` and `isInteractive`, with no real-start/reload distinction in the authoritative API types. Repeat therefore resets to off on every module load, including a settings change. No temporary debug logging ships.

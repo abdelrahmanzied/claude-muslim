@@ -45,7 +45,7 @@ Set up the Claude Code plugin "muslim":
 claude plugin marketplace add abdelrahmanzied/claude-muslim --sparse .claude-plugin plugin && claude plugin install muslim@claude-muslim
 ```
 
-Then start a session; muslim loads by itself. In the desktop app it appears once you send the first message. A session that was already open picks it up within a few seconds, or with `/reload-plugins`.
+After installing, run `/reload-plugins` once in the session (desktop app or terminal) so muslim's settings can be saved.
 
 ## Get started
 

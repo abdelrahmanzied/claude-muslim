@@ -1,3 +1,4 @@
+import { configRows } from '../fixtures/config.ts'
 import { expect, mock, test } from 'claude-code/testing'
 import { lastPray, lastSalahToday, nextSalah, NO_ADJUST, timesOn, clockText } from '../../src/features/salah/times.ts'
 import { prayLine } from '../../src/shared/pray/line.ts'
@@ -33,7 +34,7 @@ test('city-dialog Not now puts setup off durably', async ($, on) => {
     const question = (e as unknown as { questions: { question: string }[] }).questions[0]!.question
     return { tool: e.tool, tool_use_id: e.tool_use_id, result: { questions: [], answers: { [question]: 'Not now' } } } as never
   })
-  on('config.list', async () => ({ value: [] }))
+  on('config.list', async () => ({ value: configRows }))
   on('ui.render', { component: 'AbovePrompt' }, ($, e) => { const { Box } = $.ui.resolve(e); return <Box /> })
   expect((await $.command.run(run('city'))).text).toContain('put off')
   expect(stored.salahSetupLater).toBe(true)

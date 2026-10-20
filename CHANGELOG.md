@@ -30,7 +30,8 @@ The first public release.
 - A recitation player with shipped complete Hafs recording and surah lists, Arabic names and Arabic-Indic number picks, play/stop, previous/next and natural advancement.
 - Large recordings play in consecutive quarters. Repeat a whole surah or the current quarter; settings changes reset repeat.
 - Metadata requests time out after fifteen seconds with one quiet error and Retry. Temporary audio cuts are cleaned up and metadata caches are bounded.
-- Plugin setting writes stop active playback before reload and explain why. Terminal `/quran` provides text status.
+- Plugin setting writes stop active playback before reload and explain why.
+- The Muslim pane is the player: `/quran` alone opens it at the Quran card, and a terminal says Quran is a desktop feature. No `/quran` subcommands for now.
 - The terminal `/muslim` table shows Quran as desktop only.
 
 ### Muslim pane (desktop)
@@ -45,4 +46,5 @@ The first public release.
 - Setup forms own the space above the prompt. Explicit reader/demo replies explain when answering setup will reveal them; fresh-install reminders begin at the next eligible period or prayer.
 - Shared main colors, desktop tashkeel and per-terminal Arabic display modes across status, help and reminders.
 - `/muslim help` lists commands. `/muslim demo` previews thikr, athkar, salah and the desktop pane tour; Quran has no demo.
-- `/muslim update`, marketplace auto-update controls and feedback drafting that sends only after approval. Missing settings ask for `/reload-plugins` without changing the current form or playback.
+- `/muslim update`, marketplace auto-update controls and feedback drafting that sends only after approval. Missing settings ask for `/reload-plugins` without changing the current form or playback; on a fresh install the city setup asks for it before the city question.
+- `/muslim` with an unknown word shows the help table.

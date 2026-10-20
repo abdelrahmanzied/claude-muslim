@@ -24,6 +24,8 @@ function setup(on: On, surface: 'terminal' | 'desktop', mode = 'plain') {
 
 for (const surface of ['terminal', 'desktop'] as const) {
   for (const command of commands) for (const args of ['', 'help']) {
+    // /quran has no subcommands: no help table of its own (see /muslim help quran).
+    if (command === 'quran' && args === 'help') continue
     // Bare /muslim opens the pane on desktop by design (register.test.ts).
     if (surface === 'desktop' && command === 'muslim' && args === '') continue
     test(`${surface}: /${command}${args ? ` ${args}` : ''} table contract`, {
@@ -31,14 +33,13 @@ for (const surface of ['terminal', 'desktop'] as const) {
     }, async ($, on) => {
       setup(on, surface)
       const reply = (await $.command.run(run(command, args))).text!
-      // Existing bare /quran is the exception: record its actual reply without
-      // changing the command just to make the table contract pass.
+      // Bare /quran is the exception: a sentence on a terminal, not a table.
       if (command === 'quran' && args === '') {
         expect(reply).not.toMatch(/^\| --- \|/m)
         if (surface === 'desktop') {
           expect(reply).toBe('Muslim pane opened at القرآن الكريم (desktop only).')
         } else {
-          expect(reply).toMatch(/^Reciter: .+\nSurah: .+\nTime: 00:00 \/ --:--\nStatus: stopped\nPlayback runs in the Claude desktop app\.$/)
+          expect(reply).toBe('Quran is a desktop feature: open the Muslim pane in the Claude desktop app.')
         }
       } else {
         expect(reply).toMatch(/^\| --- \|/m)
@@ -62,10 +63,11 @@ for (const mode of ['plain', 'joined', 'reversed']) {
   }, async ($, on) => {
     setup(on, 'terminal', mode)
     for (const command of commands) for (const args of ['', 'help']) {
+      if (command === 'quran' && args === 'help') continue
       const reply = (await $.command.run(run(command, args))).text!
       expect(reply).toBeTruthy()
       const rows = reply.split('\n').filter(line => line.startsWith('|'))
-      if (command !== 'quran' || args === 'help') expect(rows.length).toBeGreaterThan(0)
+      if (command !== 'quran') expect(rows.length).toBeGreaterThan(0)
       for (const row of rows) expect(row).not.toMatch(/[؀-ۿﭐ-﷿ﹰ-﻿]/)
       if (command === 'salah' && args === '') {
         expect(reply).toContain('### Today in ميونخ، ألمانيا')

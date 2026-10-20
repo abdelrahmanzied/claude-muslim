@@ -11,17 +11,8 @@ export function progressBar(elapsed: number, total: number | null): string {
   const filled = total !== null && total > 0 ? Math.round(Math.max(0, Math.min(1, elapsed / total)) * 24) : 0
   return '━'.repeat(filled) + '─'.repeat(24 - filled)
 }
-export type Command = { kind: 'open' | 'help' | 'stop' | 'next' | 'prev' | 'retry' | 'repeat' | 'repeat-segment' } | { kind: 'play'; value: string; segmentIndex?: number } | { kind: 'reciter'; value: string } | { kind: 'usage' }
-export function parseCommand(args: string): Command {
-  const [word = '', ...rest] = args.trim().split(/\s+/)
-  const value = rest.join(' ')
-  if (word === '' && !value) return { kind: 'open' }
-  if (['help', 'stop', 'next', 'prev', 'retry', 'repeat'].includes(word) && !value) return { kind: word as 'help' | 'stop' | 'next' | 'prev' | 'retry' | 'repeat' }
-  if (word === 'repeat' && value === 'segment') return { kind: 'repeat-segment' }
-  if (word === 'reciter') return { kind: 'reciter', value }
-  if (word === 'play' && value) return { kind: 'play', value }
-  return { kind: 'usage' }
-}
+// What the Muslim pane asks of the player; there are no /quran subcommands.
+export type Command = { kind: 'open' | 'stop' | 'next' | 'prev' | 'retry' | 'repeat' | 'repeat-segment' } | { kind: 'play'; value: string; segmentIndex?: number } | { kind: 'reciter'; value: string }
 
 // Advance only the still-active play generation on a natural end; never wrap.
 export function nextSurahAfterEnd(surah: number, endedNaturally: boolean, token: number, activeToken: number, reciterKey = ''): number | null {

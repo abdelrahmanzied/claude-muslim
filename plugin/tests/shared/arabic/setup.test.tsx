@@ -3,7 +3,7 @@ import type { On } from 'claude-code'
 import { readOptions } from '../../../src/config.ts'
 import { install } from '../../../src/shared/arabic/install.tsx'
 import { ARABIC_MODES, terminalArabic } from '../../../src/shared/arabic/terminal.ts'
-import { ATHKAR_QUIET } from '../../fixtures/config.ts'
+import { ATHKAR_QUIET, configRows } from '../../fixtures/config.ts'
 
 const band = (surface: 'terminal' | 'desktop', hasSurvey = false, requestId = 'arabic-check') => ({
   plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId,
@@ -164,7 +164,7 @@ test('first terminal setup gives Arabic hotkeys priority, then shows the city ro
   mock.env(on, { TERM_PROGRAM: 'WarpTerminal' })
   mock.store(on)
   mock.clock(on, { now: 0 })
-  on('config.list', async () => ({ value: [] }))
+  on('config.list', async () => ({ value: configRows }))
   on('ui.toast', async () => ({ value: undefined }))
   engineBand(on)
   const shown = await $.ui.mount(band('terminal'))

@@ -1,7 +1,8 @@
 import { expect, test } from 'claude-code/testing'
 import { audioUrl, defaultReciter, filterReciters, matchReciter, matchSurah, normalizeName, readSurahs, searchReciters, searchSurahs } from '../../src/features/quran/catalog.ts'
-import { effectiveRepeat, formatTime, nextPlaybackItem, repeatMode, nextSurahAfterEnd, parseCommand, progressBar } from '../../src/features/quran/player.ts'
-import { quranHelp } from '../../src/features/quran/help.ts'
+import { effectiveRepeat, formatTime, nextPlaybackItem, repeatMode, nextSurahAfterEnd, progressBar } from '../../src/features/quran/player.ts'
+import { helpTable } from '../../src/table.ts'
+import { QURAN_COMMANDS } from '../../src/features/quran/help.ts'
 import { fixtureCatalog, reciters, surahs } from './fixtures/catalog.ts'
 
 test('surah names ignore tashkeel, hamza forms, article and spaces', () => {
@@ -41,16 +42,9 @@ test('time and fixed-width progress handle unknown, hour-long and bounded values
   expect(progressBar(2000, 1000)).toBe('━'.repeat(24))
   expect(progressBar(-1, 1000)).toBe('─'.repeat(24))
 })
-test('command grammar accepts only the supported v1 actions', () => {
-  expect(parseCommand('')).toEqual({ kind: 'open' })
-  expect(parseCommand('play آل عمران')).toEqual({ kind: 'play', value: 'آل عمران' })
-  expect(parseCommand('reciter')).toEqual({ kind: 'reciter', value: '' })
-  for (const word of ['stop', 'help', 'next', 'prev', 'repeat']) expect(parseCommand(word).kind).toBe(word)
-  expect(quranHelp()).toContain('| `/quran play` |')
-  expect(quranHelp()).toContain('`<surah>`: number 1–114 or Arabic name')
-  expect(quranHelp()).toContain('/quran repeat')
-  for (const args of ['play', 'stop now', 'repeat on', 'pause', 'seek 10', 'unknown']) expect(parseCommand(args)).toEqual({ kind: 'usage' })
-  expect(quranHelp()).toContain('advance on natural end')
+test('the help table is one row: /quran, desktop only', () => {
+  expect(QURAN_COMMANDS).toEqual([['/quran', 'Desktop only: open the Muslim pane at its Quran card', '']])
+  expect(helpTable(QURAN_COMMANDS)).toContain('| `/quran` | Desktop only: open the Muslim pane at its Quran card |')
 })
 
 test('auto-advance only follows a natural end of the active generation and stops at 114', () => {
@@ -110,7 +104,4 @@ test('stored repeat values normalise, and the two repeat buttons exclude each ot
   expect(effectiveRepeat('segment', false)).toBe('off')
   expect(effectiveRepeat('segment', true)).toBe('segment')
   expect(effectiveRepeat('surah', false)).toBe('surah')
-  expect(parseCommand('repeat')).toEqual({ kind: 'repeat' })
-  expect(parseCommand('repeat segment')).toEqual({ kind: 'repeat-segment' })
-  expect(parseCommand('repeat quarter')).toEqual({ kind: 'usage' })
 })

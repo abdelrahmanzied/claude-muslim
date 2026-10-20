@@ -130,6 +130,28 @@ test('/salah city with no name asks the setup question', { options: { ...ATHKAR_
   expect(written[0]?.value).toBe('Munich, Germany; 48.14, 11.58; Europe/Berlin; DE')
 })
 
+test('with no config row the band and /salah city say to run /reload-plugins and never ask the city', { options: { ...ATHKAR_QUIET } }, async ($, on) => {
+  mock.clock(on, { now: 1000 })
+  mock.env(on, {})
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+  engineBand(on)
+  on('config.list', async () => ({ value: [] }))
+  const written: unknown[] = []
+  on('config.set', async (_$, e) => (written.push(e), { value: e.value }))
+  for (const surface of SURFACES) {
+    const shown = await $.ui.mount(band(surface))
+    expect(await shown.find({ type: 'Text', text: 'Run /reload-plugins to finish installing muslim.' })).toBeDefined()
+    expect(await shown.find({ type: 'Button', key: 'salah-city' })).toBeUndefined()
+    expect(await shown.find({ type: 'Button', key: 'salah-yes' })).toBeUndefined()
+    expect(await shown.find({ type: 'Button', key: 'salah-later' })).toBeDefined()
+    await shown.unmount()
+  }
+  const ran = await $.command.run({ command: 'salah', args: 'city', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+
+  expect(ran.text).toBe('Run /reload-plugins to finish installing muslim.')
+  expect(written).toEqual([])
+})
+
 test('a saved place shows no setup band', { options: { ...ATHKAR_QUIET, salahPlace: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on, { arabicTerminals: { unknown: 'plain' } })

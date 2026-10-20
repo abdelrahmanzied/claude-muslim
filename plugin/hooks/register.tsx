@@ -249,7 +249,7 @@ export const register: Register = (on, options) => {
       description: 'Pray times: help, show, athan, city, method, adjust, demo',
     })
 
-    await $.command.register({ name: 'quran', description: 'Quran player: play, stop, next, prev, repeat, reciter, retry, help' })
+    await $.command.register({ name: 'quran', description: 'Desktop only: open the Muslim pane at its Quran card' })
     // Audio handles do not survive a module reload. Never resume stale tracking.
     await $.state.set({ plugin: 'muslim', key: 'quranPlaying' }, null)
     await $.state.set({ plugin: 'muslim', key: 'quranRepeat' }, 'off')
@@ -324,7 +324,12 @@ export const register: Register = (on, options) => {
       return { text: 'Feedback: Claude will ask what kind it is and show you a draft. Nothing is sent until you say yes.' }
     }
     if (word === 'help') return { text: await settingsArabic($, await $.session.surface().catch(() => 'desktop' as const) ?? 'desktop', muslimHelp(feature)) }
-    if (word !== '') return next(e).catch(() => ({ text: muslimHelp() }))
+    if (word !== '') {
+      // Words a later hook answers (terminal-arabic, demo pane) pass through. A word nothing answers makes the engine reply with its developer fallback ("no command.run hook answered it"), which resolves instead of rejecting: show the help table in its place.
+      const answer = await next(e).catch(() => undefined)
+      if (answer && !(answer.text ?? '').includes('no command.run hook answered')) return answer
+      return { text: await settingsArabic($, await $.session.surface().catch(() => 'desktop' as const) ?? 'desktop', muslimHelp()) }
+    }
 
     const surfaces = await $.session.surfaces()
     if (surfaces.includes('desktop') && !surfaces.includes('terminal')) {
@@ -342,7 +347,7 @@ export const register: Register = (on, options) => {
     return {
       text: [
         `**Muslim** · v${VERSION}`,
-        `${helpHint('/muslim')}; each feature's: \`/thikr help\` · \`/athkar help\` · \`/salah help\` · \`/quran help\``,
+        `${helpHint('/muslim')}; each feature's: \`/thikr help\` · \`/athkar help\` · \`/salah help\``,
         '',
         '### Features',
         '',
