@@ -43,8 +43,8 @@ test('time and fixed-width progress handle unknown, hour-long and bounded values
   expect(progressBar(-1, 1000)).toBe('─'.repeat(24))
 })
 test('the help table is one row: /quran, desktop only', () => {
-  expect(QURAN_COMMANDS).toEqual([['/quran', 'Desktop only: open the Muslim pane at its Quran card', '']])
-  expect(helpTable(QURAN_COMMANDS)).toContain('| `/quran` | Desktop only: open the Muslim pane at its Quran card |')
+  expect(QURAN_COMMANDS).toEqual([['/quran', 'Desktop only: open the Muslim pane with its Quran card unfolded', '']])
+  expect(helpTable(QURAN_COMMANDS)).toContain('| `/quran` | Desktop only: open the Muslim pane with its Quran card unfolded |')
 })
 
 test('auto-advance only follows a natural end of the active generation and stops at 114', () => {

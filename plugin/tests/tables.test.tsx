@@ -37,7 +37,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
       if (command === 'quran' && args === '') {
         expect(reply).not.toMatch(/^\| --- \|/m)
         if (surface === 'desktop') {
-          expect(reply).toBe('Muslim pane opened at القرآن الكريم (desktop only).')
+          expect(reply).toBe('Muslim pane opened with القرآن الكريم unfolded (desktop only).')
         } else {
           expect(reply).toBe('Quran is a desktop feature: open the Muslim pane in the Claude desktop app.')
         }

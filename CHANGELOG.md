@@ -31,7 +31,7 @@ The first public release.
 - Large recordings play in consecutive quarters. Repeat a whole surah or the current quarter; settings changes reset repeat.
 - Metadata requests time out after fifteen seconds with one quiet error and Retry. Temporary audio cuts are cleaned up and metadata caches are bounded.
 - Plugin setting writes stop active playback before reload and explain why.
-- The Muslim pane is the player: `/quran` alone opens it at the Quran card, and a terminal says Quran is a desktop feature. No `/quran` subcommands for now.
+- The Muslim pane is the player: `/quran` alone opens it with the Quran card unfolded, and a terminal says Quran is a desktop feature. No `/quran` subcommands for now.
 - The terminal `/muslim` table shows Quran as desktop only.
 
 ### Muslim pane (desktop)

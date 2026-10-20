@@ -409,7 +409,7 @@ async function action($: EngineInterface, command: Command, fromCommand: Command
     if (surface !== 'desktop') return DESKTOP_ONLY
     await showCard($)
     if (!playing && !planFor(reciter, current)) await play($, reciter, current, fromCommand, 'command', 0, 'inspect')
-    return 'Muslim pane opened at القرآن الكريم (desktop only).'
+    return 'Muslim pane opened with القرآن الكريم unfolded (desktop only).'
   }
   if (command.kind === 'reciter') {
     const choice = matchReciter(command.value, QURAN_CATALOG.reciters)

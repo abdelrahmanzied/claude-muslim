@@ -59,7 +59,7 @@ Scrolling moves the host's body window over this fixed picture only when there i
 
 ## Full-player navigation
 
-The Quran player lives in the card; there is no separate Quran pane: `/quran` with no arguments opens this pane at the Quran card, unfolding it if folded (a terminal gets a text status instead). Picks and repeat buttons go through the panel signal, so Muslim never imports Quran; Quran reconnects during the Muslim pane render and input chain. The scrollbar drag: the Client posts drag messages while a drag is in progress and the row scale is frozen at the press.
+The Quran player lives in the card; there is no separate Quran pane: `/quran` opens this pane with the Quran card unfolded, without scrolling to it (a terminal gets the desktop-only sentence instead). Picks and repeat buttons go through the panel signal, so Muslim never imports Quran; Quran reconnects during the Muslim pane render and input chain. The scrollbar drag: the Client posts drag messages while a drag is in progress and the row scale is frozen at the press.
 
 ## Settings — approved layout “a” and icon picks
 

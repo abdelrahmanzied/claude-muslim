@@ -47,7 +47,7 @@ test('/muslim help shows every feature\'s table; with a feature, only its own', 
   expect(salah).not.toContain('/thikr')
   expect(thikr).toContain('/thikr mode')
   expect(thikr).not.toContain('/salah')
-  expect((await $.command.run(muslim('help quran'))).text).toContain('| `/quran` | Desktop only: open the Muslim pane at its Quran card |')
+  expect((await $.command.run(muslim('help quran'))).text).toContain('| `/quran` | Desktop only: open the Muslim pane with its Quran card unfolded |')
   expect(all).not.toContain('/quran play')
   expect(all).not.toContain('/quran reciter')
   expect((await $.command.run(muslim('help unknown'))).text).toContain('Features: thikr, athkar, salah, quran, color, tashkeel, terminal-arabic')

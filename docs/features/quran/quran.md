@@ -34,7 +34,7 @@ Runtime help follows the shared `Command | Description | Options` table; `/musli
 
 | Command | Does |
 | --- | --- |
-| `/quran` | Desktop only: open the Muslim pane at its Quran card. Terminal and any other surface: `Quran is a desktop feature: open the Muslim pane in the Claude desktop app.` |
+| `/quran` | Desktop only: open the Muslim pane with its Quran card unfolded. Terminal and any other surface: `Quran is a desktop feature: open the Muslim pane in the Claude desktop app.` |
 
 No `/quran` subcommands exist (removed for v0.1.0); `/quran <anything>` behaves as bare `/quran`. Play, stop, next, previous, repeat, retry and the reciter pick are the Muslim pane's Quran card controls.
 
@@ -124,7 +124,7 @@ The Quran card keeps the Mushaf book icon beside the heading «القرآن ال
 
 ## To verify live
 
-With an empty plugin store, open the Muslim pane in Desktop and confirm the Quran card and both lists are filled without catalog requests. Select Minshawi and Al-Kahf, listen for continuous whole-track playback, stop, switch reciter while playing, verify `/quran` opens the pane at the Quran card and unfolds it, and that `/quran play 1` does the same, test natural-end advancement and stopping after surah 114. Verify card controls never show toasts and playback errors stay inside the card. Check no acoustic overlap on fast switching and search across both full lists, Enter/row selection, keyboard scrolling and readable sheets in narrow panes and each theme. Check the watchdog for both initial and auto-advanced clips. Confirm the terminal fallback (`/quran` replies the desktop sentence). Engine tests exercise hooks and trees; they do not prove sound or native paint.
+With an empty plugin store, open the Muslim pane in Desktop and confirm the Quran card and both lists are filled without catalog requests. Select Minshawi and Al-Kahf, listen for continuous whole-track playback, stop, switch reciter while playing, verify `/quran` opens the pane with the Quran card unfolded (it does not scroll to it), test natural-end advancement and stopping after surah 114. Verify card controls never show toasts and playback errors stay inside the card. Check no acoustic overlap on fast switching and search across both full lists, Enter/row selection, keyboard scrolling and readable sheets in narrow panes and each theme. Check the watchdog for both initial and auto-advanced clips. Confirm the terminal fallback (`/quran` replies the desktop sentence). Engine tests exercise hooks and trees; they do not prove sound or native paint.
 
 ## Muslim pane
 

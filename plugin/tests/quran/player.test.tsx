@@ -1017,7 +1017,7 @@ test('/quran on the desktop opens the Muslim pane, unfolds the Quran card and ha
   expect(clock.opened.map(o => o.id)).toEqual(['muslim'])
   expect(clock.opened[0]!.title).toBe('☾ Muslim')
   expect(saved.folds).toEqual({ prayer: true, quran: false, athkar: false })
-  expect(reply.text).toBe('Muslim pane opened at القرآن الكريم (desktop only).')
+  expect(reply.text).toBe('Muslim pane opened with القرآن الكريم unfolded (desktop only).')
 })
 for (const args of ['', 'play 1', 'reciter', 'stop now', 'help']) test(`/quran ${args} in a terminal replies the desktop sentence and opens nothing`, async ($, on) => {
   const clock = setup(on, {}, {}, 'terminal')
@@ -1032,7 +1032,7 @@ test('/quran play 1 on the desktop is the same as /quran: it opens the pane and 
   const clock = setup(on)
   const played = audio(on, clock)
   const reply = await $.command.run(run('play 1'))
-  expect(reply.text).toBe('Muslim pane opened at القرآن الكريم (desktop only).')
+  expect(reply.text).toBe('Muslim pane opened with القرآن الكريم unfolded (desktop only).')
   expect(clock.opened.map(o => o.id)).toEqual(['muslim'])
   expect(played).toEqual([])
 })

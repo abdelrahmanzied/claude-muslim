@@ -249,7 +249,7 @@ export const register: Register = (on, options) => {
       description: 'Pray times: help, show, athan, city, method, adjust, demo',
     })
 
-    await $.command.register({ name: 'quran', description: 'Desktop only: open the Muslim pane at its Quran card' })
+    await $.command.register({ name: 'quran', description: 'Desktop only: open the Muslim pane with its Quran card unfolded' })
     // Audio handles do not survive a module reload. Never resume stale tracking.
     await $.state.set({ plugin: 'muslim', key: 'quranPlaying' }, null)
     await $.state.set({ plugin: 'muslim', key: 'quranRepeat' }, 'off')
