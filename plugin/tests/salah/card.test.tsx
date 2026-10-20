@@ -3,7 +3,7 @@ import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
 import { cardHeight, closeArea, FOCUS_GRACE_MS, frameOf, IDLE_MS, KEY_REST_MS, LEAVE_MS, REST_PX } from '../../src/shared/card/card.ts'
-import { athanFrame, athanSvg, CARD_MS, FOLD_MS, isOnStart, startArea, START_LABEL } from '../../src/features/salah/card.ts'
+import { athanFrame, athanSvg, CARD_MS, FOLD_MS, isOnStart, startArea, startHitArea, START_LABEL, START_MARGIN } from '../../src/features/salah/card.ts'
 import { FRAME_MS, HOLD_MS, ROWS_COUNT, TOTAL_MS } from '../../src/features/salah/minaret.ts'
 import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
 import { athanText } from '../../src/shared/pray/line.ts'
@@ -571,18 +571,22 @@ for (const isFolded of [false, true]) {
       expect(area).toEqual({ x0: drawnLeft, x1: drawnLeft + 107.4, y0: drawnTop, y1: drawnTop + 24 })
       expect(svg).toContain(`width: ${area.x1 - area.x0}px; height: 24px`)
       expect(area.x0).toBeGreaterThan(closeArea(frame).x1)
-      // Exact boundary hits, and misses just outside each side.
+      // The whole frame and its margin hit, short of the ×; just past the margin misses.
       const hit = (px: number, py: number) => isOnStart(p, (px + box.left) / p.card.ch - .5, (py + box.top) / p.card.lh - .5, 100, 5)
       const cx = (area.x0 + area.x1) / 2
       const cy = (area.y0 + area.y1) / 2
-      expect(hit(area.x0 + .01, cy)).toBe(true)
-      expect(hit(area.x1 - .01, cy)).toBe(true)
-      expect(hit(cx, area.y0 + .01)).toBe(true)
-      expect(hit(cx, area.y1 - .01)).toBe(true)
-      expect(hit(area.x0 - .01, cy)).toBe(false)
-      expect(hit(area.x1 + .01, cy)).toBe(false)
-      expect(hit(cx, area.y0 - .01)).toBe(false)
-      expect(hit(cx, area.y1 + .01)).toBe(false)
+      for (let x = area.x0 + .01; x < area.x1; x += 2) for (let y = area.y0 + .01; y < area.y1; y += 2) expect(hit(x, y)).toBe(true)
+      const m = startHitArea(frame)
+      expect(m).toEqual({ x0: Math.max(area.x0 - START_MARGIN.x, closeArea(frame).x1 + 1), x1: area.x1 + START_MARGIN.x, y0: area.y0 - START_MARGIN.y, y1: area.y1 + START_MARGIN.y })
+      expect(m.x0).toBeGreaterThan(closeArea(frame).x1)
+      expect(hit(m.x0 + .01, cy)).toBe(true)
+      expect(hit(m.x1 - .01, cy)).toBe(true)
+      expect(hit(cx, m.y0 + .01)).toBe(true)
+      expect(hit(cx, m.y1 - .01)).toBe(true)
+      expect(hit(m.x0 - .01, cy)).toBe(false)
+      expect(hit(m.x1 + .01, cy)).toBe(false)
+      expect(hit(cx, m.y0 - .01)).toBe(false)
+      expect(hit(cx, m.y1 + .01)).toBe(false)
       // Both palettes, picked by the app's appearance; nothing from Claude Code's theme.
       expect(svg).toContain('.band.athan { --start-accent: #4a7fc0; }')
       expect(svg).toContain('@media (prefers-color-scheme: light) { .band.athan { --start-accent: #3a6aa3; } }')

@@ -424,7 +424,10 @@ export const glowAtTime = (from: number, to: number, ms: number) => {
 // anywhere else counts or opens the band.
 type Hit = { x0: number; x1: number; y0: number; y1: number; act: Act }
 
+// A framed button takes its whole frame and a margin past it: half the 8px gap between the two
+// choices, and 8px above and below (none reaches the × above).
+export const CHOICE_MARGIN = { x: 4, y: 8 }
 export const hitsFor = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' | 'finaleMs'> & { width?: number }): Hit[] => [
   { ...closeArea(m), act: { act: 'hide' } },
-  ...(m.phase === 'question' && m.isActive ? questionAreas(m.width ?? 0).map(a => ({ ...a, act: { act: a.act } })) : []),
+  ...(m.phase === 'question' && m.isActive ? questionAreas(m.width ?? 0).map(a => ({ x0: a.x0 - CHOICE_MARGIN.x, x1: a.x1 + CHOICE_MARGIN.x, y0: a.y0 - CHOICE_MARGIN.y, y1: a.y1 + CHOICE_MARGIN.y, act: { act: a.act } })) : []),
 ]

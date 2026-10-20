@@ -198,7 +198,7 @@ const sheetBoxes = (width: number, q: QuranLayout, quranY: number): Box[] => {
   const rows: Box[] = []
   for (let i = 0; i < 8 && p.scroll + i < p.count; i++) rows.push({ act: `quran-row:${i}`, x0: x0 + SHEET_ROWS_LEFT, x1: x1 - SHEET_ROWS_RIGHT, y0: y0 + SHEET_ROWS_TOP + i * SHEET_ROW_H, y1: y0 + SHEET_ROWS_TOP + (i + 1) * SHEET_ROW_H })
   return [
-    { act: 'quran-back', x0: x0 + 12, x1: x0 + 12 + SHEET_BACK_W, y0: y0 + SHEET_HEAD_TOP, y1: y0 + SHEET_HEAD_TOP + SHEET_HEAD_H },
+    { act: 'quran-back', slop: BUTTON_SLOP, x0: x0 + 12, x1: x0 + 12 + SHEET_BACK_W, y0: y0 + SHEET_HEAD_TOP, y1: y0 + SHEET_HEAD_TOP + SHEET_HEAD_H },
     ...rows,
     ...(p.count > 8 ? [{ act: 'quran-scroll' as const, x0: x0 + SHEET_BAR_LEFT, x1: x0 + SHEET_BAR_LEFT + SHEET_BAR_W, y0: y0 + SHEET_ROWS_TOP, y1: y0 + SHEET_ROWS_TOP + SHEET_ROWS_H }] : []),
   ]
@@ -207,7 +207,7 @@ const boxes = (width: number, f: Folds, settings: SettingsModel, q: QuranLayout,
   const kr = athkarRow(width)
   const r = cardRects(f, settings.state, settings.options, q, athkarMenu)
   const kh = athkarHead(width), ky = r.athkarY + athkarRowTop(athkarMenu)
-  const headBox = (act: PaneAct, b: { x0: number; x1: number }): Box => ({ act, ...b, y0: r.athkarY + HEAD_TOP, y1: r.athkarY + HEAD_TOP + HEAD_H })
+  const headBox = (act: PaneAct, b: { x0: number; x1: number }): Box => ({ act, ...b, slop: BUTTON_SLOP, y0: r.athkarY + HEAD_TOP, y1: r.athkarY + HEAD_TOP + HEAD_H })
   if (q.picker && !f.quran) return sheetBoxes(width, q, r.quranY)
   const title = (act: PaneAct, y: number): Box => ({ act, x0: PAD, x1: width - PAD, y0: y, y1: y + TITLE_HIT_H })
   const off = quranOffset(q.segmented), qy = r.quranY
@@ -217,18 +217,18 @@ const boxes = (width: number, f: Folds, settings: SettingsModel, q: QuranLayout,
     title('fold-prayer', r.prayerY), title('fold-quran', r.quranY),
     ...(f.athkar || !athkar ? [title('fold-athkar', r.athkarY)] : [
       headBox('fold-athkar', kh.fold), headBox('athkar-picker', kh.title),
-      ...(athkarMenu ? ATHKAR_SETS.map((set, i): Box => ({ act: `athkar-set:${set.key}`, x0: PAD + SIDE, x1: width - PAD - SIDE, y0: r.athkarY + KMENU_TOP + KMENU_PAD + i * (KMENU_ROW_H + KMENU_GAP), y1: r.athkarY + KMENU_TOP + KMENU_PAD + i * (KMENU_ROW_H + KMENU_GAP) + KMENU_ROW_H })) : []),
+      ...(athkarMenu ? ATHKAR_SETS.map((set, i): Box => framed({ act: `athkar-set:${set.key}`, x0: PAD + SIDE, x1: width - PAD - SIDE, y0: r.athkarY + KMENU_TOP + KMENU_PAD + i * (KMENU_ROW_H + KMENU_GAP), y1: r.athkarY + KMENU_TOP + KMENU_PAD + i * (KMENU_ROW_H + KMENU_GAP) + KMENU_ROW_H })) : []),
     ]),
     ...(f.prayer ? [] : [{ act: 'athan' as const, x0: PAD + SIDE - 8, x1: width - PAD - SIDE + 8, y0: r.prayerY + ATHAN_TOP, y1: r.prayerY + ATHAN_TOP + ATHAN_H }]),
     ...(f.quran ? [] : [
-      ...(q.error ? [{ act: 'quran-retry' as const, x0: PAD + SIDE, x1: width - PAD - SIDE, y0: qy + Q_RETRY_TOP + off, y1: qy + Q_RETRY_TOP + off + Q_RETRY_H }] : []),
+      ...(q.error ? [{ act: 'quran-retry' as const, slop: BUTTON_SLOP, x0: PAD + SIDE, x1: width - PAD - SIDE, y0: qy + Q_RETRY_TOP + off, y1: qy + Q_RETRY_TOP + off + Q_RETRY_H }] : []),
       // The title button spans the hero's text column, right of the avatar.
-      { act: 'quran-pick-surah' as const, x0: PAD + SIDE + Q_AVATAR_W + 8, x1: width - PAD - SIDE, y0: qy + Q_TITLE_TOP, y1: qy + Q_TITLE_TOP + Q_TITLE_H },
-      ...(q.segmented ? [{ act: 'quran-pick-segment' as const, x0: PAD + Q_SEG_LEFT, x1: width - PAD - SIDE, y0: qy + Q_SEG_TOP, y1: qy + Q_SEG_TOP + Q_SEG_H }] : []),
-      { act: 'quran-pick-reciter' as const, x0: PAD + SIDE, x1: width - PAD - SIDE, y0: qy + Q_RECITER_BASE + off, y1: qy + Q_RECITER_BASE + off + Q_RECITER_H },
+      { act: 'quran-pick-surah' as const, slop: BUTTON_SLOP, x0: PAD + SIDE + Q_AVATAR_W + 8, x1: width - PAD - SIDE, y0: qy + Q_TITLE_TOP, y1: qy + Q_TITLE_TOP + Q_TITLE_H },
+      ...(q.segmented ? [{ act: 'quran-pick-segment' as const, slop: BUTTON_SLOP, x0: PAD + Q_SEG_LEFT, x1: width - PAD - SIDE, y0: qy + Q_SEG_TOP, y1: qy + Q_SEG_TOP + Q_SEG_H }] : []),
+      { act: 'quran-pick-reciter' as const, slop: BUTTON_SLOP, x0: PAD + SIDE, x1: width - PAD - SIDE, y0: qy + Q_RECITER_BASE + off, y1: qy + Q_RECITER_BASE + off + Q_RECITER_H },
     ]),
     // In RTL the row's buttons sit at the left end: «إعادة», then «أتممتُها», then «ابدأ» or «أكمل».
-    ...(f.athkar ? [] : (['athkar-reset', 'athkar-finish', 'athkar-open'] as const).map((act): Box => ({ act, ...kr[act === 'athkar-reset' ? 'reset' : act === 'athkar-finish' ? 'finish' : 'open'], y0: ky + 2, y1: ky + KROW_H - 2 }))),
+    ...(f.athkar ? [] : (['athkar-reset', 'athkar-finish', 'athkar-open'] as const).map((act): Box => framed({ act, ...kr[act === 'athkar-reset' ? 'reset' : act === 'athkar-finish' ? 'finish' : 'open'], y0: ky + 2, y1: ky + KROW_H - 2 }))),
   ]
 }
 
@@ -238,8 +238,8 @@ export const settingsBoxes = (width: number, folds: Folds, m: SettingsModel, q: 
   const bodyTop = SETTINGS_BODY_TOP + settingsNoteHeight(q.isPlaying)
   if (!m.state.open) return []
   return [
-    ...categoryTabs(width).map(c => ({ act:`settings:tab:${c.category}` as const, x0:c.x0, x1:c.x1, y0:y+c.y0, y1:y+c.y1 })),
-    ...settingsBody(width,m).targets.map(b => ({ ...b, y0:y+bodyTop+b.y0, y1:y+bodyTop+b.y1, slop: b.control.style === 'pill' ? PILL_SLOP : CONTROL_SLOP })),
+    ...categoryTabs(width).map(c => ({ act:`settings:tab:${c.category}` as const, x0:c.x0, x1:c.x1, y0:y+c.y0, y1:y+c.y1, slop: BUTTON_SLOP })),
+    ...settingsBody(width,m).targets.map(b => ({ act: b.act, x0: b.x0, x1: b.x1, y0:y+bodyTop+b.y0, y1:y+bodyTop+b.y1, slop: BUTTON_SLOP })),
   ]
 }
 
@@ -249,14 +249,13 @@ const isEnabled = (act: PaneAct, on: Enabled): boolean =>
     : act === 'quran-prev' ? on.quran && on.canPrev : act === 'quran-next' ? on.quran && on.canNext
     : act === 'quran-repeat-segment' || act === 'quran-pick-segment' ? on.quran && !!on.segmented : on.quran
 
-// A settings control also takes presses just outside its drawn edge: half the 4px gap between
-// neighbours, and 6px above and below. A framed pill takes its whole frame and a wider margin
-// (10px each side, 12px above and below), as Desktop's whole-cell pointer can land a little off.
-// The distance still counts from the drawn edge, so a press inside a control always picks that
-// control, and a press between two picks the nearer.
-export const CONTROL_SLOP = { x: 2, y: 6 }
-export const PILL_SLOP = { x: 10, y: 12 }
+// Every framed button takes its whole frame and a margin past it (10px each side, 12px above and
+// below), as Desktop's whole-cell pointer can land a little off. The distance still counts from the
+// drawn edge, so a press inside a button always picks that button, and a press between two picks
+// the nearer. Card title rows (the folds) take only their own rows.
+export const BUTTON_SLOP = { x: 10, y: 12 }
 const NO_SLOP = { x: 0, y: 0 }
+const framed = (b: Box): Box => ({ ...b, slop: BUTTON_SLOP })
 
 const gap = (v: number, lo: number, hi: number) => (v < lo ? lo - v : v > hi ? v - hi : 0)
 

@@ -3,7 +3,7 @@
 // its time. Pure: install.tsx reads the photo and draws it; athan-card.tsx
 // builds the picture on the drawing thread.
 
-import { cardHeight, cardSvg, drawWidthOf, fontFace, frameOf, pixelOf, REST_PX, type CardFrame } from '../../shared/card/card.ts'
+import { cardHeight, cardSvg, drawWidthOf, closeArea, fontFace, frameOf, pixelOf, REST_PX, type CardFrame } from '../../shared/card/card.ts'
 import type { CardProps, CardView } from '../../shared/card/client.tsx'
 import { arabicDigits, athanText, IN_MS } from '../../shared/pray/line.ts'
 import type { Pray } from '../../shared/pray/names.ts'
@@ -53,10 +53,17 @@ export const startArea = (f: CardFrame) => {
   const x0 = box.padX + (f.card ? 0 : 1) + START_LEFT + box.addX - box.left
   return { x0, x1: x0 + START_WIDTH, y0: (f.height - START_HEIGHT) / 2, y1: (f.height + START_HEIGHT) / 2 }
 }
+// The button takes its whole frame and a margin past it, short of the × at the left;
+// the drawing thread lights it over the same area.
+export const START_MARGIN = { x: 8, y: 8 }
+export const startHitArea = (f: CardFrame) => {
+  const a = startArea(f)
+  return { x0: Math.max(a.x0 - START_MARGIN.x, closeArea(f).x1 + 1), x1: a.x1 + START_MARGIN.x, y0: a.y0 - START_MARGIN.y, y1: a.y1 + START_MARGIN.y }
+}
 export const isOnStart = (p: AthanCardProps, x: number, y: number, columns: number, rows: number) => {
   const frame = athanFrame(p, columns)
   const { px, py } = pixelOf(frame, x, y, columns, rows)
-  const a = startArea(frame)
+  const a = startHitArea(frame)
   return !!p.canStart && px >= a.x0 && px <= a.x1 && py >= a.y0 && py <= a.y1
 }
 

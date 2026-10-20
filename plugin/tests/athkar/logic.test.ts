@@ -7,7 +7,7 @@ import type { Reading } from '../../src/features/athkar/logic.ts'
 import { glowAtTime, GLOW_MS, bandHeight, bandSvg, closeArea, coverFit, doneFit, endWidth, finaleSize, fitOf, pixelOf } from '../../src/features/athkar/band.ts'
 import type { BandModel } from '../../src/features/athkar/band.ts'
 import { SIZE_DEFAULT, readOptions } from '../../src/config.ts'
-import { hitsFor } from '../../src/features/athkar/band.ts'
+import { CHOICE_MARGIN, hitsFor, questionAreas } from '../../src/features/athkar/band.ts'
 
 test('morning runs 05:00 to 17:00, evening the rest', async () => {
   expect([4, 5, 12, 16, 17, 23, 0].map(periodAt)).toEqual(['evening', 'morning', 'morning', 'morning', 'evening', 'evening', 'evening'])
@@ -393,4 +393,21 @@ test('slot identity requires both prayer and timestamp, with null as the general
   expect(sameSlot({ pray: 'isha', at: 1 }, { pray: 'isha', at: 1 })).toBe(true)
   expect(sameSlot({ pray: 'isha', at: 1 }, { pray: 'isha', at: 2 })).toBe(false)
   expect(sameSlot({ pray: 'isha', at: 1 }, { pray: 'fajr', at: 1 })).toBe(false)
+})
+
+test('the finish question\'s two buttons take their whole frame and a margin; the gap between them splits, and the × stays its own', () => {
+  const width = 600
+  const hits = hitsFor({ phase: 'question', isActive: true, restHeight: 24, finaleMs: undefined, width })
+  const at = (x: number, y: number) => hits.find(h => x >= h.x0 && x <= h.x1 && y >= h.y0 && y <= h.y1)?.act.act
+  const [finish, resume] = questionAreas(width)
+  for (const a of [finish!, resume!]) {
+    for (let x = a.x0; x <= a.x1; x += 2) for (let y = a.y0; y <= a.y1; y += 2) expect(at(x, y)).toBe(a.act)
+    const mx = (a.x0 + a.x1) / 2
+    expect(at(mx, a.y0 - CHOICE_MARGIN.y)).toBe(a.act)
+    expect(at(mx, a.y1 + CHOICE_MARGIN.y)).toBe(a.act)
+    expect(at(mx, a.y1 + CHOICE_MARGIN.y + 1)).toBeUndefined()
+  }
+  expect(at(resume!.x1 + 3, 50)).toBe('resume')
+  expect(at(finish!.x0 - 3, 50)).toBe('finish')
+  expect(at(10, 10)).toBe('hide')
 })
