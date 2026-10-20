@@ -18,16 +18,12 @@ The first public release.
 - Fajr/Maghrib periods and prayer-based desktop skies with a saved place; 05:00/17:00 periods otherwise. The terminal uses a text frame.
 - Per-set reminders in `/config`, the pane and `/athkar <set> on|off`; manual set picks can hold a reading across periods. Bare `/athkar` shows the current period without holding it.
 - After-salah readings offered automatically from fifteen to thirty minutes after each prayer. Once begun, they retain progress through midnight and take precedence until finished, hidden or replaced by the next prayer.
-- On desktop the athkar band follows the app’s light or dark look, even when it differs from Claude Code’s theme setting; in the terminal the frame’s words use the terminal theme’s own colors.
-- The finish question’s «نعم، أتممتُها» and «أكمل العدّ» take a press anywhere in their frame and just around it.
-- `/athkar help` and `/muslim help` say what to do when the terminal frame’s words are hard to read: set Claude Code’s `/theme` to match the terminal.
 
 ### Salah
 
 - Local prayer-time calculation for your city, country-based methods, manual minute adjustments and a review form.
 - A next-prayer line with a live countdown, including Isha after midnight, and a quiet fifteen-minute athan moment: a photo card on desktop and a rising minaret in the terminal.
-- The athan card always offers a direct after-salah start. On desktop its colors follow the app’s light or dark look. City setup can be put off; name lookup has an eight-second timeout and accepts coordinates too.
-- The athan card’s after-salah start takes a press just around its words too.
+- The athan card always offers a direct after-salah start. City setup can be put off; name lookup has an eight-second timeout and accepts coordinates too.
 
 ### Quran (desktop)
 
@@ -43,7 +39,6 @@ The first public release.
 - `/muslim` opens today’s prayers, the Quran player, athkar progress and tabbed settings, with a footer toggle.
 - Athkar set selection, start/resume, finish and reset with temporary undo. Daily and settings Athan switches show the same immediate feedback and roll back failed saves.
 - Unavailable pane opens give a short reply or toast. Quran failures stay in the player, with Retry.
-- Every framed button takes a press anywhere in its frame, not only on its word: settings choices such as سماء or إطار, tabs, the athkar card's buttons and the Quran fields.
 
 ### Shared controls
 
