@@ -104,7 +104,8 @@ for (const style of ['sky', 'frame'] as const) {
   })
 }
 
-test('terminal frame plays the same readings and colors, then its own open and folded done rows', async ($, on) => {
+// Plays the whole demo: near 5 s on a CI runner, so it gets more time.
+test('terminal frame plays the same readings and colors, then its own open and folded done rows', { timeoutMs: 20_000 }, async ($, on) => {
   const clock = mock.clock(on, { now: NOW })
   engineBand(on, 'terminal')
   const written = savedReading(on)
@@ -138,7 +139,7 @@ test('terminal frame plays the same readings and colors, then its own open and f
 })
 
 for (const surface of ['desktop', 'terminal'] as const) {
-  test(`${surface}: demo pointer, key and hide messages have no real-reading handler`, async ($, on) => {
+  test(`${surface}: demo pointer, key and hide messages have no real-reading handler`, { timeoutMs: 20_000 }, async ($, on) => {
     const clock = mock.clock(on, { now: NOW })
     engineBand(on, surface)
     const day = emptyDay(dayOf(new Date(NOW)))
