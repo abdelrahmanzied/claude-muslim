@@ -104,7 +104,8 @@ for (const style of ['sky', 'frame'] as const) {
   })
 }
 
-test('terminal frame plays the same readings and colors, then its own open and folded done rows', async ($, on) => {
+// Plays the whole demo: near 5 s on a CI runner, so it gets more time.
+test('terminal frame plays the same readings and colors, then its own open and folded done rows', { timeoutMs: 20_000 }, async ($, on) => {
   const clock = mock.clock(on, { now: NOW })
   engineBand(on, 'terminal')
   const written = savedReading(on)
@@ -114,7 +115,7 @@ test('terminal frame plays the same readings and colors, then its own open and f
   for (const [i, scene] of scenes.entries()) {
     expect(await ui.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
     const props = (await ui.find({ type: 'Client', key: 'athkar-demo' }))?.props.props as Record<string, unknown>
-    expect(props).toMatchObject({ phase: i < 4 ? 'reading' : 'done', isActive: i !== 5, look: { style: 'frame', ring: accentHex(scene.accent, true) } })
+    expect(props).toMatchObject({ phase: i < 4 ? 'reading' : 'done', isActive: i !== 5, look: { style: 'frame', ring: scene.accent === 'orange' ? 'claude' : accentHex(scene.accent, true), ink: 'text', dim: 'subtle', track: 'inactive' } })
     expect(await ui.find({ in: 'athkar-demo', type: 'Svg' })).toBeUndefined()
     if (i < 4) {
       const authored = listFor('morning').find(t => t.id === scene.id)!
@@ -138,7 +139,7 @@ test('terminal frame plays the same readings and colors, then its own open and f
 })
 
 for (const surface of ['desktop', 'terminal'] as const) {
-  test(`${surface}: demo pointer, key and hide messages have no real-reading handler`, async ($, on) => {
+  test(`${surface}: demo pointer, key and hide messages have no real-reading handler`, { timeoutMs: 20_000 }, async ($, on) => {
     const clock = mock.clock(on, { now: NOW })
     engineBand(on, surface)
     const day = emptyDay(dayOf(new Date(NOW)))

@@ -143,7 +143,6 @@ export type CardContent = {
   style: string
   html: string
   css: string
-  theme?: 'light' | 'dark'
   hoverClose?: boolean
 }
 
@@ -162,9 +161,8 @@ export const cardSvg = (f: CardFrame, c: CardContent) => {
   // Over the desktop's card the picture is narrowed to the slot, a hair: it
   // stretches to fill rather than leave a strip of the card.
   const size = `width="${box.width}" height="${box.height}" viewBox="0 0 ${box.width} ${box.height}"${f.card ? ' preserveAspectRatio="none"' : ''}`
-  const theme = c.theme ? ` data-theme="${c.theme}"` : ''
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" ${size}${theme}>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" ${size}>`
     + `<style><![CDATA[${CARD_CSS}\n${c.css}]]></style>`
     + `<foreignObject x="0" y="0" width="${box.width}" height="${box.height}"><div xmlns="http://www.w3.org/1999/xhtml" class="wrap"${pad}>${cardHtml(f, c)}</div></foreignObject></svg>`
 }

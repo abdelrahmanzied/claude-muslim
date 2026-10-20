@@ -16,11 +16,11 @@ export const COMMON_FIELDS: readonly Field[] = [
   ['os', 'Operating system'],
 ]
 
-export const FEATURES: readonly string[] = ['thikr', 'athkar', 'salah', 'quran', 'Muslim pane', '/muslim commands and settings', 'other or new']
+export const FEATURES: readonly string[] = ['thikr', 'athkar', 'salah', 'quran', 'Muslim pane', '/muslim commands and settings', 'interface language', 'other or new']
 
 // The label each feature adds (the issue-labels workflow does the same from the form).
 export const FEATURE_LABELS: Readonly<Record<string, string>> = {
-  thikr: 'thikr', athkar: 'athkar', salah: 'salah', quran: 'quran', 'Muslim pane': 'pane', '/muslim commands and settings': 'muslim',
+  thikr: 'thikr', athkar: 'athkar', salah: 'salah', quran: 'quran', 'Muslim pane': 'pane', '/muslim commands and settings': 'muslim', 'interface language': 'language',
 }
 
 export const KINDS: readonly Kind[] = [
@@ -48,6 +48,12 @@ export const issueUrl = (kind: Kind, title: string, values: Readonly<Record<stri
 const forms = (): string =>
   KINDS.map(kind => `- ${kind.name}: label \`${kind.label}\`, template \`${kind.file}\`, fields ${[...kind.fields, ...COMMON_FIELDS].map(([id, label]) => `\`${id}\` (${label})`).join(', ')}`).join('\n')
 
+// Every issue sent from `/muslim feedback` ends with this line, so the issue-labels workflow can
+// label it even when GitHub drops `--label` (people without triage access) or the link fallback
+// is used (forms cannot set labels). Keep the workflow regex in step with it.
+export const VIA_LABEL = 'via-plugin'
+export const markerLine = (kindLabel: string): string => `Sent with /muslim feedback (kind: ${kindLabel})`
+
 export type FeedbackContext = { version: string; surface: string | null; os?: string; text?: string }
 
 export const feedbackPrompt = ({ version, surface, os, text }: FeedbackContext): string => {
@@ -62,13 +68,14 @@ export const feedbackPrompt = ({ version, surface, os, text }: FeedbackContext):
     `   - muslim version: ${version}`,
     `   - Surface: ${surface ?? 'unknown (ask)'} (terminal or desktop)`,
     `   - Operating system: ${os ?? 'the one you are running on, from your environment (macOS, Windows or Linux)'}`,
+    `   - Marker: the very last line of the body is always exactly ${markerLine('<kind label>')}, with the kind label from the list below (for example ${markerLine('bug')}). Add it to the draft and show it.`,
     '3. Show the person the full draft (title, body, labels), then ask for the send decision with your multiple-choice question tool, with the options "Send", "Change it" and "Don\'t send". Only "Send" is a yes. Anything else means do not send: for "Change it" ask what to change, update the draft and ask again.',
-    `4. Only after "Send", run: gh issue create --repo ${REPO} --label <kind label> --label <feature label, if any> --label <surface label> --title <title> --body <body>. The feature label is ${Object.entries(FEATURE_LABELS).map(([name, label]) => `${name} -> ${label}`).join(', ')}; none for "other or new". The surface label is the surface above (terminal or desktop); leave it out if the surface is neither. Pass the title and body safely (for example from a temporary file with --body-file), and tell the person the issue link when it is created.`,
-    `5. If gh is missing, or \`gh auth status\` says it is not signed in, do not send anything. Give a ready link instead: https://github.com/${REPO}/issues/new?template=<template>&title=<title>&<field id>=<answer> with one <field id>=<answer> pair per field, including feature=<feature>, every value URL-encoded. (Issue forms read the field ids, not a body parameter.) Say that they open it and press Submit.`,
+    `4. Only after "Send", run: gh issue create --repo ${REPO} --label <kind label> --label ${VIA_LABEL} --label <feature label, if any> --label <surface label> --title <title> --body <body>. The feature label is ${Object.entries(FEATURE_LABELS).map(([name, label]) => `${name} -> ${label}`).join(', ')}; none for "other or new". The surface label is the surface above (terminal or desktop); leave it out if the surface is neither. Pass the title and body safely (for example from a temporary file with --body-file), and tell the person the issue link when it is created.`,
+    `5. If gh is missing, or \`gh auth status\` says it is not signed in, do not send anything. Give a ready link instead: https://github.com/${REPO}/issues/new?template=<template>&title=<title>&<field id>=<answer> with one <field id>=<answer> pair per field, including feature=<feature>, every value URL-encoded. (Issue forms read the field ids, not a body parameter.) Put the marker line as the last line of the value of the kind\'s last free-text field (the last field listed for it that is not one of the common fields), after a blank line, since forms fill only field ids. Say that they open it and press Submit.`,
     '',
     'The kinds, their labels, templates and field ids:',
     forms(),
     '',
-    'Rules: never send, post or create anything without the "Send" from step 3. Put nothing in the issue except what the person wrote and the chosen feature and the three filled fields; add no personal data, paths, usernames, settings or logs they did not give. Do nothing else in this task.',
+    'Rules: never send, post or create anything without the "Send" from step 3. Put nothing in the issue except what the person wrote and the chosen feature, the three filled fields and the marker line; add no personal data, paths, usernames, settings or logs they did not give. Do nothing else in this task.',
   ].join('\n')
 }

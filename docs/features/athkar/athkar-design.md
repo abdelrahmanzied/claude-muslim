@@ -8,7 +8,7 @@ The athkar reader is the one feature the person sits with, so it is drawn:
 
 - **Client modules** (`plugin/src/features/athkar/reader.tsx` in the terminal, `plugin/src/features/athkar/card.tsx` on desktop) take clicks and keys and post each count to the hooks module. The desktop uses the shared card in `plugin/src/shared/card/` for its size, frame, ×, hover and lighting. The terminal reader is unchanged.
 - **Svg** (desktop only) for the Sky look: a sky that follows the time of day with slow SMIL motion, drawn behind the reader. The terminal always uses the Frame look.
-- **Hex colors** from `plugin/src/shared/color/` for the reader's plugin-wide main color (`/muslim color`, default Claude orange; orange, green, yellow, blue in light/dark shades), and feature-specific colors for the skies, since a theme key cannot be blended or placed on a sky.
+- **Hex colors** from `plugin/src/shared/color/` for the reader's plugin-wide main color (`/muslim color`, default Claude orange; orange, green, yellow, blue in light/dark shades; on the desktop the band emits both shades and the app's appearance picks with `prefers-color-scheme`, never Claude Code's `theme` config, see DESIGN.md), and feature-specific colors for the skies, since a theme key cannot be blended or placed on a sky.
 
 Everything else (font, size) stays Claude's: the API sets neither, so the reader follows the app's zoom.
 
@@ -53,7 +53,7 @@ The desktop athan action **ابدأ أذكار بعد الصلاة** hands off i
 | Look | Surface | Drawn as |
 | --- | --- | --- |
 | Sky (default) | desktop | A sky that follows saved prayer times (see below); without them, exactly dawn 4–6, sunrise 6–8, clear day 8–17, rose 17–18, blue hour 18–19, crescent 19–4. Rich motion: stars, sun, clouds, birds, shooting stars. Faded until clicked, then in color. |
-| Frame | both (the only look in the terminal) | A main-color frame that breathes while reading. |
+| Frame | both (the only look in the terminal) | A main-color frame that breathes while reading. On the desktop its words, lines and fills follow the app's light or dark appearance (both palettes in the band's CSS, picked by `prefers-color-scheme`); in the terminal its words, dim text and lines are the theme keys `text`, `subtle` and `inactive`, and the frame breathes with the border's dim form. Those keys follow Claude Code's `/theme`, not the terminal's background, so a dark theme on a light terminal leaves the lit words pale; the `/athkar style` help row says to match `/theme` to the terminal. Skies keep their own colors (white words, dark on sunrise) in either appearance. |
 
 With a saved salah place, the sky uses absolute prayer timestamps, independently of the selected reading: dawn from Fajr to Sunrise, sunrise until Sunrise + 2 hours, day until Maghrib − 1 hour, rose until Maghrib, blue hour until the earlier of Maghrib + 1 hour and Isha, then crescent until the next Fajr (including after midnight before Fajr). Sunrise comes from the same calculation and adjustments as salah. If it is missing, nonfinite or not strictly between Fajr and Maghrib, use Fajr + 1.5 hours.
 
@@ -152,7 +152,7 @@ Counting by keys with the pointer on the band keeps it open until the pointer le
 
 ## End question
 
-Before completion, next past the last item checks the whole period. If any item is not fully counted, show «أتممتَ الأذكار؟» and a small muted Arabic-digit count («٨ دون عدّ كامل»), with primary «نعم، أتممتُها» on the right and quiet «أكمل العدّ» on the left. This is UI chrome, not religious text. It uses the same layout, tokens and controls in Sky and Frame: the existing 77px open band and 24px folded row; no finale or completed progress while asking. Choice text shrinks with narrow widths. The folded row shows the question alone and a first press wakes it. Choice rectangles in `band.ts` also drive pointer hit testing; background clicks do nothing. A thin outline shows the selected choice.
+Before completion, next past the last item checks the whole period. If any item is not fully counted, show «أتممتَ الأذكار؟» and a small muted Arabic-digit count («٨ دون عدّ كامل»), with primary «نعم، أتممتُها» on the right and quiet «أكمل العدّ» on the left. This is UI chrome, not religious text. It uses the same layout, tokens and controls in Sky and Frame: the existing 77px open band and 24px folded row; no finale or completed progress while asking. Choice text shrinks with narrow widths. The folded row shows the question alone and a first press wakes it. Choice rectangles in `band.ts` also drive pointer hit testing: each choice takes its whole frame plus 4px each side (half the gap between them) and 8px above and below (`CHOICE_MARGIN`); other background clicks do nothing. A thin outline shows the selected choice.
 
 The terminal draws the question, muted line and two native text buttons through the shared Arabic display path, and lists the keys. Tab/← selects; Enter/Space activates the selected choice; →/Backspace/right click returns to the last thikr. Since `ClientKeyEvent` has neither release nor repeat metadata, the key that entered the question cannot activate it until an explicit selection key; the other activation key works immediately. No timeout guesses a release.
 

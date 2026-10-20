@@ -7,7 +7,7 @@ import type { Reading } from '../../src/features/athkar/logic.ts'
 import { glowAtTime, GLOW_MS, bandHeight, bandSvg, closeArea, coverFit, doneFit, endWidth, finaleSize, fitOf, pixelOf } from '../../src/features/athkar/band.ts'
 import type { BandModel } from '../../src/features/athkar/band.ts'
 import { SIZE_DEFAULT, readOptions } from '../../src/config.ts'
-import { hitsFor } from '../../src/features/athkar/band.ts'
+import { CHOICE_MARGIN, hitsFor, questionAreas } from '../../src/features/athkar/band.ts'
 
 test('morning runs 05:00 to 17:00, evening the rest', async () => {
   expect([4, 5, 12, 16, 17, 23, 0].map(periodAt)).toEqual(['evening', 'morning', 'morning', 'morning', 'evening', 'evening', 'evening'])
@@ -92,7 +92,7 @@ test('there is no 10 | 100 choice: no such act, and an extra saved key is droppe
 })
 
 const model = (over: Partial<BandModel>): BandModel => ({
-  phase: 'reading', period: 'morning', sky: 'crescent', style: 'sky', accent: 'orange', isDark: true, isActive: true, hasBegun: true,
+  phase: 'reading', period: 'morning', sky: 'crescent', style: 'sky', accent: 'orange', isActive: true, hasBegun: true,
   title: 't', thikrId: '91', text: 'x', position: '١ مِنْ ٢٢', count: 3, times: 100, progress: 30, from: 20,
   end: 'e', endHint: 'h', endNote: 'n', now: 0, width: 900, height: 93, ...over,
 })
@@ -339,6 +339,28 @@ test('athkar takes the shared main color without changing body or sky colors', (
   }
 })
 
+test('the terminal frame takes the terminal\'s theme keys for its words and lines, whatever the config theme', () => {
+  for (const isDark of [false, true]) {
+    const look = lookFor('frame', 'orange', 'day', isDark, false)
+    expect(look).toMatchObject({ ring: 'claude', ink: 'text', dim: 'subtle', track: 'inactive' })
+    expect(lookFor('frame', 'blue', 'day', isDark, false)).toMatchObject({ ink: 'text', dim: 'subtle', track: 'inactive', ring: isDark ? '#4a7fc0' : '#3a6aa3' })
+  }
+})
+
+test('the desktop band carries both palettes and lets the app\'s appearance pick, in every style and state', () => {
+  for (const style of ['sky', 'frame'] as const) {
+    for (const phase of ['cover', 'reading', 'question', 'done'] as const) {
+      const svg = bandSvg(model({ style, phase, question: phase === 'question' ? { title: 'q', remaining: 'r', confirm: 'c', resume: 'z', focus: 'finish' } : undefined }))
+      expect(svg).toContain(':root { --desk-bg: #1f1e1c;')
+      expect(svg).toContain('--claude: #d97757;')
+      expect(svg).toContain('@media (prefers-color-scheme: light) { :root { --desk-bg: #ffffff;')
+      expect(svg).toContain('--claude: #c8642d;')
+      expect(svg).toContain('--blue: #3a6aa3;')
+      expect(svg).not.toContain('data-theme')
+    }
+  }
+})
+
 // Width evidence from the embedded font, including the platform emoji allowance.
 test('closing width ignores tashkeel and reserves the emoji separately', () => {
   const near = (a: number, b: number) => expect(Math.abs(a - b)).toBeLessThan(1e-3)
@@ -371,4 +393,21 @@ test('slot identity requires both prayer and timestamp, with null as the general
   expect(sameSlot({ pray: 'isha', at: 1 }, { pray: 'isha', at: 1 })).toBe(true)
   expect(sameSlot({ pray: 'isha', at: 1 }, { pray: 'isha', at: 2 })).toBe(false)
   expect(sameSlot({ pray: 'isha', at: 1 }, { pray: 'fajr', at: 1 })).toBe(false)
+})
+
+test('the finish question\'s two buttons take their whole frame and a margin; the gap between them splits, and the × stays its own', () => {
+  const width = 600
+  const hits = hitsFor({ phase: 'question', isActive: true, restHeight: 24, finaleMs: undefined, width })
+  const at = (x: number, y: number) => hits.find(h => x >= h.x0 && x <= h.x1 && y >= h.y0 && y <= h.y1)?.act.act
+  const [finish, resume] = questionAreas(width)
+  for (const a of [finish!, resume!]) {
+    for (let x = a.x0; x <= a.x1; x += 2) for (let y = a.y0; y <= a.y1; y += 2) expect(at(x, y)).toBe(a.act)
+    const mx = (a.x0 + a.x1) / 2
+    expect(at(mx, a.y0 - CHOICE_MARGIN.y)).toBe(a.act)
+    expect(at(mx, a.y1 + CHOICE_MARGIN.y)).toBe(a.act)
+    expect(at(mx, a.y1 + CHOICE_MARGIN.y + 1)).toBeUndefined()
+  }
+  expect(at(resume!.x1 + 3, 50)).toBe('resume')
+  expect(at(finish!.x0 - 3, 50)).toBe('finish')
+  expect(at(10, 10)).toBe('hide')
 })

@@ -4,7 +4,7 @@ import { MODES_KEY } from '../../shared/arabic/terminal.ts'
 import { configFailure, hasConfigRow, MISSING_CONFIG, RELOAD_TO_FINISH } from '../../shared/reload/config.ts'
 import { setupForm } from '../../shared/setup/visibility.ts'
 import { stopBeforeReload } from '../../shared/reload/signal.ts'
-import { accentText, isDarkTheme, type Accent } from '../../shared/color/index.ts'
+import { accentText, type Accent } from '../../shared/color/index.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
 import { atom, read, update } from 'claude-code'
 import type { EngineInterface, On } from 'claude-code'
@@ -752,8 +752,7 @@ export const install = (on: On, options: Options) => {
     photo.base64 ??= await readPhoto($)
     if (!photo.base64) return theirs
     const { Box, Client } = $.ui.resolve(e)
-    const theme = (await $.config.list().catch(() => [])).find(row => row.key === 'theme')
-    const props = { canStart: true, accent: options.color, isDark: isDarkTheme(theme?.value), isActive: true, isFolded: cardIsFolded(shown, now), now, pray: shown.pray, time: shown.time, photo: photo.base64, width: Math.round(e.props.bodyColumns * CELL_PX), card: { ch: CELL_PX, lh: LINE_PX } }
+    const props = { canStart: true, accent: options.color, isActive: true, isFolded: cardIsFolded(shown, now), now, pray: shown.pray, time: shown.time, photo: photo.base64, width: Math.round(e.props.bodyColumns * CELL_PX), card: { ch: CELL_PX, lh: LINE_PX } }
     athan.props = props
 
     return (

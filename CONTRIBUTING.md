@@ -4,7 +4,7 @@ Thank you for helping.
 
 ## How to start
 
-- **Found a problem or have an idea?** Open an issue with one of the forms.
+- **Found a problem or have an idea?** Open an issue with one of the forms. Issues sent with `/muslim feedback` end with a `Sent with /muslim feedback (kind: <kind>)` line, which the issue-labels workflow turns into the `via-plugin` label and the kind label.
 - **Want to work on an issue?** Comment that you are interested, and wait until it is assigned to you before you start. Every change, even a small fix, starts from an assigned issue.
 - **Security problem?** Never report it in an issue; see [SECURITY.md](SECURITY.md).
 

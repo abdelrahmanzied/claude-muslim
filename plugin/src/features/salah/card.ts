@@ -3,7 +3,7 @@
 // its time. Pure: install.tsx reads the photo and draws it; athan-card.tsx
 // builds the picture on the drawing thread.
 
-import { cardHeight, cardSvg, drawWidthOf, fontFace, frameOf, pixelOf, REST_PX, type CardFrame } from '../../shared/card/card.ts'
+import { cardHeight, cardSvg, drawWidthOf, closeArea, fontFace, frameOf, pixelOf, REST_PX, type CardFrame } from '../../shared/card/card.ts'
 import type { CardProps, CardView } from '../../shared/card/client.tsx'
 import { arabicDigits, athanText, IN_MS } from '../../shared/pray/line.ts'
 import type { Pray } from '../../shared/pray/names.ts'
@@ -21,7 +21,6 @@ export type AthanCardProps = CardProps & {
   isFolded: boolean
   canStart?: boolean
   accent?: Accent
-  isDark?: boolean
   pray: Pray
   // The clock text, e.g. `15:59`.
   time: string
@@ -54,17 +53,27 @@ export const startArea = (f: CardFrame) => {
   const x0 = box.padX + (f.card ? 0 : 1) + START_LEFT + box.addX - box.left
   return { x0, x1: x0 + START_WIDTH, y0: (f.height - START_HEIGHT) / 2, y1: (f.height + START_HEIGHT) / 2 }
 }
+// The button takes its whole frame and a margin past it, short of the × at the left;
+// the drawing thread lights it over the same area.
+export const START_MARGIN = { x: 8, y: 8 }
+export const startHitArea = (f: CardFrame) => {
+  const a = startArea(f)
+  return { x0: Math.max(a.x0 - START_MARGIN.x, closeArea(f).x1 + 1), x1: a.x1 + START_MARGIN.x, y0: a.y0 - START_MARGIN.y, y1: a.y1 + START_MARGIN.y }
+}
 export const isOnStart = (p: AthanCardProps, x: number, y: number, columns: number, rows: number) => {
   const frame = athanFrame(p, columns)
   const { px, py } = pixelOf(frame, x, y, columns, rows)
-  const a = startArea(frame)
+  const a = startHitArea(frame)
   return !!p.canStart && px >= a.x0 && px <= a.x1 && py >= a.y0 && py <= a.y1
 }
 
 // The photo is a 640 by 80 strip cut from the original, a little above its
 // middle; `cover` fits it to the card's width. The words are white on it, and so is the ×.
-const css = (photo: string) => [
+const css = (photo: string, accent: Accent) => [
   fontFace('Aref Ruqaa', 700, ARUQAA_BOLD),
+  // The start control's main color: dark first, light when the app is light (as the Muslim pane does).
+  `.band.athan { --start-accent: ${accentHex(accent, true)}; }`,
+  `@media (prefers-color-scheme: light) { .band.athan { --start-accent: ${accentHex(accent, false)}; } }`,
   '.band.athan { height: 100%; border-radius: 10px; overflow: hidden; direction: rtl; color: #fff; --b-ink: #fff; --b-dim: rgba(255,255,255,.75);',
   '  font-family: "Aref Ruqaa", serif; font-weight: 700; display: flex; flex-direction: column; justify-content: center;',
   '  padding: var(--ay, 0px) calc(36px + var(--ax, 0px));',
@@ -84,8 +93,8 @@ const css = (photo: string) => [
 export const athanSvg = (p: AthanCardProps, view: Pick<CardView, 'hoverClose' | 'columns' | 'hoverAction'>) =>
   cardSvg(athanFrame(p, view.columns), {
     classes: `athan active${p.isFolded ? ' rest' : ''}`,
-    style: `--start-accent:${accentHex(p.accent ?? 'orange', p.isDark ?? true)}`,
+    style: '',
     html: `${p.canStart ? `<span class="start${view.hoverAction ? ' hot' : ''}"><span class="start-arrow">← </span><span class="start-label">${START_LABEL}</span></span>` : ''}<div class="main">${athanText(p.pray)}</div><div class="time">${arabicDigits(p.time)}</div>`,
-    css: css(p.photo),
+    css: css(p.photo, p.accent ?? 'orange'),
     hoverClose: view.hoverClose,
   })

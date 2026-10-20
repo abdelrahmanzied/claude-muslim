@@ -22,11 +22,10 @@ export const SKIES: Record<Sky, SkyLook> = {
   crescent: { stops: ['#060c22', '#121d48', '#26346a'], base: '#101a40', isBright: false },
 }
 
-const PAGE = { light: '#ffffff', dark: '#1f1e1d' }
-
 export type Look = {
   style: Style
-  // The main color.
+  // The main color: a hex, or the `claude` theme key. Frame ink, dim and
+  // track are theme keys; a sky's are hex.
   ring: string
   // Words, and words of less weight.
   ink: string
@@ -35,8 +34,6 @@ export type Look = {
   track: string
   // Behind the reader; none where a picture or the page shows through.
   background?: string
-  // The color under the reader, which the frame's breathing blends from.
-  under: string
 }
 
 const hex = (value: string) => {
@@ -67,20 +64,18 @@ export const lookFor = (style: Style, accent: Accent, sky: Sky, isDark: boolean,
       dim: blend(ink, base, 0.25),
       track: blend(base, ink, 0.3),
       background: hasPicture ? undefined : base,
-      under: base,
     }
   }
-  const page = PAGE[isDark ? 'dark' : 'light']
-  const ink = isDark ? '#ece8e2' : '#26231f'
-
+  // The frame is the terminal's: its words and lines take the terminal's own
+  // theme keys, so they follow it whatever theme it is in. Orange is the
+  // `claude` key; the other main colors stay hex.
   return {
     style,
-    ring,
-    ink,
-    dim: blend(ink, page, 0.4),
-    track: blend(page, ink, 0.18),
+    ring: accent === 'orange' && !hasPicture ? 'claude' : ring,
+    ink: 'text',
+    dim: 'subtle',
+    track: 'inactive',
     background: undefined,
-    under: page,
   }
 }
 

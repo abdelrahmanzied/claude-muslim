@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { COMMON_FIELDS, FEATURES, feedbackPrompt, issueUrl, kindByName, KINDS, REPO } from '../../src/feedback.ts'
+import { COMMON_FIELDS, FEATURES, feedbackPrompt, issueUrl, kindByName, KINDS, markerLine, REPO, VIA_LABEL } from '../../src/feedback.ts'
 
 test('every kind maps to its label and issue form', () => {
   expect(KINDS.map(kind => [kind.label, kind.file])).toEqual([
@@ -26,7 +26,8 @@ test('the prompt asks before sending and gates on an explicit yes', () => {
   expect(prompt).toContain('"Send", "Change it" and "Don\'t send"')
   expect(prompt).toContain('Only "Send" is a yes')
   for (const feature of FEATURES) expect(prompt).toContain(feature)
-  expect(prompt).toContain(`gh issue create --repo ${REPO} --label <kind label> --label <feature label, if any> --label <surface label> --title <title> --body <body>`)
+  expect(prompt).toContain('interface language -> language')
+  expect(prompt).toContain(`gh issue create --repo ${REPO} --label <kind label> --label via-plugin --label <feature label, if any> --label <surface label> --title <title> --body <body>`)
   expect(prompt).toContain('Only after "Send"')
   expect(prompt).toContain(`https://github.com/${REPO}/issues/new?template=<template>`)
   expect(prompt).toContain('feature=<feature>')
@@ -40,4 +41,13 @@ test('without text or a known surface the prompt says so', () => {
   expect(prompt).toContain('They wrote nothing after the command.')
   expect(prompt).toContain('unknown (ask)')
   expect(prompt).toContain('Operating system: Windows')
+})
+
+test('every issue ends with the marker line, in the gh path and in the link fallback', () => {
+  expect(VIA_LABEL).toBe('via-plugin')
+  expect(markerLine('bug')).toBe('Sent with /muslim feedback (kind: bug)')
+  const prompt = feedbackPrompt({ version: '1.0.0', surface: 'terminal' })
+  expect(prompt).toContain('the very last line of the body is always exactly Sent with /muslim feedback (kind: <kind label>)')
+  expect(prompt).toContain('(for example Sent with /muslim feedback (kind: bug))')
+  expect(prompt).toContain("as the last line of the value of the kind's last free-text field")
 })

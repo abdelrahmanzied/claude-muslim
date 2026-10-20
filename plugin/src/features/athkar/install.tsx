@@ -167,6 +167,15 @@ let resetUndo: ResetSnapshot | undefined
 let undoTimer: { cancel: () => void } | undefined
 const dropUndo = () => { resetUndo = undefined; undoTimer?.cancel(); undoTimer = undefined }
 
+// Terminal only: its own theme decides the deeper main colors. The desktop
+// band draws both palettes and the app picks (prefers-color-scheme), so it never reads it.
+const terminalIsDark = async ($: EngineInterface, isPicture: boolean) => {
+  if (isPicture) return true
+  const theme = (await $.config.list().catch(() => [])).find(row => row.key === 'theme')
+
+  return isDarkTheme(theme?.value)
+}
+
 const localNow = async ($: EngineInterface) => new Date(await $.clock.now())
 
 // Today's reading as held this session, else as stored, or a fresh day once
@@ -522,8 +531,7 @@ export const install = (on: On, options: Options) => {
       const athan = await read($, athanCard)
       if (athan && athan.until > now) return theirs
     }
-    const theme = (await $.config.list().catch(() => [])).find(row => row.key === 'theme')
-    const isDark = isDarkTheme(theme?.value)
+    const isDark = await terminalIsDark($, isPicture)
     const look = lookFor(scene.style, scene.accent, scene.sky, isDark, isPicture)
     const arabicMode = await arabicModeOf($, e.surface, demoArabicCache)
     const show = (text: string) => terminalArabic(e.surface, arabicMode, withTashkeel(text, options.tashkeel))
@@ -544,7 +552,7 @@ export const install = (on: On, options: Options) => {
     const width = Math.round(e.props.bodyColumns * CELL_PX)
     const model: BandModel = {
       phase: props.phase, period: scene.period, sky: scene.sky, style: scene.style,
-      accent: scene.accent, isDark, isActive: scene.isActive, hasBegun: props.hasBegun,
+      accent: scene.accent, isActive: scene.isActive, hasBegun: props.hasBegun,
       title: props.title, thikrId: thikr.id, text: props.text, note: props.note, position: props.position,
       count: countOf(thikr, scene.reading), times: thikr.times,
       progress: scene.progress * 100, from: scene.from * 100, glowMs: scene.glowMs,
@@ -793,11 +801,10 @@ export const install = (on: On, options: Options) => {
       light($)
     }
 
-    // Light themes take the deeper main colors.
-    const theme = (await $.config.list().catch(() => [])).find(row => row.key === 'theme')
-    const isDark = isDarkTheme(theme?.value)
     const isPicture = e.surface === 'desktop'
     const sky = skyOn(now, bounds)
+    // Light themes take the deeper main colors (terminal only).
+    const isDark = await terminalIsDark($, isPicture)
     // Sky is desktop only; the terminal always draws the frame.
     const look = lookFor(isPicture ? options.athkarStyle : 'frame', options.color, sky, isDark, isPicture)
     // The shared Arabic path: the tashkeel setting, then this terminal's mode.
@@ -851,7 +858,6 @@ export const install = (on: On, options: Options) => {
       style: options.athkarStyle,
       finaleMs,
       accent: options.color,
-      isDark,
       isActive: view.isActive,
       hasBegun: props.hasBegun,
       title: show(TITLE[period]),

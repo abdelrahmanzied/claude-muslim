@@ -12,6 +12,7 @@ The design principles for every drawn desktop pane in this mod (today the Muslim
 
 - The pane is one Client-drawn SVG picture at fixed pixels. Every height and position is a constant (`layout.ts`, `settings.ts`); nothing is measured.
 - Drawing and hit testing read the same constants and rectangles, so a click always means what is drawn under it. A change to one height is a change to both, with tests.
+- A framed button takes a press anywhere in its frame (DESIGN.md §2) plus a margin of 10px each side and 12px above and below (`BUTTON_SLOP`): every settings control and tab, the − / + steps, the athkar row's buttons, its title button and set menu, and the Quran fields and Retry. Card title rows (the folds) and the Athan row take only their own area. The distance counts from the drawn edge, so a press inside one button always picks it and a press between two picks the nearer.
 - It must work at the 240px minimum width and at 360px.
 
 ## 3. Look

@@ -100,8 +100,6 @@ button:focus-visible {outline: 2px solid var(--accent); outline-offset: 2px;}
 .fx {position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 5;}
 .kc {display: inline-grid; place-items: center; min-width: 16px; height: 16px; padding: 0 4px; border: 1px solid var(--b-dim); border-bottom-width: 2px; border-radius: 4px; font: 500 9.5px/1 var(--font-mono); color: var(--b-dim); opacity: .85;}
 .keys {display: inline-flex; gap: 4px; align-items: center; font: 500 10.5px var(--font-mono); color: var(--b-dim);}
-:root[data-theme="dark"] .band.fc-white {--fill-ink: var(--b-edge, var(--ring));}
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .band.fc-white {--fill-ink: var(--b-edge, var(--ring));} }
 .band.line.compact {grid-template-columns: minmax(0, 1fr);}
 .band.line.compact .text {grid-column: 1; grid-row: auto;}
 @media (max-width: 640px) { .band.line {grid-template-columns: minmax(0,1fr);} }

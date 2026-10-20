@@ -26,7 +26,6 @@ export type BandModel = {
   sky: Sky
   style: Style
   accent: Accent
-  isDark: boolean
   // Lit (in color, breathing); faded at rest.
   isActive: boolean
   hasBegun: boolean
@@ -167,7 +166,10 @@ const EXTRA_CSS = `
    and the glow breathing inside the edge, since the picture ends at it. */
 .band.band.al-breathe:not(.active) { border-color: var(--desk-line) !important; }
 .band.band.al-breathe.active { border-color: var(--b-acc) !important; animation: breatheIn 5.5s ease-in-out infinite; animation-delay: var(--t, 0s); }
-@keyframes breatheIn { 0%, 100% { box-shadow: inset 0 0 8px 0 color-mix(in srgb, var(--b-acc) 16%, transparent); } 50% { box-shadow: inset 0 0 16px 1px color-mix(in srgb, var(--b-acc) 32%, transparent); } }
+@keyframes breatheIn { 0%, 100% { box-shadow: inset 0 0 8px 0 color-mix(in srgb, var(--b-acc) var(--glow-lo, 16%), transparent); } 50% { box-shadow: inset 0 0 16px 1px color-mix(in srgb, var(--b-acc) var(--glow-hi, 32%), transparent); } }
+/* Light app: the page's own white under the frame, like the prompt box, and a
+   fainter glow, so the frame sits in the app as it does in dark. */
+@media (prefers-color-scheme: light) { .band.bg-frame { background: var(--desk-bg); --glow-lo: 5%; --glow-hi: 10%; } }
 `
 
 
@@ -298,10 +300,12 @@ export const bandHtml = (m: BandModel) => cardHtml(cardFrameOf(m), { ...bandCont
 export const bandSvg = (m: BandModel) => {
   const fonts = [fontFace('Tajawal', 400, TAJAWAL_REGULAR), fontFace('Tajawal', 700, TAJAWAL_BOLD)]
   if (m.phase === 'cover' || m.finaleMs !== undefined) fonts.push(fontFace('Aref Ruqaa', 700, AREF_RUQAA_BOLD))
-  const mainColors = Object.keys(ACCENTS).map(color => `--${color === 'orange' ? 'claude' : color}: ${accentHex(color as Accent, m.isDark)};`).join(' ')
-  const css = `${fonts.join('\n')}\n:root { ${m.isDark ? ROOT_DARK : ROOT_LIGHT} ${mainColors} ${FONTS} }\n${BAND_CSS}\n${EXTRA_CSS}${m.phase === 'question' ? QUESTION_CSS : ''}`
+  // Both palettes, the app's appearance picks (as the Muslim pane does): dark
+  // first, light under prefers-color-scheme. Nothing reads Claude Code's theme.
+  const mainColors = (isDark: boolean) => Object.keys(ACCENTS).map(color => `--${color === 'orange' ? 'claude' : color}: ${accentHex(color as Accent, isDark)};`).join(' ')
+  const css = `${fonts.join('\n')}\n:root { ${ROOT_DARK} ${mainColors(true)} ${FONTS} }\n@media (prefers-color-scheme: light) { :root { ${ROOT_LIGHT} ${mainColors(false)} } }\n${BAND_CSS}\n${EXTRA_CSS}${m.phase === 'question' ? QUESTION_CSS : ''}`
 
-  return cardSvg(cardFrameOf(m), { ...bandContent(m), css, theme: m.isDark ? 'dark' : 'light' })
+  return cardSvg(cardFrameOf(m), { ...bandContent(m), css })
 }
 
 const SHRINK_AT = 1.05
@@ -420,7 +424,10 @@ export const glowAtTime = (from: number, to: number, ms: number) => {
 // anywhere else counts or opens the band.
 type Hit = { x0: number; x1: number; y0: number; y1: number; act: Act }
 
+// A framed button takes its whole frame and a margin past it: half the 8px gap between the two
+// choices, and 8px above and below (none reaches the × above).
+export const CHOICE_MARGIN = { x: 4, y: 8 }
 export const hitsFor = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' | 'finaleMs'> & { width?: number }): Hit[] => [
   { ...closeArea(m), act: { act: 'hide' } },
-  ...(m.phase === 'question' && m.isActive ? questionAreas(m.width ?? 0).map(a => ({ ...a, act: { act: a.act } })) : []),
+  ...(m.phase === 'question' && m.isActive ? questionAreas(m.width ?? 0).map(a => ({ x0: a.x0 - CHOICE_MARGIN.x, x1: a.x1 + CHOICE_MARGIN.x, y0: a.y0 - CHOICE_MARGIN.y, y1: a.y1 + CHOICE_MARGIN.y, act: { act: a.act } })) : []),
 ]

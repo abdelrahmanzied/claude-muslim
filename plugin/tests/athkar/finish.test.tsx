@@ -3,7 +3,7 @@ import { expect, mock, test } from 'claude-code/testing'
 import { asksToFinish, arabicDigits, dayOf, emptyDay, emptyReading, finishReading, incomplete, listFor, overall, questionKey, readDay, step, type Day, type FinishQuestion } from '../../src/features/athkar/logic.ts'
 import { readerProps, lookFor } from '../../src/features/athkar/look.ts'
 import { bandHeight, bandSvg, questionAreas, type BandModel } from '../../src/features/athkar/band.ts'
-import { hitsFor } from '../../src/features/athkar/band.ts'
+import { CHOICE_MARGIN, hitsFor } from '../../src/features/athkar/band.ts'
 import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
 
 const NOW = new Date(2026, 9, 10, 10).getTime()
@@ -66,7 +66,7 @@ for (const style of ['sky', 'frame'] as const) {
   test(`${style}: question has the same fixed height, incomplete fraction, choices and hit geometry`, () => {
     const reading = emptyReading()
     const props = readerProps('morning', reading, lookFor(style, 'orange', 'day', true, true), t => t, { isOpen: true, isActive: true, isPicture: true, question: { focus: 'finish' } })
-    const m: BandModel = { phase: props.phase, question: props.question, period: 'morning', sky: 'day', style, accent: 'orange', isDark: true, isActive: true, hasBegun: false, title: props.title, thikrId: '75', text: props.text, position: props.position, count: 0, times: 1, progress: 0, from: 0, end: props.end, endHint: props.endHint, endNote: props.endNote, now: 0, width: 840, height: 77, restHeight: 24 }
+    const m: BandModel = { phase: props.phase, question: props.question, period: 'morning', sky: 'day', style, accent: 'orange', isActive: true, hasBegun: false, title: props.title, thikrId: '75', text: props.text, position: props.position, count: 0, times: 1, progress: 0, from: 0, end: props.end, endHint: props.endHint, endNote: props.endNote, now: 0, width: 840, height: 77, restHeight: 24 }
     expect(bandHeight(m, 840)).toBe(77)
     const svg = bandSvg(m)
     expect(svg).toContain('أتممتَ الأذكار؟')
@@ -76,7 +76,7 @@ for (const style of ['sky', 'frame'] as const) {
     expect(svg).not.toContain('class="fall"')
     expect(svg.length).toBeLessThan(98000)
     for (const area of questionAreas(m.width)) {
-      expect(hitsFor(m).find(h => h.act.act === area.act)).toEqual({ ...area, act: { act: area.act } })
+      expect(hitsFor(m).find(h => h.act.act === area.act)).toEqual({ x0: area.x0 - CHOICE_MARGIN.x, x1: area.x1 + CHOICE_MARGIN.x, y0: area.y0 - CHOICE_MARGIN.y, y1: area.y1 + CHOICE_MARGIN.y, act: { act: area.act } })
     }
     expect(hitsFor({ ...m, isActive: false })).toHaveLength(1)
   })
