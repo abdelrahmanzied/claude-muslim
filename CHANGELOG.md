@@ -20,6 +20,7 @@ The first public release.
 - After-salah readings offered automatically from fifteen to thirty minutes after each prayer. Once begun, they retain progress through midnight and take precedence until finished, hidden or replaced by the next prayer.
 - On desktop the athkar band follows the app’s light or dark look, even when it differs from Claude Code’s theme setting; in the terminal the frame’s words use the terminal theme’s own colors.
 - The finish question’s «نعم، أتممتُها» and «أكمل العدّ» take a press anywhere in their frame and just around it.
+- `/athkar help` and `/muslim help` say what to do when the terminal frame’s words are hard to read: set Claude Code’s `/theme` to match the terminal.
 
 ### Salah
 
