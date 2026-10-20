@@ -1,4 +1,4 @@
-import { CONTROL_SLOP, settingsBoxes } from '../../src/features/muslim-pane/layout.ts'
+import { PILL_SLOP, settingsBoxes } from '../../src/features/muslim-pane/layout.ts'
 import { DEFAULT_SETTINGS, settingsOptions } from '../../src/features/muslim-pane/settings.ts'
 import { readOptions } from '../../src/config.ts'
 import { athkarHead, athkarRow, FOLD_W, FOLD_BLEED, KROW_OPEN_TOP, KMENU_TOP, KMENU_PAD, KMENU_ROW_H, KMENU_GAP } from '../../src/features/muslim-pane/layout.ts'
@@ -234,6 +234,24 @@ test('a settings control takes a press on every pixel and just outside it; a pre
     expect(hitAt(420, midX, b.y1 + 3, on, 0, 0, folds, settings)).toBe(b.act)
     expect(hitAt(420, b.x0 - 1, midY, on, 0, 0, folds, settings)).toBe(b.act)
     // Past the margin above the content row nothing is pressed (the stepper's margin meets the speed row's).
-    if (b.act.startsWith('settings:thikrMode:')) expect(hitAt(420, midX, b.y0 - CONTROL_SLOP.y - 1, on, 0, 0, folds, settings)).toBe(null)
+    if (b.act.startsWith('settings:thikrMode:')) expect(hitAt(420, midX, b.y0 - PILL_SLOP.y - 1, on, 0, 0, folds, settings)).toBe(null)
   }
+})
+
+test('the athkar style pills take a press anywhere in their frame and in the pill margin, the nearer one between them',()=>{
+  const on: Enabled = { athan: true, quran: false, canPrev: false, canNext: false, segmented: false, athkar: false, athkarFinish: false }
+  const folds = { prayer: true, quran: true, athkar: true }
+  const settings = { ...DEFAULT_SETTINGS, state: { open: true, category: 'athkar' as const, face: 'main' as const, page: 0 } }
+  const [sky, frame] = ['settings:athkarStyle:sky', 'settings:athkarStyle:frame'].map(act => settingsBoxes(420, folds, settings).find(b => b.act === act)!)
+  for (const b of [sky!, frame!]) {
+    for (let x = b.x0; x <= b.x1; x++) for (let y = b.y0; y <= b.y1; y++) expect(hitAt(420, x, y, on, 0, 0, folds, settings)).toBe(b.act)
+    const midX = (b.x0 + b.x1) / 2, midY = (b.y0 + b.y1) / 2
+    expect(hitAt(420, midX, b.y0 - PILL_SLOP.y, on, 0, 0, folds, settings)).toBe(b.act)
+    expect(hitAt(420, midX, b.y1 + PILL_SLOP.y, on, 0, 0, folds, settings)).toBe(b.act)
+    expect(hitAt(420, midX, b.y1 + PILL_SLOP.y + 1, on, 0, 0, folds, settings)).toBe(null)
+  }
+  expect(hitAt(420, sky!.x0 - PILL_SLOP.x, (sky!.y0 + sky!.y1) / 2, on, 0, 0, folds, settings)).toBe(sky!.act)
+  // The 4px gap between them: each half goes to the nearer pill.
+  expect(hitAt(420, sky!.x1 + 1, sky!.y0 + 4, on, 0, 0, folds, settings)).toBe(sky!.act)
+  expect(hitAt(420, frame!.x0 - 1, frame!.y0 + 4, on, 0, 0, folds, settings)).toBe(frame!.act)
 })

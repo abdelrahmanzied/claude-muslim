@@ -188,7 +188,7 @@ const circles = (width: number, f: Folds, q: QuranLayout, quranY: number): Circl
   const cx = width / 2, s = controlScale(width), mid = quranY + Q_CONTROLS_BASE + quranOffset(q.segmented) + Q_CONTROLS_H / 2
   return CONTROL_SPECS.map(c => ({ act: c.act, x: cx + c.dx * s, y: mid + c.dy, r: c.hit }))
 }
-type Box = { act: PaneAct; x0: number; x1: number; y0: number; y1: number }
+type Box = { act: PaneAct; x0: number; x1: number; y0: number; y1: number; slop?: { x: number; y: number } }
 // The open picker's sheet owns its pixels; nothing beneath it can be pressed.
 export const sheetBar = (quranY: number) => ({ top: quranY + SHEET_BORDER + SHEET_ROWS_TOP, height: SHEET_ROWS_H, minThumb: SHEET_MIN_THUMB })
 const sheetBoxes = (width: number, q: QuranLayout, quranY: number): Box[] => {
@@ -239,7 +239,7 @@ export const settingsBoxes = (width: number, folds: Folds, m: SettingsModel, q: 
   if (!m.state.open) return []
   return [
     ...categoryTabs(width).map(c => ({ act:`settings:tab:${c.category}` as const, x0:c.x0, x1:c.x1, y0:y+c.y0, y1:y+c.y1 })),
-    ...settingsBody(width,m).targets.map(b => ({ ...b, y0:y+bodyTop+b.y0, y1:y+bodyTop+b.y1 })),
+    ...settingsBody(width,m).targets.map(b => ({ ...b, y0:y+bodyTop+b.y0, y1:y+bodyTop+b.y1, slop: b.control.style === 'pill' ? PILL_SLOP : CONTROL_SLOP })),
   ]
 }
 
@@ -250,11 +250,13 @@ const isEnabled = (act: PaneAct, on: Enabled): boolean =>
     : act === 'quran-repeat-segment' || act === 'quran-pick-segment' ? on.quran && !!on.segmented : on.quran
 
 // A settings control also takes presses just outside its drawn edge: half the 4px gap between
-// neighbours, and 6px above and below. The distance still counts from the drawn edge, so a press
-// inside a control always picks that control.
+// neighbours, and 6px above and below. A framed pill takes its whole frame and a wider margin
+// (10px each side, 12px above and below), as Desktop's whole-cell pointer can land a little off.
+// The distance still counts from the drawn edge, so a press inside a control always picks that
+// control, and a press between two picks the nearer.
 export const CONTROL_SLOP = { x: 2, y: 6 }
+export const PILL_SLOP = { x: 10, y: 12 }
 const NO_SLOP = { x: 0, y: 0 }
-const isSettingsControl = (act: PaneAct): boolean => act.startsWith('settings:') && act !== 'settings:fold' && !act.startsWith('settings:tab:')
 
 const gap = (v: number, lo: number, hi: number) => (v < lo ? lo - v : v > hi ? v - hi : 0)
 
@@ -273,7 +275,7 @@ export const hitAt = (width: number, x: number, y: number, on: Enabled, sx = 0, 
   }
   for (const b of boxes(width, folds, settings, quran, athkarMenu, on.athkar)) {
     if (!isEnabled(b.act, on)) continue
-    const m = isSettingsControl(b.act) ? CONTROL_SLOP : NO_SLOP
+    const m = b.slop ?? NO_SLOP
     if (gap(x, b.x0, b.x1) > sx + m.x || gap(y, b.y0, b.y1) > sy + m.y) continue
     const d = Math.hypot(gap(x, b.x0, b.x1), gap(y, b.y0, b.y1))
     if (d < bestDistance) { best = b.act; bestDistance = d }

@@ -40,6 +40,7 @@ The first public release.
 - `/muslim` opens today’s prayers, the Quran player, athkar progress and tabbed settings, with a footer toggle.
 - Athkar set selection, start/resume, finish and reset with temporary undo. Daily and settings Athan switches show the same immediate feedback and roll back failed saves.
 - Unavailable pane opens give a short reply or toast. Quran failures stay in the player, with Retry.
+- A choice button in settings, such as سماء or إطار, takes a press anywhere in its frame, not only on its word.
 
 ### Shared controls
 
