@@ -1,0 +1,163 @@
+{
+  "name": "muslim",
+  "version": "0.1.0",
+  "description": "A Claude Code mod for Muslim developers.",
+  "author": {
+    "name": "Abdelrahman Abozied",
+    "email": "me@abdelrahman.ai",
+    "url": "https://abdelrahman.ai"
+  },
+  "repository": "https://github.com/abdelrahmanzied/claude-muslim",
+  "homepage": "https://github.com/abdelrahmanzied/claude-muslim",
+  "supportUrl": "https://github.com/abdelrahmanzied/claude-muslim/issues",
+  "license": "MIT",
+  "keywords": [
+    "muslim",
+    "claude-muslim",
+    "islam",
+    "thikr",
+    "dhikr",
+    "athkar",
+    "adhkar",
+    "quran",
+    "salah",
+    "prayer-times",
+    "athan",
+    "mod"
+  ],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "paneButton": {
+      "type": "boolean",
+      "title": "Muslim pane button",
+      "description": "Show the ☾ Muslim button in the desktop prompt footer; off: open the pane with /muslim",
+      "default": true
+    },
+    "thikr": {
+      "type": "boolean",
+      "title": "Thikr line",
+      "description": "Show tasabih in place of Claude's working words",
+      "default": true
+    },
+    "thikrSpeed": {
+      "type": "string",
+      "title": "Thikr speed",
+      "description": "auto (1s + 0.5s per word), or whole seconds per phrase from 1 to 60",
+      "default": "auto"
+    },
+    "tashkeel": {
+      "type": "boolean",
+      "title": "Tashkeel",
+      "description": "Show diacritics on Arabic on desktop and other non-terminal surfaces",
+      "default": true
+    },
+    "thikrEnd": {
+      "type": "boolean",
+      "title": "Thikr end-of-turn line",
+      "description": "Show تَمَّ بِحَمْدِ اللَّهِ when a turn ends",
+      "default": true
+    },
+    "thikrMode": {
+      "type": "string",
+      "title": "Thikr mode",
+      "description": "all: every group in turn; salawat: one salawat on the Prophet ﷺ for each whole turn",
+      "options": [
+        "all",
+        "salawat"
+      ],
+      "default": "all"
+    },
+    "athkarMorning": {
+      "type": "boolean",
+      "title": "Morning athkar reminder",
+      "description": "Open the morning athkar above the prompt by itself, from Fajr",
+      "default": true
+    },
+    "athkarEvening": {
+      "type": "boolean",
+      "title": "Evening athkar reminder",
+      "description": "Open the evening athkar above the prompt by itself, from Maghrib",
+      "default": true
+    },
+    "athkarAfterSalah": {
+      "type": "boolean",
+      "title": "After-salah athkar reminder",
+      "description": "Offer the athkar after salah above the prompt for 15 minutes, starting 15 minutes after each athan",
+      "default": true
+    },
+    "athkarStyle": {
+      "type": "string",
+      "title": "Athkar style",
+      "description": "sky: a sky that follows the time of day; frame: plain",
+      "options": [
+        "sky",
+        "frame"
+      ],
+      "default": "sky"
+    },
+    "color": {
+      "type": "string",
+      "title": "Main color",
+      "description": "The main color of the whole mod",
+      "options": [
+        "orange",
+        "green",
+        "yellow",
+        "blue"
+      ],
+      "default": "orange"
+    },
+    "salahShow": {
+      "type": "string",
+      "title": "Show pray line",
+      "description": "always: next pray all day; a number: only that many minutes before a pray, counting down (e.g. 20); off: hidden",
+      "default": "20"
+    },
+    "salahAthan": {
+      "type": "boolean",
+      "title": "Pray call",
+      "description": "Show حان وقت صلاة … for 15 minutes once a pray comes in",
+      "default": true
+    },
+    "salahPlace": {
+      "type": "string",
+      "title": "Pray place",
+      "description": "name; latitude, longitude; time zone; country, e.g. Munich, Germany; 48.14, 11.58; Europe/Berlin; DE. Empty until set up",
+      "default": ""
+    },
+    "salahMethod": {
+      "type": "string",
+      "title": "Pray calculation method",
+      "description": "auto uses the place's country's own method; or name an authority's Fajr and Isha angles",
+      "options": [
+        "auto",
+        "mwl",
+        "egypt",
+        "ummAlQura",
+        "karachi",
+        "isna",
+        "dubai",
+        "kuwait",
+        "qatar",
+        "singapore",
+        "jakim",
+        "kemenag",
+        "turkey",
+        "france",
+        "russia",
+        "tunisia",
+        "algeria",
+        "morocco",
+        "jordan",
+        "portugal"
+      ],
+      "default": "auto"
+    },
+    "salahAdjust": {
+      "type": "string",
+      "title": "Pray minutes",
+      "description": "Any whole number of minutes added to Fajr, Sunrise, Dhuhr, Asr, Maghrib and Isha, e.g. 0 0 0 90 0 -120",
+      "default": "0 0 0 0 0 0"
+    }
+  }
+}

@@ -1,13 +1,13 @@
 # Salah — prayer times
 
 Prayer times for the user's city, calculated on their machine with
-[athan library](../../../src/features/salah/athan/VENDOR.md) (from [adhan-js](https://github.com/batoulapps/adhan-js)). No location service and no prayer-times API.
+[athan library](../../../plugin/src/features/salah/athan/VENDOR.md) (from [adhan-js](https://github.com/batoulapps/adhan-js)). No location service and no prayer-times API.
 
 ## Flow
 
 1. **First prompt after install.** Until a place is saved, one line above the
    prompt offers the city named by the system's time zone (`Europe/Berlin`
-   gives Berlin, Germany): **Yes**, **Another city**, **Not now**.
+   gives Berlin, Germany): **Yes**, **Another city**, **Not now**. In a terminal this row waits until the shared Arabic display check is answered; only one setup owns the digit hotkeys. Desktop is unaffected.
    - *Another city* opens Claude Code's question dialog; the user types any
      city in any language, or `latitude, longitude`, under Other.
    - Claude (haiku) reads the typed name into English name, country,
@@ -15,9 +15,12 @@ Prayer times for the user's city, calculated on their machine with
      A shared name (Alexandria) asks which one.
    - *Not now* puts setup off for good; `/salah city` brings it back.
    - No guess (time zone UTC): **Pick city**, **Not now**.
+   - Until this card is answered, automatic athkar readers stay quiet. The first saved city or Not now records `firstRun.remindFrom` (epoch ms) and its `firstRunRemindFrom` state mirror. Reminders start with the next eligible morning/evening period or athan (start time at or after the answer), never a period/athan already underway. Explicit athkar opens are remembered, and their drawing waits until setup closes; demos also yield while a setup form is visible. The setup card still installs with `salahShow off`.
+   - Before the city question, the card checks that the `muslim.salahPlace` config row exists. A fresh install has no `/config` rows until the user runs `/reload-plugins`; then the card shows only `Run /reload-plugins to finish installing muslim.` with `Not now` (no Yes / Another city), and `/salah city` and the pane's city press answer the same sentence instead of asking. Once the rows exist the normal question shows, on every surface.
+   - Saving a city first checks that its config row exists; a missing row leaves the timestamp and review unchanged. After that check it writes the answer timestamp and review state **before** `config.set`: a successful save reloads the module and does not resolve in the old one. The timestamp stays even when the save fails. A denial or thrown save error restores the review state only when `/config` does not hold the new city, since a late error can reach a module the save already replaced. Missing `/config` rows show `Not changed: run /reload-plugins, then try again.`; other thrown errors show `Not changed: <error message>`, through a toast for card/pane presses and a reply for `/salah city`. The setup card remains available after failure. Existing city/Not now choices without a timestamp retain their behavior; subsequent city changes do not record a new answer.
 2. **Review.** Saving the place shows today's times above the prompt, one row
    per prayer with − and +. The user matches them to their mosque and saves the
-   minutes, or skips.
+   minutes, or skips. Save clears the review before writing config, since success reloads the module without resuming the old continuation. A denial or error restores the draft and shows a toast.
 3. **Every day.** What the prayer line (plain text in the prompt footer's mode labels, before the model name) shows depends on `salahShow` (`/salah show`):
    - `always`: the next prayer all day, `☾ العصر ١٥:٥٩`; in its last 20 minutes
      a live mm:ss countdown, `☾ العصر ١٩:٤٢`,
@@ -28,13 +31,13 @@ Prayer times for the user's city, calculated on their machine with
      1. **Show:** desktop opens the lit shared card over the Haram photo, with the call and time in Arabic digits; terminal plays the rising Unicode minaret (~3 seconds).
      2. **Fold:** after 1 minute (`FOLD_MS`), desktop uses the shared folded row (24px content height, the same as athkar): call and time on one line over the photo, shared × on the left. Pressing anywhere except × or the after-salah button reopens it with the athkar band's shared rest rules: leave folds after 1 second, enter cancels that wait, keys with the pointer off fold 3 seconds after the last key, and no input folds after 90 seconds. A focus move elsewhere in `AbovePrompt` (`plugin` other than `muslim`) folds immediately unless it arrives within 600 ms of a pointer press on the card. Reopening and later input renew the 90-second `foldsAt` deadline. These rules also apply once the pointer has entered the initially open card; an untouched first appearance still folds after 1 minute. The folded state is persisted through the existing atom. Terminal folds as soon as the rise finishes to one row above the prompt: `☾`, the call through the shared terminal Arabic path in the main color, and a × Button at the end; it stays folded.
      3. **Close:** × closes the moment at any stage on either surface; otherwise both disappear at the prayer timestamp plus the shared duration (`CARD_MS = IN_MS`, currently 15 minutes). Reopening never extends that deadline. Neither closing nor expiry announces the same prayer again.
-   - The fold state, rise start and end deadlines live in `$.state`; a reload resumes the correct open, folded or gone stage and re-arms only the remaining timers. The desktop athkar band stays hidden for both open and folded stages. With athkar enabled, **ابدأ أذكار بعد الصلاة ←**, a white text action on the left beside ×, closes the moment immediately and opens that prayer's after-salah reading, lit and ready to count. × keeps its usual close action; after-salah waits until the original prayer-based deadline. Leaving the card open lets it hand off at that same deadline. With no desktop card (terminal, athan off, show off or a late session), the after-salah offer starts at that deadline too. Once offered it stays until done, hidden or the next prayer; morning/evening return after done/×. The footer independently keeps the call for 15 minutes, unchanged by ×.
+   - The fold state, rise start and end deadlines live in `$.state`; a reload resumes the correct open, folded or gone stage and re-arms only the remaining timers. The desktop athkar band stays hidden for both open and folded stages. **ابدأ أذكار بعد الصلاة ←** is always shown, including with every reminder off. This white text action on the left beside ×, closes the moment immediately and opens that prayer's after-salah reading, lit and ready to count. × keeps its usual close action; after-salah waits until the original prayer-based deadline. Leaving the card open lets it hand off at that same deadline. With no desktop card (terminal, athan off, show off or a late session), the after-salah offer starts at that deadline too. An untouched automatic offer ends 30 minutes after the athan; once started it stays until done, hidden or the next prayer; morning/evening return after done/×. The footer independently keeps the call for 15 minutes, unchanged by ×.
    - `salahAthan` off drops the minaret, the card and the `حان وقت` line: the line goes straight back to the
      next prayer (`always`) or to empty (minutes).
    - The prayer line redraws every 30 seconds, and every second only while inside the countdown window (the live countdown); it goes back to 30 seconds when the window ends. A timer set for the exact moment the window opens starts the countdown on time, not on the next 30 s tick. The timer starts on every module load (the first draw of the footer or the band, and a redraw asked at session start), and runs whenever a place is saved. With `/salah show off`, it stays at 30 seconds to track `salahLast`; restoring the footer re-arms the countdown window.
    - The footer works out the line from the clock and the settings each time it is drawn, so a setting change shows at once; the timer only asks for redraws.
    - Sunrise is in today's times only: no countdown for it.
-   - While inside the window, salah also publishes it for the [thikr line](../thikr/thikr.md#moments-and-phrases), which opens its turns with حَيَّ عَلَى الصَّلَاةِ.
+   - While inside the window, salah publishes `salahWindow`. Thikr does not read it yet; no prayer-window opener is promised for this release.
    - No toast when the window starts: the footer line is the only notice. No OS notification.
 
 ## Calculation
@@ -64,7 +67,7 @@ Prayer times for the user's city, calculated on their machine with
 `adjust <prayer> <±min>` (any whole number of minutes, such as `+90` or `-120`; missing or malformed minutes are an error). An unknown word answers with the table.
 `/muslim help` shows the tables of thikr and salah; `/muslim help salah` only salah's.
 
-Replies are short markdown: a bold title line first (`**Muslim › Salah**`, `**Show:** …`, `**Athan:** on`), then any heading or table. The engine prefixes a reply's first line with `muslim: `, so a table or heading on that line would not render. `/salah show` with no value shows the current one and how to change it; a value outside `always`, `off` or 1–720 answers with the accepted forms. Old saved values (`salah` on/off/always, `salahReminder` minutes) carry over to `salahShow`.
+Replies are short markdown: a bold title line first (`**Muslim › Salah**`, `**Show:** …`, `**Athan:** on`), then any heading or table. The engine prefixes a reply's first line with `muslim: `, so a table or heading on that line would not render. `/salah show` with no value shows the current one and how to change it; a value outside `always`, `off` or 1–720 answers with the accepted forms.
 
 ### Rules behind the line
 
@@ -73,11 +76,11 @@ Replies are short markdown: a bold title line first (`**Muslim › Salah**`, `**
 
 ## Demo
 
-`/salah demo` replies `**Salah demo:** athan · Fajr 05:00 · athkar after salah` and always previews «الفجر» at 05:00, formatted by the real `clockText` function. It does not read a city, method or calculated prayer time. Disposable module-local card and minaret values have their own redraw timers. One selector per existing render path chooses the demo while it is active; the same `athan-card.tsx` and minaret builders draw it. Desktop: open 5 seconds, folded 3 seconds; terminal: rise 3.01 seconds, folded 3 seconds. Expiry, × or the desktop start button immediately hands off to the Fajr after-salah demo in athkar's real reader. The card includes «ابدأ أذكار بعد الصلاة» even with athkar off. The continuation counts through three real-list passages for 6.0 seconds, plays the real 3.2-second finale, then holds the folded done row for 1.2 seconds (10.4 seconds total). Thus untouched desktop playback totals 18.4 seconds, terminal 16.41 seconds. Afterward any real athan returns with its state and timers untouched. Demo input cannot change the real card. The shared `/muslim demo` starts this same runner, which then reports its end only after the after-salah folded done row, through the existing transient signal and a completion callback connected in demo-only command hooks; it needs no city either.
+`/salah demo` replies `**Salah demo:** athan · Fajr 05:00 · athkar after salah` and always previews «الفجر» at 05:00, formatted by the real `clockText` function. It does not read a city, method or calculated prayer time. Disposable module-local card and minaret values have their own redraw timers. One selector per existing render path chooses the demo while it is active; the same `athan-card.tsx` and minaret builders draw it. Desktop: open 5 seconds, folded 3 seconds; terminal: rise 3.01 seconds, folded 3 seconds. Expiry, × or the desktop start button immediately hands off to the Fajr after-salah demo in athkar's real reader. The continuation counts through three real-list passages for 6.0 seconds, plays the real 3.2-second finale, then holds the folded done row for 1.2 seconds (10.4 seconds total). Thus untouched desktop playback totals 18.4 seconds, terminal 16.41 seconds. Afterward any real athan returns with its state and timers untouched. Demo input cannot change the real card. The shared `/muslim demo` starts this same runner, which then reports its end only after the after-salah folded done row, through the existing transient signal and a completion callback connected in demo-only command hooks; it needs no city either.
 
 ## Settings
 
-Main-color accents follow the plugin-wide `/muslim color orange | green | yellow | blue` setting through `src/shared/color/`, default Claude orange. Other colors stay as they are.
+Main-color accents follow the plugin-wide `/muslim color orange | green | yellow | blue` setting through `plugin/src/shared/color/`, default Claude orange. Other colors stay as they are.
 
 Terminal Arabic: the footer line and the minaret label follow the shared per-terminal setting (`/muslim terminal-arabic`, see the [terminal guide](../../terminal/terminal-arabic.md)). The desktop footer and athan card keep logical text.
 
@@ -107,17 +110,17 @@ Surfaces, the athan moment's look and what salah never does: [salah design](sala
 | `place.ts` | the saved place's one-setting format |
 | `review.ts` | the review form's rows |
 | `minaret.ts` | the minaret's rows, frame timing and when it is due |
-| `card.ts`, `athan-card.tsx` | desktop athan content and Client, using the shared card in `src/shared/card/` around a photo in `assets/`, with the embedded font in `card-font.ts` |
+| `card.ts`, `athan-card.tsx` | desktop athan content and Client, using the shared card in `plugin/src/shared/card/` around a photo in `assets/`, with the embedded font in `card-font.ts` |
 | `today.ts` | the times and settings tables for `/salah`, and the method in effect |
 
-Shared with thikr, in `src/shared/pray/`: `names.ts` (prayer names in English and Arabic, the `Prayer` type) and `line.ts` (the prayer line, countdown, Arabic digits). Neither feature imports the other's folder.
+Shared with thikr, in `plugin/src/shared/pray/`: `names.ts` (prayer names in English and Arabic, the `Prayer` type) and `line.ts` (the prayer line, countdown, Arabic digits). Neither feature imports the other's folder.
 
 The desktop athan uses the same shared card and open size as the athkar band. Only one card shows at a time: the athan takes the band's place until closed or expired, then the band returns with the reading kept. The terminal reader and minaret are unchanged.
 
 ## To verify live
 
 - The minaret's box-drawing and block characters (`┌┴┐ ├─┤ ▐███▌ ▒`) in the common terminal fonts, and the band's height (7 rows) in a short terminal.
-- The prayer line's place and Arabic direction in the footer's mode labels (`SessionMode`, before the model name), in the terminal and the desktop app, stacked with the setup row and thikr's usage-limit row.
+- The prayer line's place and Arabic direction in the footer's mode labels (`SessionMode`, before the model name), in the terminal and the desktop app, independent of the setup form above it; thikr's usage-limit band yields while that form is visible.
 - The setup line and review form in a narrow terminal and the desktop app.
 - `Intl` time zones inside the hooks runtime (falls back to the runtime's local time).
 
@@ -138,23 +141,34 @@ Terminal checklist (each reply opens with its title, tables render):
 | `/salah adjust` · `adjust asr +5` | the review form · `**Adjust:** Asr +5 min` |
 | `/salah method auto` | `**Method:** auto (…)` |
 | `/salah city <name>` | `**City:** …` and today's times above the prompt |
-| `/salah reminder` (old word) | the help table |
 
 ## Last prayer signal for athkar
 
-Alongside `salahWindow`, salah publishes `salahLast: { pray: Fard; at: number } | null` through `$.state`, declared in `types/index.d.ts`. Its regular tick writes only when the value changes. It names the latest obligatory prayer at or before now **today in the configured place's timezone**, excluding sunrise and yesterday's Isha. Before Fajr or with no place, the atom is null. Tracking runs whenever a place is saved, independently of `salahShow` and `salahAthan`. With `/salah show off`, the ticker stays at 30 seconds and only `salahLast` keeps publishing: no prayer line, countdown window signal or new athan minaret/card. Athkar reads it to replace its one reading slot when the prayer time changes and offer after-salah from `at + IN_MS`, with no offer expiry. The desktop start action writes `salahAfterSalahStart: { pray: Fard; at: number } | null`, also declared in `types/index.d.ts`. It closes both card and minaret before writing; athkar accepts only the current prayer's identity and opens that reading immediately. Salah never imports athkar. The real button is absent with athkar off; the demo always shows it but uses transient signals only. Demos publish neither real prayer signal.
+Alongside `salahWindow`, salah publishes `salahLast: { pray: Fard; at: number } | null` through `$.state`, declared in `plugin/types/index.d.ts`. Its regular tick writes only when the value changes. It names the latest obligatory prayer at or before now **today in the configured place's timezone**, excluding sunrise and prayers whose actual instants are on yesterday’s calendar date. Before today’s first prayer or with no place, the atom is null. Tracking runs whenever a place is saved, independently of `salahShow` and `salahAthan`. With `/salah show off`, the ticker stays at 30 seconds and only `salahLast` keeps publishing: no prayer line, countdown window signal or new athan minaret/card. Athkar reads it to replace its one reading slot when the prayer time changes and offer after-salah from `at + IN_MS` until `at + 2 * IN_MS` if untouched; counted and explicit readings follow the [athkar hold rules](../athkar/athkar.md#athkar-after-salah). The desktop start action writes `salahAfterSalahStart: { pray: Fard; at: number } | null`, also declared in `plugin/types/index.d.ts`. It closes both card and minaret before writing; athkar accepts only the current prayer's identity and opens that reading immediately. Salah never imports athkar. The real button is always shown; the demo shows it too but uses transient signals only. Demos publish neither real prayer signal.
 
 The after-salah flow is specified in [athkar spec](../athkar/athkar.md#athkar-after-salah).
 
-Salah also owns the read-through `salahAthkarTimes` state contract: current and previous calendar date keys in the saved place’s time zone, today’s Fajr, Sunrise, Maghrib and Isha, and tomorrow’s Fajr (epoch milliseconds). Each read computes from the current clock, configured method and adjustments, without waiting for the ticker or writing during rendering. With no place it returns null. Athkar uses these bounds for Fajr/Maghrib periods, a Fajr day turnover, its next period boundary timer and prayer-based sky phases refreshed each minute; show off does not disable them.
+Salah connects prayer-day bounds through `plugin/src/shared/pray/bounds.ts`: current and previous calendar date keys in the saved place’s time zone, today’s Fajr, Sunrise, Maghrib and Isha, and tomorrow’s Fajr (epoch milliseconds). Each read computes from the current clock, configured method and adjustments, in timers as well as hooks, without waiting for the ticker or writing during rendering. With no place it returns null. Athkar uses these bounds for Fajr/Maghrib periods, a Fajr day turnover, its next period boundary timer and prayer-based sky phases refreshed each minute; show off does not disable them.
 
 Prayer bounds reuse a pure daily calculation cache, refreshed on the first read after the place’s date changes; a settings reload drops the cache.
 
 ## Muslim pane
 
-The [Muslim pane](../muslim-pane/muslim-pane.md) shows this feature on its own card. This feature connects what that card shows (and what its buttons ask of it) through `src/shared/panel/signal.ts`; see the pane spec for the table.
+The [Muslim pane](../muslim-pane/muslim-pane.md) shows this feature on its own card. This feature connects what that card shows (and what its buttons ask of it) through `plugin/src/shared/panel/signal.ts`; see the pane spec for the table.
 
 
 ### Muslim pane settings connector
 
-Salah connects `salah-city` during Muslim pane input. It runs the same `askCity`, resolution, `savePlace` and review path as `/salah city`, using the current press context; config denials show a toast.
+Salah connects `salah-city` during Muslim pane input. It runs the same `askCity`, resolution, `savePlace` and review path as `/salah city`, using the current press context; config denials and thrown city-save errors show a toast as specified above.
+
+Next and previous prayer-day fallback use adjacent calendar dates in the configured place's time zone, including 23-hour spring and 25-hour autumn days. The target date also supplies the Hijri/Ramadan check. Prayer selection and the «حان وقت» window keep their existing rules. Plugin settings writers follow DESIGN.md's stop-before-reload rule.
+
+Setup visibility uses DESIGN.md's shared pure priority decision, also read by every reminder. Arabic setup owns the terminal slot first; otherwise review or city setup owns it. While any setup is visible, the desktop athan card and terminal minaret skip drawing without dismissing their moment; they return if their existing window is still active.
+
+Every settings writer preflights the exact config row before stopping Quran or changing UI state, and maps missing-row failures to the shared reload-plugins message in DESIGN.md. Review Save keeps its draft open if that preflight fails.
+
+## Release behavior
+
+Prayer selection compares actual instants across adjacent calculated days. Yesterday’s Isha can fall after midnight: before it, the countdown targets Isha and no athan call shows; once it arrives, the usual fifteen-minute call applies. The last-prayer signal includes that Isha once its instant falls on today’s local date. The pane shows its matching calculated prayer-day rows. `prayLine` also rejects a negative time-since-prayer.
+
+The city dialog’s `Not now` uses the same durable put-off action as the setup row. City model completion has an 8000 ms timeout and thrown/unanswered calls use the existing short `Could not reach Claude` reply. Command status/help and shared help tables are English on every surface, including the Athan description; an Arabic city name uses its coordinates in the settings table and stays authored in the heading. The prayer line and athan moment keep their Arabic. Demo replies mention answering the setup above while the shared decision hides the preview. Settings saves share a same-file writer and retain their reply/toast and rollback paths.

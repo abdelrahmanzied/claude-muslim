@@ -38,7 +38,7 @@ A desktop step row (`Running a command 6s >`) keeps its words with the thikr aft
 - **auto** (default): each phrase stays for its reading time, 1 s + 0.5 s per word. سبحان الله stays 2 s; ربنا آتنا … 6.5 s.
 - **fixed**: `/thikr speed <1-60>` gives every phrase the same seconds. `/thikr speed auto` goes back.
 
-Full text with tashkeel: `src/features/thikr/phrases.ts`.
+Full text with tashkeel: `plugin/src/features/thikr/phrases.ts`; the end-of-turn constant is shared from `plugin/src/shared/thikr/end.ts` for the pane’s example.
 
 ## Special moments
 
@@ -47,7 +47,7 @@ Full text with tashkeel: `src/features/thikr/phrases.ts`.
 
 ## Settings
 
-Main-color accents follow the plugin-wide `/muslim color orange | green | yellow | blue` setting through `src/shared/color/`, default Claude orange. Other colors stay as they are.
+Main-color accents follow the plugin-wide `/muslim color orange | green | yellow | blue` setting through `plugin/src/shared/color/`, default Claude orange. Other colors stay as they are.
 
 Terminal Arabic uses the shared three-mode behavior, and terminal output always strips tashkeel. The desktop-only tashkeel setting follows `/muslim tashkeel`; `/thikr tashkeel` was replaced by `/muslim tashkeel`. See [the Arabic check](../../terminal/terminal-arabic.md#checks) and the single [terminal Arabic reference](../../terminal/terminal-arabic.md).
 
@@ -58,7 +58,7 @@ Terminal Arabic uses the shared three-mode behavior, and terminal output always 
 | `thikrEnd` | `/thikr end on` · `off` | on |
 | `thikrMode` | `/thikr mode all` · `/thikr mode salawat` | all |
 
-`/thikr` alone shows the current settings and help.
+`/thikr` alone shows the current settings and help. All four fields can also be changed in the Muslim pane’s الذكر tab, including «نهاية الرد» (`thikrEnd`); its effect remains terminal-only.
 
 Tashkeel is controlled on desktop by [`/muslim tashkeel`](../../terminal/terminal-arabic.md#tashkeel); terminals always strip it.
 
@@ -78,7 +78,7 @@ The shared `/muslim demo` connects a transient signal to this same feature-local
 2. At the end of the turn (terminal) the line says تَمَّ بِحَمْدِ اللَّهِ, even with `/thikr end off`.
 3. After the turn the usage-limit line shows above the prompt for 3 s, then goes.
 
-The demo then disarms itself; `/thikr demo` again plays it again. It plays with thikr off too. With no demo armed nothing changes. The prompt, steps, scenes and timing are in `src/features/thikr/demo.ts`; the runner is the `DEMO` blocks in `install.tsx`.
+The demo then disarms itself; `/thikr demo` again plays it again. It plays with thikr off too. With no demo armed nothing changes. The prompt, steps, scenes and timing are in `plugin/src/features/thikr/demo.ts`; the runner is the `DEMO` blocks in `install.tsx`.
 
 ## Design
 
@@ -88,8 +88,16 @@ Text only, in Claude's font, size and colors: [thikr design](thikr-design.md).
 
 | File | Holds |
 | --- | --- |
-| `src/features/thikr/install.tsx` | the hooks: spinner text, end of turn, usage limit, and the `/thikr` command |
-| `src/features/thikr/phrases.ts` | the authored phrases with tashkeel: starting, thinking, writing, long, salawat, end of turn, usage limit |
-| `src/features/thikr/rotation.ts` | pure logic: moment to group, phrase timing and speed, start pick, joining thikr to Claude's words |
-| `src/features/thikr/limit.ts` | pure logic: when a usage limit ends, from the rate-limit windows |
-| `src/features/thikr/demo.ts` | pure scenes and timing of `/thikr demo`: the demo prompt and its Bash steps, the phrase order, 1.5 s step, 3 s usage-limit hold, the reply |
+| `plugin/src/features/thikr/install.tsx` | the hooks: spinner text, end of turn, usage limit, and the `/thikr` command |
+| `plugin/src/features/thikr/phrases.ts` | the authored phrases with tashkeel: starting, thinking, writing, long, salawat, end of turn, usage limit |
+| `plugin/src/features/thikr/rotation.ts` | pure logic: moment to group, phrase timing and speed, start pick, joining thikr to Claude's words |
+| `plugin/src/features/thikr/limit.ts` | pure logic: when a usage limit ends, from the rate-limit windows |
+| `plugin/src/features/thikr/demo.ts` | pure scenes and timing of `/thikr demo`: the demo prompt and its Bash steps, the phrase order, 1.5 s step, 3 s usage-limit hold, the reply |
+
+Only main-agent starts and completions reset phrase progress, the usage-limit state and the ticker. Child turns leave the parent's group and elapsed reading time intact. An armed demo binds only to the next main-agent start. Salah publishes `salahWindow`, but thikr does not read it yet.
+
+The usage-limit row, including its demo, yields to every visible setup form on every surface under DESIGN.md's shared priority decision. Its held limit is unchanged and draws again once setup closes.
+
+## Release behavior
+
+Usage-limit drawing compares its absolute reset with the engine clock, including on reload, and never shows an expired line. The first draw re-arms a still-future reset; one cancellable timer owns the current deadline, so an older reset cannot clear a newer limit. Status, help and shared `/muslim help` tables use English descriptions, including the end-of-turn setting, on every surface; the closing phrase itself stays Arabic. Settings writes share the file’s preflight and quiet failure path.

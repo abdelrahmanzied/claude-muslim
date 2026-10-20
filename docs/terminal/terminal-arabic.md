@@ -1,6 +1,6 @@
 # Terminal Arabic
 
-This is the shared reference for Arabic shown by every feature on a terminal surface. Each feature routes its own Arabic text through `src/shared/arabic`; Claude's text and desktop rendering are left alone.
+This is the shared reference for Arabic shown by every feature on a terminal surface. Each feature routes its own Arabic text through `plugin/src/shared/arabic`; Claude's text and desktop rendering are left alone.
 
 ## Modes and defaults
 
@@ -31,7 +31,7 @@ The placeholders stand for Arabic-only samples transformed by their modes; actua
 
 Press 1–3 to save that mode for the current terminal. The plugin confirms with `muslim: Arabic for <termId> set — /muslim terminal-arabic to redo`. That terminal is not asked again automatically. A different terminal ID with no answer gets its own survey. `/muslim terminal-arabic` reopens the current terminal's survey at any time. Desktop never shows the survey.
 
-Surveys wait while Claude is showing another survey. An unanswered terminal remains eligible after a module reload; the missing saved answer restores the automatic survey, and `arabicSurveyManualTerminal` in `$.state` keeps an explicitly reopened survey tied to its terminal.
+Surveys wait while Claude is showing another survey. While this terminal needs its Arabic check (automatic or manually reopened), salah withholds its city setup row and its digit hotkeys. Choosing an Arabic mode lets city setup appear on the next draw. Both features use the same pure visibility decision from saved modes and the manual-terminal state, independent of hook order; desktop city setup is unaffected. An unanswered terminal remains eligible after a module reload; the missing saved answer restores the automatic survey, and `arabicSurveyManualTerminal` in `$.state` keeps an explicitly reopened survey tied to its terminal.
 
 `/muslim` shows a settings table on every surface. Its Terminal Arabic row shows this terminal's mode on a terminal, for example `joined for WarpTerminal`, or `plain (default, not chosen yet)` before an answer; on desktop it reads `terminal only`.
 
@@ -42,7 +42,7 @@ The terminal ID resolver checks these environment variables in order and uses th
 1. `TERM_PROGRAM` is used verbatim (`Apple_Terminal`, `WarpTerminal`, `iTerm.app`, `vscode`, `ghostty`, `WezTerm`, and other values remain valid IDs).
 2. `TERMINAL_EMULATOR` is used verbatim (for example, `JetBrains-JediTerm`).
 3. `__CFBundleIdentifier` is used verbatim (for example, `com.jetbrains.pycharm` or `com.mitchellh.ghostty`).
-4. Presence of `WT_SESSION` gives `WindowsTerminal`.
+4. A defined `WT_SESSION` gives `WindowsTerminal`, including an empty string. An explicitly undefined value is absent and lets Linux terminal IDs or `WindowsConsole` match.
 5. `KONSOLE_VERSION` gives `Konsole`; `VTE_VERSION` gives `VTE`; `KITTY_WINDOW_ID` gives `kitty`; `ALACRITTY_WINDOW_ID` or `ALACRITTY_SOCKET` gives `Alacritty`.
 6. `OS === 'Windows_NT'` gives `WindowsConsole`.
 7. If none match, the ID is `unknown`.
@@ -68,11 +68,11 @@ There is one file per plugin install source. For example, `--plugin-dir` uses an
 
 To ask again for one terminal, remove its property from `arabicTerminals`. To reset every terminal, remove the `arabicTerminals` property (or the install source's store file). Then open Claude Code again in that terminal.
 
-Session state is declared in `types/index.d.ts`: `arabicSurveyManualTerminal` identifies the terminal whose survey was explicitly reopened, and `arabicTerminalMode` caches the current terminal's mode for thikr renders. Automatic survey visibility is reload-safe because an answer is not saved until a choice is made; after a module reload during the session, the missing terminal entry still makes the survey eligible. The old global `userConfig` field `arabicFix` was removed.
+Session state is declared in `plugin/types/index.d.ts`: `arabicSurveyManualTerminal` identifies the terminal whose survey was explicitly reopened, and `arabicTerminalMode` caches the current terminal's mode for thikr renders. Automatic survey visibility is reload-safe because an answer is not saved until a choice is made; after a module reload during the session, the missing terminal entry still makes the survey eligible. The old global `userConfig` field `arabicFix` was removed.
 
 ## Using the shared treatment in a feature
 
-At draw time, each feature should first check that `e.surface === 'terminal'`, read the environment variables above through `$.env.get`, resolve the ID with the pure `terminalIdFromEnv(env)` function, look up the saved mode in `arabicTerminals` or use `defaultArabicMode(termId)`, then pass its authored display text through `terminalArabic(surface, mode, text)` from `src/shared/arabic/terminal.ts`. `terminalArabic` itself returns the input unchanged for non-terminal surfaces. Keep any helper that reads `$` in the same source file as the hook, as required by `CLAUDE.md`; the pure mode, ID, and transform functions are shared.
+At draw time, each feature should first check that `e.surface === 'terminal'`, read the environment variables above through `$.env.get`, resolve the ID with the pure `terminalIdFromEnv(env)` function, look up the saved mode in `arabicTerminals` or use `defaultArabicMode(termId)`, then pass its authored display text through `terminalArabic(surface, mode, text)` from `plugin/src/shared/arabic/terminal.ts`. `terminalArabic` itself returns the input unchanged for non-terminal surfaces. Keep any helper that reads `$` in the same source file as the hook, as required by `CLAUDE.md`; the pure mode, ID, and transform functions are shared.
 
 ## Tashkeel
 
@@ -80,7 +80,7 @@ At draw time, each feature should first check that `e.surface === 'terminal'`, r
 
 ## Athkar in the terminal
 
-The athkar reader always draws the Frame look in the terminal. The Sky look is desktop only: `athkarStyle` applies to the desktop app, and `/athkar style` in a terminal answers that and changes nothing. The plugin-wide main color (`color`, `/muslim color`, default Claude orange) applies on both, from `src/shared/color/`. Its Arabic follows the shared treatment above, like every feature.
+The athkar reader always draws the Frame look in the terminal. The Sky look is desktop only: `athkarStyle` applies to the desktop app, and `/athkar style` in a terminal answers that and changes nothing. The plugin-wide main color (`color`, `/muslim color`, default Claude orange) applies on both, from `plugin/src/shared/color/`. Its Arabic follows the shared treatment above, like every feature.
 
 ## Decisions and limits
 
@@ -101,6 +101,7 @@ The `/muslim terminal-arabic` check is a terminal-only survey above the prompt. 
 - The label reads `muslim · Terminal Arabic Setup · Which word is written correctly?`, with the dim hint `Some terminals break Arabic letters apart or reverse them — pick the one you can read.` below it.
 - Three vertical plain Button rows use hotkeys 1–3; each Arabic sample is a `Text` child, and the hint reads `Press 1–3`.
 - The picker preserves the rest of the AbovePrompt band and waits while another survey is active.
+- The city setup row waits while this check is visible, so only this check owns hotkeys 1–3.
 - Selecting a row hides the picker; `/muslim terminal-arabic` opens it again for the active terminal.
 - Desktop shows no picker and replies that the check is terminal-only.
 

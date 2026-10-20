@@ -1,0 +1,59 @@
+name: Improvement
+description: Improve something that already exists.
+labels:
+  - enhancement
+title: "[improvement] "
+body:
+  - type: textarea
+    id: improve
+    attributes:
+      label: What should be improved?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why?
+      description: What are you trying to do?
+    validations:
+      required: false
+  - type: dropdown
+    id: feature
+    attributes:
+      label: Feature
+      options:
+        - thikr
+        - athkar
+        - salah
+        - quran
+        - Muslim pane
+        - /muslim commands and settings
+        - other or new
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: muslim version
+      description: Shown by `/muslim`.
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options:
+        - terminal
+        - desktop
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS
+        - Windows
+        - Linux
+    validations:
+      required: true
