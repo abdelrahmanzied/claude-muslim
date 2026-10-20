@@ -18,12 +18,13 @@ The first public release.
 - Fajr/Maghrib periods and prayer-based desktop skies with a saved place; 05:00/17:00 periods otherwise. The terminal uses a text frame.
 - Per-set reminders in `/config`, the pane and `/athkar <set> on|off`; manual set picks can hold a reading across periods. Bare `/athkar` shows the current period without holding it.
 - After-salah readings offered automatically from fifteen to thirty minutes after each prayer. Once begun, they retain progress through midnight and take precedence until finished, hidden or replaced by the next prayer.
+- On desktop the athkar band follows the app’s light or dark look, even when it differs from Claude Code’s theme setting; in the terminal the frame’s words use the terminal theme’s own colors.
 
 ### Salah
 
 - Local prayer-time calculation for your city, country-based methods, manual minute adjustments and a review form.
 - A next-prayer line with a live countdown, including Isha after midnight, and a quiet fifteen-minute athan moment: a photo card on desktop and a rising minaret in the terminal.
-- The athan card always offers a direct after-salah start. City setup can be put off; name lookup has an eight-second timeout and accepts coordinates too.
+- The athan card always offers a direct after-salah start. On desktop its colors follow the app’s light or dark look. City setup can be put off; name lookup has an eight-second timeout and accepts coordinates too.
 
 ### Quran (desktop)
 
@@ -48,3 +49,4 @@ The first public release.
 - `/muslim help` lists commands. `/muslim demo` previews thikr, athkar, salah and the desktop pane tour; Quran has no demo.
 - `/muslim update`, marketplace auto-update controls and feedback drafting that sends only after approval. Missing settings ask for `/reload-plugins` without changing the current form or playback; on a fresh install the city setup asks for it before the city question.
 - `/muslim` with an unknown word shows the help table.
+- Issues sent with `/muslim feedback` end with a `Sent with /muslim feedback` line and get the `via-plugin` label and their kind label, even when the sender cannot set labels.

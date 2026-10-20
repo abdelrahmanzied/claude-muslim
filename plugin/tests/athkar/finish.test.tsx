@@ -66,7 +66,7 @@ for (const style of ['sky', 'frame'] as const) {
   test(`${style}: question has the same fixed height, incomplete fraction, choices and hit geometry`, () => {
     const reading = emptyReading()
     const props = readerProps('morning', reading, lookFor(style, 'orange', 'day', true, true), t => t, { isOpen: true, isActive: true, isPicture: true, question: { focus: 'finish' } })
-    const m: BandModel = { phase: props.phase, question: props.question, period: 'morning', sky: 'day', style, accent: 'orange', isDark: true, isActive: true, hasBegun: false, title: props.title, thikrId: '75', text: props.text, position: props.position, count: 0, times: 1, progress: 0, from: 0, end: props.end, endHint: props.endHint, endNote: props.endNote, now: 0, width: 840, height: 77, restHeight: 24 }
+    const m: BandModel = { phase: props.phase, question: props.question, period: 'morning', sky: 'day', style, accent: 'orange', isActive: true, hasBegun: false, title: props.title, thikrId: '75', text: props.text, position: props.position, count: 0, times: 1, progress: 0, from: 0, end: props.end, endHint: props.endHint, endNote: props.endNote, now: 0, width: 840, height: 77, restHeight: 24 }
     expect(bandHeight(m, 840)).toBe(77)
     const svg = bandSvg(m)
     expect(svg).toContain('أتممتَ الأذكار؟')

@@ -50,7 +50,7 @@ The shared card in `plugin/src/shared/card/card.ts` also holds the leave, key-re
 
 ## 3. Color
 
-The main color is one plugin-wide setting: `/muslim color orange | green | yellow | blue`, default Claude orange. Every feature takes it from `plugin/src/shared/color/`; features never define their own palette. Orange text keeps the `claude` theme key so every Claude theme stays exact. Other main colors use the shared light/dark hex shade for the current theme; drawn surfaces use the shared hex palette. Text that is not already in the main color and Claude's own text and spinner keep their colors.
+The main color is one plugin-wide setting: `/muslim color orange | green | yellow | blue`, default Claude orange. Every feature takes it from `plugin/src/shared/color/`; features never define their own palette. Orange text keeps the `claude` theme key so every Claude theme stays exact. Other main colors use the shared light/dark hex shade for the current theme (terminal text reads Claude Code's `theme` config). Desktop drawings (cards, the athkar band, the Muslim pane) never read that config: the desktop app's appearance can differ from it, so a drawing emits the dark and the light values as CSS and lets `@media (prefers-color-scheme: light)` pick, as the pane does; drawn surfaces use the shared hex palette. Terminal ink, dim and track lines use theme keys (`text`, `subtle`, `inactive`). Text that is not already in the main color and Claude's own text and spinner keep their colors.
 
 | Role | Theme key | Use |
 | --- | --- | --- |

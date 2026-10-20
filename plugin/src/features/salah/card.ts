@@ -21,7 +21,6 @@ export type AthanCardProps = CardProps & {
   isFolded: boolean
   canStart?: boolean
   accent?: Accent
-  isDark?: boolean
   pray: Pray
   // The clock text, e.g. `15:59`.
   time: string
@@ -63,8 +62,11 @@ export const isOnStart = (p: AthanCardProps, x: number, y: number, columns: numb
 
 // The photo is a 640 by 80 strip cut from the original, a little above its
 // middle; `cover` fits it to the card's width. The words are white on it, and so is the ×.
-const css = (photo: string) => [
+const css = (photo: string, accent: Accent) => [
   fontFace('Aref Ruqaa', 700, ARUQAA_BOLD),
+  // The start control's main color: dark first, light when the app is light (as the Muslim pane does).
+  `.band.athan { --start-accent: ${accentHex(accent, true)}; }`,
+  `@media (prefers-color-scheme: light) { .band.athan { --start-accent: ${accentHex(accent, false)}; } }`,
   '.band.athan { height: 100%; border-radius: 10px; overflow: hidden; direction: rtl; color: #fff; --b-ink: #fff; --b-dim: rgba(255,255,255,.75);',
   '  font-family: "Aref Ruqaa", serif; font-weight: 700; display: flex; flex-direction: column; justify-content: center;',
   '  padding: var(--ay, 0px) calc(36px + var(--ax, 0px));',
@@ -84,8 +86,8 @@ const css = (photo: string) => [
 export const athanSvg = (p: AthanCardProps, view: Pick<CardView, 'hoverClose' | 'columns' | 'hoverAction'>) =>
   cardSvg(athanFrame(p, view.columns), {
     classes: `athan active${p.isFolded ? ' rest' : ''}`,
-    style: `--start-accent:${accentHex(p.accent ?? 'orange', p.isDark ?? true)}`,
+    style: '',
     html: `${p.canStart ? `<span class="start${view.hoverAction ? ' hot' : ''}"><span class="start-arrow">← </span><span class="start-label">${START_LABEL}</span></span>` : ''}<div class="main">${athanText(p.pray)}</div><div class="time">${arabicDigits(p.time)}</div>`,
-    css: css(p.photo),
+    css: css(p.photo, p.accent ?? 'orange'),
     hoverClose: view.hoverClose,
   })

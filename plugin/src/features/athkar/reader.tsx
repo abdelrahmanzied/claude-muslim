@@ -61,12 +61,14 @@ const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
   // Skies light up from faded; Frame breathes.
   const accent = isLit || look.style !== 'sky' ? look.ring : look.dim
   const wave = (1 - Math.cos(((local.frame % PULSE) / PULSE) * Math.PI * 2)) / 2
-  const frame = look.style === 'sky' ? undefined : isLit ? mixHex(look.ring, look.under, 0.55 * (1 - wave)) : look.track
+  // Frame: the border breathes between the main color and its dim form; faded, it takes the theme's quiet key.
+  const frame = look.style === 'sky' ? undefined : isLit ? look.ring : look.track
+  const isDimFrame = look.style !== 'sky' && isLit && wave < 0.5
 
   const close = <Button key="hide" plain label="×" onPress={() => surface.post({ act: 'hide' })} />
 
   const shell = (children: RenderElement[]) => (
-    <Box flexDirection="column" paddingX={2} backgroundColor={look.background} borderStyle={frame ? 'round' : undefined} borderColor={frame} width="100%">
+    <Box flexDirection="column" paddingX={2} backgroundColor={look.background} borderStyle={frame ? 'round' : undefined} borderColor={frame} borderDimColor={isDimFrame} width="100%">
       {children}
     </Box>
   )
@@ -135,41 +137,28 @@ const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
     <Box key="text" flexDirection="column" alignItems="flex-end">
       <Text color={isLit ? look.ink : look.dim} wrap="wrap">{props.text}</Text>
     </Box>,
-    horizon(surface.elements, surface.columns - 4, local.shown, accent, look, local.frame, props.left),
+    horizon(surface.elements, surface.columns - 4, local.shown, accent, look, props.left),
   ])
 }
 
 // Horizon glow: a soft line along the bottom, filled from the right. Its head
 // carries the repetitions left on this thikr, " ٢ " on the main color, and
 // stays whole at either end of the line.
-const horizon = (elements: ReaderElements, columns: number, shown: number, accent: string, look: ReaderProps['look'], frame: number, left: string) => {
+const horizon = (elements: ReaderElements, columns: number, shown: number, accent: string, look: ReaderProps['look'], left: string) => {
   const { Box, Text } = elements
   const width = Math.max(10, columns)
   const label = ` ${left} `
   const filled = Math.min(width - label.length, Math.max(0, Math.round(width * Math.min(1, Math.max(0, shown)))))
-  const wave = (1 - Math.cos(((frame % PULSE) / PULSE) * Math.PI * 2)) / 2
 
   return (
     <Box key="horizon" flexDirection="row">
       <Text color={look.track}>{'─'.repeat(Math.max(0, width - filled - label.length))}</Text>
-      <Text bold color="#ffffff" backgroundColor={mixHex(accent, '#ffffff', 0.15 * wave)}>{label}</Text>
+      <Text bold color="#ffffff" backgroundColor={accent}>{label}</Text>
       <Text color={accent}>{'━'.repeat(filled)}</Text>
     </Box>
   )
 }
 
 type ReaderElements = Parameters<ClientModule>[1]['elements']
-
-const mixHex = (from: string, to: string, amount: number) => {
-  const parse = (v: string) => {
-    const n = Number.parseInt(v.slice(1), 16)
-
-    return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
-  }
-  const a = parse(from)
-  const b = parse(to)
-
-  return `#${a.map((v, i) => Math.round(v + ((b[i] ?? 0) - v) * amount).toString(16).padStart(2, '0')).join('')}`
-}
 
 export default Reader

@@ -92,7 +92,7 @@ test('there is no 10 | 100 choice: no such act, and an extra saved key is droppe
 })
 
 const model = (over: Partial<BandModel>): BandModel => ({
-  phase: 'reading', period: 'morning', sky: 'crescent', style: 'sky', accent: 'orange', isDark: true, isActive: true, hasBegun: true,
+  phase: 'reading', period: 'morning', sky: 'crescent', style: 'sky', accent: 'orange', isActive: true, hasBegun: true,
   title: 't', thikrId: '91', text: 'x', position: '١ مِنْ ٢٢', count: 3, times: 100, progress: 30, from: 20,
   end: 'e', endHint: 'h', endNote: 'n', now: 0, width: 900, height: 93, ...over,
 })
@@ -335,6 +335,28 @@ test('athkar takes the shared main color without changing body or sky colors', (
       const blue = lookFor(style, readOptions({ color: 'blue' }).color, 'day', isDark, true)
       expect(blue.ring).toBe(isDark ? '#4a7fc0' : '#3a6aa3')
       expect({ ...blue, ring: orange.ring }).toEqual(orange)
+    }
+  }
+})
+
+test('the terminal frame takes the terminal\'s theme keys for its words and lines, whatever the config theme', () => {
+  for (const isDark of [false, true]) {
+    const look = lookFor('frame', 'orange', 'day', isDark, false)
+    expect(look).toMatchObject({ ring: 'claude', ink: 'text', dim: 'subtle', track: 'inactive' })
+    expect(lookFor('frame', 'blue', 'day', isDark, false)).toMatchObject({ ink: 'text', dim: 'subtle', track: 'inactive', ring: isDark ? '#4a7fc0' : '#3a6aa3' })
+  }
+})
+
+test('the desktop band carries both palettes and lets the app\'s appearance pick, in every style and state', () => {
+  for (const style of ['sky', 'frame'] as const) {
+    for (const phase of ['cover', 'reading', 'question', 'done'] as const) {
+      const svg = bandSvg(model({ style, phase, question: phase === 'question' ? { title: 'q', remaining: 'r', confirm: 'c', resume: 'z', focus: 'finish' } : undefined }))
+      expect(svg).toContain(':root { --desk-bg: #1f1e1c;')
+      expect(svg).toContain('--claude: #d97757;')
+      expect(svg).toContain('@media (prefers-color-scheme: light) { :root { --desk-bg: #ffffff;')
+      expect(svg).toContain('--claude: #c8642d;')
+      expect(svg).toContain('--blue: #3a6aa3;')
+      expect(svg).not.toContain('data-theme')
     }
   }
 })

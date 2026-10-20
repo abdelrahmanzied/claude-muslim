@@ -26,7 +26,6 @@ export type BandModel = {
   sky: Sky
   style: Style
   accent: Accent
-  isDark: boolean
   // Lit (in color, breathing); faded at rest.
   isActive: boolean
   hasBegun: boolean
@@ -298,10 +297,12 @@ export const bandHtml = (m: BandModel) => cardHtml(cardFrameOf(m), { ...bandCont
 export const bandSvg = (m: BandModel) => {
   const fonts = [fontFace('Tajawal', 400, TAJAWAL_REGULAR), fontFace('Tajawal', 700, TAJAWAL_BOLD)]
   if (m.phase === 'cover' || m.finaleMs !== undefined) fonts.push(fontFace('Aref Ruqaa', 700, AREF_RUQAA_BOLD))
-  const mainColors = Object.keys(ACCENTS).map(color => `--${color === 'orange' ? 'claude' : color}: ${accentHex(color as Accent, m.isDark)};`).join(' ')
-  const css = `${fonts.join('\n')}\n:root { ${m.isDark ? ROOT_DARK : ROOT_LIGHT} ${mainColors} ${FONTS} }\n${BAND_CSS}\n${EXTRA_CSS}${m.phase === 'question' ? QUESTION_CSS : ''}`
+  // Both palettes, the app's appearance picks (as the Muslim pane does): dark
+  // first, light under prefers-color-scheme. Nothing reads Claude Code's theme.
+  const mainColors = (isDark: boolean) => Object.keys(ACCENTS).map(color => `--${color === 'orange' ? 'claude' : color}: ${accentHex(color as Accent, isDark)};`).join(' ')
+  const css = `${fonts.join('\n')}\n:root { ${ROOT_DARK} ${mainColors(true)} ${FONTS} }\n@media (prefers-color-scheme: light) { :root { ${ROOT_LIGHT} ${mainColors(false)} } }\n${BAND_CSS}\n${EXTRA_CSS}${m.phase === 'question' ? QUESTION_CSS : ''}`
 
-  return cardSvg(cardFrameOf(m), { ...bandContent(m), css, theme: m.isDark ? 'dark' : 'light' })
+  return cardSvg(cardFrameOf(m), { ...bandContent(m), css })
 }
 
 const SHRINK_AT = 1.05

@@ -144,7 +144,7 @@ test('folded, the reading and the cover are one 24px row at every size, thikr an
 
 test('the folded row takes its text from fixed pixel sizes, not from the setting, so 28 cannot clip it', () => {
   const m = (textSize: number): BandModel => ({
-    phase: 'reading', period: 'morning', sky: 'day', style: 'sky', accent: 'orange', isDark: false, isActive: false, hasBegun: true,
+    phase: 'reading', period: 'morning', sky: 'day', style: 'sky', accent: 'orange', isActive: false, hasBegun: true,
     title: 't', thikrId: '75', text: 'x', position: '١', count: 0, times: 3, progress: 0, from: 0, end: 'e', endHint: 'h', endNote: 'n', now: 0,
     width: 500, height: 0, restHeight: 24, textSize, card: CARD,
   })
@@ -194,7 +194,7 @@ test('cover and done rows: fixed height per size and width; the words on one lin
   }
   for (const width of WIDTHS) {
     const svg = bandSvg({
-      phase: 'done', period: 'morning', sky: 'day', style: 'sky', accent: 'orange', isDark: false, isActive: true, hasBegun: true,
+      phase: 'done', period: 'morning', sky: 'day', style: 'sky', accent: 'orange', isActive: true, hasBegun: true,
       title: 't', thikrId: '75', text: 'x', position: '١', count: 0, times: 1, progress: 100, from: 100, end: END, endHint: END_HINT, endNote: 'n', now: 0,
       width, height: 56, textSize: 14,
     })
@@ -232,7 +232,7 @@ test('the picture declares exactly the frame it was sized to: a viewBox, and no 
         for (const phase of ['reading', 'cover', 'done'] as const) {
           for (const isActive of [true, false]) {
             const m: BandModel = {
-              phase, period, sky: 'crescent', style: 'sky', accent: 'orange', isDark: true, isActive, hasBegun: true,
+              phase, period, sky: 'crescent', style: 'sky', accent: 'orange', isActive, hasBegun: true,
               title: 't', thikrId: id, text: 'x', position: '١ مِنْ ٢٢', count: 1, times: 100, progress: 30, from: 20,
               end: END, endHint: 'h', endNote: 'n', now: 0, width, height: 0, restHeight: 24, textSize: size, card: CARD,
             }

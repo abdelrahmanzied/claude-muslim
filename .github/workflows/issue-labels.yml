@@ -1,5 +1,9 @@
 # An issue form's static `labels:` holds only its kind label. This adds the feature and
 # surface labels from the form's answers. It only adds; anything not in a map is ignored.
+# Issues sent by `/muslim feedback` end with `Sent with /muslim feedback (kind: <label>)`
+# (plugin/src/feedback.ts markerLine): GitHub drops `--label` from people without triage
+# access, so the marker adds `via-plugin` and the kind label (bug, enhancement, idea,
+# content, feedback only).
 # Keep the maps in step with the dropdowns in .github/ISSUE_TEMPLATE/ and plugin/src/feedback.ts.
 name: Issue labels
 
@@ -37,6 +41,11 @@ jobs:
               const found = body.match(new RegExp(`### ${section}\\s*\\n+([^\\n]*)`))
               const label = found && map[found[1].trim()]
               if (label) labels.push(label)
+            }
+            const via = body.match(/Sent with \/muslim feedback \(kind: ([a-z]+)\)/)
+            if (via) {
+              labels.push('via-plugin')
+              if (['bug', 'enhancement', 'idea', 'content', 'feedback'].includes(via[1])) labels.push(via[1])
             }
             if (labels.length) {
               await github.rest.issues.addLabels({ ...context.repo, issue_number: context.issue.number, labels })

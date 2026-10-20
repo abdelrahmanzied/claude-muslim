@@ -7,7 +7,7 @@ import { hitsFor } from '../../src/features/athkar/band.ts'
 
 const cover = (over: Partial<BandModel> = {}, width = 500): BandModel => {
   const m: BandModel = {
-    phase: 'cover', period: 'morning', sky: 'day', style: 'sky', accent: 'orange', isDark: false, isActive: false, hasBegun: false,
+    phase: 'cover', period: 'morning', sky: 'day', style: 'sky', accent: 'orange', isActive: false, hasBegun: false,
     title: 'أَذْكَارُ الصَّبَاحِ', thikrId: '75', text: 'x', position: '١ مِنْ ٢٢', count: 0, times: 1, progress: 10, from: 10,
     end: 'e', endHint: 'h', endNote: 'n', now: 0, width, height: 0, restHeight: 24, textSize: 14, card: { ch: 8.4, lh: 20 }, ...over,
   }

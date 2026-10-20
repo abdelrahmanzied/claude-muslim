@@ -546,9 +546,9 @@ for (const late of [3, 10]) {
 }
 
 for (const isFolded of [false, true]) {
-  for (const isDark of [false, true]) {
-    test(`after-salah control retains the card look, fits the Svg budget and hits independently of ×: ${isFolded ? 'folded' : 'open'} ${isDark ? 'dark' : 'light'}`, () => {
-      const p = { ...props('A'.repeat(45000), 'fajr', '05:00'), canStart: true, isFolded, isDark, accent: 'blue' as const }
+  {
+    test(`after-salah control retains the card look, fits the Svg budget and hits independently of ×: ${isFolded ? 'folded' : 'open'}`, () => {
+      const p = { ...props('A'.repeat(45000), 'fajr', '05:00'), canStart: true, isFolded, accent: 'blue' as const }
       const svg = athanSvg(p, { hoverClose: false, hoverAction: true, columns: 100 })
       expect(svg).toContain(START_LABEL)
       expect(svg).toContain('حان وقت صلاة الفجر')
@@ -583,7 +583,10 @@ for (const isFolded of [false, true]) {
       expect(hit(area.x1 + .01, cy)).toBe(false)
       expect(hit(cx, area.y0 - .01)).toBe(false)
       expect(hit(cx, area.y1 + .01)).toBe(false)
-      expect(svg).toContain(isDark ? '--start-accent:#4a7fc0' : '--start-accent:#3a6aa3')
+      // Both palettes, picked by the app's appearance; nothing from Claude Code's theme.
+      expect(svg).toContain('.band.athan { --start-accent: #4a7fc0; }')
+      expect(svg).toContain('@media (prefers-color-scheme: light) { .band.athan { --start-accent: #3a6aa3; } }')
+      expect(svg).not.toContain('data-theme')
       expect(svg.length).toBeLessThan(131072)
       expect(isOnStart(p, 10, isFolded ? 1 : 2, 100, isFolded ? 2 : 5)).toBe(true)
       expect(isOnStart(p, 2, 1, 100, 5)).toBe(false)

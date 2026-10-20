@@ -114,7 +114,7 @@ test('terminal frame plays the same readings and colors, then its own open and f
   for (const [i, scene] of scenes.entries()) {
     expect(await ui.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
     const props = (await ui.find({ type: 'Client', key: 'athkar-demo' }))?.props.props as Record<string, unknown>
-    expect(props).toMatchObject({ phase: i < 4 ? 'reading' : 'done', isActive: i !== 5, look: { style: 'frame', ring: accentHex(scene.accent, true) } })
+    expect(props).toMatchObject({ phase: i < 4 ? 'reading' : 'done', isActive: i !== 5, look: { style: 'frame', ring: scene.accent === 'orange' ? 'claude' : accentHex(scene.accent, true), ink: 'text', dim: 'subtle', track: 'inactive' } })
     expect(await ui.find({ in: 'athkar-demo', type: 'Svg' })).toBeUndefined()
     if (i < 4) {
       const authored = listFor('morning').find(t => t.id === scene.id)!
