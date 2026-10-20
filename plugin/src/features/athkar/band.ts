@@ -166,7 +166,10 @@ const EXTRA_CSS = `
    and the glow breathing inside the edge, since the picture ends at it. */
 .band.band.al-breathe:not(.active) { border-color: var(--desk-line) !important; }
 .band.band.al-breathe.active { border-color: var(--b-acc) !important; animation: breatheIn 5.5s ease-in-out infinite; animation-delay: var(--t, 0s); }
-@keyframes breatheIn { 0%, 100% { box-shadow: inset 0 0 8px 0 color-mix(in srgb, var(--b-acc) 16%, transparent); } 50% { box-shadow: inset 0 0 16px 1px color-mix(in srgb, var(--b-acc) 32%, transparent); } }
+@keyframes breatheIn { 0%, 100% { box-shadow: inset 0 0 8px 0 color-mix(in srgb, var(--b-acc) var(--glow-lo, 16%), transparent); } 50% { box-shadow: inset 0 0 16px 1px color-mix(in srgb, var(--b-acc) var(--glow-hi, 32%), transparent); } }
+/* Light app: the page's own white under the frame, like the prompt box, and a
+   fainter glow, so the frame sits in the app as it does in dark. */
+@media (prefers-color-scheme: light) { .band.bg-frame { background: var(--desk-bg); --glow-lo: 5%; --glow-hi: 10%; } }
 `
 
 
