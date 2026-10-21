@@ -6,7 +6,7 @@ import type { Mounted } from 'claude-code/testing'
 import type { PanelAction, PanelQuran } from '../../src/shared/panel/signal.ts'
 import type { PaneModel } from '../../src/features/muslim-pane/model.ts'
 import { quranLayout } from '../../src/features/muslim-pane/model.ts'
-import { CONTROL_SPECS, Q_CONTROLS_BASE, Q_CONTROLS_H, Q_RETRY_TOP, Q_RETRY_H, settingsBoxes, Q_RECITER_BASE, Q_SEG_TOP, Q_TITLE_TOP, cardRects, controlScale, quranOffset } from '../../src/features/muslim-pane/layout.ts'
+import { CONTROL_SPECS, Q_BROWSER_DY, Q_BROWSER_H, quranNoteTop, Q_CONTROLS_BASE, Q_CONTROLS_H, Q_RETRY_TOP, Q_RETRY_H, settingsBoxes, Q_RECITER_BASE, Q_SEG_TOP, Q_TITLE_TOP, cardRects, controlScale, quranOffset } from '../../src/features/muslim-pane/layout.ts'
 import { defaultReciter } from '../../src/features/quran/catalog.ts'
 import { QURAN_CATALOG } from '../../src/features/quran/catalog-data.ts'
 import { QURAN_SUPPORT } from '../../src/features/quran/reciter-support.ts'
@@ -163,12 +163,13 @@ function quarterPlan(surah = 2): RecordingPlan {
   const segments = timedSegments(timing, surah, size).map(s => ({ ...s, startByte: s.id * 41700, endByte: (s.id + 1) * 41700, decodedDurationMs: 2612 }))
   return makePlan(reciter, QURAN_CATALOG.surahs[surah - 1]!, reciter.server + String(surah).padStart(3, '0') + '.mp3', size, NOW, { etag: 'fixture' }, timing.length * 1000, 112, segments)
 }
-function mockRanges(on: On, plan: RecordingPlan, etag = 'fixture', windows = false, beforeRange?: (range: string) => Promise<void>) {
+function mockRanges(on: On, plan: RecordingPlan, etag = 'fixture', windows = false, beforeRange?: (range: string) => Promise<void>, uname = '') {
   const ranges: string[] = [], cleanup: string[][] = []
   const files: Record<string, { bytes: Uint8Array; headers: string }> = {}
   on('fs.write', async () => ({ value: undefined }))
   on('process.run', async (_$, e) => {
     const argv = [...e.argv]
+    if (argv[0] === 'uname') return { value: { exitCode: 0, stdout: uname, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
     if (argv[0] === 'curl') {
       const range = argv[argv.indexOf('-r') + 1]!, path = argv[argv.indexOf('-o') + 1]!
       ranges.push(range)
@@ -177,7 +178,7 @@ function mockRanges(on: On, plan: RecordingPlan, etag = 'fixture', windows = fal
       const bytes = new Uint8Array(end! - start! + 1)
       for (let at = (417 - start! % 417) % 417; at + 4 <= bytes.length; at += 417) bytes.set([255, 251, 144, 0], at)
       files[path] = { bytes, headers: `HTTP/2 206\r\nContent-Range: bytes ${start}-${end}/${plan.sizeBytes}\r\nETag: ${etag}\r\n\r\n` }
-    } else cleanup.push(argv)
+    } else if (argv[0] !== 'uname') cleanup.push(argv)
     return { value: { exitCode: 0, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
   on('fs.stat', async (_$, e) => ({ value: { size: files[e.path]?.bytes.length ?? 0, mtimeMs: 0, kind: 'file', isFile: true, isDirectory: false, isLink: false } }))
@@ -685,7 +686,7 @@ test('cached duration skips process probing; a failed probe leaves total unknown
   const clock = setup(on, { 'quran.durations': { [`${primary.key}:18`]: 60000 } })
   audio(on, clock)
   const processes: unknown[] = []
-  on('process.run', async (_$, e) => (processes.push(e), { value: { exitCode: 1, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
+  on('process.run', async (_$, e) => (e.argv[0] === 'uname' || processes.push(e), { value: { exitCode: 1, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
   await cmd($, 'play 18'); await clock.settle()
   expect(clock.state.quranPlaying?.durationMs).toBe(60000)
   expect(processes).toEqual([])
@@ -703,7 +704,7 @@ test('duration probe uses curl Range, reads base64 bytes, caches a number and cl
   let bytesRead = false
   on('fs.write', async (_$, e) => { if (!e.path.endsWith('debug.log')) body = e.path; return { value: undefined } })
   on('process.run', async (_$, e) => {
-    argv.push([...e.argv])
+    if (e.argv[0] !== 'uname') argv.push([...e.argv])
     return { value: { exitCode: 0, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
   // Two valid 128 kbps MPEG-1 frames (the remainder is zero-filled).
@@ -747,7 +748,7 @@ test('missing curl silently leaves duration unknown and attempts prefix cleanup'
   const argv: string[][] = []
   on('fs.write', async () => ({ value: undefined }))
   on('process.run', async (_$, e) => {
-    argv.push([...e.argv])
+    if (e.argv[0] !== 'uname') argv.push([...e.argv])
     return { deny: 'curl unavailable' }
   })
   await cmd($, 'play 18'); await clock.settle()
@@ -1189,4 +1190,116 @@ for (const phase of ['HEAD', 'reads', 'timing'] as const) test(`never-resolving 
   expect(clock.state.quranPlaying?.surah).toBe(18)
   expect(clock.state.quranError).toBe(null)
   await cmd($, 'stop')
+})
+
+// Where Claude Code has no audio player, `$.audio.play` resolves at once and plays nothing.
+function silentAudio(on: On) {
+  const played: unknown[] = []
+  on('audio.play', async (_$, e) => { played.push(e.clip); return { value: undefined } })
+  return played
+}
+// `uname` null: the test's own process mock (mockRanges) answers it.
+const isBrowserOpen = (argv: readonly string[]) => argv[0] === 'xdg-open' || argv[0] === 'cmd' && argv[3] === 'start'
+function osProbe(on: On, uname: string | null, version = '2.1.306') {
+  const opened: string[][] = []
+  on('session.version', async () => ({ value: { version, base: version } }))
+  if (uname !== null) on('process.run', async (_$, e) => {
+    const argv = [...e.argv]
+    if (argv[0] === 'uname') return { value: { exitCode: 0, stdout: `${uname}\n`, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+    if (isBrowserOpen(argv)) opened.push(argv)
+    return { value: { exitCode: 0, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+  })
+  return opened
+}
+async function pressBrowser($: Parameters<typeof panel>[0]): Promise<void> {
+  const ui = await panel($)
+  const m = (await ui.raw.find({ type: 'Client', key: 'muslim-pane' }))!.props.props as PaneModel
+  const q = quranLayout(m), r = cardRects(m.folds, m.settings.state, m.settings.options, q, m.athkarMenu)
+  const y = r.quranY + quranNoteTop(q) + Q_BROWSER_DY + Q_BROWSER_H / 2
+  const fine = { x: 210 * 50 / 420, y: y * 100 / r.height }
+  await ui.raw.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: Math.floor(fine.x), y: Math.floor(fine.y), fine })
+}
+
+test('on Windows a clip that ends at once stops with the not-played line and Retry, never advancing; the card names Windows', async ($, on) => {
+  const clock = setup(on, {}, { OS: 'Windows_NT', TEMP: 'C:\\fixture' })
+  osProbe(on, '')
+  const played = silentAudio(on)
+  const ui = await panel($)
+  expect((await ui.read())?.audioNote).toBe('الصوت غير مدعوم على Windows بعد')
+  await cmd($, 'play 1'); await clock.settle()
+  expect(played).toEqual([{ url: 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r1/001.mp3' }])
+  expect(clock.state.quranPlaying).toBe(null)
+  expect(clock.state.quranSurah).toBe(1)
+  expect(clock.state.quranError).toBe('تعذّر سماع سورة الفاتحة، لم يبدأ الصوت. أعد المحاولة.')
+  expect(clock.store['quran.audioWorks']).toBeUndefined()
+  expect(await ui.svg()).toContain('استمع في المتصفح ↗')
+  // Retry plays the same surah again, and fails the same way.
+  await cmd($, 'retry'); await clock.settle()
+  expect(played).toHaveLength(2)
+  expect(clock.state.quranSurah).toBe(1)
+  expect(clock.state.quranError).toBe('تعذّر سماع سورة الفاتحة، لم يبدأ الصوت. أعد المحاولة.')
+})
+
+test('a quarter that ends at once names the quarter and stays on it', async ($, on) => {
+  const plan = quarterPlan()
+  const clock = setup(on, { 'quran.segmentCache': { [`${primary.key}:2`]: plan } })
+  osProbe(on, null)
+  mockRanges(on, plan, 'fixture', false, undefined, 'Darwin\n')
+  const played = silentAudio(on)
+  await cmd($, 'play 2'); await clock.settle()
+  expect(played).toHaveLength(1)
+  expect(clock.state.quranPlaying).toBe(null)
+  expect(clock.state.quranError).toBe('تعذّر سماع هذا المقطع من سورة البقرة، لم يبدأ الصوت. أعد المحاولة.')
+  // macOS gets no OS note: the error line alone.
+  expect((await (await panel($)).read())?.audioNote).toBe('')
+})
+
+test('on Linux a clip that really plays hides the note for this Claude Code version and advances', async ($, on) => {
+  const clock = setup(on)
+  osProbe(on, 'Linux')
+  const played = audio(on, clock)
+  const ui = await panel($)
+  expect((await ui.read())?.audioNote).toBe('الصوت غير مدعوم على Linux بعد')
+  await cmd($, 'play 18')
+  await clock.advance(10000)
+  expect(clock.store['quran.audioWorks']).toBe('2.1.306')
+  expect(clock.state.quranPlaying?.surah).toBe(19)
+  expect(played).toHaveLength(2)
+  expect(clock.state.quranError).toBe(null)
+  expect((await ui.read())?.audioNote).toBe('')
+  expect(await ui.svg()).not.toContain('استمع في المتصفح')
+  await cmd($, 'stop')
+})
+
+test('a newer Claude Code version shows the note again', async ($, on) => {
+  setup(on, { 'quran.audioWorks': '2.1.305' })
+  osProbe(on, 'Linux', '2.1.306')
+  expect((await (await panel($)).read())?.audioNote).toBe('الصوت غير مدعوم على Linux بعد')
+})
+
+test('«استمع في المتصفح» opens the surah MP3 with start on Windows and changes nothing saved', async ($, on) => {
+  const clock = setup(on, {}, { OS: 'Windows_NT', TEMP: 'C:\\fixture' })
+  const opened = osProbe(on, '')
+  silentAudio(on)
+  await cmd($, 'play 18'); await clock.settle()
+  const store = JSON.stringify(clock.store), surah = clock.state.quranSurah, error = clock.state.quranError
+  await pressBrowser($)
+  expect(opened).toEqual([['cmd', '/d', '/c', 'start', '', 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r1/018.mp3']])
+  expect(JSON.stringify(clock.store)).toBe(store)
+  expect(clock.state.quranSurah).toBe(surah)
+  expect(clock.state.quranError).toBe(error)
+  expect(clock.toasts).toEqual([])
+})
+
+test('on Linux a split surah opens its selected quarter as a media fragment with xdg-open', async ($, on) => {
+  const plan = quarterPlan()
+  const clock = setup(on, { 'quran.segmentCache': { [`${primary.key}:2`]: plan } })
+  osProbe(on, null)
+  const ranges = mockRanges(on, plan, 'fixture', false, undefined, 'Linux\n')
+  silentAudio(on)
+  await (await panel($)).post({ act: 'pick', list: 'surah', value: '2' }); await clock.settle()
+  await (await panel($)).post({ act: 'pick', list: 'segment', value: '1' }); await clock.settle()
+  await pressBrowser($)
+  const segment = plan.segments[1]!
+  expect(ranges.cleanup.filter(isBrowserOpen)).toEqual([['xdg-open', `${plan.audioUrl}#t=${Math.floor(segment.startMs / 1000)},${Math.ceil(segment.endMs / 1000)}`]])
 })

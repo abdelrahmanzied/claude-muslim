@@ -13,7 +13,7 @@ const NOW = 1_700_000_000_000
 const prays = (['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'] as const).map((pray, i) => ({ pray, at: NOW + (i - 2) * 3_600_000, clock: `${10 + i}:3${i}` }))
 const feeds = {
   salah: { city: 'القاهرة، مصر', prays, next: prays[3]!, isAthan: true },
-  quran: { error: '', reciter: 'عبد الرحمن السديس · رواية حفص عن عاصم', surah: 'سورة البقرة', part: 'الربع ٥ - الآيات ١٥–٢٤ (١ من ٢)', segmented: true, status: 'يتلى الآن', isLive: true, elapsed: '13:12', total: '1:24:05', progress: 0.2, isPlaying: true, canPrev: true, canNext: true, repeat: 'segment' as const, avatar: avatarSvg(true, 12_345, 96) },
+  quran: { error: '', reciter: 'عبد الرحمن السديس · رواية حفص عن عاصم', surah: 'سورة البقرة', part: 'الربع ٥ - الآيات ١٥–٢٤ (١ من ٢)', segmented: true, status: 'يتلى الآن', isLive: true, elapsed: '13:12', total: '1:24:05', progress: 0.2, isPlaying: true, canPrev: true, canNext: true, repeat: 'segment' as const, avatar: avatarSvg(true, 12_345, 96), audioNote: 'الصوت غير مدعوم على Windows بعد' },
   athkar: { set: 'evening' as const, canUndo: false, title: 'أَذْكَارُ الْمَسَاءِ', done: 4, total: 12, progress: 0.33, isDone: false },
 }
 const rows = Array.from({ length: 8 }, (_, i) => ({ value: String(i), label: 'عبد الباسط عبد الصمد · مجود رواية حفص', number: String(i + 1), selected: i === 2 }))

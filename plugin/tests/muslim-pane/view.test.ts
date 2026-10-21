@@ -1,7 +1,7 @@
 import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
 import { listFor, emptyReading, overall } from '../../src/features/athkar/logic.ts'
 import { expect, test } from 'claude-code/testing'
-import { enabledOf, PANE_HEIGHT, cardRects, settingsBoxes, hitAt } from '../../src/features/muslim-pane/layout.ts'
+import { enabledOf, PANE_HEIGHT, cardRects, settingsBoxes, hitAt, Q_BASE_H, Q_BROWSER_DY, Q_BROWSER_H, Q_ERROR_EXTRA, Q_NOTE_EXTRA, Q_NOTE_H, Q_RETRY_H, Q_RETRY_TOP, quranNoteTop, quranOffset } from '../../src/features/muslim-pane/layout.ts'
 import { paneModel, quranLayout, textLines } from '../../src/features/muslim-pane/model.ts'
 import { CLOSED_SETTINGS, CATEGORIES, DEFAULT_SETTINGS, SETTINGS_BODY_TOP, QURAN_SETTINGS_NOTE, QURAN_SETTINGS_NOTE_H, settingsBody } from '../../src/features/muslim-pane/settings.ts'
 import { paneAlt, paneSvg, paletteCss } from '../../src/features/muslim-pane/view.ts'
@@ -21,7 +21,7 @@ const feeds = {
     next: { pray: 'asr' as const, at: NOW + 4_320_000, clock: '15:42' },
     isAthan: true,
   },
-  quran: { error: '', reciter: 'محمد صديق المنشاوي', surah: 'سورة البقرة', part: 'الربع ٥ - الآيات ١٥–٢٤ (١ من ٢)', segmented: true, status: 'يتلى الآن', isLive: true, elapsed: '12:03', total: '41:20', progress: 0.29, isPlaying: true, canPrev: true, canNext: true, repeat: 'off' as const, avatar: '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="90" viewBox="0 0 96 90"></svg>' },
+  quran: { error: '', reciter: 'محمد صديق المنشاوي', surah: 'سورة البقرة', part: 'الربع ٥ - الآيات ١٥–٢٤ (١ من ٢)', segmented: true, status: 'يتلى الآن', isLive: true, elapsed: '12:03', total: '41:20', progress: 0.29, isPlaying: true, canPrev: true, canNext: true, repeat: 'off' as const, avatar: '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="90" viewBox="0 0 96 90"></svg>', audioNote: '' },
   athkar: { set: 'evening' as const, canUndo: false, title: 'أَذْكَارُ الْمَسَاءِ', done: 4, total: 12, progress: 0.33, isDone: false },
 }
 
@@ -428,4 +428,32 @@ for (const surface of ['terminal', 'desktop'] as const) test(`${surface}: next-p
   const line = textLines(m, s => terminalArabic(surface, 'reversed', s)).find(s => s.startsWith('Next:'))!
   expect(line).toContain(`· ${terminalArabic(surface, 'reversed', m.prayer.until)}`)
   if (surface === 'terminal') expect(line).not.toContain(m.prayer.until)
+})
+
+test('an OS without audio adds the note and «استمع في المتصفح ↗» under the controls, or under Retry, with hit tests matching', () => {
+  const on = { athan: true, quran: true, canPrev: true, canNext: true, athkar: true, segmented: true }
+  const note = 'الصوت غير مدعوم على Windows بعد'
+  for (const width of [240, 360]) for (const error of ['', 'تعذّر سماع سورة البقرة، لم يبدأ الصوت. أعد المحاولة.']) {
+    const plain = paneModel({ ...feeds, quran: { ...feeds.quran, error } }, NOW, width, 'orange')
+    const model = paneModel({ ...feeds, quran: { ...feeds.quran, error, audioNote: note } }, NOW, width, 'orange')
+    const q = quranLayout(model), r = cardRects(model.folds, model.settings.state, model.settings.options, q)
+    expect(r.quranH - cardRects(plain.folds, plain.settings.state, plain.settings.options, quranLayout(plain)).quranH).toBe(Q_NOTE_EXTRA)
+    const top = quranNoteTop(q)
+    expect(top).toBe(Q_BASE_H + (error ? Q_ERROR_EXTRA : 0) + quranOffset(true))
+    const svg = paneSvg(model)
+    expect(svg).toContain(`top:${top}px;left:16px;right:16px;height:${Q_NOTE_H}px`)
+    expect(svg).toContain(note)
+    expect(svg).toContain(`top:${top + Q_BROWSER_DY}px;left:16px;right:16px;height:${Q_BROWSER_H}px"><span>استمع في المتصفح ↗</span>`)
+    expect(paneSvg(plain)).not.toContain('استمع في المتصفح')
+    const y0 = r.quranY + top + Q_BROWSER_DY
+    // Every pixel of the frame and its slop press the button; the note line above it is inert.
+    for (const y of [y0, y0 + Q_BROWSER_H / 2, y0 + Q_BROWSER_H, y0 - 4, y0 + Q_BROWSER_H + 4]) for (const x of [28, width / 2, width - 28]) expect(hitAt(width, x, y, on, 0, 0, model.folds, model.settings, q)).toBe('quran-browser')
+    expect(hitAt(width, width / 2, r.quranY + top + Q_NOTE_H / 2, on, 0, 0, model.folds, model.settings, q)).toBe(null)
+    expect(hitAt(width, width / 2, r.quranY + top + Q_NOTE_H / 2, on, 0, 0, plain.folds, plain.settings, quranLayout(plain))).not.toBe('quran-browser')
+    if (error) {
+      // Retry and the browser button are stacked more than one pointer cell apart.
+      expect(y0 - (r.quranY + Q_RETRY_TOP + quranOffset(true) + Q_RETRY_H)).toBeGreaterThanOrEqual(24)
+      expect(hitAt(width, width / 2, r.quranY + Q_RETRY_TOP + quranOffset(true) + Q_RETRY_H / 2, on, 0, 0, model.folds, model.settings, q)).toBe('quran-retry')
+    }
+  }
 })

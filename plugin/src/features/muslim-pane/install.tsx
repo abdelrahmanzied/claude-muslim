@@ -196,7 +196,7 @@ async function press($: EngineInterface, options: Options, act: PaneAct): Promis
     if (option) await choose($, picker, option)
     return
   }
-  const action: PanelAction | null = act === 'quran-retry' || act === 'quran-toggle' || act === 'quran-prev' || act === 'quran-next' || act === 'quran-repeat-surah' || act === 'quran-repeat-segment' || act === 'athkar-open' || act === 'athkar-finish' ? act : null
+  const action: PanelAction | null = act === 'quran-retry' || act === 'quran-browser' || act === 'quran-toggle' || act === 'quran-prev' || act === 'quran-next' || act === 'quran-repeat-surah' || act === 'quran-repeat-segment' || act === 'athkar-open' || act === 'athkar-finish' ? act : null
   if (!action) return
   const took = await runPanelAction(action)
   if (!took) $.ui.toast((act === 'athkar-open' || act === 'athkar-finish') ? 'Athkar is not ready yet. /athkar' : 'Quran is not ready yet. /quran')

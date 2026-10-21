@@ -17,6 +17,7 @@ The card's geometry, type scale, palette and picker sheet are the Muslim pane's 
 - **Avatar as state.** The Quran avatar (`plugin/src/shared/quran-avatar/`) is the player's face and its state indicator. It moves only while playback is active (from the audio request, since the API has no audible-start event) and is still when stopped, preparing or failed, and under reduced motion. Negative animation delays follow the elapsed clock, so redraws keep the phase. It draws pixel runs as paths to stay inside the Client tree limit.
 - **Controls.** Play/stop is the only filled control, so the main action is unmistakable. Previous/next dim when nothing remains in that direction. Repeat is one state, `off` | `surah` | `segment`: pressing one turns the other off, pressing the lit one turns repeat off, so what is lit is exactly what will happen. The segment repeat is always drawn (no reflow) but dimmed and not hit on a whole surah; a stale segment repeat resets when a whole surah starts.
 - **Quiet playback hints.** «الوقت تقريبي» under the times, because the clock is approximate. Unavailable surahs and errors are dim text inside the card, with «إعادة المحاولة» on failure.
+- **Honest about the OS.** Where Claude Code plays no audio (Windows and Linux today), the card says so for that system only («الصوت غير مدعوم على Windows بعد»), never in general, and offers «استمع في المتصفح ↗» as the way to listen now. It never blocks Play. A clip that "ends" at once is a failure, not an end: «تعذّر سماع …» with Retry, never a silent run through the surahs. The note leaves by itself once a clip really plays on that Claude Code version. Real Windows and Linux playback is tracked in [issue #32](https://github.com/abdelrahmanzied/claude-muslim/issues/32).
 - **Lists.** Reciter, surah and segment lists show everything with no pages. Search is Arabic-normalized substring (article letters kept); Arabic or Latin digits pick exact surah or reciter numbers. Segments are named by one formatter, `الربع ٥ - الآيات ١٥–٢٤`. The segment list appears only once a large recording has valid timing metadata.
 - **Well-formed picture.** Desktop parses the pane as XML: every nested `<svg>` carries `xmlns="http://www.w3.org/2000/svg"` (without it, it silently disappears), and the font and avatar are embedded, with no network assets. A test checks both.
 
@@ -34,6 +35,10 @@ The row has no option role, selected state, highlight, hover background or actio
 
 Its text forms are: 1 → «سورة واحدة غير متاحة لهذا القارئ»; 2 → «سورتان غير متاحتين لهذا القارئ»; 3–10 → «N سور غير متاحة لهذا القارئ»; 11+ → «N سورة غير متاحة لهذا القارئ», with `N` in Arabic-Indic digits. The pure `unavailableNote` function owns and tests this agreement.
 
+## Unsupported-OS note (temporary)
+
+Windows and Linux only, until real playback there ([issue #32](https://github.com/abdelrahmanzied/claude-muslim/issues/32)); the spec's **Windows and Linux (temporary)** table says what stays and what goes. One stacked block under the controls (and under Retry when it shows): a dim 12px line naming the OS, «الصوت غير مدعوم على Windows بعد», then the framed «استمع في المتصفح ↗» button; geometry is in the Muslim pane design. It never covers or disables Play, never shows on macOS, and leaves by itself once a clip really plays on that Claude Code version. The browser button is a way to listen now, not a second player: it opens one surah or quarter and the card does not follow it. The not-played line «تعذّر سماع …» is not part of this note; it is permanent on every OS.
+
 ## Surfaces
 
 | Moment | Surface | Shows |
@@ -45,6 +50,8 @@ Its text forms are: 1 → «سورة واحدة غير متاحة لهذا ال�
 | Help/settings | Command reply on all surfaces | `/muslim help quran` (one row: `/quran`); Quran row in `/muslim` says desktop only |
 | Pane open failure from `/quran` | Quran CommandOutput | Dim error line for the matching invocation (exact args and returned reply text) |
 | Playback failure after card action | Muslim pane's Quran card | One dim error line and «إعادة المحاولة»; no toast or command-row rewrite |
+| Clip ended at once (not played) | Muslim pane's Quran card | «تعذّر سماع سورة X، لم يبدأ الصوت. أعد المحاولة.» and «إعادة المحاولة»; no auto-advance |
+| Windows or Linux, until a clip plays | Muslim pane's Quran card | One dim note naming the OS and a «استمع في المتصفح ↗» button (geometry in the Muslim pane design) |
 | Playing | The Muslim pane's Quran card | Clock-based approximate elapsed/progress, redraw once per second |
 | AbovePrompt | All surfaces | No Quran band |
 | Stopped | Muslim pane's Quran card | No redraw timer; per-clip watchdog ends when its play promise settles; play starts from beginning |
@@ -75,6 +82,7 @@ Quran demo is deferred to a separate task and is not included in the shared sequ
 
 - [ ] The Muslim pane's Quran card, embedded Tajawal and silent picks render on Desktop; no playback-error toasts (only the settings-reload stop note) and no footer item; a terminal gets the desktop-only `/quran` sentence.
 - [ ] Whole-surah audio, abort on stop/replacement, advance only on the active generation’s natural end; stop after 114.
+- [ ] A clip that ends before half its length (10 s unknown) stops on the not-played line with Retry and never advances; Windows and Linux show the OS note and the browser link until a clip plays.
 - [ ] Redraw timer runs only while playing; per-clip watchdog cancels on settlement; elapsed remains explicitly approximate.
 - [ ] No config reload from recording changes; remembered choices and playback metadata in store, catalog shipped in code.
 - [ ] Both full lists open without pages; Up/Down scrolls, search filters, and choosing clears/closes the panel. Both lists and the initial player model use shipped data with no fetch or catalog-cache state; duration failure is silent.

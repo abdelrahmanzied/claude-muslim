@@ -40,7 +40,7 @@ export const demoQuran = (elapsed: number, avatar: string): PanelQuran => {
   return {
     error: '', reciter: 'محمد صديق المنشاوي · مرتل', surah: 'سورة الفاتحة', part: '', segmented: false,
     status: 'يتلى الآن', isLive: true, elapsed: clockText(at), total: clockText(RECITER_TOTAL_MS), progress: at / RECITER_TOTAL_MS,
-    isPlaying: true, canPrev: true, canNext: true, repeat: 'off', avatar,
+    isPlaying: true, canPrev: true, canNext: true, repeat: 'off', avatar, audioNote: '',
   }
 }
 

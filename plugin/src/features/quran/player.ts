@@ -37,3 +37,18 @@ export function nextPlaybackItem(surah: number, segmentIndex: number | null, seg
   const next = nextSurahAfterEnd(surah, true, token, activeToken, reciterKey)
   return next === null ? null : { surah: next, index: 0 }
 }
+
+// Where Claude Code has no audio player (Windows and Linux today) `$.audio.play`
+// resolves at once without a sound. A clip counts as played only when it lasted
+// at least half its known length, or 10 seconds when the length is unknown: a
+// skipped clip ends in about 0 s, and no surah or quarter is shorter than 10 s.
+export const NOT_PLAYED_FLOOR_MS = 10000
+export function playedThrough(elapsedMs: number, durationMs: number | null | undefined): boolean {
+  const known = typeof durationMs === 'number' && Number.isFinite(durationMs) && durationMs > 0
+  return Number.isFinite(elapsedMs) && elapsedMs >= (known ? durationMs / 2 : NOT_PLAYED_FLOOR_MS)
+}
+// The card's dim error line after a clip that never played; Retry plays it again.
+const NOT_PLAYED_PREFIX = 'تعذّر سماع '
+export const notPlayedError = (surahName: string, isSegment: boolean): string =>
+  `${NOT_PLAYED_PREFIX}${isSegment ? 'هذا المقطع من ' : ''}سورة ${surahName}، لم يبدأ الصوت. أعد المحاولة.`
+export const isNotPlayedError = (message: string): boolean => message.startsWith(NOT_PLAYED_PREFIX) && message.endsWith('لم يبدأ الصوت. أعد المحاولة.')

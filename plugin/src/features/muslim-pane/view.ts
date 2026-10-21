@@ -9,7 +9,7 @@ import { accentHex } from '../../shared/color/index.ts'
 import { FEATURE_ICONS } from '../../shared/icon/index.ts'
 import {
   ATHAN_H, ATHAN_TOP, CITY_H, CITY_TOP, CONTROL_SPECS, FOLDED_H, HEAD_H, HEAD_TOP, KROW_H, KROW_TOP, athkarRow, KROW_GAP, NX_H, NX_TOP, Q_AVATAR_H, Q_AVATAR_W, Q_BAR_BASE, Q_CONTROLS_BASE, Q_CONTROLS_H, Q_HERO_H, Q_HERO_TOP,
-  Q_ERROR_TOP, Q_ERROR_H, Q_RETRY_TOP, Q_RETRY_H, Q_RECITER_BASE, Q_RECITER_H, Q_SEG_H, Q_SEG_LEFT, Q_SEG_TOP, Q_TIMES_BASE, Q_TIMES_H, Q_TITLE_H, Q_TITLE_TOP, SHEET_BACK_W, SHEET_BAR_LEFT, SHEET_BAR_W, SHEET_BORDER, SHEET_FOOT_H, SHEET_FOOT_TOP, SHEET_H, SHEET_HEAD_H, SHEET_HEAD_TOP,
+  Q_ERROR_TOP, Q_ERROR_H, Q_RETRY_TOP, Q_RETRY_H, Q_NOTE_H, Q_BROWSER_DY, Q_BROWSER_H, quranNoteTop, Q_RECITER_BASE, Q_RECITER_H, Q_SEG_H, Q_SEG_LEFT, Q_SEG_TOP, Q_TIMES_BASE, Q_TIMES_H, Q_TITLE_H, Q_TITLE_TOP, SHEET_BACK_W, SHEET_BAR_LEFT, SHEET_BAR_W, SHEET_BORDER, SHEET_FOOT_H, SHEET_FOOT_TOP, SHEET_H, SHEET_HEAD_H, SHEET_HEAD_TOP,
   SHEET_MIN_THUMB, SHEET_ROWS_H, SHEET_ROWS_LEFT, SHEET_ROWS_RIGHT, SHEET_ROWS_TOP, SHEET_ROW_H, SHEET_SEARCH_H, SHEET_SEARCH_TOP, AVATAR_H, PAD, TOP_H, TOP_Y, ROWS_TOP, ROW_H, SIDE, cardRects, controlScale, quranOffset, type PaneAct,
 } from './layout.ts'
 import { SETTINGS_TOP, SETTINGS_BODY_TOP, TABS_H, TAB_INSET, TAB_PAD, LIST_CHOICE_H, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, EXTRA_TOP, ADJUST_NOTE_TOP, QURAN_SETTINGS_NOTE, settingsNoteHeight, categoryTabs, settingsBody, type SettingRow, type SettingsTarget } from './settings.ts'
@@ -217,8 +217,10 @@ const quranCard = (m: PaneModel, hover: PaneAct | null): string => {
     return `<div class="cb ${cls(c.act, c.act === 'quran-toggle' ? 'pl' : '', disabled)}" role="button" aria-label="${aria}" style="${size}">${icon(name)}</div>`
   }).join('')
   const error = ok && q.error ? `<div class="quiet" style="position:absolute;top:${Q_ERROR_TOP + off}px;left:${SIDE}px;right:${SIDE}px;height:${Q_ERROR_H}px;line-height:${Q_ERROR_H}px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px">${escape(q.error)}</div><div class="dbtn ${cls('quran-retry')}" role="button" aria-label="إعادة المحاولة" style="position:absolute;top:${Q_RETRY_TOP + off}px;left:${SIDE}px;right:${SIDE}px;height:${Q_RETRY_H}px"><span>إعادة المحاولة</span></div>` : ''
+  const noteTop = quranNoteTop(layout)
+  const note = ok && q.audioNote ? `<div class="quiet" style="position:absolute;top:${noteTop}px;left:${SIDE}px;right:${SIDE}px;height:${Q_NOTE_H}px;line-height:${Q_NOTE_H}px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px">${escape(q.audioNote)}</div><div class="dbtn ${cls('quran-browser')}" role="button" aria-label="استمع في المتصفح" style="position:absolute;top:${noteTop + Q_BROWSER_DY}px;left:${SIDE}px;right:${SIDE}px;height:${Q_BROWSER_H}px"><span>استمع في المتصفح ↗</span></div>` : ''
   const sheet = m.picker ? quranSheet(m, r.quranY, hover) : ''
-  return `<section class="dcard" style="top:${r.quranY}px;height:${r.quranH}px">${header('qpane', 'القرآن الكريم', '', false, hover === 'fold-quran')}${hero}${start}${reciter}${bar}${times}${controls}${error}</section>${sheet}`
+  return `<section class="dcard" style="top:${r.quranY}px;height:${r.quranH}px">${header('qpane', 'القرآن الكريم', '', false, hover === 'fold-quran')}${hero}${start}${reciter}${bar}${times}${controls}${error}${note}</section>${sheet}`
 }
 
 // The open picker: a sheet over the card with the list's head, a search box, eight rows, a scrollbar and a footer.

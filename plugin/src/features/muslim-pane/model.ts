@@ -41,7 +41,7 @@ export type PaneModel = {
 
 // Player geometry and the settings note; isPlaying includes preparation in the shared feed.
 export const quranLayout = (m: Pick<PaneModel, 'quran' | 'picker'>): QuranLayout =>
-  !m.quran.isAvailable ? NO_QURAN : { isPlaying: m.quran.isPlaying, error: !!m.quran.error, segmented: m.quran.segmented, picker: m.picker ? { list: m.picker.list, count: m.picker.count, scroll: m.picker.scroll } : null }
+  !m.quran.isAvailable ? NO_QURAN : { isPlaying: m.quran.isPlaying, error: !!m.quran.error, note: !!m.quran.audioNote, segmented: m.quran.segmented, picker: m.picker ? { list: m.picker.list, count: m.picker.count, scroll: m.picker.scroll } : null }
 
 export const PANE_MIN_WIDTH = 240
 export const PANE_MAX_WIDTH = 1200
