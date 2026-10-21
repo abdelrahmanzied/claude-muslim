@@ -88,6 +88,20 @@ Range requests fetch at most 2MiB into temporary files, verify status 206, Conte
 
 `quran.segmentCache` is a separate key in the existing per-user plugin store, not a shipped cache and not a separate user-managed JSON file. It expires after seven days, rejects old schema/map versions or changed source URLs, and holds at most 120 plans with a conservative 1.5MB JSON budget to leave room for other features. Retry refreshes size and timings. Missing size shows the Claude 25MiB restriction, retry and alternate reader/surah choices. Large files with missing timings remain unavailable. Stop or replacement clears preparation immediately and late requests cannot start audio. The current bounded curl call may finish before cleanup; Stop never waits for it to finish.
 
+## Windows and Linux (temporary)
+
+Flow items 7 and 8 are a stopgap until real playback on Windows and Linux ([issue #32](https://github.com/abdelrahmanzied/claude-muslim/issues/32)); item 6 is permanent.
+
+| Part | Lifetime | Why |
+| --- | --- | --- |
+| Not-played check (`playedThrough`) | Permanent, every OS | Any player that ends at once, today's or a future regression, must stop with Retry instead of running through the surahs |
+| OS note and «استمع في المتصفح ↗» (`audio-support.ts`, `quran-browser` act, `Q_NOTE_EXTRA`) | Until #32 | Says why there is no sound and gives a way to listen now, without blocking Play |
+| `quran.audioWorks` self-heal | Until #32 | If a Claude Code release adds a player, the note leaves after the first clip that really plays, with no mod update |
+
+Decisions: the threshold is half the known length, or 10 s when unknown; the error reads «تعذّر سماع …»; the note and button are a stacked block under the controls (and under Retry when shown). The browser plays one surah or quarter and does not move to the next one; the card does not follow the browser tab. When #32 lands, remove the note, the button, its pane block and the store key, and keep the check.
+
+To see the Windows look on a Mac, a local patch that is never committed makes the OS read `Windows`, makes `$.audio.play` resolve at once and opens the browser with `open`. `npm run check` and a `git diff` with no simulation lines come before any commit. A real test needs a Windows or Linux machine running the branch's `plugin/` folder.
+
 ## Limits
 
 - Desktop is the only supported v1 playback surface. `/quran` on other surfaces replies with the desktop sentence only.

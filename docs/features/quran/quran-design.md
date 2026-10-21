@@ -35,6 +35,10 @@ The row has no option role, selected state, highlight, hover background or actio
 
 Its text forms are: 1 → «سورة واحدة غير متاحة لهذا القارئ»; 2 → «سورتان غير متاحتين لهذا القارئ»; 3–10 → «N سور غير متاحة لهذا القارئ»; 11+ → «N سورة غير متاحة لهذا القارئ», with `N` in Arabic-Indic digits. The pure `unavailableNote` function owns and tests this agreement.
 
+## Unsupported-OS note (temporary)
+
+Windows and Linux only, until real playback there ([issue #32](https://github.com/abdelrahmanzied/claude-muslim/issues/32)); the spec's **Windows and Linux (temporary)** table says what stays and what goes. One stacked block under the controls (and under Retry when it shows): a dim 12px line naming the OS, «الصوت غير مدعوم على Windows بعد», then the framed «استمع في المتصفح ↗» button; geometry is in the Muslim pane design. It never covers or disables Play, never shows on macOS, and leaves by itself once a clip really plays on that Claude Code version. The browser button is a way to listen now, not a second player: it opens one surah or quarter and the card does not follow it. The not-played line «تعذّر سماع …» is not part of this note; it is permanent on every OS.
+
 ## Surfaces
 
 | Moment | Surface | Shows |
