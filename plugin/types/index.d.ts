@@ -51,6 +51,8 @@ export type PaneCopied = { command: string; until: number }
 // The Muslim pane's open Quran picker: which list, the typed query, the highlighted row, the first visible row and a
 // scrollbar drag in progress (`cell` is the pane pixels one pointer row stood for at the press; null when unknown).
 export type PanePicker = { list: 'reciter' | 'surah' | 'segment'; query: string; highlight: number; scroll: number; drag: { y: number; scroll: number; cell: number | null } | null }
+// A settings number box being typed in: which box (`thikrSpeed`, `salahShow` or `adjust:<pray>`) and its text so far.
+export type PaneField = { id: string; text: string }
 export type PaneOptimistic = Partial<Record<'tashkeel' | 'thikr' | 'athkarMorning' | 'athkarEvening' | 'athkarAfterSalah' | 'salahAthan' | 'paneButton' | 'thikrEnd', boolean>>
 
 declare module 'claude-code' {
@@ -72,6 +74,8 @@ declare module 'claude-code' {
       paneCopied: PaneCopied | null
       // The Quran card's open picker, or null.
       panePicker: PanePicker | null
+      // The settings number box that has the keyboard, or null.
+      paneField: PaneField | null
       // The athkar card's title menu, kept with the pane's UI state.
       paneAthkarMenu: boolean
       // Which daily cards are folded to their title row.

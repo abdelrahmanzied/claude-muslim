@@ -4,11 +4,11 @@ import { stripTashkeel } from '../../src/shared/arabic/visual.ts'
 import { expect, test } from 'claude-code/testing'
 import { readAdjust, readOptions, writeAdjust } from '../../src/config.ts'
 import { cardRects, hitAt, hitOfCells, NO_FOLDS, paneHeight, settingsBoxes, type Enabled } from '../../src/features/muslim-pane/layout.ts'
-import { BODY_TOP, BODY_END, COPIED_LABEL, COPIED_MS, EXTRA_TOP, copiedAt, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, CONTROL_H, ROW_GAP, ROW_H, SWITCH_ROW_H, TWO_LINE_SWITCH_ROW_H, DIVIDER_H, EXTRA_ROW_H, pendingSwitches, optimisticOptions, TABS_H, SETTINGS_BODY_TOP, CATEGORIES, CLOSED_SETTINGS, DEFAULT_SETTINGS, FACE_HEIGHTS, LIST_SIZE, MAIN_HEIGHTS, mainHeight, METHOD_CHOICES, isInline, SETTINGS_TOP, categoryTabs, loadSettings, changeCategory, isSettings, settingsBody, settingsBodyHeight, settingsHeight, settingsOptions, settingsRows, terminalSettings, type SettingsModel, type SettingsState } from '../../src/features/muslim-pane/settings.ts'
+import { BODY_TOP, BODY_END, COPIED_LABEL, COPIED_MS, EXTRA_TOP, copiedAt, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, CONTROL_H, ROW_GAP, ROW_H, SWITCH_ROW_H, TWO_LINE_SWITCH_ROW_H, DIVIDER_H, EXTRA_ROW_H, pendingSwitches, optimisticOptions, TABS_H, SETTINGS_BODY_TOP, CATEGORIES, CLOSED_SETTINGS, DEFAULT_SETTINGS, FACE_HEIGHTS, LIST_SIZE, MAIN_HEIGHTS, mainHeight, METHOD_CHOICES, isInline, SETTINGS_TOP, categoryTabs, loadSettings, changeCategory, isSettings, settingsBody, settingsBodyHeight, settingsHeight, settingsOptions, settingsRows, terminalSettings, type SettingsModel, type SettingsState, FIELD_W, FIELD_EDIT_LABEL, fieldKey, fieldSpec, fieldSubmit } from '../../src/features/muslim-pane/settings.ts'
 import { paneModel } from '../../src/features/muslim-pane/model.ts'
 import { paneSvg } from '../../src/features/muslim-pane/view.ts'
 const OFF: Enabled = { athan:false,quran:false,canPrev:false,canNext:false,athkar:false }
-const make = (category: SettingsState['category'], face: SettingsState['face']='main', page=0, raw: Record<string,string|undefined>={thikrSpeed:'60',salahShow:'720'}): SettingsModel => ({ ...DEFAULT_SETTINGS, state:{open:true,category,face,page}, options:settingsOptions(readOptions(raw)) })
+const make = (category: SettingsState['category'], face: SettingsState['face']='main', page=0, raw: Record<string,string|undefined>={thikrSpeed:'60',salahShow:'60'}): SettingsModel => ({ ...DEFAULT_SETTINGS, state:{open:true,category,face,page}, options:settingsOptions(readOptions(raw)) })
 
 test('settings heights are fixed per category and sub-face, independent of width or config',()=>{
   expect(settingsHeight(CLOSED_SETTINGS)).toBe(56)
@@ -65,11 +65,47 @@ test('closed settings and disabled controls have no body targets',()=>{
   expect(hitAt(320,40,r.settingsY+SETTINGS_BODY_TOP+40,OFF,0,0,NO_FOLDS,closed)).toBeNull()
   // The title remains the independent way to reopen the card.
   expect(hitAt(320,40,r.settingsY+20,OFF,0,0,NO_FOLDS,closed)).toBe('settings:fold')
-  expect(settingsBody(320,m).targets.some(t=>t.act==='settings:salahShow:+')).toBe(false)
+  // A number box is one target, the old stepper's width; it is gone while its row hides it.
+  expect(settingsBody(320,m).targets.filter(t=>t.act==='settings:field:salahShow').map(t=>t.x1-t.x0)).toEqual([FIELD_W])
   const th=make('thikr')
-  expect(settingsBody(320,th).targets.some(t=>t.act==='settings:thikrSpeed:+')).toBe(false)
+  expect(settingsBody(320,th).targets.filter(t=>t.act==='settings:field:thikrSpeed')).toHaveLength(1)
   const auto={...th,options:settingsOptions(readOptions({}))}
-  expect(settingsBody(320,auto).targets.some(t=>t.act.startsWith('settings:thikrSpeed:')&&t.act.endsWith(':-'))).toBe(false)
+  expect(settingsBody(320,auto).targets.some(t=>t.act==='settings:field:thikrSpeed')).toBe(true)
+})
+
+test('thikr speed is one line: auto then an always-visible seconds box, with a fixed selected value or an auto placeholder',()=>{
+  for(const speed of ['auto','5']) for(const width of [240,360]){
+    const m=make('thikr','main',0,{thikrSpeed:speed}), row=settingsRows(m).find(r=>r.label==='السرعة')!
+    expect(row.height).toBe(ROW_H);expect(row.extra).toBeUndefined()
+    expect(row.controls.map(c=>c.id)).toEqual(['settings:thikrSpeed:auto','settings:field:thikrSpeed'])
+    const [auto,box]=row.controls
+    expect(auto!.effect).toEqual({kind:'config',field:'thikrSpeed',value:'auto'})
+    expect(auto!.selected).toBe(speed==='auto');expect(box!.selected).toBe(speed!=='auto')
+    expect(box!.effect).toEqual({kind:'field',id:'thikrSpeed'})
+    expect(box!.label).toBe(speed==='auto'?'':'٥')
+    expect(box!.placeholder).toBe(speed==='auto'?'وقت ثابت':undefined)
+    expect(box!.unit).toBe(speed==='auto'?undefined:'ثانية')
+    expect(row.hint).toBe('تلقائي: ثانية + نصف ثانية لكل كلمة')
+    const body=settingsBody(width,m), targets=row.controls.map(c=>body.targets.find(t=>t.act===c.id)!)
+    expect(targets[0]!.x0).toBe(28);expect(targets[0]!.x1-targets[0]!.x0).toBe(46)
+    expect(targets[1]!.x0-targets[0]!.x1).toBe(4);expect(targets[1]!.x1-targets[1]!.x0).toBe(FIELD_W)
+    expect(targets[1]!.y0).toBe(targets[0]!.y0);expect(targets[1]!.x1).toBeLessThanOrEqual(width-28)
+    expect(body.targets.some(t=>t.act==='settings:thikrSpeed:3')).toBe(false)
+    const model=paneModel({salah:null,quran:null,athkar:null},0,width,'orange');model.settings=m
+    const drawn=paneSvg(model).match(/<div class="sc field[^>]*>[\s\S]*?<\/div>/)![0]
+    expect(drawn).toContain(speed==='auto'?'<span class="ph">وقت ثابت</span>':'<bdi dir="ltr">٥</bdi><span class="unit">ثانية</span>')
+    expect(drawn.includes('field on')).toBe(speed!=='auto')
+    for(const text of ['','٧']){
+      const editing={...m,field:{id:'thikrSpeed',text}}, edited=settingsRows(editing).find(r=>r.label==='السرعة')!
+      expect(edited.hint).toBe(FIELD_EDIT_LABEL)
+      expect(edited.controls[1]!.editing).toBe(true);expect(edited.controls[1]!.label).toBe(text)
+      expect(edited.controls[1]!.unit).toBe('ثانية')
+      expect(edited.controls[1]!.placeholder).toBe(speed==='auto'?'وقت ثابت':'٥')
+      model.settings=editing
+      const svg=paneSvg(model)
+      expect(svg).toContain('class="caret"');expect(svg).toContain('field.editing{box-shadow:inset 0 0 0 1.5px var(--accent)}')
+    }
+  }
 })
 
 test('list pages cover all twenty methods with a fixed height',()=>{
@@ -89,9 +125,42 @@ test('list pages cover all twenty methods with a fixed height',()=>{
 
 test('six signed offsets preserve the shared parse/write order and untouched values',()=>{
   const m=make('prayer','adjust');m.options.salahAdjust=readAdjust('-120 1 2 3 4 90')
-  const t=settingsBody(320,m).targets.find(t=>t.act==='settings:adjust:asr:+')!
-  expect(t.effect).toEqual({kind:'config',field:'salahAdjust',value:'-120 1 2 4 4 90'})
+  expect(settingsBody(320,m).targets.filter(t=>t.act.startsWith('settings:field:adjust:')).map(t=>t.control.label)).toEqual(['-١٢٠','+١','+٢','+٣','+٤','+٩٠'])
+  expect(fieldSubmit(m.options,{id:'adjust:asr',text:'4'}).save).toEqual({kind:'config',field:'salahAdjust',value:'-120 1 2 4 4 90'})
   expect(writeAdjust(readAdjust('-120 1 2 3 4 90'))).toBe('-120 1 2 3 4 90')
+})
+
+test('number box keys: digits of every script, a leading sign only where negatives count, Backspace, Enter, Escape',()=>{
+  const f={id:'adjust:asr',text:''}
+  let r=fieldKey(f,'-',true); expect(r.field?.text).toBe('-')
+  r=fieldKey(r.field!,'٣',true); expect(r.field?.text).toBe('-٣')
+  expect(fieldKey(r.field!,'-',true).field?.text).toBe('-٣')
+  expect(fieldKey(r.field!,'x',true).field?.text).toBe('-٣')
+  expect(fieldKey(r.field!,'backspace',true).field?.text).toBe('-')
+  expect(fieldKey(r.field!,'return',true)).toEqual({field:r.field,submit:true})
+  expect(fieldKey(r.field!,'escape',true)).toEqual({field:null,submit:false})
+  expect(fieldKey({id:'thikrSpeed',text:''},'-',false).field?.text).toBe('')
+  expect(fieldKey({id:'thikrSpeed',text:'12345'},'6',false).field?.text).toBe('12345')
+})
+
+test('Enter saves only whole numbers in range: thikr 1–60 s, «عرض الصلاة» 1–60 min, adjustments any whole minutes',()=>{
+  const o=make('prayer').options
+  const save=(id:string,text:string)=>fieldSubmit(o,{id,text})
+  expect(save('thikrSpeed','0')).toEqual({save:null,error:'Not saved: type seconds from 1 to 60.'})
+  expect(save('thikrSpeed','٥').save).toEqual({kind:'config',field:'thikrSpeed',value:'5'})
+  expect(save('thikrSpeed','60')).toEqual({save:null,error:null})
+  expect(save('salahShow','0').error).toBe('Not saved: type minutes from 1 to 60.')
+  expect(save('salahShow','61').error).toBe('Not saved: type minutes from 1 to 60.')
+  expect(save('salahShow','30').save).toEqual({kind:'config',field:'salahShow',value:'30'})
+  expect(save('adjust:fajr','0')).toEqual({save:null,error:null})
+  expect(save('adjust:fajr','-').error).toBe('Not saved: type whole minutes, like 3, 0 or -3.')
+  expect(save('adjust:fajr','-15').save).toEqual({kind:'config',field:'salahAdjust',value:'-15 0 0 0 0 0'})
+  expect(save('salahShow','')).toEqual({save:null,error:null})
+  const auto=settingsOptions(readOptions({thikrSpeed:'auto'})), spec=fieldSpec(auto,'thikrSpeed')!
+  expect([spec.min,spec.max,spec.value]).toEqual([1,60,null])
+  expect(fieldSubmit(auto,{id:'thikrSpeed',text:'5'})).toEqual({save:{kind:'config',field:'thikrSpeed',value:'5'},error:null})
+  for(const text of ['0','61']) expect(fieldSubmit(auto,{id:'thikrSpeed',text}).error).toBe('Not saved: type seconds from 1 to 60.')
+  expect(fieldSubmit(auto,{id:'thikrSpeed',text:''})).toEqual({save:null,error:null})
 })
 
 test('terminal lists every config key, and all Arabic values use show',()=>{
@@ -153,7 +222,7 @@ test('rows share label/description/control geometry, inline switches and color d
   expect(HINT_TOP-LABEL_H).toBe(4)
   expect(CONTROL_TOP-HINT_TOP-HINT_H).toBe(10)
   expect(ROW_H-CONTROL_TOP-CONTROL_H).toBe(ROW_GAP)
-  expect([ROW_H,SWITCH_ROW_H,EXTRA_ROW_H]).toEqual([108,70,146])
+  expect([ROW_H,SWITCH_ROW_H,EXTRA_ROW_H]).toEqual([108,70,160])
   for(const width of [240,360,1200]) for(const [category] of CATEGORIES){
     const m=make(category), b=settingsBody(width,m)
     expect(b.rows[0]!.y).toBe(0)
@@ -211,7 +280,7 @@ const lastLineBottom=(row:ReturnType<typeof settingsRows>[number], showsExtra:bo
 
 test('every setting row ends 28px under its last shown line, in every tab and both stepper states',()=>{
   expect(ROW_GAP).toBe(28)
-  const raws=[{salahShow:'always',thikrSpeed:'auto'},{thikrSpeed:'60',salahShow:'720'}]
+  const raws=[{salahShow:'always',thikrSpeed:'auto'},{thikrSpeed:'60',salahShow:'60'}]
   for(const raw of raws) for(const [category] of CATEGORIES){
     const m=make(category,'main',0,raw), rows=settingsRows(m)
     let y=0
@@ -238,14 +307,15 @@ test('a hidden stepper line takes no height: «عرض الصلاة» leaves the 
   expect(settingsBoxes(360,NO_FOLDS,hidden).find(t=>t.act==='settings:salahAthan')!.y0).toBe(cardRects(NO_FOLDS,hidden.state).settingsY+SETTINGS_BODY_TOP+ROW_H)
   const speedHidden=make('thikr','main',0,{thikrSpeed:'auto'}), speedShown=make('thikr','main',0,{thikrSpeed:'5'})
   const speed=(m:SettingsModel)=>settingsBody(360,m).rows.find(r=>r.row.label==='السرعة')!.row.height
-  expect(speed(speedHidden)).toBe(ROW_H);expect(speed(speedShown)).toBe(EXTRA_ROW_H)
+  expect(speed(speedHidden)).toBe(ROW_H);expect(speed(speedShown)).toBe(ROW_H)
 })
 
 test('a tab is only as tall as its visible rows when the options are known',()=>{
   const prayerHidden=make('prayer','main',0,{salahShow:'always'}), prayerShown=make('prayer','main',0,{salahShow:'20'})
   expect(settingsBodyHeight(prayerShown.state,prayerShown.options)-settingsBodyHeight(prayerHidden.state,prayerHidden.options)).toBe(EXTRA_ROW_H-ROW_H)
   const thikrHidden=make('thikr','main',0,{thikrSpeed:'auto'}), thikrShown=make('thikr','main',0,{thikrSpeed:'5'})
-  expect(settingsBodyHeight(thikrShown.state,thikrShown.options)-settingsBodyHeight(thikrHidden.state,thikrHidden.options)).toBe(EXTRA_ROW_H-ROW_H)
+  expect(settingsBodyHeight(thikrShown.state,thikrShown.options)).toBe(362)
+  expect(settingsBodyHeight(thikrHidden.state,thikrHidden.options)).toBe(362)
   for(const m of [prayerHidden,prayerShown,thikrHidden,thikrShown]){
     const rows=settingsRows(m)
     expect(settingsBodyHeight(m.state,m.options)).toBe(rows.reduce((h,r)=>h+r.height,BODY_TOP)-ROW_GAP+BODY_END)
@@ -312,7 +382,7 @@ test('general rows and thikr end share fixed geometry and Arabic labels',()=>{
     expect(rows.at(-1)!.label).toBe('نهاية الرد')
     expect(rows.at(-1)!.height).toBe(TWO_LINE_SWITCH_ROW_H)
     expect(rows.at(-1)!.controls[0]!.effect).toEqual({kind:'config',field:'thikrEnd',value:false})
-    expect(MAIN_HEIGHTS.thikr).toBe(400)
+    expect(MAIN_HEIGHTS.thikr).toBe(362)
   }
 })
 

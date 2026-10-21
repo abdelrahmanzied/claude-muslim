@@ -297,7 +297,7 @@ const SETTINGS_CSS = `
 .setting-extra{position:absolute;right:16px;max-width:calc(100% - 142px);font-size:12px;line-height:14px;color:var(--muted)}
 .sc{position:absolute;display:flex;align-items:center;justify-content:center;gap:4px;border-radius:7px;font-size:14px;color:var(--text-2);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .sc.pill,.sc.value,.sc.inline{background:transparent;box-shadow:inset 0 0 0 1px var(--line);padding:3px 6px}.sc.inline{font-size:12px;padding:0 6px}
-.sc.hot{background:var(--hover);color:var(--text)}.sc.pill.on{background:var(--active);color:var(--text)}.sc.disabled{opacity:.38}.sc.step{border:1px solid var(--line);direction:ltr;border-radius:4px}.sc.step.output{opacity:1;color:var(--text);font-size:14px}.sc.step:not(.output){font-size:20px;line-height:1}
+.sc.hot{background:var(--hover);color:var(--text)}.sc.pill.on{background:var(--active);color:var(--text)}.sc.field.on{background:var(--active)}.sc.disabled{opacity:.38}.sc.field{box-shadow:inset 0 0 0 1px var(--line);direction:rtl;border-radius:6px;gap:1px;color:var(--text)}.sc.field.editing{box-shadow:inset 0 0 0 1.5px var(--accent)}.sc.field .ph{color:var(--muted)}.sc.field .unit{margin-inline-start:4px;font-size:12px;color:var(--muted)}
 .sc.pill .value-text,.sc.value .value-text,.sc.inline .value-text{line-height:1;transform:translateY(.12em)}
 .sc.copied{color:var(--text)}.sc.command{direction:ltr}.sc.command .value-text{transform:none}.sc .value-text{min-width:0;overflow:hidden;text-overflow:ellipsis}.sc .ic{width:12px;height:12px;flex:none}.sc.switch{overflow:visible}.sc .tog{margin:0}.sc.swatch{overflow:visible}.sc.swatch::before{content:'';width:16px;height:16px;border-radius:50%;background:var(--sw)}.sc.swatch.on::before{outline:1.5px solid var(--text-2);outline-offset:3px}
 .list-choice{position:absolute;left:16px;right:16px;padding:6px 10px;border-radius:8px;height:${LIST_CHOICE_H}px;font-size:14px;display:flex;align-items:center;justify-content:space-between;gap:6px}
@@ -307,13 +307,17 @@ const SETTINGS_CSS = `
 
 `
 const settingControl = (t: SettingsTarget, hover: PaneAct | null): string => {
-  const c = t.control, output = c.style === 'step' && c.id.endsWith(':value')
+  const c = t.control
   const selected = c.selected ? ' on' : '', hot = hover === t.act ? ' hot' : ''
-  const attr = c.style === 'switch' ? `role="switch" aria-checked="${!!c.selected}"` : output ? 'role="status"' : `role="button" aria-pressed="${!!c.selected}"`
+  const attr = c.style === 'switch' ? `role="switch" aria-checked="${!!c.selected}"` : c.style === 'field' ? 'role="textbox" inputmode="numeric"' : `role="button" aria-pressed="${!!c.selected}"`
   const swatch = c.style === 'swatch' ? `--sw:var(--${c.label});` : ''
   const command = c.effect.kind === 'copy' && c.label.startsWith('/')
-  const content = c.style === 'switch' ? `<span class="tog${selected}"><i></i></span>` : c.style === 'swatch' ? '' : `<span class="value-text">${escape(c.label)}</span>${c.style === 'value' && c.effect.kind === 'face' && c.effect.face !== 'main' ? icon('chevl') : ''}`
-  return `<div class="sc ${c.style}${command ? ' command' : ''}${selected}${hot}${c.done ? ' copied' : ''}${c.disabled ? ' disabled' : ''}${output ? ' output' : ''}" ${attr} aria-disabled="${!!c.disabled}" aria-label="${escape(c.label)}" style="left:${t.x0-PAD}px;top:${t.y0}px;width:${t.x1-t.x0}px;height:${t.y1-t.y0}px;${swatch}">${content}</div>`
+  // A number box shows its value, or while typed in the typed text (its value dim when empty) and a caret,
+  // then its unit; the number reads left to right inside the Arabic box.
+  const unit = c.unit ? `<span class="unit">${escape(c.unit)}</span>` : ''
+  const field = c.editing ? `${c.label ? `<bdi dir="ltr">${escape(c.label)}</bdi>` : `<span class="ph">${escape(c.placeholder ?? '')}</span>`}<i class="caret"></i>${unit}` : `${c.label ? `<bdi dir="ltr">${escape(c.label)}</bdi>` : `<span class="ph">${escape(c.placeholder ?? '')}</span>`}${unit}`
+  const content = c.style === 'switch' ? `<span class="tog${selected}"><i></i></span>` : c.style === 'swatch' ? '' : c.style === 'field' ? field : `<span class="value-text">${escape(c.label)}</span>${c.style === 'value' && c.effect.kind === 'face' && c.effect.face !== 'main' ? icon('chevl') : ''}`
+  return `<div class="sc ${c.style}${command ? ' command' : ''}${selected}${hot}${c.done ? ' copied' : ''}${c.disabled ? ' disabled' : ''}${c.editing ? ' editing' : ''}" ${attr} aria-disabled="${!!c.disabled}" aria-label="${escape(c.label || (c.placeholder ?? ''))}" style="left:${t.x0-PAD}px;top:${t.y0}px;width:${t.x1-t.x0}px;height:${t.y1-t.y0}px;${swatch}">${content}</div>`
 }
 const settingRow = (row: SettingRow, y: number): string => {
   if (row.kind === 'divider') return `<div class="setting-divider" aria-hidden="true" style="top:${y}px"><span class="arm a1"></span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><path d="m20 4 4 6 7-1 1 7 5 4-5 4-1 7-7-1-4 6-4-6-7 1-1-7-5-4 5-4 1-7 7 1Z"/><path d="m20 11 9 9-9 9-9-9Z"/><circle cx="20" cy="20" r="3"/></svg><span class="arm a2"></span></div>`
@@ -340,7 +344,7 @@ const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
         body+=`<span class="setting-hint chrome-hint" style="top:510px">كل طرق الحساب العشرين · يُطبّق فورًا</span>`
       } else if (s.face==='adjust') {
         body+=b.rows.map(({row,y})=>settingRow(row,y)).join('')
-        body+=`<span class="setting-hint chrome-hint" style="top:${ADJUST_NOTE_TOP}px">دقائق صحيحة بالزيادة أو النقصان.<br/>الترتيب: الفجر، الشروق، الظهر، العصر، المغرب، العشاء.</span>`
+        body+=`<span class="setting-hint chrome-hint" style="top:${ADJUST_NOTE_TOP}px">دقائق صحيحة: <bdi dir="ltr">٣</bdi> تأخير، <bdi dir="ltr">-٣</bdi> تقديم، ثم Enter.<br/>الترتيب: الفجر، الشروق، الظهر، العصر، المغرب، العشاء.</span>`
       } else body+=`<div class="command-sheet"><p>يفتح سؤال المدينة في Claude. اكتب اسمها بأي لغة أو خط العرض والطول، أو شغّل الأمر التالي.</p><code>/salah city</code></div>`
 
     }

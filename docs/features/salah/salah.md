@@ -19,13 +19,16 @@ Prayer times for the user's city, calculated on their machine with
    - Before the city question, the card checks that the `muslim.salahPlace` config row exists. A fresh install has no `/config` rows until the user runs `/reload-plugins`; then the card shows only `Run /reload-plugins to finish installing muslim.` with `Not now` (no Yes / Another city), and `/salah city` and the pane's city press answer the same sentence instead of asking. Once the rows exist the normal question shows, on every surface.
    - Saving a city first checks that its config row exists; a missing row leaves the timestamp and review unchanged. After that check it writes the answer timestamp and review state **before** `config.set`: a successful save reloads the module and does not resolve in the old one. The timestamp stays even when the save fails. A denial or thrown save error restores the review state only when `/config` does not hold the new city, since a late error can reach a module the save already replaced. Missing `/config` rows show `Not changed: run /reload-plugins, then try again.`; other thrown errors show `Not changed: <error message>`, through a toast for card/pane presses and a reply for `/salah city`. The setup card remains available after failure. Existing city/Not now choices without a timestamp retain their behavior; subsequent city changes do not record a new answer.
 2. **Review.** Saving the place shows today's times above the prompt, one row
-   per prayer with − and +. The user matches them to their mosque and saves the
-   minutes, or skips. Save clears the review before writing config, since success reloads the module without resuming the old continuation. A denial or error restores the draft and shows a toast.
+   per prayer with a box for its minutes (an `Input`): any whole number, `3` later,
+   `-3` earlier, `0` none, in Latin or Arabic-Indic digits. Enter in a box moves
+   that time at once; Save also takes boxes typed without Enter. Text that is not
+   whole minutes is not taken or saved, with a toast naming the prayer. The user
+   matches the times to their mosque and saves the minutes, or skips. Save clears the review before writing config, since success reloads the module without resuming the old continuation. A denial or error restores the draft and shows a toast.
 3. **Every day.** What the prayer line (plain text in the prompt footer's mode labels, before the model name) shows depends on `salahShow` (`/salah show`):
    - `always`: the next prayer all day, `☾ العصر ١٥:٥٩`; in its last 20 minutes
      a live mm:ss countdown, `☾ العصر ١٩:٤٢`,
      updated every second; for 15 minutes once it is in, `حان وقت صلاة العصر`.
-   - minutes (default 20, any whole number from 1 to 720): empty until that many minutes before a prayer, then the countdown; `حان وقت صلاة …` for 15 minutes, then empty again.
+   - minutes (default 20, any whole number from 1 to 60): empty until that many minutes before a prayer, then the countdown; `حان وقت صلاة …` for 15 minutes, then empty again.
    - `off`: nothing, and the line is cleared.
    - When a prayer comes in and `salahAthan` is on, the athan moment shows once per prayer, never during a survey, and not for a prayer first seen more than 15 minutes late (the same window the footer keeps «حان وقت»; a late tick or a reload still shows it, once). A moment that starts late still ends 15 minutes after the prayer's time. If the footer shows the call while the moment has not started, the footer's draw asks for a tick at once. It has three stages:
      1. **Show:** desktop opens the lit shared card over the Haram photo, with the call and time in Arabic digits; terminal plays the rising Unicode minaret (~3 seconds).
@@ -67,7 +70,7 @@ Prayer times for the user's city, calculated on their machine with
 `adjust <prayer> <±min>` (any whole number of minutes, such as `+90` or `-120`; missing or malformed minutes are an error). An unknown word answers with the table.
 `/muslim help` shows the tables of thikr and salah; `/muslim help salah` only salah's.
 
-Replies are short markdown: a bold title line first (`**Muslim › Salah**`, `**Show:** …`, `**Athan:** on`), then any heading or table. The engine prefixes a reply's first line with `muslim: `, so a table or heading on that line would not render. `/salah show` with no value shows the current one and how to change it; a value outside `always`, `off` or 1–720 answers with the accepted forms.
+Replies are short markdown: a bold title line first (`**Muslim › Salah**`, `**Show:** …`, `**Athan:** on`), then any heading or table. The engine prefixes a reply's first line with `muslim: `, so a table or heading on that line would not render. `/salah show` with no value shows the current one and how to change it; a value outside `always`, `off` or 1–60 answers with the accepted forms.
 
 ### Rules behind the line
 
@@ -108,7 +111,7 @@ Surfaces, the athan moment's look and what salah never does: [salah design](sala
 | `location.ts` | the guess from the system's time zone |
 | `city.ts` | Claude's prompt for a typed city and the checks on its reply |
 | `place.ts` | the saved place's one-setting format |
-| `review.ts` | the review form's rows |
+| `review.ts` | the review form's rows and its how-to line |
 | `minaret.ts` | the minaret's rows, frame timing and when it is due |
 | `card.ts`, `athan-card.tsx` | desktop athan content and Client, using the shared card in `plugin/src/shared/card/` around a photo in `assets/`, with the embedded font in `card-font.ts` |
 | `today.ts` | the times and settings tables for `/salah`, and the method in effect |

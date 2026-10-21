@@ -1,13 +1,14 @@
 // Settings are plain data. Drawing and hit testing consume the same fixed rows
 // and control rectangles; neither the Client nor the hooks measure HTML.
-import { readOptions, writeAdjust, type Options } from '../../config.ts'
-import type { PaneCopied, PaneOptimistic, PaneSettings } from '../../../types/index.d.ts'
+import { SHOW_MAX, SHOW_MIN, SPEED_MAX, SPEED_MIN, readOptions, writeAdjust, type Options } from '../../config.ts'
+import type { PaneCopied, PaneField, PaneOptimistic, PaneSettings } from '../../../types/index.d.ts'
 import type { FeatureIconKey } from '../../shared/icon/index.ts'
 import { VERSION } from '../../constants.ts'
 import { END_OF_TURN } from '../../shared/thikr/end.ts'
 import { withTashkeel } from '../../shared/arabic/visual.ts'
 import type { PanelAutoUpdate } from '../../shared/panel/signal.ts'
 import { arabicDigits } from '../../shared/pray/line.ts'
+import { typedInteger } from '../../shared/digits/index.ts'
 
 export type SettingsState = PaneSettings
 export const CATEGORIES = [
@@ -32,8 +33,8 @@ export const pendingSwitches = (options: Options, saved: PaneOptimistic = {}): P
   SWITCH_FIELDS.filter(f => typeof saved[f] === 'boolean' && saved[f] !== options[f]).map(f => [f, saved[f]]),
 )
 export const optimisticOptions = (options: Options, saved: PaneOptimistic = {}): SettingsOptions => ({ ...settingsOptions(options), ...pendingSwitches(options, saved) })
-// `copied` is the command whose copy button confirmed within the last COPIED_MS, else null.
-export type SettingsModel = { state: SettingsState; options: SettingsOptions; terminalMode: string; copied: string | null; autoUpdate?: PanelAutoUpdate; pendingAutoUpdate?: boolean | null }
+// `copied` is the command whose copy button confirmed within the last COPIED_MS, else null; `field` the number box being typed in.
+export type SettingsModel = { state: SettingsState; options: SettingsOptions; terminalMode: string; copied: string | null; autoUpdate?: PanelAutoUpdate; pendingAutoUpdate?: boolean | null; field?: PaneField | null }
 export const COPIED_LABEL = 'تم النسخ ✓'
 export const COPIED_MS = 2000
 export const isPaneCopied = (v: unknown): v is PaneCopied => !!v && typeof v === 'object' && typeof (v as PaneCopied).command === 'string' && Number.isFinite((v as PaneCopied).until)
@@ -48,7 +49,8 @@ export type Effect =
   | { kind: 'copy'; command: string }
   | { kind: 'command'; args: 'update' | 'feedback' }
   | { kind: 'autoupdate'; value: boolean }
-export type SettingControl = { id: SettingsAct; label: string; width: number; style: 'pill' | 'switch' | 'value' | 'inline' | 'step' | 'swatch'; selected?: boolean; disabled?: boolean; done?: boolean; effect: Effect }
+  | { kind: 'field'; id: string }
+export type SettingControl = { id: SettingsAct; label: string; width: number; style: 'pill' | 'switch' | 'value' | 'inline' | 'field' | 'swatch'; selected?: boolean; disabled?: boolean; done?: boolean; editing?: boolean; placeholder?: string; unit?: string; effect: Effect }
 export type SettingRow = { kind?: 'divider'; label: string; hint: string; hintLtr?: boolean; hintNote?: string; hintSecondLine?: string; height: number; controls: SettingControl[]; extra?: { label: string; controls: SettingControl[] } }
 export const SETTINGS_TOP = 56
 // One-line labels: 4px padding, 20px icon, 4px gap, 14px label, 4px padding, inside the 5px border+padding.
@@ -68,14 +70,17 @@ export const ROW_GAP = 28
 export const QURAN_SETTINGS_NOTE = 'تغيير أي إعداد يوقف التلاوة، وتبدأ من جديد عند التشغيل'
 export const QURAN_SETTINGS_NOTE_H = HINT_H + ROW_GAP
 export const settingsNoteHeight = (isPlaying = false): number => isPlaying ? QURAN_SETTINGS_NOTE_H : 0
-// A row's height ends with the gap after its last shown line; the extra line (a stepper) counts only while shown.
+// A row's height ends with the gap after its last shown line; the extra line (a number box) counts only while shown.
 export const ROW_H = CONTROL_TOP + CONTROL_H + ROW_GAP // 108
 export const SWITCH_ROW_H = HINT_TOP + HINT_H + ROW_GAP // 70
 export const TWO_LINE_SWITCH_ROW_H = SWITCH_ROW_H + HINT_H // 86; retains the usual gap after the second line.
 // The preceding row already leaves ROW_GAP above the 18px rosette; this row leaves the same below it.
 export const DIVIDER_H = 18 + ROW_GAP // 46
-export const EXTRA_TOP = CONTROL_TOP + CONTROL_H + 10
-export const EXTRA_ROW_H = EXTRA_TOP + CONTROL_H + ROW_GAP // 146
+// A framed control stacked under another sits at least this far below it: more than one Desktop
+// pointer cell (about 20px), so a whole-cell press on one never lands on its neighbour.
+export const STACK_GAP = 24
+export const EXTRA_TOP = CONTROL_TOP + CONTROL_H + STACK_GAP
+export const EXTRA_ROW_H = EXTRA_TOP + CONTROL_H + ROW_GAP // 160
 export const ADJUST_TOP = 42
 export const ADJUST_NOTE_TOP = ADJUST_TOP + 6 * ROW_H
 // The last row's gap is replaced by this much space above the card's own 12px bottom inset.
@@ -86,22 +91,21 @@ export const LIST_ROW_H = 70
 export const LIST_CHOICE_H = LIST_ROW_H - 12
 // Includes subheader, six slots (even on the last page), paging and note.
 export const LIST_H = 548
-// Constants, per tab, for the tallest row set: «عرض الصلاة» and the speed row count their stepper line (EXTRA_ROW_H) here.
+// Constants, per tab, for the tallest row set: «عرض الصلاة» counts its number-box line (EXTRA_ROW_H) here.
 export const MAIN_HEIGHTS = {
   prayer: bodyH(EXTRA_ROW_H, SWITCH_ROW_H, ROW_H, ROW_H, ROW_H), athkar: bodyH(SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H, ROW_H),
-  thikr: bodyH(SWITCH_ROW_H, ROW_H, EXTRA_ROW_H, TWO_LINE_SWITCH_ROW_H), general: bodyH(SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H, ROW_H, DIVIDER_H, SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H),
+  thikr: bodyH(SWITCH_ROW_H, ROW_H, ROW_H, TWO_LINE_SWITCH_ROW_H), general: bodyH(SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H, ROW_H, DIVIDER_H, SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H),
 } as const
 export const FACE_HEIGHTS = { methods: LIST_H, adjust: ADJUST_NOTE_TOP + 50, city: 310 } as const
-// With the options, a tab is only as tall as its visible rows: a hidden stepper line takes no space,
+// With the options, a tab is only as tall as its visible rows: a hidden number-box line takes no space,
 // as in row(). Without them, the tallest set.
-type StepperOptions = Pick<SettingsOptions, 'salahShow' | 'thikrSpeed'>
-export const mainHeight = (c: SettingsState['category'], o?: StepperOptions): number =>
+type FieldOptions = Pick<SettingsOptions, 'salahShow' | 'thikrSpeed'>
+export const mainHeight = (c: SettingsState['category'], o?: FieldOptions): number =>
   !o ? MAIN_HEIGHTS[c]
   : c === 'prayer' ? bodyH(typeof o.salahShow === 'number' ? EXTRA_ROW_H : ROW_H, SWITCH_ROW_H, ROW_H, ROW_H, ROW_H)
-  : c === 'thikr' ? bodyH(SWITCH_ROW_H, ROW_H, o.thikrSpeed === 'auto' ? ROW_H : EXTRA_ROW_H, TWO_LINE_SWITCH_ROW_H)
   : MAIN_HEIGHTS[c]
-export const settingsBodyHeight = (s: SettingsState, o?: StepperOptions): number => !s.open ? 0 : s.face === 'main' ? mainHeight(s.category, o) : FACE_HEIGHTS[s.face]
-export const settingsHeight = (s: SettingsState, o?: StepperOptions, isPlaying = false): number => s.open ? SETTINGS_BODY_TOP + settingsNoteHeight(isPlaying) + settingsBodyHeight(s, o) + 12 : SETTINGS_TOP
+export const settingsBodyHeight = (s: SettingsState, o?: FieldOptions): number => !s.open ? 0 : s.face === 'main' ? mainHeight(s.category, o) : FACE_HEIGHTS[s.face]
+export const settingsHeight = (s: SettingsState, o?: FieldOptions, isPlaying = false): number => s.open ? SETTINGS_BODY_TOP + settingsNoteHeight(isPlaying) + settingsBodyHeight(s, o) + 12 : SETTINGS_TOP
 // width is the whole pane; rectangles are pane-relative in x, card-relative in y.
 export const categoryTabs = (width: number) => {
   const left = 12 + TAB_INSET + TAB_PAD
@@ -131,21 +135,56 @@ const copyControl = (m: SettingsModel, id: string, label: string, command: strin
   const done = m.copied === command
   return { ...control(id, done ? COPIED_LABEL : label, { kind: 'copy', command }, 'value', width), ...(done ? { done } : {}) }
 }
-const step = (id: string, value: number, min: number, max: number, effect: (n: number) => Effect): SettingControl[] => [
-  control(`${id}:-`, '−', effect(value - 1), 'step', 30, false, value <= min),
-  control(`${id}:value`, arabicDigits(`${id.startsWith('adjust') && value > 0 ? '+' : ''}${value}`), effect(value), 'step', 40, false, true),
-  control(`${id}:+`, '+', effect(value + 1), 'step', 30, false, value >= max),
-]
+// A number box: one press target the size of the old − value + row. Pressed, it takes the pane's typed
+// keys (`fieldKey`) until Enter saves a valid number (`fieldSubmit`) or another press closes it.
+export const FIELD_W = 100
+export const FIELD_MAX = 5
+const signed = (n: number) => `${n > 0 ? '+' : ''}${n}`
+// Every box names its unit beside the number: minutes for salah, seconds for the thikr speed.
+export const MINUTE_UNIT = 'دقيقة'
+export const SECOND_UNIT = 'ثانية'
+const numberField = (m: SettingsModel, id: string, shown: string, unit: string): SettingControl => {
+  const editing = m.field?.id === id
+  return { ...control(`field:${id}`, editing ? m.field!.text : shown, { kind: 'field', id }, 'field', FIELD_W), unit, ...(editing ? { editing, placeholder: shown } : {}) }
+}
+// Each box's whole-number range, current value and save; out-of-range or non-number text is not saved.
+// Thikr speed and «عرض الصلاة» take 1 and up; the adjustments take any whole minutes, 0 and negatives included.
+type FieldSpec = { min: number; max: number; value: number | null; save: (n: number) => Effect; error: string }
+export const fieldSpec = (o: SettingsOptions, id: string): FieldSpec | null => {
+  if (id === 'thikrSpeed') return { min: SPEED_MIN, max: SPEED_MAX, value: o.thikrSpeed === 'auto' ? null : o.thikrSpeed, save: n => config('thikrSpeed', String(n)), error: `Not saved: type seconds from ${SPEED_MIN} to ${SPEED_MAX}.` }
+  if (id === 'salahShow' && typeof o.salahShow === 'number') return { min: SHOW_MIN, max: SHOW_MAX, value: o.salahShow, save: n => config('salahShow', String(n)), error: `Not saved: type minutes from ${SHOW_MIN} to ${SHOW_MAX}.` }
+  const pray = PRAYERS.find(([p]) => id === `adjust:${p}`)?.[0]
+  if (pray) return { min: -Infinity, max: Infinity, value: o.salahAdjust[pray], save: n => config('salahAdjust', writeAdjust({ ...o.salahAdjust, [pray]: n })), error: 'Not saved: type whole minutes, like 3, 0 or -3.' }
+  return null
+}
+// A key in an open box: digits (Latin, Arabic-Indic, Persian) and, first and only where negatives count,
+// one sign are typed; Backspace deletes; Enter submits; Escape or Tab closes. Anything else changes nothing.
+export const fieldKey = (field: PaneField, key: string, signs: boolean): { field: PaneField | null; submit: boolean } => {
+  if (key === 'return' || key === 'enter') return { field, submit: true }
+  if (key === 'escape' || key === 'esc' || key === 'tab') return { field: null, submit: false }
+  if (key === 'backspace' || key === 'delete') return { field: { ...field, text: Array.from(field.text).slice(0, -1).join('') }, submit: false }
+  const typed = Array.from(field.text).length < FIELD_MAX && (/^[0-9٠-٩۰-۹]$/.test(key) || signs && field.text === '' && /^[-−+]$/.test(key))
+  return { field: typed ? { ...field, text: field.text + key } : field, submit: false }
+}
+// Enter in a box: the effect to save (null when empty, unchanged or invalid) and the toast for invalid text.
+export const fieldSubmit = (o: SettingsOptions, field: PaneField): { save: Effect | null; error: string | null } => {
+  const spec = fieldSpec(o, field.id)
+  if (!spec || field.text.trim() === '') return { save: null, error: null }
+  const n = typedInteger(field.text, spec.min, spec.max)
+  if (n === undefined) return { save: null, error: spec.error }
+  return { save: n === spec.value ? null : spec.save(n), error: null }
+}
+export const FIELD_EDIT_LABEL = 'Enter للحفظ'
 export const settingsRows = (m: SettingsModel): SettingRow[] => {
   const o = m.options, s = m.state
   const autoUpdateOn = m.pendingAutoUpdate ?? (m.autoUpdate === 'on')
   switch (s.category) {
     case 'prayer': return [
-      row('عرض الصلاة', pills('salahShow', typeof o.salahShow === 'number' ? '20' : o.salahShow, [['always','دائمًا'],['20','قبل'],['off','إيقاف']]).map(c => c.label === 'قبل' ? { ...c, effect: config('salahShow', String(typeof o.salahShow === 'number' ? o.salahShow : 20)) } : c), 'ظهور الصلاة أسفل Claude · قبلها بـ٢٠ دقيقة', { label: typeof o.salahShow === 'number' ? 'قبل الصلاة بدقائق' : '', controls: typeof o.salahShow === 'number' ? step('salahShow', o.salahShow, 1, 720, n => config('salahShow', String(n))) : [] }),
+      row('عرض الصلاة', pills('salahShow', typeof o.salahShow === 'number' ? '20' : o.salahShow, [['always','دائمًا'],['20','قبل'],['off','إيقاف']]).map(c => c.label === 'قبل' ? { ...c, effect: config('salahShow', String(typeof o.salahShow === 'number' ? o.salahShow : 20)) } : c), 'ظهور الصلاة أسفل Claude · قبلها بـ٢٠ دقيقة', { label: typeof o.salahShow === 'number' ? m.field?.id === 'salahShow' ? FIELD_EDIT_LABEL : 'قبل الصلاة بدقائق' : '', controls: typeof o.salahShow === 'number' ? [numberField(m, 'salahShow', arabicDigits(o.salahShow), MINUTE_UNIT)] : [] }),
       row('تنبيه الصلاة', toggle(o,'salahAthan'), 'تنبيه مرئي لمدة ١٥ دقيقة، بلا صوت'),
       row('المكان', face('city',o.salahPlace?.name ?? 'اختيار المدينة'), 'يفتح سؤال المدينة في Claude'),
       row('طريقة الحساب',face('methods',METHOD_CHOICES.find(c => c[0] === o.salahMethod)?.[1] ?? 'تلقائي'),'التلقائي يستخدم طريقة بلدك'),
-      row('تعديل المواقيت',face('adjust','− / + دقيقة'),'ستة مواقيت، منها الشروق'),
+      row('تعديل المواقيت',face('adjust','بالدقائق'),'ستة مواقيت، منها الشروق'),
     ]
     case 'athkar': return [
       row('تذكير أذكار الصباح',toggle(o,'athkarMorning'),'يظهر فوق خانة الكتابة من الفجر'),
@@ -156,7 +195,7 @@ export const settingsRows = (m: SettingsModel): SettingRow[] => {
     case 'thikr': return [
       row('الذكر',toggle(o,'thikr'),'عبارات في Spinner (سطر العمل) في Claude Code'),
       row('المحتوى',pills('thikrMode',o.thikrMode,[['all','الكل'],['salawat','الصلاة على النبي']]),'كل الأذكار أو صلاة على النبي في كل رد'),
-      row('السرعة',pills('thikrSpeed',o.thikrSpeed === 'auto' ? 'auto' : '3',[['auto','تلقائي'],['3','ثوانٍ']]).map(c => c.label === 'ثوانٍ' ? {...c,effect:config('thikrSpeed',String(o.thikrSpeed === 'auto' ? 3 : o.thikrSpeed))} : c),'تلقائي: ثانية + نصف ثانية لكل كلمة',{label:o.thikrSpeed === 'auto' ? '' : 'ثوانٍ لكل عبارة',controls:o.thikrSpeed === 'auto' ? [] : step('thikrSpeed',o.thikrSpeed,1,60,n => config('thikrSpeed',String(n)))}),
+      row('السرعة',[...pills('thikrSpeed',String(o.thikrSpeed),[['auto','تلقائي']]),{...numberField(m,'thikrSpeed',o.thikrSpeed === 'auto' ? 'وقت ثابت' : arabicDigits(o.thikrSpeed),SECOND_UNIT),selected:o.thikrSpeed !== 'auto',...(o.thikrSpeed === 'auto' && m.field?.id !== 'thikrSpeed' ? {label:'',placeholder:'وقت ثابت',unit:undefined} : {})}],m.field?.id === 'thikrSpeed' ? FIELD_EDIT_LABEL : 'تلقائي: ثانية + نصف ثانية لكل كلمة'),
       {...row('نهاية الرد',toggle(o,'thikrEnd'),`«${withTashkeel(END_OF_TURN,o.tashkeel)}» في آخر الرد`),hintSecondLine:'بدل كلمة Claude مثل Baked · في الترمينال فقط',height:TWO_LINE_SWITCH_ROW_H},
     ]
     case 'general': return [
@@ -197,9 +236,9 @@ export const settingsBody = (width: number, m: SettingsModel): SettingsBody => {
     add(control('page-next','التالي',{kind:'page',page:out.page+1},'value',70,false,out.page+1===out.pages),right-70,470)
   } else if (s.face === 'adjust') {
     PRAYERS.forEach(([pray,label],i) => {
-      const controls = step(`adjust:${pray}`,o.salahAdjust[pray],-Infinity,Infinity,n => config('salahAdjust',writeAdjust({...o.salahAdjust,[pray]:n})))
+      const controls = [numberField(m,`adjust:${pray}`,arabicDigits(signed(o.salahAdjust[pray])),MINUTE_UNIT)]
       const y = ADJUST_TOP+i*ROW_H
-      out.rows.push({y,row:{label,hint:'التعديل بالدقائق',height:ROW_H,controls}})
+      out.rows.push({y,row:{label,hint:m.field?.id === `adjust:${pray}` ? FIELD_EDIT_LABEL : 'التعديل بالدقائق',height:ROW_H,controls}})
       let x=left
       for (const c of controls) { add(c,x,y+CONTROL_TOP); x+=c.width }
     })

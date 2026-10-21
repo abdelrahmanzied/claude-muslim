@@ -4,14 +4,14 @@ import { configFailure, hasConfigRow, MISSING_CONFIG } from '../../shared/reload
 import { stopBeforeReload } from '../../shared/reload/signal.ts'
 import type { EngineInterface, On } from 'claude-code'
 import type { Options } from '../../config.ts'
-import type { PaneOptimistic, PanePicker } from '../../../types/index.d.ts'
+import type { PaneField, PaneOptimistic, PanePicker } from '../../../types/index.d.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
 import { readPanelAutoUpdate, readAthkar, readQuran, readQuranOptions, readSalah, runPanelAction, type PanelAction, type PanelOption } from '../../shared/panel/signal.ts'
 import { pointerPixels } from '../../shared/card/pointer.ts'
 import { enabledOf, NO_FOLDS, cardRects, hitOfCells, isFolds, isPaneMessage, keyAct, paneHeight, quranRowOf, type Folds, type PaneAct, type PaneMessage } from './layout.ts'
 import { paneModel, quranLayout, textLines, widthOf, type PaneModel } from './model.ts'
 import { dragBar, dragCell, isPanePicker, openPicker, pickerKey, pickerView, pressBar, type PickerView } from './picker.ts'
-import { CATEGORIES, CLOSED_SETTINGS, COPIED_MS, changeCategory, copiedAt, isSwitchField, loadSettings, optimisticOptions, settingsBody, type SettingsState } from './settings.ts'
+import { CATEGORIES, CLOSED_SETTINGS, COPIED_MS, changeCategory, copiedAt, fieldKey, fieldSpec, fieldSubmit, isSwitchField, loadSettings, optimisticOptions, settingsBody, type SettingsState } from './settings.ts'
 import { skipPaneScroll } from '../../shared/scroll/index.ts'
 // DEMO BEGIN
 import { DEMO_TICK_MS, demoAthkar, demoFolds, demoNow, demoQuran, demoReply, demoSalah, demoTerminalReply, isDemoOver } from './demo.ts'
@@ -128,6 +128,17 @@ async function writePicker($: EngineInterface, picker: PanePicker | null): Promi
   $.ui.invalidate('ui.render')
 }
 
+// The settings number box that has the keyboard: kept only while its box is drawn (its tab and face open).
+const fieldRef = { plugin: 'muslim', key: 'paneField' } as const
+async function readField($: EngineInterface): Promise<PaneField | null> {
+  const saved = (await $.state.get(fieldRef)).value
+  return saved && typeof saved.id === 'string' && typeof saved.text === 'string' ? saved : null
+}
+async function writeField($: EngineInterface, field: PaneField | null): Promise<void> {
+  await $.state.set(fieldRef, field)
+  $.ui.invalidate('ui.render')
+}
+
 // What the three cards show right now: whatever the features have connected, and the Quran card's open list.
 async function modelNow($: EngineInterface, options: Options, columns: unknown): Promise<PaneModel> {
   const now = await $.clock.now()
@@ -138,7 +149,8 @@ async function modelNow($: EngineInterface, options: Options, columns: unknown):
   const pending = await readPending($)
   const salah = readSalah(now)
   if (salah) salah.isAthan = optimisticOptions(options, pending).salahAthan
-  return paneModel({ salah, quran, athkar: await readAthkar() }, now, widthOf(columns), options.color, undefined, folds, { state: await readSettings($), options: optimisticOptions(options, pending), terminalMode: 'per-terminal setup', copied: copiedAt((await $.state.get(copiedRef)).value, now), autoUpdate: await readPanelAutoUpdate(), pendingAutoUpdate: (await $.state.get({ plugin: 'muslim', key: 'paneAutoUpdate' })).value ?? null }, view, (await $.state.get(athkarMenuRef)).value === true)
+  const settings = await readSettings($), field = await readField($)
+  return paneModel({ salah, quran, athkar: await readAthkar() }, now, widthOf(columns), options.color, undefined, folds, { state: settings, options: optimisticOptions(options, pending), field: field && settingsBody(widthOf(columns), { state: settings, options: optimisticOptions(options, pending), terminalMode: '', copied: null, field }).controls.some(t => t.act === `settings:field:${field.id}`) ? field : null, terminalMode: 'per-terminal setup', copied: copiedAt((await $.state.get(copiedRef)).value, now), autoUpdate: await readPanelAutoUpdate(), pendingAutoUpdate: (await $.state.get({ plugin: 'muslim', key: 'paneAutoUpdate' })).value ?? null }, view, (await $.state.get(athkarMenuRef)).value === true)
 }
 
 // The athan toggle changes the salah setting itself (the module reloads); every other press is the owning feature's own action.
@@ -188,6 +200,20 @@ async function press($: EngineInterface, options: Options, act: PaneAct): Promis
   if (!action) return
   const took = await runPanelAction(action)
   if (!took) $.ui.toast((act === 'athkar-open' || act === 'athkar-finish') ? 'Athkar is not ready yet. /athkar' : 'Quran is not ready yet. /quran')
+}
+
+// A key with a number box open: the box takes it; Enter saves a valid number (the box closes first, since
+// a saved setting reloads the module) and keeps the box open with a toast for anything else.
+async function fieldKeyPress($: EngineInterface, options: Options, field: PaneField, key: string): Promise<void> {
+  const o = optimisticOptions(options, await readPending($))
+  const spec = fieldSpec(o, field.id)
+  if (!spec) { await writeField($, null); return }
+  const result = fieldKey(field, key, spec.min < 0)
+  if (!result.submit) { if (result.field !== field) await writeField($, result.field); return }
+  const { save, error } = fieldSubmit(o, field)
+  if (error) { $.ui.toast(error); return }
+  await writeField($, null)
+  if (save?.kind === 'config') await changeSetting($, save.field, save.value, await readSettings($))
 }
 
 // A row chosen: the list closes first, then the Quran feature makes the pick it validates itself.
@@ -273,6 +299,12 @@ async function settingsPress($: EngineInterface, options: Options, act: PaneAct)
         if (pending.value === effect.value) await $.state.set(ref, null, { ifVersion: pending.version })
         $.ui.toast('Not changed: auto-update is unavailable')
       }
+    } else if (effect.kind === 'field') {
+      // A press on the open box keeps its text; any other box opens empty, its value shown dim.
+      if ((await readField($))?.id === effect.id) return
+      await writeAthkarMenu($, false)
+      await writePicker($, null)
+      await writeField($, { id: effect.id, text: '' })
     } else if (effect.kind === 'face') {
       await $.state.set(settingsRef, { ...s, face: effect.face, page: 0 })
       if (effect.face === 'city' && !(await runPanelAction('salah-city'))) $.ui.toast('Choose a city with /salah city.')
@@ -437,6 +469,11 @@ export const install = (on: On, options: Options) => {
       const model = await modelNow($, options, message.columns)
       act = hitOfCells(message.width, message.x, message.y, message.columns, message.rows, message.coarse, enabledOf(model), model.folds, model.settings, quranLayout(model), model.athkarMenu)
       if (act === 'quran-scroll') { await barPress($, model, message); return {} }
+      // A press anywhere but the open number box closes it unsaved.
+      if (model.settings.field && act !== `settings:field:${model.settings.field.id}`) await writeField($, null)
+    } else if (await readField($) && (await modelNow($, options, 50)).settings.field) {
+      await fieldKeyPress($, options, (await readField($))!, message.key)
+      return {}
     } else if ((await $.state.get(athkarMenuRef)).value === true && !(await readFolds($)).athkar) {
       // The host consumes Escape on this build; also accept it if a host forwards it.
       if (message.key === 'escape' || message.key === 'esc' || message.key === 'tab') await writeAthkarMenu($, false)

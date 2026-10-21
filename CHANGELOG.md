@@ -21,7 +21,8 @@ The first public release.
 
 ### Salah
 
-- Local prayer-time calculation for your city, country-based methods, manual minute adjustments and a review form.
+- Local prayer-time calculation for your city, country-based methods, manual minute adjustments and a review form. The `/salah adjust` form takes each prayer's minutes in a typed box (`3` later, `-3` earlier, `0` none) instead of − / + buttons. A dim line under its title says how to use it: on a terminal, ctrl+x tab or a click reaches a box, `5` later, `-5` earlier, `0` none, Enter applies, then Save.
+- `/salah show <minutes>` takes 1 to 60 minutes (was up to 720).
 - A next-prayer line with a live countdown, including Isha after midnight, and a quiet fifteen-minute athan moment: a photo card on desktop and a rising minaret in the terminal.
 - The athan card always offers a direct after-salah start. City setup can be put off; name lookup has an eight-second timeout and accepts coordinates too.
 
@@ -38,7 +39,9 @@ The first public release.
 
 - `/muslim` opens today’s prayers, the Quran player, athkar progress and tabbed settings, with a footer toggle.
 - Athkar set selection, start/resume, finish and reset with temporary undo. Daily and settings Athan switches show the same immediate feedback and roll back failed saves.
+- A click low in the pane lands where it was made: Desktop's rows are read at their real height, so the top edge of a lower button no longer misses and its hover no longer lights below it.
 - Unavailable pane opens give a short reply or toast. Quran failures stay in the player, with Retry.
+- Numbers in settings are typed in a box with their unit, instead of small − / + buttons that a press could miss: the thikr speed is «تلقائي» or a seconds box beside it (1–60 seconds, no «ثوانٍ» button), alongside the minutes before a prayer (1–60) and the six adjustments (any whole minutes). Latin and Arabic-Indic digits both count; Enter saves, and anything else is not saved. The thikr box stays visible as «وقت ثابت» while auto; the prayer box stays 24px under its choices.
 
 ### Shared controls
 
