@@ -12,7 +12,8 @@ import { QURAN_CATALOG } from './catalog-data.ts'
 import { decodeBase64, durationMs } from './mp3.ts'
 import { AUDIO_LIMIT_BYTES, CLIP_ERROR, SIZE_ERROR, TIMING_ERROR, cachedPlan, fileSize, lowerHeaders, makePlan, planKey, rangeHeader, readCache, timedSegments, timingRead, trimCache, sameRecording, withSegmentCut, type Checkpoint, type RecordingPlan, type Segment } from './segments.ts'
 import { SegmentScanner, SEGMENT_LEAD_MS, cbrByte, cbrCheckpoint, cbrStream, encodeBase64, seekCheckpoint } from './segment-mp3.ts'
-import { formatTime, nextPlaybackItem, repeatMode, toggleRepeat, type Command } from './player.ts'
+import { formatTime, isNotPlayedError, nextPlaybackItem, notPlayedError, playedThrough, repeatMode, toggleRepeat, type Command } from './player.ts'
+import { AUDIO_WORKS_KEY, audioNote, audioOsOf, browserUrl, openArgv, type AudioOs } from './audio-support.ts'
 import { isAvailable, nearestAvailable, nextAvailable, UNAVAILABLE_ERROR } from './availability.ts'
 import { connectPanelAction, connectQuran, connectQuranOptions, type PanelList, type PanelOption, type PanelQuran } from '../../shared/panel/signal.ts'
 import { isPickMessage, options as listOptions, paneModel, type List } from './pane.ts'
@@ -31,7 +32,7 @@ const commandErrorRef = { plugin: 'muslim', key: 'quranCommandError' } as const
 const errorRef = { plugin: 'muslim', key: 'quranError' } as const
 const surahRef = { plugin: 'muslim', key: 'quranSurah' } as const
 // Handles cannot survive reload; only these ephemeral resources stay here.
-const runtime: { controller?: AbortController; retry?: Retry; prefetch?: PrefetchTarget & { controller: AbortController; source: Promise<PreparedSegment> }; plan?: RecordingPlan; preparing?: Preparing; selectedSegment: number; reads?: unknown; timer?: { cancel(): void }; queue: Promise<unknown>; probe: number; generation: number; stopEpoch: number; cacheQueue: Promise<unknown>; timedOut?: AbortController } = { selectedSegment: 0, queue: Promise.resolve(), probe: 0, generation: 0, stopEpoch: 0, cacheQueue: Promise.resolve() }
+const runtime: { controller?: AbortController; retry?: Retry; prefetch?: PrefetchTarget & { controller: AbortController; source: Promise<PreparedSegment> }; plan?: RecordingPlan; preparing?: Preparing; selectedSegment: number; reads?: unknown; timer?: { cancel(): void }; os?: Promise<AudioOs>; version?: Promise<string | undefined>; queue: Promise<unknown>; probe: number; generation: number; stopEpoch: number; cacheQueue: Promise<unknown>; timedOut?: AbortController } = { selectedSegment: 0, queue: Promise.resolve(), probe: 0, generation: 0, stopEpoch: 0, cacheQueue: Promise.resolve() }
 
 
 async function arabic($: EngineInterface, surface: string, text: string): Promise<string> {
@@ -55,6 +56,26 @@ async function arabic($: EngineInterface, surface: string, text: string): Promis
   return terminalArabic(surface, cached?.terminalId === id ? cached.mode : isArabicMode(saved) ? saved : defaultArabicMode(id), text)
 }
 
+// Read once per module load: the OS (Windows from OS, Linux from uname) and the Claude Code version.
+function audioOs($: EngineInterface): Promise<AudioOs> {
+  return runtime.os ??= (async () => {
+    const envOs = await $.env.get('OS')
+    if (envOs === 'Windows_NT') return audioOsOf(envOs, undefined)
+    try {
+      const result = await $.process.run(['uname', '-s'], { timeoutMs: 5000 })
+      return audioOsOf(envOs, result.exitCode === 0 ? result.stdout : undefined)
+    } catch { return null }
+  })()
+}
+function engineVersion($: EngineInterface): Promise<string | undefined> {
+  return runtime.version ??= $.session.version().then(v => v.version, () => undefined)
+}
+// The card's note on an OS Claude Code plays no audio on, until a clip really plays there on this version.
+async function audioNoteFor($: EngineInterface): Promise<{ os: AudioOs; note: string }> {
+  const os = await audioOs($)
+  if (!os) return { os, note: '' }
+  return { os, note: audioNote(os, await $.store.get(AUDIO_WORKS_KEY), await engineVersion($)) }
+}
 async function chosen($: EngineInterface): Promise<Reciter> {
   const key = await $.store.get('quran.reciter')
   return QURAN_CATALOG.reciters.find(r => r.key === key) ?? defaultReciter(QURAN_CATALOG)
@@ -68,7 +89,7 @@ async function selectedSurah($: EngineInterface, reciter: Reciter): Promise<numb
 }
 async function fail($: EngineInterface, error: unknown, fromCommand: CommandRow | false = false): Promise<string> {
   // Keep external errors short and free of multiline process output.
-  const known = error instanceof Error && [SIZE_ERROR, TIMING_ERROR, CLIP_ERROR, UNAVAILABLE_ERROR].includes(error.message)
+  const known = error instanceof Error && ([SIZE_ERROR, TIMING_ERROR, CLIP_ERROR, UNAVAILABLE_ERROR].includes(error.message) || isNotPlayedError(error.message))
   const rawMessage = known ? (error as Error).message : `Quran: ${error instanceof Error ? error.message.replace(/^.*?\$\.[\w.]+:\s*/, '').replace(/[\r\n|]/g, ' ').slice(0, 160) : 'Unable to play the recording'}`
   const message = rawMessage === UNAVAILABLE_ERROR ? await arabic($, await $.session.surface() ?? 'desktop', rawMessage) : rawMessage
   if (fromCommand) fromCommand.error = message
@@ -104,11 +125,30 @@ async function complete($: EngineInterface, controller: AbortController, token: 
   if (!active) { await stop($); return }
   const repeat = repeatMode((await $.state.get(repeatRef)).value)
   if (isStale(controller, token)) return
+  if (error === undefined) {
+    // A clip that "ended" far sooner than its length never played: stop with Retry, never advance.
+    const elapsed = await $.clock.now() - active.startedAt
+    if (isStale(controller, token)) return
+    if (!playedThrough(elapsed, active.durationMs)) {
+      await stop($, 'not-played')
+      await fail($, new Error(notPlayedError(QURAN_CATALOG.surahs[surah - 1]!.name, active.segmentIndex !== undefined)), fromCommand)
+      return
+    }
+    await rememberAudioWorks($)
+    if (isStale(controller, token)) return
+  }
   const count = planFor(reciter, surah)?.segments.length ?? 0
   const item = nextPlaybackItem(surah, active.segmentIndex ?? null, count, repeat, error === undefined, token, runtime.generation, reciter.key)
   if (item) { await play($, reciter, item.surah, fromCommand, 'auto-advance', item.index); return }
   await stop($, 'completion')
   if (error !== undefined) await fail($, error, fromCommand)
+}
+// A clip really played on Windows or Linux: hide the note for this Claude Code version.
+async function rememberAudioWorks($: EngineInterface): Promise<void> {
+  try {
+    const os = await audioOs($), version = await engineVersion($)
+    if (os && version && await $.store.get(AUDIO_WORKS_KEY) !== version) await $.store.set(AUDIO_WORKS_KEY, version)
+  } catch { /* Best effort: the note only stays one more session. */ }
 }
 async function lookupDuration($: EngineInterface, reciter: Reciter, surah: number, controller: AbortController): Promise<void> {
   try {
@@ -501,6 +541,7 @@ async function panelQuran($: EngineInterface): Promise<PanelQuran> {
   const { reciter, playing, selection, model } = state
   const active = playing ? QURAN_CATALOG.reciters.find(r => r.key === playing.moshafKey) ?? reciter : reciter
   const index = playing?.segmentIndex ?? selection.selectedSegment
+  const { note } = await audioNoteFor($)
   return {
     reciter: active.label.replace(' — ', ' · '),
     surah: model.title,
@@ -517,7 +558,21 @@ async function panelQuran($: EngineInterface): Promise<PanelQuran> {
     canNext: model.canNext !== false,
     repeat: model.repeat,
     avatar: avatarSvg(model.playing, model.avatarElapsedMs, 96),
+    audioNote: note,
   }
+}
+// «استمع في المتصفح»: the selected surah's MP3 (a split surah's selected quarter as `#t=`) in the default browser; no state changes.
+async function openInBrowser($: EngineInterface): Promise<void> {
+  const { os } = await audioNoteFor($)
+  if (!os) return
+  const playing = (await $.state.get(playingRef)).value
+  const reciter = playing ? QURAN_CATALOG.reciters.find(r => r.key === playing.moshafKey) ?? await chosen($) : await chosen($)
+  const surah = playing?.surah ?? await selectedSurah($, reciter)
+  const segment = planFor(reciter, surah)?.segments[playing?.segmentIndex ?? runtime.selectedSegment]
+  const argv = openArgv(os, browserUrl(audioUrl(reciter, surah), segment))
+  try {
+    if (!argv || (await $.process.run(argv, { timeoutMs: 10000 })).exitCode !== 0) throw new Error('not opened')
+  } catch { $.ui.toast('Could not open the browser.') }
 }
 // The rows of one list for the Muslim card's pickers: the Quran feature's own options and search.
 async function panelOptions($: EngineInterface, list: PanelList, query: string): Promise<PanelOption[]> {
@@ -564,6 +619,7 @@ function connectToPanel($: EngineInterface): void {
   connectPanelAction('quran-segment', value => pick($, 'segment', value ?? ''))
   connectPanelAction('quran-repeat-surah', () => paneAction($, { kind: 'repeat' }))
   connectPanelAction('quran-repeat-segment', () => paneAction($, { kind: 'repeat-segment' }))
+  connectPanelAction('quran-browser', () => openInBrowser($))
 }
 
 export const install = (on: On, _options: Options) => {

@@ -36,6 +36,8 @@ export type PanelQuran = {
   repeat: 'off' | 'surah' | 'segment'
   // The reciter avatar as an SVG document at the Muslim card's size (96 wide), animated while playing.
   avatar: string
+  // One dim line naming an OS Claude Code plays no audio on (`الصوت غير مدعوم على Windows بعد`), with «استمع في المتصفح ↗»; empty elsewhere.
+  audioNote: string
 }
 
 // One row of a list the card can open: a reciter, a surah or a segment.
@@ -55,7 +57,7 @@ export type PanelAthkar = {
 }
 
 // The Quran's list picks carry a validated string: a reciter key, a surah number, a segment index.
-export type PanelAction = 'muslim-autoupdate' | 'salah-city' | 'quran-toggle' | 'quran-retry' | 'quran-prev' | 'quran-next' | 'quran-reciter' | 'quran-surah' | 'quran-segment' | 'quran-repeat-surah' | 'quran-repeat-segment' | 'athkar-open' | 'athkar-finish' | 'athkar-set' | 'athkar-reset' | 'athkar-undo'
+export type PanelAction = 'muslim-autoupdate' | 'salah-city' | 'quran-toggle' | 'quran-retry' | 'quran-prev' | 'quran-next' | 'quran-reciter' | 'quran-surah' | 'quran-segment' | 'quran-repeat-surah' | 'quran-repeat-segment' | 'quran-browser' | 'athkar-open' | 'athkar-finish' | 'athkar-set' | 'athkar-reset' | 'athkar-undo'
 
 export type PanelAutoUpdate = 'on' | 'off' | 'default' | 'missing' | 'unknown'
 const feeds: {

@@ -34,6 +34,8 @@ The first public release.
 - Plugin setting writes stop active playback before reload and explain why.
 - The Muslim pane is the player: `/quran` alone opens it with the Quran card unfolded, and a terminal says Quran is a desktop feature. No `/quran` subcommands for now.
 - The terminal `/muslim` table shows Quran as desktop only.
+- Claude Code plays audio only on macOS for now. On Windows and Linux the Quran card says the sound is not supported on that system yet and offers «استمع في المتصفح ↗», which opens the surah (or the selected quarter) in your browser. The note goes away by itself once a recitation really plays on your Claude Code version.
+- A recitation that ends the moment it starts no longer skips through the surahs in silence: the player stops on it with «تعذّر سماع …» and Retry.
 
 ### Muslim pane (desktop)
 

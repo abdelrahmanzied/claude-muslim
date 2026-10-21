@@ -60,7 +60,7 @@ test('athkar shows done of total in Arabic digits and clamps the bar', () => {
 
 test('quran card is unavailable without a feed and clamps progress with one', () => {
   expect(quranCard(null)).toEqual({ isAvailable: false })
-  const card = quranCard({ error: '', reciter: 'a', surah: 'سورة البقرة', part: '', segmented: false, status: 'متوقف', isLive: false, elapsed: '00:01', total: '00:10', progress: -1, isPlaying: true, canPrev: true, canNext: false, repeat: 'off', avatar: '' })
+  const card = quranCard({ error: '', reciter: 'a', surah: 'سورة البقرة', part: '', segmented: false, status: 'متوقف', isLive: false, elapsed: '00:01', total: '00:10', progress: -1, isPlaying: true, canPrev: true, canNext: false, repeat: 'off', avatar: '', audioNote: '' })
   expect(card).toMatchObject({ isAvailable: true, progress: 0, canNext: false })
 })
 

@@ -23,7 +23,7 @@
 | 📿 | **Thikr line** · `/thikr` | A short thikr in Claude's working line while it works, and a closing word when a turn ends. |
 | 🌅 | **Athkar** · `/athkar` | Morning, evening and after-salah athkar from Hisn al-Muslim, in a reader above the prompt that counts with you. |
 | 🕌 | **Prayer times** · `/salah` | The next prayer under the prompt, a countdown, and an athan moment when it comes in. Calculated on your machine. |
-| 📖 | **Quran** · `/quran` | A recitation player with complete Hafs recordings. Desktop. |
+| 📖 | **Quran** · `/quran` | A recitation player with complete Hafs recordings. Desktop. Audio plays on macOS for now: on Windows and Linux Claude Code has no audio player yet, so the card says so and offers the recording in your browser. |
 | ☾ | **Muslim pane** · `/muslim` | Today's prayers, the Quran player, athkar progress and every setting in one pane. Desktop. |
 
 ## Install
