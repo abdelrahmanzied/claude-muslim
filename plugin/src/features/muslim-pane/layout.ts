@@ -249,11 +249,12 @@ const isEnabled = (act: PaneAct, on: Enabled): boolean =>
     : act === 'quran-prev' ? on.quran && on.canPrev : act === 'quran-next' ? on.quran && on.canNext
     : act === 'quran-repeat-segment' || act === 'quran-pick-segment' ? on.quran && !!on.segmented : on.quran
 
-// Every framed button takes its whole frame and a margin past it (10px each side, 12px above and
-// below), as Desktop's whole-cell pointer can land a little off. The distance still counts from the
+// Every framed button takes its whole frame and a margin past it (10px each side, 4px above and
+// below), as Desktop's whole-cell pointer can land a little off; rows are read at their real height
+// (pointer.ts), so a cell that touches the frame already counts and a wide margin would light below it. The distance still counts from the
 // drawn edge, so a press inside a button always picks that button, and a press between two picks
 // the nearer. Card title rows (the folds) take only their own rows.
-export const BUTTON_SLOP = { x: 10, y: 12 }
+export const BUTTON_SLOP = { x: 10, y: 4 }
 const NO_SLOP = { x: 0, y: 0 }
 const framed = (b: Box): Box => ({ ...b, slop: BUTTON_SLOP })
 

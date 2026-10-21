@@ -34,7 +34,7 @@ Setup and review have exclusive use of AbovePrompt while visible, as specified i
 | Moment | Surface | Shows |
 | --- | --- | --- |
 | No city yet | AbovePrompt band | One line: the guessed city, **Yes**, **Another city**, **Not now** |
-| City saved, or `/salah adjust` | AbovePrompt band | Today's times, − and + per prayer with no minute bounds, **Save**, **Skip** |
+| City saved, or `/salah adjust` | AbovePrompt band | The title, a dim how-to line (`reviewHint`: terminal «ctrl+x tab or click a box · 5 later, -5 earlier, 0 none · Enter applies · then Save», desktop the same from «Click a box», mobile the `/salah adjust <pray> <±min>` way), today's times, one minutes box per prayer (`Input`; any whole number, `0` and negatives included, Latin or Arabic-Indic digits) then `min`, **Save**, **Skip**. Mobile draws no field yet and shows the minutes as text |
 | All day (mode `always`) | SessionMode (footer, before the model), bold, the shared main color (`claude` for orange, light/dark hex otherwise), no card | `☾ العصر ١٥:٥٩`; empty with minutes |
 | Countdown window (`/salah show <minutes>`, 20 by default; the last 20 min with `always`) | SessionMode, same text | `☾ العصر ١٩:٤٢`, a live mm:ss countdown, once a second |
 | Prayer comes in | AbovePrompt band, once, and the SessionMode line | Terminal: the rising minaret (~3 s) beside `حان وقت صلاة العصر`. Desktop: open photo card → folded row after 1 minute. Terminal: rise → one folded row after ~3 seconds. Both close with × or at 15 minutes. The footer line keeps the call for 15 minutes (`salahAthan`) |

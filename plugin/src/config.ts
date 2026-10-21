@@ -66,7 +66,7 @@ export const readSpeed = (value: unknown): Speed => {
 }
 
 export const SHOW_MIN = 1
-export const SHOW_MAX = 720
+export const SHOW_MAX = 60
 export const SHOW_DEFAULT = 20
 // With `always`, the countdown runs in the last minutes before a pray.
 export const ALWAYS_COUNTDOWN = 20

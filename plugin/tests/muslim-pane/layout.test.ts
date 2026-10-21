@@ -224,17 +224,52 @@ test('a settings control takes a press on every pixel and just outside it; a pre
   const on: Enabled = { athan: true, quran: false, canPrev: false, canNext: false, segmented: false, athkar: false, athkarFinish: false }
   const folds = { prayer: true, quran: true, athkar: true }
   const settings = { ...DEFAULT_SETTINGS, state: { open: true, category: 'thikr' as const, face: 'main' as const, page: 0 }, options: settingsOptions(readOptions({ thikrSpeed: '3' })) }
-  const pills = settingsBoxes(420, folds, settings).filter(b => /thikr(Mode|Speed):/.test(b.act))
-  expect(pills.length).toBe(6)
+  const pills = settingsBoxes(420, folds, settings).filter(b => /thikr(Mode|Speed):|field:thikrSpeed$/.test(b.act))
+  expect(pills.length).toBe(4)
   for (const b of pills) {
     for (let x = b.x0; x <= b.x1; x += 2) for (let y = b.y0; y <= b.y1; y += 2) expect(hitAt(420, x, y, on, 0, 0, folds, settings)).toBe(b.act)
     const midX = (b.x0 + b.x1) / 2, midY = (b.y0 + b.y1) / 2
-    // Just outside the edge (nearer to it than to any neighbour, the speed row's stepper sits 10px below).
+    // Just outside the edge, nearer to it than to any neighbour.
     expect(hitAt(420, midX, b.y0 - 3, on, 0, 0, folds, settings)).toBe(b.act)
     expect(hitAt(420, midX, b.y1 + 3, on, 0, 0, folds, settings)).toBe(b.act)
     expect(hitAt(420, b.x0 - 1, midY, on, 0, 0, folds, settings)).toBe(b.act)
-    // Past the margin above the content row nothing is pressed (the stepper's margin meets the speed row's).
+    // Past the margin above the content row nothing is pressed.
     if (b.act.startsWith('settings:thikrMode:')) expect(hitAt(420, midX, b.y0 - BUTTON_SLOP.y - 1, on, 0, 0, folds, settings)).toBe(null)
+  }
+})
+
+// Desktop often knows a click only as its whole cell (about 8px × 20px): any cell that touches a number box,
+// even one centred up to half a cell above or below it, picks the box, never the choices stacked above it.
+// Real Desktop presses on the top edge of the thikr speed box, low in the open pane (61 × 72 cells, 512px):
+// each came in a whole row higher than the box's drawn top, and must still pick the box.
+test('a press reported a row above a button low in the pane still picks it', () => {
+  const on: Enabled = { athan: true, quran: false, canPrev: false, canNext: false, segmented: false, athkar: false, athkarFinish: false }
+  const folds = { prayer: false, quran: false, athkar: false }
+  const settings = { ...DEFAULT_SETTINGS, state: { open: true, category: 'thikr' as const, face: 'main' as const, page: 0 }, options: settingsOptions(readOptions({ thikrSpeed: 'auto' })) }
+  expect(paneHeight(folds, settings.state, settings.options)).toBe(1368)
+  for (const column of [10, 11, 14, 16, 17, 18]) expect(hitOfCells(512, column + 0.5, 62.5, 61, 72, true, on, folds, settings)).toBe('settings:field:thikrSpeed')
+  expect(hitOfCells(512, 6.5, 57.5, 61, 72, true, on, folds, settings)).toBe('settings:thikrMode:all')
+})
+
+test('a number box takes every whole-cell press on it, never the choice above it', () => {
+  const on: Enabled = { athan: true, quran: false, canPrev: false, canNext: false, segmented: false, athkar: false, athkarFinish: false }
+  const folds = { prayer: true, quran: true, athkar: true }
+  for (const [category, act] of [['thikr', 'settings:field:thikrSpeed'], ['prayer', 'settings:field:salahShow']] as const) {
+    const settings = { ...DEFAULT_SETTINGS, state: { open: true, category, face: 'main' as const, page: 0 }, options: settingsOptions(readOptions({ thikrSpeed: '3', salahShow: '20' })) }
+    const b = settingsBoxes(420, folds, settings).find(t => t.act === act)!
+    for (let x = b.x0; x <= b.x1; x += 2) for (let y = b.y0 - 10; y <= b.y1 + 10; y++) expect(hitAt(420, x, y, on, 4.2, 10, folds, settings)).toBe(act)
+  }
+})
+
+test('every pixel of the side-by-side thikr speed choices hits its own control with coarse slack in auto and fixed states',()=>{
+  const on: Enabled = { athan: true, quran: false, canPrev: false, canNext: false, athkar: false }
+  const folds = { prayer: true, quran: true, athkar: true }
+  for(const width of [240,360]) for(const thikrSpeed of ['auto','5']){
+    const settings={...DEFAULT_SETTINGS,state:{open:true,category:'thikr' as const,face:'main' as const,page:0},options:settingsOptions(readOptions({thikrSpeed}))}
+    for(const act of ['settings:thikrSpeed:auto','settings:field:thikrSpeed']){
+      const b=settingsBoxes(width,folds,settings).find(t=>t.act===act)!
+      for(let x=b.x0;x<=b.x1;x++) for(let y=b.y0;y<=b.y1;y++) expect(hitAt(width,x,y,on,4.2,10,folds,settings)).toBe(act)
+    }
   }
 })
 

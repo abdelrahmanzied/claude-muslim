@@ -220,11 +220,14 @@ function settingsState(on: On, state: SettingsState) {
   on('state.set',{plugin:'muslim',key:'paneSettings'},async(_$,e,next)=>{saved=e.value!;return next(e)})
   return ()=>saved
 }
-const settingCases: {category:SettingsState['category'];face?:SettingsState['face'];page?:number;act:string;field:string;value:string|boolean}[] = [
+// A number box takes the pane's keys one by one, as the Client posts them, then Enter.
+async function typeKeys(ui: Mounted<'desktop' | 'terminal', 'Pane'>, text: string) {
+  for (const key of [...Array.from(text), 'return']) await ui.post({ act: 'key', key }, { in: 'muslim-pane' })
+}
+const settingCases: {category:SettingsState['category'];face?:SettingsState['face'];page?:number;act:string;typed?:string;field:string;value:string|boolean}[] = [
   {category:'thikr',act:'thikr',field:'thikr',value:false},
   {category:'thikr',act:'thikrEnd',field:'thikrEnd',value:false},
   {category:'general',act:'paneButton',field:'paneButton',value:false},
-  {category:'thikr',act:'thikrSpeed:3',field:'thikrSpeed',value:'3'},
   {category:'thikr',act:'thikrMode:salawat',field:'thikrMode',value:'salawat'},
   {category:'general',act:'tashkeel',field:'tashkeel',value:false},
   {category:'general',act:'color:blue',field:'color',value:'blue'},
@@ -234,10 +237,10 @@ const settingCases: {category:SettingsState['category'];face?:SettingsState['fac
   {category:'athkar',act:'athkarStyle:frame',field:'athkarStyle',value:'frame'},
   {category:'prayer',act:'salahShow:always',field:'salahShow',value:'always'},
   {category:'prayer',act:'salahShow:off',field:'salahShow',value:'off'},
-  {category:'prayer',act:'salahShow:+',field:'salahShow',value:'21'},
+  {category:'prayer',act:'field:salahShow',typed:'45',field:'salahShow',value:'45'},
   {category:'prayer',act:'salahAthan',field:'salahAthan',value:false},
   {category:'prayer',face:'methods',page:3,act:'pick:portugal',field:'salahMethod',value:'portugal'},
-  {category:'prayer',face:'adjust',act:'adjust:asr:-',field:'salahAdjust',value:'0 0 0 -1 0 0'},
+  {category:'prayer',face:'adjust',act:'field:adjust:asr',typed:'-1',field:'salahAdjust',value:'0 0 0 -1 0 0'},
 ]
 for(const c of settingCases) test(`settings press writes ${c.field} = ${c.value}`,async($,on)=>{
   engine(on,'desktop')
@@ -246,6 +249,7 @@ for(const c of settingCases) test(`settings press writes ${c.field} = ${c.value}
   on('config.set',async(_$,e)=>{sets.push({key:e.key,value:e.value});return {value:e.value}})
   const ui=await $.ui.mount(pane('desktop'))
   await settingsClick(ui,`settings:${c.act}`)
+  if(c.typed!==undefined) await typeKeys(ui,c.typed)
   expect(sets).toEqual([{key:`muslim.${c.field}`,value:c.value}])
 })
 
@@ -359,23 +363,52 @@ test('terminal pane body lists terminal settings without desktop-only rows',asyn
   for(const label of ['زر مسلم','الإصدار','التحديث التلقائي','إرسال ملاحظة']) expect(await ui.find({text:label})).toBeUndefined()
 })
 
-const boundaryCases: {category:SettingsState['category'];act:string;raw:Record<string,string>;expected:{key:string;value:string}|null}[] = [
-  {category:'thikr' as const,act:'thikrSpeed:-',raw:{thikrSpeed:'1'},expected:null},
-  {category:'thikr' as const,act:'thikrSpeed:+',raw:{thikrSpeed:'59'},expected:{key:'muslim.thikrSpeed',value:'60'}},
-  {category:'prayer' as const,act:'salahShow:-',raw:{salahShow:'2'},expected:{key:'muslim.salahShow',value:'1'}},
-  {category:'prayer' as const,act:'salahShow:+',raw:{salahShow:'720'},expected:null},
+// Thikr speed takes 1–60 seconds and «عرض الصلاة» 1–60 minutes; the adjustments take any whole minutes, 0 and negatives
+// included. Out of range is not saved (a toast says why); a sign is never typed where negatives do not count.
+// A key that is not a digit (or an allowed sign) is never typed, so Enter on an empty box closes it quietly.
+const fieldCases: {category:SettingsState['category'];face?:SettingsState['face'];act:string;raw:Record<string,string>;typed:string;expected:{key:string;value:string}|null;quiet?:true}[] = [
+  {category:'thikr',act:'thikrSpeed',raw:{thikrSpeed:'auto'},typed:'٧',expected:{key:'muslim.thikrSpeed',value:'7'}},
+  {category:'thikr',act:'thikrSpeed',raw:{thikrSpeed:'3'},typed:'0',expected:null},
+  {category:'thikr',act:'thikrSpeed',raw:{thikrSpeed:'3'},typed:'60',expected:{key:'muslim.thikrSpeed',value:'60'}},
+  {category:'thikr',act:'thikrSpeed',raw:{thikrSpeed:'3'},typed:'٧',expected:{key:'muslim.thikrSpeed',value:'7'}},
+  {category:'thikr',act:'thikrSpeed',raw:{thikrSpeed:'3'},typed:'61',expected:null},
+  {category:'thikr',act:'thikrSpeed',raw:{thikrSpeed:'3'},typed:'-5',expected:{key:'muslim.thikrSpeed',value:'5'}},
+  {category:'prayer',act:'salahShow',raw:{salahShow:'20'},typed:'0',expected:null},
+  {category:'prayer',act:'salahShow',raw:{salahShow:'20'},typed:'1',expected:{key:'muslim.salahShow',value:'1'}},
+  {category:'prayer',act:'salahShow',raw:{salahShow:'20'},typed:'٦٠',expected:{key:'muslim.salahShow',value:'60'}},
+  {category:'prayer',act:'salahShow',raw:{salahShow:'20'},typed:'61',expected:null},
+  {category:'prayer',act:'salahShow',raw:{salahShow:'20'},typed:'x',expected:null,quiet:true},
+  {category:'prayer',face:'adjust',act:'adjust:fajr',raw:{salahAdjust:'4 0 0 0 0 0'},typed:'0',expected:{key:'muslim.salahAdjust',value:'0 0 0 0 0 0'}},
+  {category:'prayer',face:'adjust',act:'adjust:isha',raw:{},typed:'-90',expected:{key:'muslim.salahAdjust',value:'0 0 0 0 0 -90'}},
+  {category:'prayer',face:'adjust',act:'adjust:isha',raw:{},typed:'-',expected:null},
 ]
-for(const c of boundaryCases) test(`setting step boundaries ${c.act} ${JSON.stringify(c.raw)}`,{options:c.raw},async($,on)=>{
-  engine(on,'desktop');settingsState(on,{open:true,category:c.category,face:'main',page:0})
-  const sets:{key:string;value:unknown}[]=[]
+for(const c of fieldCases) test(`number box ${c.act} ${JSON.stringify(c.raw)} typed ${c.typed}`,{options:c.raw},async($,on)=>{
+  engine(on,'desktop');settingsState(on,{open:true,category:c.category,face:c.face??'main',page:0})
+  const sets:{key:string;value:unknown}[]=[], toasts:string[]=[]
   on('config.set',async(_$,e)=>{sets.push({key:e.key,value:e.value});return {value:e.value}})
+  on('ui.toast',async(_$,e)=>{toasts.push(e.text);return {value:undefined}})
   const ui=await $.ui.mount(pane('desktop'))
-  if(c.expected){await settingsClick(ui,`settings:${c.act}`);expect(sets).toEqual([c.expected])}
-  else {
-    const model=(await ui.find({type:'Client',key:'muslim-pane'}))!.props.props as PaneModel
-    expect(settingsBoxes(420,model.folds,model.settings).some(t=>t.act===`settings:${c.act}`)).toBe(false)
-    expect(sets).toEqual([])
-  }
+  await settingsClick(ui,`settings:field:${c.act}`)
+  await typeKeys(ui,c.typed)
+  expect(sets).toEqual(c.expected?[c.expected]:[])
+  expect(toasts).toHaveLength(c.expected||c.quiet?0:1)
+})
+
+test('a number box shows its unit, takes keys only while open, and any other press closes it unsaved',{options:{salahShow:'20'}},async($,on)=>{
+  engine(on,'desktop');settingsState(on,{open:true,category:'prayer',face:'main',page:0})
+  const sets:unknown[]=[]
+  on('config.set',async(_$,e)=>{sets.push(e.value);return {value:e.value}})
+  const ui=await $.ui.mount(pane('desktop'))
+  expect(await svgOf(ui)).toContain('<span class="unit">دقيقة</span>')
+  await settingsClick(ui,'settings:field:salahShow')
+  for(const key of ['4','a','5']) await ui.post({act:'key',key},{in:'muslim-pane'})
+  const svg=await svgOf(ui)
+  expect(svg).toContain('<bdi dir="ltr">45</bdi><i class="caret"></i>')
+  expect(svg).toContain('Enter للحفظ')
+  await settingsClick(ui,'settings:salahAthan')
+  await ui.post({act:'key',key:'return'},{in:'muslim-pane'})
+  expect(sets).toEqual([false])
+  expect(await svgOf(ui)).not.toContain('field editing')
 })
 
 test('terminal Arabic copy failure shows the command as a toast',async($,on)=>{

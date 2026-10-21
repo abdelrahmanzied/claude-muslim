@@ -110,7 +110,7 @@
     "salahShow": {
       "type": "string",
       "title": "Show pray line",
-      "description": "always: next pray all day; a number: only that many minutes before a pray, counting down (e.g. 20); off: hidden",
+      "description": "always: next pray all day; minutes from 1 to 60: only that many minutes before a pray, counting down (e.g. 20); off: hidden",
       "default": "20"
     },
     "salahAthan": {

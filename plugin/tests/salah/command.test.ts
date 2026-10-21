@@ -64,7 +64,8 @@ test('/salah shows today\'s times and the settings as tables, each setting with 
 test('show reads always, off or minutes, and ignores removed setting aliases', { options: { ...ATHKAR_QUIET } }, async () => {
   expect(readOptions({ salahShow: 'always' }).salahShow).toBe('always')
   expect(readOptions({ salahShow: 'off' }).salahShow).toBe('off')
-  expect(readOptions({ salahShow: '90' }).salahShow).toBe(90)
+  expect(readOptions({ salahShow: '60' }).salahShow).toBe(60)
+  expect(readOptions({ salahShow: '61' }).salahShow).toBe(20)
   expect(readOptions({ salahShow: '0' }).salahShow).toBe(20)
   expect(readOptions({}).salahShow).toBe(20)
   expect(readOptions({ salah: 'always' }).salahShow).toBe(20)
@@ -83,16 +84,16 @@ test('/salah show and athan save their settings and say what changed', { options
   on('config.set', async (_$, e) => (written.push({ key: e.key, value: e.value }), { value: e.value }))
 
   expect((await $.command.run(salah('show always'))).text).toBe('**Show:** `always` — next pray all day, counting down its last 20 min')
-  expect((await $.command.run(salah('show 90'))).text).toBe('**Show:** `90` — only the 90 min before a pray, counting down')
+  expect((await $.command.run(salah('show 45'))).text).toBe('**Show:** `45` — only the 45 min before a pray, counting down')
   expect((await $.command.run(salah('show off'))).text).toBe('**Show:** `off` — hidden')
   expect((await $.command.run(salah('show'))).text).toContain('**Show:** `20` — only the 20 min before a pray')
   expect((await $.command.run(salah('show soon'))).text).toContain('Use `/salah show always`')
-  expect((await $.command.run(salah('show 0'))).text).toContain('minutes from 1 to 720')
+  expect((await $.command.run(salah('show 0'))).text).toContain('minutes from 1 to 60')
   expect((await $.command.run(salah('reminder 20'))).text).toContain('| `/salah show` |')
   await $.command.run(salah('athan off'))
   expect(written).toEqual([
     { key: 'muslim.salahShow', value: 'always' },
-    { key: 'muslim.salahShow', value: '90' },
+    { key: 'muslim.salahShow', value: '45' },
     { key: 'muslim.salahShow', value: 'off' },
     { key: 'muslim.salahAthan', value: false },
   ])

@@ -1,6 +1,7 @@
 import { ATHKAR_QUIET, configRows } from '../fixtures/config.ts'
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
+import { reviewHint } from '../../src/features/salah/review.ts'
 
 const SURFACES = ['terminal', 'desktop'] as const
 
@@ -167,7 +168,7 @@ const AT_MUNICH = { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berli
 const prayRow = async (shown: { find: (query: { key: string }) => Promise<{ text?: string } | undefined> }) =>
   (await shown.find({ key: 'salah-line' }))?.text
 
-test('review buttons cross the old minute bounds and save on both surfaces', { options: { ...ATHKAR_QUIET, ...AT_MUNICH, salahAdjust: '0 0 0 60 0 -60' } }, async ($, on) => {
+test('review boxes take minutes past the old bounds and save on both surfaces', { options: { ...ATHKAR_QUIET, ...AT_MUNICH, salahAdjust: '0 0 0 60 0 -60' } }, async ($, on) => {
   mock.env(on, {})
   mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
@@ -177,15 +178,16 @@ test('review buttons cross the old minute bounds and save on both surfaces', { o
   for (const surface of SURFACES) {
     await $.command.run({ command: 'salah', args: 'adjust', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
     const shown = await $.ui.mount(band(surface))
-    await shown.press({ key: 'salah-asr-plus' })
-    await shown.press({ key: 'salah-isha-minus' })
+    await shown.input({ key: 'salah-asr-minutes', text: '61' })
+    // Typed without Enter: Save still takes it, in Arabic-Indic digits too.
+    await shown.input({ key: 'salah-isha-minutes', text: '-٦١', kind: 'change' })
     await shown.press({ key: 'salah-save' })
     await shown.unmount()
   }
   expect(written).toEqual(SURFACES.map(() => ({ key: 'muslim.salahAdjust', value: '0 0 0 61 0 -61' })))
 })
 
-test('/salah adjust opens the review form: minutes move a pray, Save keeps them', { options: AT_MUNICH }, async ($, on) => {
+test('/salah adjust opens the review form: typed minutes move a pray, Save keeps them', { options: AT_MUNICH }, async ($, on) => {
   mock.env(on, {})
   mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
@@ -196,18 +198,44 @@ test('/salah adjust opens the review form: minutes move a pray, Save keeps them'
   for (const surface of SURFACES) {
     const shown = await $.ui.mount(band(surface))
     expect(await shown.find({ type: 'Text', text: '15:59' })).toBeDefined()
+    expect((await shown.find({ type: 'Text', text: reviewHint(surface) }))?.props.dimColor).toBe(true)
     await shown.unmount()
   }
 
   const shown = await $.ui.mount(band('terminal'))
-  for (let i = 0; i < 5; i++) await shown.press({ key: 'salah-asr-plus' })
-  await shown.press({ key: 'salah-isha-minus' })
+  await shown.input({ key: 'salah-asr-minutes', text: '5' })
+  await shown.input({ key: 'salah-isha-minutes', text: '−1' })
   expect(await shown.find({ type: 'Text', text: '16:04' })).toBeDefined()
   expect(await shown.find({ type: 'Text', text: '20:11' })).toBeDefined()
 
   await shown.press({ key: 'salah-save' })
   expect(written).toEqual([{ key: 'muslim.salahAdjust', value: '0 0 0 5 0 -1' }])
   expect(await shown.find({ type: 'Button', key: 'salah-save' })).toBeUndefined()
+  await shown.unmount()
+})
+
+test('a review box that is not whole minutes is not taken, and Save keeps nothing until it is', { options: AT_MUNICH }, async ($, on) => {
+  mock.env(on, {})
+  mock.store(on, { arabicTerminals: { unknown: 'plain' } })
+  mock.clock(on, { now: Date.parse('2026-10-10T10:00:00Z') })
+  engineBand(on)
+  const written = settingsWriter(on)
+  const toasts: string[] = []
+  on('ui.toast', async (_$, e) => { toasts.push(e.text); return { value: undefined } })
+
+  await $.command.run({ command: 'salah', args: 'adjust', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+  const shown = await $.ui.mount(band('terminal'))
+  await shown.input({ key: 'salah-asr-minutes', text: '5 min' })
+  expect(await shown.find({ type: 'Text', text: '15:59' })).toBeDefined()
+  await shown.input({ key: 'salah-asr-minutes', text: '2.5', kind: 'change' })
+  await shown.press({ key: 'salah-save' })
+  expect(written).toEqual([])
+  expect(toasts).toEqual(['Asr: type whole minutes, like 3, 0 or -3.', 'Not saved: Asr: type whole minutes, like 3, 0 or -3.'])
+  expect(await shown.find({ type: 'Button', key: 'salah-save' })).toBeDefined()
+
+  await shown.input({ key: 'salah-asr-minutes', text: '0', kind: 'change' })
+  await shown.press({ key: 'salah-save' })
+  expect(written).toEqual([{ key: 'muslim.salahAdjust', value: '0 0 0 0 0 0' }])
   await shown.unmount()
 })
 
@@ -220,7 +248,7 @@ test('Skip closes the review form without saving', { options: AT_MUNICH }, async
 
   await $.command.run({ command: 'salah', args: 'adjust', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
   const shown = await $.ui.mount(band('desktop'))
-  await shown.press({ key: 'salah-asr-plus' })
+  await shown.input({ key: 'salah-asr-minutes', text: '5' })
   await shown.press({ key: 'salah-skip' })
 
   expect(await shown.find({ type: 'Button', key: 'salah-save' })).toBeUndefined()

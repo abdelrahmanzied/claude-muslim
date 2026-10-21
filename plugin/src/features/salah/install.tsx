@@ -28,7 +28,7 @@ import { athanText, isInWindow } from '../../shared/pray/line.ts'
 import { connectAthkarTimes } from '../../shared/pray/bounds.ts'
 import { REMIND_FROM_KEY, SETUP_LATER_KEY, readRemindFrom, setupPending } from '../../shared/pray/first-run.ts'
 import { ACCENT_ROWS, FRAME_MS, isDue, LABEL_ROW, minaretRows, minaretStage, ROWS_COUNT } from './minaret.ts'
-import { nudge, reviewRows } from './review.ts'
+import { MINUTES_ERROR, reviewHint, reviewRows, typedMinutes, withTyped } from './review.ts'
 import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, isOnClose, KEY_REST_MS, LEAVE_MS, LINE_PX } from '../../shared/card/card.ts'
 import { athanFrame, cardIsFolded, CARD_MS, isOnStart, type AthanCardProps } from './card.ts'
 import { localTime } from './clock.ts'
@@ -558,7 +558,7 @@ export const install = (on: On, options: Options) => {
       if (!options.salahPlace) return { text: 'Set your city first: `/salah city`' }
       await update($, review, () => options.salahAdjust)
 
-      return { text: '**Adjust:** use − and + above the prompt, then Save.' }
+      return { text: '**Adjust:** type each pray\'s minutes above the prompt (3 later, -3 earlier), then Save.' }
     }
     if (word === 'adjust') {
       const pray = prayNamed(first)
@@ -627,22 +627,39 @@ export const install = (on: On, options: Options) => {
   })
 
   // After the place is saved, or on /salah adjust: today's times to check
-  // against the user's mosque, each moved a minute at a time, then saved.
+  // against the user's mosque, each pray's minutes typed in its box, then saved.
+  // The boxes' text not yet entered lives here (lost on a reload, like the typing).
+  const typed = new Map<Pray, string>()
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     const theirs = await next(e)
     const place = options.salahPlace
     const draft = await read($, review)
     if (!place || !draft || await setupShowing($, !!place, e.surface, e.props.hasSurvey) !== 'review') return theirs
-    const { Box, Button, Text } = $.ui.resolve(e)
+    const table = $.ui.resolve(e)
+    const { Box, Button, Text } = table
+    // Mobile draws no field yet: its rows show the minutes, changed with `/salah adjust <pray> <±min>`.
+    const Input = 'Input' in table ? table.Input : null
     const rows = reviewRows(place, methodOf(options, place), draft, await $.clock.now())
-    const move = (pray: Pray, step: number) => update($, review, now => (now ? nudge(now, pray, step) : now))
+    // Enter in a box applies it: the time beside it moves; anything but whole minutes is not taken.
+    const enter = async (pray: Pray, text: string) => {
+      const minutes = typedMinutes(text)
+      if (minutes === undefined) return void $.ui.toast(`${ENGLISH[pray]}: ${MINUTES_ERROR}.`)
+      typed.delete(pray)
+      await update($, review, now => (now ? { ...now, [pray]: minutes } : now))
+    }
+    const close = async () => {
+      typed.clear()
+      await update($, review, () => null)
+    }
     const save = async () => {
+      const result = withTyped(draft, typed)
+      if ('invalid' in result) return void $.ui.toast(`Not saved: ${ENGLISH[result.invalid]}: ${MINUTES_ERROR}.`)
       const issue = await settingIssue($, 'muslim.salahAdjust')
       if (issue) return void $.ui.toast(issue)
-      await update($, review, () => null)
-      const failure = await writeSetting($, 'muslim.salahAdjust', writeAdjust(draft))
+      await close()
+      const failure = await writeSetting($, 'muslim.salahAdjust', writeAdjust(result.draft))
       if (failure) {
-        await update($, review, () => draft)
+        await update($, review, () => result.draft)
         $.ui.toast(failure)
       }
     }
@@ -650,18 +667,20 @@ export const install = (on: On, options: Options) => {
     return (
       <Box flexDirection="column">
         <Text key="salah-review" color={await mainColor($, options.color)}>{`Check today's times in ${place.name} against your mosque's, then save.`}</Text>
+        <Text key="salah-review-hint" dimColor>{reviewHint(e.surface)}</Text>
         {rows.map(row => (
           <Box key={`salah-${row.pray}`} gap={1}>
             <Text>{row.name}</Text>
             <Text bold>{row.time}</Text>
-            <Button key={`salah-${row.pray}-minus`} label="−" onPress={() => move(row.pray, -1)} />
-            <Text dimColor>{row.minutes}</Text>
-            <Button key={`salah-${row.pray}-plus`} label="+" onPress={() => move(row.pray, 1)} />
+            {Input
+              ? <Input key={`salah-${row.pray}-minutes`} value={row.minutes.trim()} placeholder="0" submitLabel="apply" onInput={(text: string) => { typed.set(row.pray, text) }} onSubmit={(text: string) => enter(row.pray, text)} />
+              : <Text key={`salah-${row.pray}-minutes`} dimColor>{row.minutes}</Text>}
+            <Text dimColor>min</Text>
           </Box>
         ))}
         <Box key="salah-review-actions" gap={1}>
           <Button key="salah-save" label="Save" variant="primary" onPress={save} />
-          <Button key="salah-skip" label="Skip" dimColor onPress={() => update($, review, () => null)} />
+          <Button key="salah-skip" label="Skip" dimColor onPress={close} />
         </Box>
         {theirs}
       </Box>
