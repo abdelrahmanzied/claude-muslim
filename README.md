@@ -57,7 +57,11 @@ After installing, run `/reload-plugins` once in the session (desktop app or term
 | `/muslim update` | Update to the latest version |
 | `/muslim feedback` | Report a bug or send an idea |
 
-To remove it: `claude plugin uninstall muslim@claude-muslim`.
+To remove it, run in your shell:
+
+```bash
+claude plugin uninstall muslim@claude-muslim && claude plugin marketplace remove claude-muslim
+```
 
 > [!NOTE]
 > Some terminals don't join Arabic letters or show them right to left. The first time muslim opens in a terminal, it asks which Arabic sample reads right, and remembers the answer. To pick again: `/muslim terminal-arabic`.
