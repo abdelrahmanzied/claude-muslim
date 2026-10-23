@@ -10,6 +10,7 @@ import { CONTROL_SPECS, Q_BROWSER_DY, Q_BROWSER_H, quranNoteTop, Q_CONTROLS_BASE
 import { defaultReciter } from '../../src/features/quran/catalog.ts'
 import { QURAN_CATALOG } from '../../src/features/quran/catalog-data.ts'
 import { QURAN_SUPPORT } from '../../src/features/quran/reciter-support.ts'
+import { INSTALL_URL } from '../../src/install-count.ts'
 import { AUDIO_LIMIT_BYTES, CLIP_ERROR, SIZE_ERROR, TIMING_ERROR, makePlan, timedSegments, type RecordingPlan } from '../../src/features/quran/segments.ts'
 import { QURAN_QUARTER_BOUNDARIES } from '../../src/features/quran/quarter-boundaries.ts'
 import { encodeBase64 } from '../../src/features/quran/segment-mp3.ts'
@@ -1004,7 +1005,7 @@ test('restored unsupported selection moves at startup and renders without any ne
   const shown = await mounted.read()
   expect(clock.state.quranSurah).toBe(6)
   expect(shown?.surah).toBe(`سورة ${QURAN_CATALOG.surahs[5]!.name}`)
-  expect(requests).toEqual([])
+  expect(requests.filter(url => url !== INSTALL_URL)).toEqual([])
   expect(played).toEqual([])
   expect(clock.toasts).toEqual([])
 })
