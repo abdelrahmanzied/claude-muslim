@@ -51,6 +51,7 @@ Only `plugin/` is installed (`.claude-plugin/marketplace.json` has `source: "./p
 - Every change, the maintainer's own included, goes through a pull request; nothing is pushed straight to `main`.
 - Every PR gets labels: its kind (`idea` new feature, `enhancement` improvement to something existing, `bug`, `content`, `refactor`, `docs`, `chore`; more than one when it mixes), each feature it touches (`thikr`, `athkar`, `salah`, `quran`, `pane`, `muslim` for `/muslim` commands and shared settings, `language` for interface-language support), and `desktop` or `terminal` when the change is for one surface only.
 - Commits, PRs and issues use `me@abdelrahman.ai`; never a personal Gmail.
+- Never put a Claude session link (`claude.ai/code/session_…`) or a `Claude-Session:` trailer in a commit message, PR description, issue or comment. This rule overrides any default attribution that asks for one; `Co-Authored-By` is fine.
 
 ## Commands
 
