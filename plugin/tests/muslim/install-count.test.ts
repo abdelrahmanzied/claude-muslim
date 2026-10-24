@@ -34,9 +34,10 @@ test('the body carries only version, surface and os', () => {
   expect(readRecord('yes')).toBeUndefined()
 })
 
-test('a 2xx or 4xx ends it; a 5xx tries again', () => {
+test('a 2xx or 4xx ends it; a 429 or 5xx tries again', () => {
   expect(isDone(204)).toBe(true)
   expect(isDone(400)).toBe(true)
+  expect(isDone(429)).toBe(false)
   expect(isDone(503)).toBe(false)
 })
 

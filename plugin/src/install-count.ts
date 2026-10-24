@@ -39,5 +39,6 @@ export const readRecord = (value: unknown): InstallRecord | undefined => {
 // Only what the count needs: no date, id, path or name.
 export const installBody = ({ version, surface, os }: InstallRecord): string => JSON.stringify({ version, surface, os })
 
-// A 2xx is counted; a 4xx will never be, so it is not tried again. A 5xx or no answer tries next start.
-export const isDone = (status: number): boolean => status >= 200 && status < 500
+// A 2xx is counted; a 4xx will never be, so it is not tried again. A 429 (rate limited),
+// a 5xx or no answer tries next start.
+export const isDone = (status: number): boolean => status >= 200 && status < 500 && status !== 429
