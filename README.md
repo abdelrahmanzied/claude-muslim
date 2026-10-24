@@ -72,7 +72,7 @@ claude plugin uninstall muslim@claude-muslim && claude plugin marketplace remove
 
 ## Privacy
 
-The first time muslim starts on a computer, it sends one anonymous request to `abdelrahman.ai` so we know how many people use it: the muslim version, `terminal` or `desktop`, and `mac`, `linux` or `windows`. Nothing else: no name, id, path, prayer place or settings. It is never sent again from that computer. The total is shown on [abdelrahman.ai/muslim](https://abdelrahman.ai/muslim/) and in the badge above. To send nothing, set `DO_NOT_TRACK=1` or `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` before muslim's first start.
+The first time muslim starts on a computer, it sends one anonymous request to `abdelrahman.ai` so we know how many people use it: the muslim version, `terminal` or `desktop`, and `mac`, `linux` or `windows`. Nothing else: no name, id, path, prayer place or settings. It is never sent again from that computer. The total is shown on [abdelrahman.ai/muslim](https://abdelrahman.ai/muslim/) and in the badge above.
 
 ## Contributing
 

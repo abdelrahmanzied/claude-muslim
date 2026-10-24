@@ -5,7 +5,7 @@
 The first public release.
 
 - Help and settings tables are English only, so they read the same in every terminal.
-- One anonymous install count: the first start on a computer sends the muslim version, terminal or desktop, and the operating system, once; `DO_NOT_TRACK=1` or `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` sends nothing. See Privacy in the README.
+- One anonymous install count: the first start on a computer sends the muslim version, terminal or desktop, and the operating system, once. See Privacy in the README.
 
 ### Thikr line
 

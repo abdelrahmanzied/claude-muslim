@@ -17,12 +17,6 @@ export const countedSurface = (surface: string | null | undefined): Surface | un
 export const osFrom = (env: { OS?: string; HOME?: string }): Os =>
   env.OS === 'Windows_NT' ? 'windows' : env.HOME?.startsWith('/Users/') ? 'mac' : 'linux'
 
-// The common opt-outs: DO_NOT_TRACK=1 and Claude Code's own CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC.
-export const optedOut = (env: { DO_NOT_TRACK?: string; CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC?: string }): boolean =>
-  isSet(env.DO_NOT_TRACK) || isSet(env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC)
-
-const isSet = (value: string | undefined): boolean => value !== undefined && value !== '' && value !== '0' && value.toLowerCase() !== 'false'
-
 export const newRecord = (now: number, version: string, surface: Surface, os: Os): InstallRecord =>
   ({ at: new Date(now).toISOString().slice(0, 10), version, surface, os, sent: false })
 

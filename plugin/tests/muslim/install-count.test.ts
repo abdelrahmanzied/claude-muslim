@@ -1,7 +1,7 @@
 import { expect, mock, test } from 'claude-code/testing'
 import type { On } from 'claude-code'
 
-import { countedSurface, INSTALL_KEY, INSTALL_URL, installBody, isDone, newRecord, optedOut, osFrom, readRecord } from '../../src/install-count.ts'
+import { countedSurface, INSTALL_KEY, INSTALL_URL, installBody, isDone, newRecord, osFrom, readRecord } from '../../src/install-count.ts'
 import { VERSION } from '../../src/constants.ts'
 
 test('the operating system comes from OS and HOME', () => {
@@ -16,13 +16,6 @@ test('only the terminal and desktop are counted', () => {
   expect(countedSurface('desktop')).toBe('desktop')
   expect(countedSurface('vscode')).toBeUndefined()
   expect(countedSurface(null)).toBeUndefined()
-})
-
-test('DO_NOT_TRACK and CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC opt out', () => {
-  expect(optedOut({})).toBe(false)
-  expect(optedOut({ DO_NOT_TRACK: '0' })).toBe(false)
-  expect(optedOut({ DO_NOT_TRACK: '1' })).toBe(true)
-  expect(optedOut({ CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: 'true' })).toBe(true)
 })
 
 test('the body carries only version, surface and os', () => {
@@ -79,9 +72,8 @@ test('a failed send keeps the first record and tries again next start', async ($
   expect(stored[INSTALL_KEY]).toEqual(expect.objectContaining({ surface: 'terminal', sent: true }))
 })
 
-test('opted out or with no surface, nothing is sent', async ($, on) => {
-  const { clock, sent } = setup(on, { HOME: '/home/a', DO_NOT_TRACK: '1' }, () => 204)
-  await $.session.start(start('terminal')); await clock.settle()
+test('with no surface (a -p run), nothing is sent', async ($, on) => {
+  const { clock, sent } = setup(on, { HOME: '/home/a' }, () => 204)
   await $.session.start(start(null)); await clock.settle()
   expect(sent).toEqual([])
 })
