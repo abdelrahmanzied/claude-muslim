@@ -10,6 +10,10 @@
 </p>
 
 <p align="center">
+  <a href="https://abdelrahman.ai/muslim/"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fabdelrahman.ai%2Fapi%2Fmuslim%2Fbadge&label=installs&style=flat" alt="Installs"></a>
+</p>
+
+<p align="center">
   <a href="#features">Features</a> ·
   <a href="#install">Install</a> ·
   <a href="#get-started">Get started</a> ·
@@ -65,6 +69,10 @@ claude plugin uninstall muslim@claude-muslim && claude plugin marketplace remove
 
 > [!NOTE]
 > Some terminals don't join Arabic letters or show them right to left. The first time muslim opens in a terminal, it asks which Arabic sample reads right, and remembers the answer. To pick again: `/muslim terminal-arabic`.
+
+## Privacy
+
+The first time muslim starts on a computer, it sends one anonymous request to `abdelrahman.ai` so we know how many people use it: the muslim version, `terminal` or `desktop`, and `mac`, `linux` or `windows`. Nothing else: no name, id, path, prayer place or settings. It is never sent again from that computer. The total is shown on [abdelrahman.ai/muslim](https://abdelrahman.ai/muslim/) and in the badge above.
 
 ## Contributing
 

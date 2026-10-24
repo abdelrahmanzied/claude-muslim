@@ -31,6 +31,6 @@
 
 ## More
 
-Install, updates and contributing: the [repository README](https://github.com/abdelrahmanzied/claude-muslim#readme). What changed: the [changelog](https://github.com/abdelrahmanzied/claude-muslim/blob/main/CHANGELOG.md).
+Install, updates, privacy (one anonymous install count) and contributing: the [repository README](https://github.com/abdelrahmanzied/claude-muslim#readme). What changed: the [changelog](https://github.com/abdelrahmanzied/claude-muslim/blob/main/CHANGELOG.md).
 
 [MIT](LICENSE) · the only official source is [abdelrahmanzied/claude-muslim](https://github.com/abdelrahmanzied/claude-muslim).

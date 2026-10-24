@@ -12,6 +12,7 @@ import { readOptions } from '../src/config.ts'
 import { PLUGIN, VERSION } from '../src/constants.ts'
 import { AUTOUPDATE_USAGE, autoUpdateState, changedReply, noEntry, notChanged, parseSettings, settingsPath, shouldSeed, stateText, statusReply, unreadable, withAutoUpdate, type AutoUpdateState } from '../src/autoupdate.ts'
 import { FEEDBACK_SUBMIT_MS, feedbackPrompt } from '../src/feedback.ts'
+import { countedSurface, INSTALL_KEY, INSTALL_URL, installBody, isDone, newRecord, osFrom, readRecord } from '../src/install-count.ts'
 import { failedToRun, parseUpdate, updateReply, UPDATE_ARGV, UPDATE_TIMEOUT_MS, type UpdateResult } from '../src/update.ts'
 import { install as installAthkar } from '../src/features/athkar/install.tsx'
 import { muslimHelp } from '../src/help.ts'
@@ -157,6 +158,26 @@ async function seedAutoUpdate($: EngineInterface) {
   } catch {}
 }
 
+// The anonymous install count: the first start on a machine with a surface saves the record
+// (the only time the environment is read) and sends it once. Nothing here may fail the session:
+// a failed send tries again next start; a sent record is never sent again.
+let counting = false
+async function countInstall($: EngineInterface, shown: string | null) {
+  const surface = countedSurface(shown)
+  if (!surface || counting) return
+  counting = true
+  try {
+    let record = readRecord(await $.store.get(INSTALL_KEY))
+    if (record?.sent) return
+    if (!record) {
+      record = newRecord(await $.clock.now(), VERSION, surface, osFrom({ OS: await $.env.get('OS'), HOME: await $.env.get('HOME') }))
+      await $.store.set(INSTALL_KEY, record)
+    }
+    const { status } = await $.http.fetch(INSTALL_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: installBody(record) })
+    if (isDone(status)) await $.store.set(INSTALL_KEY, { ...record, sent: true })
+  } catch {} finally { counting = false }
+}
+
 // The host refuses a submit made while the command still runs, so the turn starts from a timer
 // just after the reply. A refused or dropped submit gets a toast, never a silent nothing.
 async function startFeedback($: EngineInterface, text: string) {
@@ -265,7 +286,15 @@ export const register: Register = (on, options) => {
 
     await seedAutoUpdate($)
     await reconcilePaneAutoUpdate($)
+    // Not awaited: the count never holds up the start.
+    void countInstall($, e.surface ?? await $.session.surface().catch(() => null))
 
+    return next(e)
+  })
+
+  // The desktop app may start a session before it draws: count when it joins.
+  on('session.attach', async ($, e, next) => {
+    void countInstall($, e.surface)
     return next(e)
   })
 
