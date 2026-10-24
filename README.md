@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://abdelrahman.ai/muslim/"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fabdelrahman.ai%2Fapi%2Fmuslim%2Fbadge&style=flat" alt="Installs"></a>
+  <a href="https://abdelrahman.ai/muslim/"><img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fabdelrahman.ai%2Fapi%2Fmuslim%2Fbadge&label=installs&style=flat" alt="Installs"></a>
 </p>
 
 <p align="center">
