@@ -129,10 +129,10 @@ test('desktop card resizes immediately without waiting for a size poll', async (
   fixture(on, emptyDay(dayOf(new Date(now))))
   const ui = await $.ui.mount({ ...band, surface: 'desktop' })
   await ui.resize({ in: 'athkar', columns: 50, rows: 6 })
-  const narrow = (await ui.find({ in: 'athkar', type: 'Svg' }))!.props.width
   await ui.resize({ in: 'athkar', columns: 100, rows: 6 })
-  const wide = (await ui.find({ in: 'athkar', type: 'Svg' }))!.props.width
-  expect(Number(wide)).toBeGreaterThan(Number(narrow))
+  // The picture asks for the widest Svg; the desktop narrows it to the slot, so a resize redraws at once with the same request.
+  expect((await ui.find({ in: 'athkar', type: 'Svg' }))!.props.width).toBe(4096)
+  expect((await ui.find({ in: 'athkar', type: 'Svg' }))!.props.source).toContain('width="100%"')
   expect(clock.now()).toBe(now)
   await ui.unmount()
 })

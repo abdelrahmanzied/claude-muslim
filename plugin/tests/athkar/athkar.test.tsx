@@ -125,9 +125,12 @@ test('the desktop band draws in Tajawal at the slot width', async ($, on) => {
   const ui = await $.ui.mount(band('desktop'))
   const svg = await ui.find({ in: 'athkar', type: 'Svg' })
   expect(String(svg?.props.source)).toContain('font-family: "Tajawal"')
-  // Over the desktop's card the desktop narrows it to the slot; it stretches to fill.
-  expect(svg?.props.width).toBe(857)
-  expect(String(svg?.props.source).split('>')[0]).toContain('preserveAspectRatio="none"')
+  // Over the desktop's card it asks for the widest Svg and the desktop narrows it to the slot.
+  expect(svg?.props.width).toBe(4096)
+  const root = String(svg?.props.source).split('>')[0]
+  expect(root).toContain('width="100%"')
+  expect(root).not.toContain('viewBox')
+  expect(root).not.toContain('preserveAspectRatio')
   expect(await ui.find({ type: 'Client' })).toBeDefined()
   await ui.unmount()
 })

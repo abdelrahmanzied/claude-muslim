@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1
+
+- Desktop: the athkar and athan cards above the prompt fit the app's own card again after the app's October update, whatever the window width, zoom, font or text size.
+
 ## 0.1.0
 
 The first public release.
