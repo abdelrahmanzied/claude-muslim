@@ -22,6 +22,7 @@ The design principles for every drawn desktop pane in this mod (today the Muslim
 - **Transparent**: no panel fill. It follows the app's light or dark scheme, and every color is a token (`--text`, `--muted`, `--line`, feature-specific surface/state tokens, `--accent`); the accent is the plugin-wide main color from `plugin/src/shared/color/`.
 - **Tajawal** throughout, embedded from `plugin/src/shared/font/`.
 - **Type scale:** 24px the plugin name «مسلم», 20px the big fact (next prayer), 16px card titles, 14px body and buttons, 12px meta, descriptions and the athkar row's compact buttons. Settings tab labels are 11px so the tabs fit at 240px. A two-line religious settings sample may fit its first line down to 10.5px at the 240px minimum, keeping both lines complete and the normal 16px line-height; it returns to 12px when space permits.
+- **Text boxes:** Drawn text is never clipped by the pane's own CSS: see DESIGN.md §4 "Drawn text" (`plugin/src/shared/text/`). Row heights stay as designed through a negative `margin-block`, not a smaller line-height.
 - **Tajawal sits high.** Text beside an icon or a switch gets `line-height:1; transform:translateY(.12em)` so icon, text and control share one center line. Check every icon + text row for this.
 - **Icons:** each feature has one standard icon (DESIGN.md §3 Icons, `plugin/src/shared/icon/`), 20px in the main color on its card header and 20px on its settings tab. Small row icons (bell, check ring) stay free.
 

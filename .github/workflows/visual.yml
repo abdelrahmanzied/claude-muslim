@@ -1,0 +1,63 @@
+name: Visual
+
+# Draws every desktop picture in Chrome for Testing and compares it with the committed baselines
+# (scripts/visual/). See CONTRIBUTING.md, "Picture tests".
+on:
+  pull_request:
+    paths:
+      - 'plugin/src/**'
+      - 'scripts/visual/**'
+      - '.github/workflows/visual.yml'
+  schedule:
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pictures:
+    name: ${{ matrix.os }} / ${{ matrix.channel }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos, runner: macos-latest, channel: app }
+          - { os: macos, runner: macos-latest, channel: beta }
+          - { os: windows, runner: windows-latest, channel: app }
+          - { os: windows, runner: windows-latest, channel: beta }
+          - { os: linux, runner: ubuntu-latest, channel: app }
+          - { os: linux, runner: ubuntu-latest, channel: beta }
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compare the pictures
+        run: npm run visual -- --channel ${{ matrix.channel }}
+
+      # Differences (expected, actual, diff) and pictures with no baseline yet. A baseline for a new
+      # operating system comes from here: download it into scripts/visual/baselines/<os>/<channel>/.
+      - name: Upload the differences and the new pictures
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pictures-${{ matrix.os }}-${{ matrix.channel }}
+          path: |
+            scripts/visual/out/
+            scripts/visual/baselines/${{ matrix.os }}/${{ matrix.channel }}/
+          if-no-files-found: ignore

@@ -431,7 +431,7 @@ test('the inline update button follows the shown auto-update value without movin
     if(shown)expect(svg).toContain(`<bdi dir="ltr">v${VERSION}</bdi> · يتحدّث تلقائيًا`)
     else expect(svg).not.toContain('يتحدّث تلقائيًا')
     expect(svg).toContain('.sc.inline{font-size:12px;padding:0 6px}')
-    expect(svg).toContain('.sc.inline .value-text{line-height:1;transform:translateY(.12em)}')
+    expect(svg).toContain('.sc.inline .value-text{margin-block:-.5em;transform:translateY(.12em)}')
   }
 })
 
@@ -472,16 +472,18 @@ test('the authored end hint has two full lines and never inherits chrome truncat
     expect(last.height-HINT_TOP-2*HINT_H).toBe(ROW_GAP)
     expect(mainHeight('thikr',{salahShow:'off',thikrSpeed:'auto'})).toBe(362)
     const model=paneModel({salah:null,quran:null,athkar:null},0,width,'orange');model.settings=m
-    const svg=paneSvg(model), hint=svg.match(/<span class="setting-hint" style="top:\d+px"><span class="hint-line".*?<\/span><span class="hint-line chrome-hint">.*?<\/span><\/span>/)![0]
+    const svg=paneSvg(model), hint=svg.match(/<span class="setting-hint" style="top:\d+px"><span class="hint-line tx tx-wrap".*?<\/span><span class="hint-line tx tx-line".*?<\/span><\/span>/)![0]
     expect(hint).toContain(last.hint)
     expect(hint).toContain(last.hintSecondLine)
     expect(hint).not.toContain('font-size')
     // The authored phrase's line can never ellipsize; only the chrome line may.
-    expect(hint).toContain(`<span class="hint-line">${last.hint}</span>`)
+    expect(hint).toContain(`<span class="hint-line tx tx-wrap" dir="rtl">${last.hint}</span>`)
     const base=svg.match(/\.setting-hint\{[^}]+\}/)![0]
     expect(base).not.toContain('overflow')
     expect(base).not.toContain('nowrap')
-    expect(svg).toContain('.chrome-hint{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}')
+    // The chrome line is cut by the shared text class, never by the pane's own rule.
+    expect(svg).toContain('.hint-line{display:block;white-space:nowrap;margin-block:-4px}')
+    expect(svg).not.toContain('.chrome-hint{')
   }
 })
 

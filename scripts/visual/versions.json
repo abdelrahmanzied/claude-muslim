@@ -1,0 +1,8 @@
+{
+  "note": "Raise these when the Claude desktop app updates (its About box shows its Chrome). 'app' is the Chrome for Testing build matching the app's Chrome major: the app had 152.0.7977.167 when this was set, and Chrome for Testing carries 152.0.7977.82 of the same branch. 'beta' follows Chrome's beta channel and is never pinned. 'playwright' only drives the browsers: no Playwright release bundles Chromium 152 (1.62 has 151, 1.63 has 153), so the browsers come from @puppeteer/browsers.",
+  "playwright": "1.64.1",
+  "channels": {
+    "app": "152.0.7977.82",
+    "beta": "beta"
+  }
+}

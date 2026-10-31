@@ -149,8 +149,8 @@ test('the folded row takes its text from fixed pixel sizes, not from the setting
     width: 500, height: 0, restHeight: 24, textSize, card: CARD,
   })
   const css = bandSvg(m(14))
-  // Fixed 15px at 1.6 is 24px: exactly the row; and no rule ties the peek's text to the size.
-  expect(css).toContain('font-size: 15px; line-height: 1.6')
+  // Fixed 15px: the shared line (2) is 30px and the margin takes back 6px, so the text is the 24px of the row; and no rule ties the peek's text to the size.
+  expect(css).toContain('font-size: 15px; margin-block: -.2em')
   expect(css).toContain('class="peek"')
   const strip = (svg: string) => svg.replace(/--fs:[0-9.]+px/, '').replace(/--th:[0-9.]+px/, '')
   expect(strip(bandSvg(m(28)))).toBe(strip(bandSvg(m(12))))

@@ -107,3 +107,7 @@ Every settings writer preflights the exact config row before stopping Quran or c
 Prayer selection compares actual instants across adjacent calculated days. Yesterday’s Isha can fall after midnight: before it, the countdown targets Isha and no athan call shows; once it arrives, the usual fifteen-minute call applies. The last-prayer signal includes that Isha once its instant falls on today’s local date. The pane shows its matching calculated prayer-day rows. `prayLine` also rejects a negative time-since-prayer.
 
 The city dialog’s `Not now` uses the same durable put-off action as the setup row. City model completion has an 8000 ms timeout and thrown/unanswered calls use the existing short `Could not reach Claude` reply. Command status/help and shared help tables are English on every surface, including the Athan description; an Arabic city name uses its coordinates in the settings table and stays authored in the heading. The prayer line and athan moment keep their Arabic. Demo replies mention answering the setup above while the shared decision hides the preview. Settings saves share a same-file writer and retain their reply/toast and rollback paths.
+
+## Text boxes
+
+The athan card's prayer name and time go through the shared text component and are never clipped by the card's own CSS: see DESIGN.md §4 "Drawn text" (`plugin/src/shared/text/`).

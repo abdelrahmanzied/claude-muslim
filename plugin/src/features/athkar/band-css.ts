@@ -71,7 +71,7 @@ button:focus-visible {outline: 2px solid var(--accent); outline-offset: 2px;}
 .sky {--b-track: rgba(255,255,255,.32); border: 1px solid rgba(255,255,255,.22);}
 .sky.light-ink {--scrim: linear-gradient(rgba(8, 12, 30, .30), rgba(8, 12, 30, .30)); --b-ink: #ffffff; --b-dim: rgba(255,255,255,.82); --b-acc: #ffffff; --b-soft: rgba(255,255,255,.35); --b-on: #2a2440;}
 .cover {display: grid; gap: 8px; justify-items: center; text-align: center; padding: 10px 8px;}
-.cover-title {font-family: var(--font-cover, "Aref Ruqaa", serif); font-size: 30px; line-height: 1.5; color: var(--b-acc); direction: rtl;}
+.cover-title {font-family: var(--font-cover, "Aref Ruqaa", serif); font-size: 30px; color: var(--b-acc); direction: rtl;}
 .cover-keys {display: grid; grid-template-columns: repeat(2, max-content); justify-content: center; justify-items: start; align-items: center; gap: 7px 28px; font: 500 10.5px/1 var(--font-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--b-dim);}
 .cover-keys .kc {height: 17px; min-width: 17px; padding: 0 5px; font: 500 9.5px/1 var(--font-ui); letter-spacing: .03em; color: var(--b-ink); border: 1px solid color-mix(in srgb, var(--b-ink) 28%, transparent); border-radius: 5px; background: color-mix(in srgb, var(--b-ink) 7%, transparent); opacity: 1;}
 .cover-keys span {display: inline-flex; gap: 3px; align-items: center; line-height: 17px;}
@@ -82,7 +82,7 @@ button:focus-visible {outline: 2px solid var(--accent); outline-offset: 2px;}
 .cover {grid-column: 1 / -1; container-type: inline-size;}
 .cover > * {min-width: 0;}
 .cv-inline {grid-template-columns: max-content minmax(0, auto); justify-content: space-between; justify-items: stretch; align-items: center; direction: rtl; text-align: start; gap: 8px 20px; padding: 4px 4px;}
-.cv-inline .cover-title {font-size: 26px; line-height: 1.3;}
+.cv-inline .cover-title {font-size: 26px;}
 .cover-title {white-space: nowrap;}
 .cv-inline .cover-keys {direction: ltr; grid-template-columns: repeat(2, max-content); justify-content: end; gap: 7px 16px;}
 .sky.dark-ink {--scrim: linear-gradient(rgba(255, 255, 255, .34), rgba(255, 255, 255, .34)); --b-ink: #141a2a; --b-dim: #3f4a63; --b-acc: var(--ring); --b-soft: color-mix(in srgb, var(--ring) 25%, transparent); --b-on: #ffffff; --b-track: rgba(28,34,51,.18);}
@@ -92,7 +92,7 @@ button:focus-visible {outline: 2px solid var(--accent); outline-offset: 2px;}
 .band.edge:not(.framed) {border-color: var(--ring) !important;}
 .band.sky.edge:not(.framed) {border-color: color-mix(in srgb, var(--b-edge, var(--ring)) 55%, rgba(255,255,255,.3)) !important; border-width: 1px;}
 .band.line {padding: 10px 14px; display: grid; grid-template-columns: auto minmax(0,1fr); gap: 4px 14px; align-items: center;}
-.band.line .text {font-size: 15px; line-height: 1.9; grid-column: 2; grid-row: 1; max-height: 5.7em; overflow-y: auto;}
+.band.line .text {font-size: 15px; line-height: 1.9; grid-column: 2; grid-row: 1;}
 .band.card {padding: 12px 16px; display: grid; gap: 10px;}
 .done-row {display: flex; justify-content: space-between; align-items: center; gap: 12px; direction: rtl; flex-wrap: nowrap; min-width: 0;}
 .done-row .done-hint {direction: ltr; font-family: var(--font-mono); flex: none; white-space: nowrap; font-size: 11.5px;}

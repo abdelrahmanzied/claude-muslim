@@ -44,7 +44,7 @@ test('playing settings show the muted note on every tab and detail face, shiftin
       expect(b.y0 - a.y0).toBe(QURAN_SETTINGS_NOTE_H)
       expect(b.y1 - a.y1).toBe(QURAN_SETTINGS_NOTE_H)
       expect(hitAt(width, (b.x0+b.x1)/2, (b.y0+b.y1)/2, enabled, 0, 0, playing.folds, settings, on)).toBe(first.act)
-      expect(paneSvg(playing)).toContain(`<span class="setting-hint chrome-hint" style="top:${SETTINGS_BODY_TOP}px">${QURAN_SETTINGS_NOTE}</span>`)
+      expect(paneSvg(playing)).toContain(`<span class="setting-hint chrome-hint" style="top:${SETTINGS_BODY_TOP}px"><span class="hint-line tx tx-line" dir="rtl">${QURAN_SETTINGS_NOTE}</span></span>`)
       expect(paneSvg(playing)).toContain(`class="settings-body" style="top:${SETTINGS_BODY_TOP + QURAN_SETTINGS_NOTE_H}px"`)
       expect(paneSvg(stopped)).not.toContain(QURAN_SETTINGS_NOTE)
       expect(paneSvg(stopped)).toContain(`class="settings-body" style="top:${SETTINGS_BODY_TOP}px"`)
@@ -86,7 +86,7 @@ for (const folded of [false, true]) {
     const svg = paneSvg(model)
     const header = svg.match(/<div class="in dh"[^>]*>.*?<\/div>/)![0]
     expect(header).not.toContain('Munich')
-    expect(header).toContain('<span class="dv"></span>')
+    expect(header).toContain('<span class="dv tx tx-line"></span>')
     expect(header).toContain('<span class="fold">')
     expect(header).toContain(`aria-expanded="${!folded}"`)
     if (folded) {
@@ -196,7 +196,7 @@ for (const theme of ['light', 'dark'] as const) {
       expect(svg).toContain('.dbtn.hot{background:var(--hover);color:var(--text)}')
       expect(svg).toMatch(/\.sc\.pill,\.sc\.value,\.sc\.inline\{background:transparent;box-shadow:inset 0 0 0 1px var\(--line\)/)
       expect(svg).toContain('class="sc value command hot"')
-      expect(svg).toContain('<span class="value-text">/muslim terminal-arabic</span>')
+      expect(svg).toContain('<span class="value-text tx tx-line" dir="ltr">/muslim terminal-arabic</span>')
       expect(svg).toMatch(/\.settings-tabs\{[^}]*border:1px solid transparent;border-bottom-color:var\(--line\);[^}]*background:transparent;overflow:visible/)
       expect(svg).toMatch(/\.setting-tab\{[^}]*background:transparent;color:var\(--muted\)/)
       expect(svg).toContain('.setting-tab[aria-selected=true]{color:var(--text);font-weight:700}')
@@ -373,7 +373,7 @@ test('the Quran card says «القرآن الكريم» and the athkar card «ا
     const html = paneSvg(paneModel(feeds, NOW, 360, 'orange', undefined, { prayer: folded, quran: folded, athkar: folded }), null)
     expect(html).toContain('<span class="ar">القرآن الكريم</span>')
     expect(html.includes('<span class="ar">الأذكار</span>')).toBe(folded)
-    expect(html.includes('<span class="title ar">أَذْكَارُ الْمَسَاءِ</span>')).toBe(!folded)
+    expect(html.includes('<span class="title ar tx tx-line" dir="rtl">أَذْكَارُ الْمَسَاءِ</span>')).toBe(!folded)
     expect(html).not.toContain('<span class="ar">القرآن</span>')
   }
 })
@@ -441,7 +441,8 @@ test('an OS without audio adds the note and «استمع في المتصفح ↗
     const top = quranNoteTop(q)
     expect(top).toBe(Q_BASE_H + (error ? Q_ERROR_EXTRA : 0) + quranOffset(true))
     const svg = paneSvg(model)
-    expect(svg).toContain(`top:${top}px;left:16px;right:16px;height:${Q_NOTE_H}px`)
+    // The shared 12px line is 24px tall: the box is the slot's height plus 4, starting 2px higher, so the text stays in the slot.
+    expect(svg).toContain(`top:${top - (24 - Q_NOTE_H) / 2}px;left:16px;right:16px;height:24px`)
     expect(svg).toContain(note)
     expect(svg).toContain(`top:${top + Q_BROWSER_DY}px;left:16px;right:16px;height:${Q_BROWSER_H}px"><span>استمع في المتصفح ↗</span>`)
     expect(paneSvg(plain)).not.toContain('استمع في المتصفح')

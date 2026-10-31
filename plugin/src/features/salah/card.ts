@@ -9,6 +9,7 @@ import { arabicDigits, athanText, IN_MS } from '../../shared/pray/line.ts'
 import type { Pray } from '../../shared/pray/names.ts'
 import { accentHex, type Accent } from '../../shared/color/index.ts'
 import { ARUQAA_BOLD } from './card-font.ts'
+import { drawText, textCss } from '../../shared/text/index.ts'
 
 // How long the card stays when nobody closes it: the call's window.
 export const CARD_MS = IN_MS
@@ -74,27 +75,29 @@ const css = (photo: string, accent: Accent) => [
   // The start control's main color: dark first, light when the app is light (as the Muslim pane does).
   `.band.athan { --start-accent: ${accentHex(accent, true)}; }`,
   `@media (prefers-color-scheme: light) { .band.athan { --start-accent: ${accentHex(accent, false)}; } }`,
-  '.band.athan { height: 100%; border-radius: 10px; overflow: hidden; direction: rtl; color: #fff; --b-ink: #fff; --b-dim: rgba(255,255,255,.75);',
+  '.band.athan { height: 100%; border-radius: 10px; direction: rtl; color: #fff; --b-ink: #fff; --b-dim: rgba(255,255,255,.75);',
   '  font-family: "Aref Ruqaa", serif; font-weight: 700; display: flex; flex-direction: column; justify-content: center;',
   '  padding: var(--ay, 0px) calc(36px + var(--ax, 0px));',
   `  background: linear-gradient(rgba(0,0,0,.35), rgba(0,0,0,.7)), url(data:image/jpeg;base64,${photo}) center 50% / cover; }`,
-  '.athan .main { font-size: 26px; line-height: 1.5; }',
+  // The lines go through the shared text classes (line-height 2); each margin takes back what that adds to its old line-height, (2 - old) / 2 em, so the card keeps its height.
+  '.athan .main { font-size: 26px; margin-block: -.25em; }',
   '.athan.rest { flex-direction: row; justify-content: flex-start; align-items: center; gap: 12px; white-space: nowrap; }',
-  '.athan.rest .main, .athan.rest .time { font-size: 17px; line-height: 1; }',
+  '.athan.rest .main, .athan.rest .time { font-size: 17px; margin-block: -.5em; }',
   `.athan .start { position: absolute; left: calc(${START_LEFT}px + var(--ax, 0px)); top: 50%; transform: translateY(-50%);`,
   `  width: ${START_WIDTH}px; height: ${START_HEIGHT}px; display: flex; align-items: center; direction: ltr;`,
   '  font: 700 15px/1 "Aref Ruqaa", serif; color: #fff; white-space: nowrap; cursor: pointer; text-shadow: 0 1px 3px rgba(0,0,0,.8); }',
   '.athan .start-label { width: 93px; direction: rtl; }',
   '.athan .start-arrow { font: 400 12px/1 monospace; white-space: pre; }',
   '.athan .start.hot { color: var(--start-accent); filter: brightness(1.15); }',
-  '.athan .time { font-size: 17px; line-height: 1.4; color: rgba(255,255,255,.85); }',
+  '.athan .time { font-size: 17px; margin-block: -.3em; color: rgba(255,255,255,.85); }',
+  textCss(),
 ].join('\n')
 
 export const athanSvg = (p: AthanCardProps, view: Pick<CardView, 'hoverClose' | 'columns' | 'hoverAction'>) =>
   cardSvg(athanFrame(p, view.columns), {
     classes: `athan active${p.isFolded ? ' rest' : ''}`,
     style: '',
-    html: `${p.canStart ? `<span class="start${view.hoverAction ? ' hot' : ''}"><span class="start-arrow">← </span><span class="start-label">${START_LABEL}</span></span>` : ''}<div class="main">${athanText(p.pray)}</div><div class="time">${arabicDigits(p.time)}</div>`,
+    html: `${p.canStart ? `<span class="start${view.hoverAction ? ' hot' : ''}"><span class="start-arrow">← </span><span class="start-label">${START_LABEL}</span></span>` : ''}${drawText(athanText(p.pray), { className: 'main', tag: 'div' })}${drawText(arabicDigits(p.time), { className: 'time', tag: 'div' })}`,
     css: css(p.photo, p.accent ?? 'orange'),
     hoverClose: view.hoverClose,
   })

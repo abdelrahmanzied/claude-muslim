@@ -4,6 +4,7 @@ import { ATHKAR_SETS, athkarRowTop, KMENU_TOP, KMENU_PAD, KMENU_ROW_H, KMENU_GAP
 // bordered cards, a header with a chevron and a value, icon rows, a toggle,
 // a thin progress bar, round controls). Pure: no $.
 
+import { drawText, textCss } from '../../shared/text/index.ts'
 import { TAJAWAL_FAMILY, tajawalFontFaceCss } from '../../shared/font/index.ts'
 import { accentHex } from '../../shared/color/index.ts'
 import { FEATURE_ICONS } from '../../shared/icon/index.ts'
@@ -18,6 +19,14 @@ import { arabicDigits } from '../../shared/pray/line.ts'
 import { avatar } from './avatar.ts'
 
 const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+// One quiet 12px line in its fixed slot (top and height), cut with an ellipsis by the shared text class. The shared line is 24px
+// tall at 12px, so the box is taller than the slot by the difference and starts half of it higher: the text stays where it was.
+const QUIET_LINE_PX = 24
+const quietLine = (text: string, top: number, height: number) => {
+  const pad = (QUIET_LINE_PX - height) / 2
+
+  return drawText(text, { className: 'quiet', tag: 'div', style: `position:absolute;top:${top - pad}px;left:${SIDE}px;right:${SIDE}px;height:${QUIET_LINE_PX}px;font-size:12px` })
+}
 const ltr = (text: string) => `<bdi dir="ltr">${escape(text)}</bdi>`
 
 // Colors live here only: dark by default, light under the app's color scheme (Claude Code's own theme row is not read, it can differ from the Desktop's).
@@ -63,17 +72,18 @@ const icon = (name: keyof typeof PATHS, cls = '') => `<svg xmlns="http://www.w3.
 const CSS = `
 *{box-sizing:border-box;margin:0;padding:0}
 .dp{position:relative;width:100%;height:100%;background:transparent;font-family:${TAJAWAL_FAMILY};font-size:14px;line-height:1.35;font-weight:400;color:var(--text);direction:rtl;user-select:none;-webkit-user-select:none;overflow:hidden}
+${textCss()}
 .ic{width:1.3em;height:1.3em;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
 .pane-top{position:absolute;right:${PAD+8}px;top:${TOP_Y}px;height:${TOP_H}px;display:flex;align-items:center;gap:10px;color:var(--text);font-size:24px;font-weight:700}.pane-top span{line-height:1;transform:translateY(.12em)}.pane-top svg{flex-shrink:0;image-rendering:pixelated}.pane-command{position:absolute;left:${PAD+8}px;top:${TOP_Y+(TOP_H-18)/2}px;line-height:18px;font-size:12px;white-space:nowrap;color:var(--dim)}
 .dcard{position:absolute;left:${PAD}px;right:${PAD}px;border-radius:12px;background:transparent;box-shadow:inset 0 0 0 1px var(--line)}
 .in{position:absolute;left:${SIDE}px;right:${SIDE}px}
 .dh{display:flex;align-items:center;gap:8px;height:${HEAD_H}px;font-size:16px;font-weight:500;line-height:1.25;white-space:nowrap}
 .dh .hi{width:20px;height:20px;color:var(--accent)}
-.dh>span:not(.fold){line-height:1;transform:translateY(.12em)}
+.dh>.ar{line-height:1;transform:translateY(.12em)}
 .dh .fold{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:var(--muted);flex:none;margin-inline-end:-6px}
 .dh .fold .ic{width:16px;height:16px}
 .dh .fold.hot{background:var(--hover);color:var(--text)}
-.dh .dv{margin-inline-start:auto;font-size:12px;font-weight:400;color:var(--muted);min-width:0;overflow:hidden;text-overflow:ellipsis}
+.dh .dv{margin-inline-start:auto;font-size:12px;font-weight:400;color:var(--muted);margin-block:-.5em;transform:translateY(.12em)}
 .nx{display:flex;align-items:center;justify-content:space-between;gap:12px;height:${NX_H}px;padding-bottom:8px;border-bottom:1px solid var(--line-soft)}
 .nx-k{color:var(--muted);font-size:12px}
 .nx-n{font-size:20px;font-weight:700;color:var(--accent);line-height:1.2}
@@ -111,15 +121,15 @@ const CSS = `
 .a-info{position:relative;flex:1;min-width:0;height:${Q_HERO_H}px}
 .a-status{position:absolute;top:0;right:0;left:0;height:28px;font-size:12px;color:var(--muted);display:flex;align-items:center;white-space:nowrap}
 .a-status.live{color:var(--accent)}
-.a-status>span,.a-title>span{line-height:1;transform:translateY(.12em)}
+.a-status>span{line-height:1;transform:translateY(.12em)}
 .a-title{position:absolute;top:${Q_TITLE_TOP - Q_HERO_TOP}px;right:0;left:0;height:${Q_TITLE_H}px;display:flex;align-items:center;gap:3px;min-width:0;border-radius:8px;font-size:20px;font-weight:700;white-space:nowrap}
-.a-title>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.a-title>span{margin-block:-.5em;transform:translateY(.12em)}
 .a-title .ic{width:13px;height:13px;color:var(--muted)}
 .a-avatar{width:${Q_AVATAR_W}px;height:${Q_AVATAR_H}px;flex:none}.a-avatar svg{display:block}
 .below-seg{position:absolute;right:${SIDE}px;left:${Q_SEG_LEFT}px;top:${Q_SEG_TOP}px;height:${Q_SEG_H}px;display:flex;align-items:center;gap:6px;border-radius:8px;font-size:13px;color:var(--text-2);white-space:nowrap}
 .below-seg small{font-size:12px;color:var(--muted);flex:none}
 .below-seg .ic{width:12px;height:12px;color:var(--muted);flex:none}
-.segment-label{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.segment-label{flex:0 1 auto;margin-block:-.325em}
 .a-reciter{position:absolute;right:${SIDE}px;left:${SIDE}px;height:${Q_RECITER_H}px;display:flex;gap:8px;align-items:center;border-radius:8px;color:var(--text-2);font-size:14px}
 .a-reciter .ic{width:16px;height:16px;flex:none}
 .a-reciter .name{min-width:0;flex:1;line-height:14px}
@@ -137,11 +147,11 @@ const CSS = `
 .sheet-head>.ic{color:var(--accent)}
 .back{width:${SHEET_BACK_W}px;height:${SHEET_HEAD_H}px;border-radius:8px;box-shadow:inset 0 0 0 1px var(--line);font-size:14px;display:flex;gap:5px;align-items:center;justify-content:center}
 .back .ic{width:14px;height:14px}.back.hot{background:var(--hover)}
-.search{position:absolute;left:12px;right:12px;top:${SHEET_SEARCH_TOP}px;height:${SHEET_SEARCH_H}px;display:flex;align-items:center;padding:0 10px;border:1px solid var(--sheet-line);border-radius:8px;font-size:14px;white-space:nowrap;overflow:hidden;gap:4px}
+.search{position:absolute;left:12px;right:12px;top:${SHEET_SEARCH_TOP}px;height:${SHEET_SEARCH_H}px;display:flex;align-items:center;padding:0 10px;border:1px solid var(--sheet-line);border-radius:8px;font-size:14px;white-space:nowrap;gap:4px}
 .search .ic{width:16px;height:16px;color:var(--muted);margin-inline-end:3px}.placeholder{color:var(--sheet-dim)}.caret{height:17px;width:1px;background:var(--accent);flex:none}
 .rows{position:absolute;top:${SHEET_ROWS_TOP}px;right:${SHEET_ROWS_RIGHT}px;left:${SHEET_ROWS_LEFT}px;height:${SHEET_ROWS_H}px;overflow:hidden}
-.orow{position:absolute;height:${SHEET_ROW_H}px;right:0;left:0;border-radius:5px;display:flex;align-items:center;gap:8px;padding:0 10px;font-size:14px;white-space:nowrap;overflow:hidden}
-.orow .lbl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}.orow .num{flex:none;min-width:22px;color:var(--muted)}
+.orow{position:absolute;height:${SHEET_ROW_H}px;right:0;left:0;border-radius:5px;display:flex;align-items:center;gap:8px;padding:0 10px;font-size:14px;white-space:nowrap}
+.orow .lbl{flex:1;margin-block:-.325em}.orow .num{flex:none;min-width:22px;color:var(--muted)}
 .orow .tick{color:var(--accent);width:16px;text-align:center;flex:none}
 .orow.hot{background:var(--accent-20)}
 .orow.chosen{background:var(--accent-34);border-inline-start:3px solid var(--accent)}
@@ -166,7 +176,7 @@ const CSS = `
 
 // Icon and title at the start (the right, in RTL), the muted meta at the far end, and the fold control last.
 const header = (name: keyof typeof PATHS, title: string, value: string, isFolded: boolean, isHot: boolean, isLtr = false) =>
-  `<div class="in dh" style="top:${HEAD_TOP}px" role="button" aria-expanded="${!isFolded}">${icon(name, 'hi')}<span class="ar">${escape(title)}</span><span class="dv"${isLtr ? ' dir="ltr"' : ''}>${value}</span><span class="fold${isHot ? ' hot' : ''}">${icon(isFolded ? 'chevl' : 'chev')}</span></div>`
+  `<div class="in dh" style="top:${HEAD_TOP}px" role="button" aria-expanded="${!isFolded}">${icon(name, 'hi')}<span class="ar">${escape(title)}</span>${drawText(value, { className: 'dv', raw: true, ...(isLtr ? { dir: 'ltr' as const } : {}) })}<span class="fold${isHot ? ' hot' : ''}">${icon(isFolded ? 'chevl' : 'chev')}</span></div>`
 
 const prayerCard = (m: PaneModel, hover: PaneAct | null): string => {
   const p = m.prayer, r = cardRects(m.folds, m.settings.state, m.settings.options, quranLayout(m), m.athkarMenu)
@@ -195,8 +205,8 @@ const quranCard = (m: PaneModel, hover: PaneAct | null): string => {
   const cls = (act: PaneAct, extra = '', disabled = false) => `${extra}${hover === act ? ' hot' : ''}${disabled ? ' off' : ''}`
   const label = ok ? ltrDigits(escape(q.part)) : ''
   const hero = `<div class="a-hero"><div class="a-info"><div class="a-status${ok && q.isLive ? ' live' : ''}"><span>${ok ? escape(q.status) : 'متوقف'}</span></div>`
-    + `<div class="a-title ${cls('quran-pick-surah')}" role="button" aria-haspopup="listbox" aria-label="اختيار السورة"><span class="ar">${ok ? escape(q.surah) : '—'}</span>${icon('chev')}</div></div><div class="a-avatar">${ok && !m.picker ? q.avatar : ''}</div></div>`
-  const start = segmented ? `<div class="below-seg ${cls('quran-pick-segment')}" role="button" aria-haspopup="listbox" aria-label="ابدأ من"><small>ابدأ من</small><span class="segment-label">${label}</span>${icon('chev')}</div>` : ''
+    + `<div class="a-title ${cls('quran-pick-surah')}" role="button" aria-haspopup="listbox" aria-label="اختيار السورة">${drawText(ok ? q.surah : '—', { className: 'ar' })}${icon('chev')}</div></div><div class="a-avatar">${ok && !m.picker ? q.avatar : ''}</div></div>`
+  const start = segmented ? `<div class="below-seg ${cls('quran-pick-segment')}" role="button" aria-haspopup="listbox" aria-label="ابدأ من"><small>ابدأ من</small>${drawText(label, { className: 'segment-label', raw: true })}${icon('chev')}</div>` : ''
   const reciter = `<div class="a-reciter ${cls('quran-pick-reciter')}" style="top:${Q_RECITER_BASE + off}px" role="button" aria-haspopup="listbox" aria-label="اختيار القارئ">${icon('mic')}<span class="name ar${ok ? '' : ' off'}">${ok ? escape(q.reciter) : '—'}</span>${icon('chev', 'tail')}</div>`
   const bar = `<div class="bar" style="top:${Q_BAR_BASE + off}px"><div class="pbar"><i style="width:${ok ? Math.round(q.progress * 1000) / 10 : 0}%"></i></div></div>`
   const times = `<div class="a-times" style="top:${Q_TIMES_BASE + off}px"><bdi dir="ltr">${ok ? escape(q.elapsed) : '--:--'}</bdi><span class="quiet">الوقت تقريبي</span><bdi class="total" dir="ltr">${ok ? escape(q.total) : '--:--'}</bdi></div>`
@@ -216,9 +226,9 @@ const quranCard = (m: PaneModel, hover: PaneAct | null): string => {
     const aria = c.act === 'quran-prev' ? 'Previous' : c.act === 'quran-next' ? 'Next' : on ? 'Stop' : 'Play'
     return `<div class="cb ${cls(c.act, c.act === 'quran-toggle' ? 'pl' : '', disabled)}" role="button" aria-label="${aria}" style="${size}">${icon(name)}</div>`
   }).join('')
-  const error = ok && q.error ? `<div class="quiet" style="position:absolute;top:${Q_ERROR_TOP + off}px;left:${SIDE}px;right:${SIDE}px;height:${Q_ERROR_H}px;line-height:${Q_ERROR_H}px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px">${escape(q.error)}</div><div class="dbtn ${cls('quran-retry')}" role="button" aria-label="إعادة المحاولة" style="position:absolute;top:${Q_RETRY_TOP + off}px;left:${SIDE}px;right:${SIDE}px;height:${Q_RETRY_H}px"><span>إعادة المحاولة</span></div>` : ''
+  const error = ok && q.error ? `${quietLine(q.error, Q_ERROR_TOP + off, Q_ERROR_H)}<div class="dbtn ${cls('quran-retry')}" role="button" aria-label="إعادة المحاولة" style="position:absolute;top:${Q_RETRY_TOP + off}px;left:${SIDE}px;right:${SIDE}px;height:${Q_RETRY_H}px"><span>إعادة المحاولة</span></div>` : ''
   const noteTop = quranNoteTop(layout)
-  const note = ok && q.audioNote ? `<div class="quiet" style="position:absolute;top:${noteTop}px;left:${SIDE}px;right:${SIDE}px;height:${Q_NOTE_H}px;line-height:${Q_NOTE_H}px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px">${escape(q.audioNote)}</div><div class="dbtn ${cls('quran-browser')}" role="button" aria-label="استمع في المتصفح" style="position:absolute;top:${noteTop + Q_BROWSER_DY}px;left:${SIDE}px;right:${SIDE}px;height:${Q_BROWSER_H}px"><span>استمع في المتصفح ↗</span></div>` : ''
+  const note = ok && q.audioNote ? `${quietLine(q.audioNote, noteTop, Q_NOTE_H)}<div class="dbtn ${cls('quran-browser')}" role="button" aria-label="استمع في المتصفح" style="position:absolute;top:${noteTop + Q_BROWSER_DY}px;left:${SIDE}px;right:${SIDE}px;height:${Q_BROWSER_H}px"><span>استمع في المتصفح ↗</span></div>` : ''
   const sheet = m.picker ? quranSheet(m, r.quranY, hover) : ''
   return `<section class="dcard" style="top:${r.quranY}px;height:${r.quranH}px">${header('qpane', 'القرآن الكريم', '', false, hover === 'fold-quran')}${hero}${start}${reciter}${bar}${times}${controls}${error}${note}</section>${sheet}`
 }
@@ -232,7 +242,7 @@ const quranSheet = (m: PaneModel, quranY: number, hover: PaneAct | null): string
   const rows = p.rows.map((o, i) => {
     const hot = hoverRow !== null ? hoverRow === i : p.scroll + i === p.highlight
     const text = p.list === 'segment' ? ltrDigits(escape(o.label)) : escape(o.label)
-    return `<div class="orow${o.selected ? ' chosen' : ''}${hot ? ' hot' : ''}" role="option" aria-selected="${o.selected}" style="top:${i * SHEET_ROW_H}px">${o.number ? `<span class="num"><bdi dir="ltr">${escape(o.number)}</bdi></span>` : ''}<span class="lbl">${text}</span><span class="tick">${o.selected ? '✓' : ''}</span></div>`
+    return `<div class="orow${o.selected ? ' chosen' : ''}${hot ? ' hot' : ''}" role="option" aria-selected="${o.selected}" style="top:${i * SHEET_ROW_H}px">${o.number ? `<span class="num"><bdi dir="ltr">${escape(o.number)}</bdi></span>` : ''}${drawText(text, { className: 'lbl', raw: true })}<span class="tick">${o.selected ? '✓' : ''}</span></div>`
   }).join('')
   const thumbH = Math.max(SHEET_MIN_THUMB, SHEET_ROWS_H * 8 / Math.max(1, p.count)), max = p.count - 8
   const bar = p.count > 8 ? `<div class="sbar" role="scrollbar" aria-label="موضع القائمة" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="${max}" aria-valuenow="${p.scroll}"><div class="thumb" style="height:${Math.round(thumbH * 10) / 10}px;top:${Math.round(p.scroll / max * (SHEET_ROWS_H - thumbH) * 10) / 10}px"></div></div>` : ''
@@ -252,8 +262,8 @@ const athkarCard = (m: PaneModel, hover: PaneAct | null): string => {
   if (m.folds.athkar) return `<section class="dcard" style="top:${r.athkarY}px;height:${r.athkarH}px">${foldedHead}</section>`
   const kr = athkarRow(m.width)
   const head = k.isAvailable
-    ? `<div class="in dh" style="top:${HEAD_TOP}px" role="group"><div class="picker-title${hover === 'athkar-picker' ? ' hot' : ''}" role="button" aria-expanded="${m.athkarMenu}" aria-haspopup="menu" aria-label="${escape(k.title)}، اختر الورد">${icon(mark, 'hi')}<span class="title ar">${escape(k.title)}</span>${icon('chev', 'tail')}</div>`
-      + `<span class="dv" dir="ltr">${ltr(k.fraction)}</span><span class="fold${hover === 'fold-athkar' ? ' hot' : ''}" role="button" aria-label="طي الأذكار" aria-expanded="true">${icon('chev')}</span></div>`
+    ? `<div class="in dh" style="top:${HEAD_TOP}px" role="group"><div class="picker-title${hover === 'athkar-picker' ? ' hot' : ''}" role="button" aria-expanded="${m.athkarMenu}" aria-haspopup="menu" aria-label="${escape(k.title)}، اختر الورد">${icon(mark, 'hi')}${drawText(k.title, { className: 'title ar' })}${icon('chev', 'tail')}</div>`
+      + `${drawText(ltr(k.fraction), { className: 'dv', raw: true, dir: 'ltr' })}<span class="fold${hover === 'fold-athkar' ? ' hot' : ''}" role="button" aria-label="طي الأذكار" aria-expanded="true">${icon('chev')}</span></div>`
     : foldedHead
   const menu = m.athkarMenu && k.isAvailable
     ? `<div class="in menu" role="menu" aria-label="اختر الورد" style="top:${KMENU_TOP}px">${ATHKAR_SETS.map((s, i) => `<div class="menu-row${hover === `athkar-set:${s.key}` ? ' hot' : ''}" role="menuitemradio" aria-checked="${s.key === k.set}" style="top:${KMENU_PAD - 1 + i * (KMENU_ROW_H + KMENU_GAP)}px">${icon(s.icon)}<span>${s.title}</span>${s.key === k.set ? '<span class="tick">✓</span>' : ''}</div>`).join('')}</div>` : ''
@@ -276,7 +286,7 @@ const athkarCard = (m: PaneModel, hover: PaneAct | null): string => {
 // but a 31.6px tab has 27.6px after its horizontal padding.
 const ATHKAR_CSS = `
 .picker-title{display:flex;align-items:center;justify-content:flex-start;gap:5px;border-radius:5px;min-width:0;flex:1;height:${HEAD_H}px;font-size:16px;font-weight:500;white-space:nowrap}
-.picker-title .hi{width:20px;height:20px;color:var(--accent);flex:none}.picker-title .title{line-height:1;transform:translateY(.12em);min-width:0;overflow:hidden;text-overflow:ellipsis}.picker-title .tail{width:14px;height:14px;color:var(--muted);flex:none}
+.picker-title .hi{width:20px;height:20px;color:var(--accent);flex:none}.picker-title .title{margin-block:-.5em;transform:translateY(.12em)}.picker-title .tail{width:14px;height:14px;color:var(--muted);flex:none}
 .picker-title.hot,.menu-row.hot{background:var(--hover);color:var(--text)}
 .dbtn.reset{gap:4px;color:var(--muted);font-size:12px;padding-inline:0}.dbtn.reset .ic{width:16px;height:16px}.dbtn.reset.undo{color:var(--accent)}
 .dbtn.primary{color:var(--text)}.dbtn.finish{color:var(--text-2)}.dbtn.finish .ic{width:16px;height:16px}
@@ -291,19 +301,19 @@ const SETTINGS_CSS = `
 .setting-tab.hot{background:var(--hover);color:var(--text)}.setting-tab[aria-selected=true]{color:var(--text);font-weight:700}
 .setting-tab[aria-selected=true]::after{content:'';position:absolute;left:10px;right:10px;bottom:-${TAB_PAD}px;height:2px;border-radius:2px;background:var(--text)}
 .settings-body{position:absolute;left:0;right:0}
-.setting-label{position:absolute;right:16px;max-width:calc(100% - 32px);height:${LABEL_H}px;display:flex;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14px}
-.setting-label span{line-height:1;transform:translateY(.12em)}
+.setting-label{position:absolute;right:16px;max-width:calc(100% - 32px);height:${LABEL_H}px;display:flex;align-items:center;white-space:nowrap;font-size:14px}
+.setting-label span{margin-block:-.5em;transform:translateY(.12em)}
 .setting-hint{position:absolute;left:16px;right:16px;text-align:right;direction:rtl;line-height:${HINT_H}px;font-size:12px;color:var(--muted)}
-.chrome-hint{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.hint-line{display:block;white-space:nowrap}.hint-line.chrome-hint{overflow:hidden;text-overflow:ellipsis}
+.hint-line{display:block;white-space:nowrap;margin-block:-4px}
 .setting-divider{position:absolute;left:16px;right:16px;height:18px;display:flex;direction:ltr;gap:10px;align-items:center;color:var(--accent)}.setting-divider .arm{flex:1;height:1px;opacity:.8}.setting-divider .a1{background:linear-gradient(to right,transparent,var(--ornament-dim))}.setting-divider .a2{background:linear-gradient(to left,transparent,var(--ornament-dim))}.setting-divider svg{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8}
 .setting-extra{position:absolute;right:16px;max-width:calc(100% - 142px);font-size:12px;line-height:14px;color:var(--muted)}
-.sc{position:absolute;display:flex;align-items:center;justify-content:center;gap:4px;border-radius:7px;font-size:14px;color:var(--text-2);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.sc{position:absolute;display:flex;align-items:center;justify-content:center;gap:4px;border-radius:7px;font-size:14px;color:var(--text-2);white-space:nowrap}
 .sc.pill,.sc.value,.sc.inline{background:transparent;box-shadow:inset 0 0 0 1px var(--line);padding:3px 6px}.sc.inline{font-size:12px;padding:0 6px}
 .sc.hot{background:var(--hover);color:var(--text)}.sc.pill.on{background:var(--active);color:var(--text)}.sc.field.on{background:var(--active)}.sc.disabled{opacity:.38}.sc.field{box-shadow:inset 0 0 0 1px var(--line);direction:rtl;border-radius:6px;gap:1px;color:var(--text)}.sc.field.editing{box-shadow:inset 0 0 0 1.5px var(--accent)}.sc.field .ph{color:var(--muted)}.sc.field .unit{margin-inline-start:4px;font-size:12px;color:var(--muted)}
-.sc.pill .value-text,.sc.value .value-text,.sc.inline .value-text{line-height:1;transform:translateY(.12em)}
-.sc.copied{color:var(--text)}.sc.command{direction:ltr}.sc.command .value-text{transform:none}.sc .value-text{min-width:0;overflow:hidden;text-overflow:ellipsis}.sc .ic{width:12px;height:12px;flex:none}.sc.switch{overflow:visible}.sc .tog{margin:0}.sc.swatch{overflow:visible}.sc.swatch::before{content:'';width:16px;height:16px;border-radius:50%;background:var(--sw)}.sc.swatch.on::before{outline:1.5px solid var(--text-2);outline-offset:3px}
+.sc.pill .value-text,.sc.value .value-text,.sc.inline .value-text{margin-block:-.5em;transform:translateY(.12em)}
+.sc.copied{color:var(--text)}.sc.command{direction:ltr}.sc.command .value-text{transform:none}.sc .value-text{margin-block:-.325em}.sc .ic{width:12px;height:12px;flex:none}.sc .tog{margin:0}.sc.swatch::before{content:'';width:16px;height:16px;border-radius:50%;background:var(--sw)}.sc.swatch.on::before{outline:1.5px solid var(--text-2);outline-offset:3px}
 .list-choice{position:absolute;left:16px;right:16px;padding:6px 10px;border-radius:8px;height:${LIST_CHOICE_H}px;font-size:14px;display:flex;align-items:center;justify-content:space-between;gap:6px}
-.list-choice small{display:block;margin-top:4px;font-size:12px;color:var(--muted);line-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.list-choice>span{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.list-choice.hot{background:var(--hover)}.list-choice.on{color:var(--text);background:var(--active)}
+.list-choice>.lc{min-width:0}.list-choice .lc>.tx-line{display:block;margin-block:-.325em}.list-choice small{margin-top:-1px;margin-bottom:-5px;font-size:12px;color:var(--muted)}.list-choice.hot{background:var(--hover)}.list-choice.on{color:var(--text);background:var(--active)}
 .settings-subtitle{position:absolute;right:16px;top:4px;font-size:14px}.settings-page{position:absolute;top:476px;left:94px;right:94px;text-align:center;font-size:12px;color:var(--muted)}
 .command-sheet{position:absolute;left:16px;right:16px;top:46px;font-size:12px;color:var(--muted)}.command-sheet p{direction:rtl;text-align:right;line-height:18px;height:126px;margin-bottom:16px}.command-sheet code{display:block;direction:ltr;text-align:left;font:12px/18px monospace;padding:12px;background:transparent;box-shadow:inset 0 0 0 1px var(--line);border-radius:9px;overflow-wrap:anywhere}
 
@@ -318,16 +328,17 @@ const settingControl = (t: SettingsTarget, hover: PaneAct | null): string => {
   // then its unit; the number reads left to right inside the Arabic box.
   const unit = c.unit ? `<span class="unit">${escape(c.unit)}</span>` : ''
   const field = c.editing ? `${c.label ? `<bdi dir="ltr">${escape(c.label)}</bdi>` : `<span class="ph">${escape(c.placeholder ?? '')}</span>`}<i class="caret"></i>${unit}` : `${c.label ? `<bdi dir="ltr">${escape(c.label)}</bdi>` : `<span class="ph">${escape(c.placeholder ?? '')}</span>`}${unit}`
-  const content = c.style === 'switch' ? `<span class="tog${selected}"><i></i></span>` : c.style === 'swatch' ? '' : c.style === 'field' ? field : `<span class="value-text">${escape(c.label)}</span>${c.style === 'value' && c.effect.kind === 'face' && c.effect.face !== 'main' ? icon('chevl') : ''}`
+  const content = c.style === 'switch' ? `<span class="tog${selected}"><i></i></span>` : c.style === 'swatch' ? '' : c.style === 'field' ? field : `${drawText(c.label, { className: 'value-text' })}${c.style === 'value' && c.effect.kind === 'face' && c.effect.face !== 'main' ? icon('chevl') : ''}`
   return `<div class="sc ${c.style}${command ? ' command' : ''}${selected}${hot}${c.done ? ' copied' : ''}${c.disabled ? ' disabled' : ''}${c.editing ? ' editing' : ''}" ${attr} aria-disabled="${!!c.disabled}" aria-label="${escape(c.label || (c.placeholder ?? ''))}" style="left:${t.x0-PAD}px;top:${t.y0}px;width:${t.x1-t.x0}px;height:${t.y1-t.y0}px;${swatch}">${content}</div>`
 }
 const settingRow = (row: SettingRow, y: number): string => {
   if (row.kind === 'divider') return `<div class="setting-divider" aria-hidden="true" style="top:${y}px"><span class="arm a1"></span><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><path d="m20 4 4 6 7-1 1 7 5 4-5 4-1 7-7-1-4 6-4-6-7 1-1-7-5-4 5-4 1-7 7 1Z"/><path d="m20 11 9 9-9 9-9-9Z"/><circle cx="20" cy="20" r="3"/></svg><span class="arm a2"></span></div>`
   const inline = row.controls[0]?.style === 'switch' ? 82 : row.controls[0]?.style === 'swatch' ? 144 : row.controls[0]?.style === 'inline' ? row.controls[0].width + 44 : 32
   // The authored phrase stays on its own short first line at 12px, never cut; only the chrome second line may ellipsize.
-  const hint = row.hintSecondLine ? `<span class="hint-line">${escape(row.hint)}</span><span class="hint-line chrome-hint">${escape(row.hintSecondLine)}</span>`
-    : row.hintLtr ? `<bdi dir="ltr">${escape(row.hint)}</bdi>` : escape(row.hint).replace(/\/muslim/g, '<bdi dir="ltr">/muslim</bdi>')
-  return `<span class="setting-label" style="top:${y}px;max-width:calc(100% - ${inline}px)"><span>${escape(row.label)}</span></span><span class="setting-hint${row.hintSecondLine ? '' : ' chrome-hint'}" style="top:${y+HINT_TOP}px">${hint}${row.hintNote?` · ${escape(row.hintNote)}`:''}</span>${row.extra?.controls.length?`<span class="setting-extra" style="top:${y+EXTRA_TOP+7}px">${escape(row.extra.label)}</span>`:''}`
+  const note = row.hintNote ? ` · ${escape(row.hintNote)}` : ''
+  const hint = row.hintSecondLine ? `${drawText(row.hint, { className: 'hint-line', kind: 'wrap' })}${drawText(row.hintSecondLine, { className: 'hint-line' })}`
+    : drawText((row.hintLtr ? `<bdi dir="ltr">${escape(row.hint)}</bdi>` : escape(row.hint).replace(/\/muslim/g, '<bdi dir="ltr">/muslim</bdi>')) + note, { className: 'hint-line', raw: true, dir: 'rtl' })
+  return `<span class="setting-label" style="top:${y}px;max-width:calc(100% - ${inline}px)">${drawText(row.label)}</span><span class="setting-hint${row.hintSecondLine ? '' : ' chrome-hint'}" style="top:${y+HINT_TOP}px">${hint}</span>${row.extra?.controls.length?`<span class="setting-extra" style="top:${y+EXTRA_TOP+7}px">${escape(row.extra.label)}</span>`:''}`
 }
 const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
   const model=m.settings, s=model.state, r=cardRects(m.folds,s,model.options,quranLayout(m), m.athkarMenu), b=settingsBody(m.width,model)
@@ -341,18 +352,18 @@ const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
       const title=s.face==='methods'?'طريقة الحساب':s.face==='adjust'?'تعديل المواقيت':'اختيار المدينة'
       body=`<strong class="settings-subtitle">${title}</strong>`
       if (s.face==='methods') {
-        body+=b.choices.map(c=>`<div class="list-choice${c.control.selected?' on':''}${hover===c.control.id?' hot':''}" style="top:${c.y}px" role="button" aria-pressed="${!!c.control.selected}"><span>${escape(c.label)}<small>${escape(c.note)}</small></span>${c.control.selected?icon('check'):''}</div>`).join('')
+        body+=b.choices.map(c=>`<div class="list-choice${c.control.selected?' on':''}${hover===c.control.id?' hot':''}" style="top:${c.y}px" role="button" aria-pressed="${!!c.control.selected}"><span class="lc">${drawText(c.label)}${drawText(c.note, { tag: 'div' }).replace('<div class="', '<small class="').replace('</div>', '</small>')}</span>${c.control.selected?icon('check'):''}</div>`).join('')
         body+=`<span class="settings-page">${escape(String(b.page+1))} / ${b.pages}</span>`
-        body+=`<span class="setting-hint chrome-hint" style="top:510px">كل طرق الحساب العشرين · يُطبّق فورًا</span>`
+        body+=`<span class="setting-hint chrome-hint" style="top:510px">${drawText('كل طرق الحساب العشرين · يُطبّق فورًا', { className: 'hint-line' })}</span>`
       } else if (s.face==='adjust') {
         body+=b.rows.map(({row,y})=>settingRow(row,y)).join('')
-        body+=`<span class="setting-hint chrome-hint" style="top:${ADJUST_NOTE_TOP}px">دقائق صحيحة: <bdi dir="ltr">٣</bdi> تأخير، <bdi dir="ltr">-٣</bdi> تقديم، ثم Enter.<br/>الترتيب: الفجر، الشروق، الظهر، العصر، المغرب، العشاء.</span>`
+        body+=`<span class="setting-hint chrome-hint" style="top:${ADJUST_NOTE_TOP}px">${drawText('دقائق صحيحة: <bdi dir="ltr">٣</bdi> تأخير، <bdi dir="ltr">-٣</bdi> تقديم، ثم Enter.', { className: 'hint-line', raw: true, dir: 'rtl' })}${drawText('الترتيب: الفجر، الشروق، الظهر، العصر، المغرب، العشاء.', { className: 'hint-line' })}</span>`
       } else body+=`<div class="command-sheet"><p>يفتح سؤال المدينة في Claude. اكتب اسمها بأي لغة أو خط العرض والطول، أو شغّل الأمر التالي.</p><code>/salah city</code></div>`
 
     }
     body+=b.controls.filter(t=>!t.act.startsWith('settings:pick:')).map(t=>settingControl(t,hover)).join('')
     const noteHeight=settingsNoteHeight(quranLayout(m).isPlaying)
-    if (noteHeight) content+=`<span class="setting-hint chrome-hint" style="top:${SETTINGS_BODY_TOP}px">${QURAN_SETTINGS_NOTE}</span>`
+    if (noteHeight) content+=`<span class="setting-hint chrome-hint" style="top:${SETTINGS_BODY_TOP}px">${drawText(QURAN_SETTINGS_NOTE, { className: 'hint-line' })}</span>`
     content+=`<div class="settings-body" style="top:${SETTINGS_BODY_TOP+noteHeight}px">${body}</div>`
   }
   // Swatches use the shared light/dark accent palette, not a second palette.

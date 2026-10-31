@@ -1,4 +1,5 @@
 import type { Act } from './logic.ts'
+import { drawText, textCss } from '../../shared/text/index.ts'
 import { arabicDigits as ar } from '../../shared/digits/index.ts'
 import { ACCENTS, accentHex, type Accent } from '../../shared/color/index.ts'
 import { BAND_CSS, QUESTION_CSS } from './band-css.ts'
@@ -132,7 +133,7 @@ const EXTRA_CSS = `
 .band.rd:not(.rest) > .pos { position: absolute; left: calc(16px + var(--ax, 0px)); bottom: calc(var(--ay, 0px) + 1px); width: calc(var(--pos-room, ${POS_ROOM}px) - 8px); font: 400 11px/11px var(--font-band); color: var(--b-dim); direction: rtl; text-align: left; white-space: nowrap; pointer-events: none; z-index: 3; }
 .pill { position: absolute; bottom: 2px; right: clamp(${PILL_HALF}px, var(--p), calc(100% - ${PILL_HALF}px)); transform: translateX(50%); min-width: 22px; height: 14px; padding: 0 5px; border-radius: 7px 7px 0 0; background: var(--ring); color: #fff; font: 700 11px/14px var(--font-band); text-align: center; white-space: nowrap; box-shadow: 0 0 10px 2px color-mix(in srgb, var(--ring) 55%, transparent); animation: pillTo .7s cubic-bezier(.33, 1, .68, 1) both; }
 @keyframes pillTo { from { right: clamp(${PILL_HALF}px, var(--from), calc(100% - ${PILL_HALF}px)); } }
-.cv-inline .cover-title { font-size: max(9px, calc(26px * var(--cv, 1))); }
+.cv-inline .cover-title { font-size: max(9px, calc(26px * var(--cv, 1))); margin-block: -.35em; }
 .cv-inline .cover-keys { font-size: max(9px, calc(10.5px * var(--cv, 1))); column-gap: calc(16px * var(--cv, 1)); white-space: nowrap; }
 .cv-inline .cover-keys .kc { height: calc(17px * var(--cv, 1)); font-size: max(9px, calc(9.5px * var(--cv, 1))); }
 .cv-inline .cover-keys span { line-height: calc(17px * var(--cv, 1)); }
@@ -145,10 +146,11 @@ const EXTRA_CSS = `
 /* Folded, the sky's moon would sit on the position, so it goes. */
 .band.band.rest.bg-crescent::before { display: none; }
 .band.rest .peek { display: flex; align-items: center; gap: 12px; width: 100%; direction: rtl; }
-.band.rest .pk-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: right; font-family: var(--font-band); font-size: 15px; line-height: 1.6; color: var(--b-ink); }
-.band.rest .cv-peek .pk-title { flex: none; font-family: var(--font-cover); font-size: 17px; line-height: 1.5; white-space: nowrap; color: var(--b-acc); }
-.band.rest .cv-peek .pk-hint { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: ltr; text-align: left; font-family: var(--font-ui); font-size: 13px; line-height: 1.6; color: var(--b-dim); }
-.band.rest .pk-pos { flex: none; white-space: nowrap; font-size: 11.5px; color: var(--b-dim); font-family: var(--font-band); }
+/* The folded row keeps its 24px: each item's margin takes back what the shared line-height (2) adds to its old one ((2 - old) / 2 em). The folded row's text goes through the shared text classes (shared/text): they cut it with an ellipsis and keep the marks whole. */
+.band.rest .pk-text { flex: 1 1 auto; text-align: start; font-family: var(--font-band); font-size: 15px; margin-block: -.2em; color: var(--b-ink); }
+.band.rest .cv-peek .pk-title { flex: none; font-family: var(--font-cover); font-size: 17px; margin-block: -.25em; color: var(--b-acc); }
+.band.rest .cv-peek .pk-hint { flex: 1 1 auto; text-align: start; font-family: var(--font-ui); font-size: 13px; margin-block: -.2em; color: var(--b-dim); }
+.band.rest .pk-pos { flex: none; font-size: 11.5px; color: var(--b-dim); font-family: var(--font-band); }
 .band[data-band] .text, .band.line .text { font-size: var(--fs, 14px) !important; max-height: none; overflow: visible; }
 .pglow b { animation: glowTo .7s cubic-bezier(.33, 1, .68, 1) both; }
 @keyframes glowTo { from { width: var(--from); } }
@@ -181,7 +183,7 @@ const MOUSE = (side: 'left' | 'right') =>
 const kc = (key: string) => `<span class="kc">${key}</span>`
 
 const cover = (m: BandModel) =>
-  `<div class="cover cv-inline"><div class="cover-title">${esc(m.title)}</div><div class="cover-keys">`
+  `<div class="cover cv-inline">${drawText(m.title, { className: 'cover-title', kind: 'line', tag: 'div' })}<div class="cover-keys">`
   + `<span class="cover-go">${MOUSE('left')} ${m.hasBegun ? 'continue' : 'start'}</span>`
   + `<span>${kc('⎵')}${kc('↵')} count</span>`
   + `<span>${MOUSE('right')}${kc('⌫')} undo</span><span>${kc('←')}${kc('→')} move</span></div></div>`
@@ -202,7 +204,7 @@ const pill = (m: BandModel) =>
   `<span class="pill" style="--p:${m.progress}%;--from:${m.from}%;animation-delay:-${m.glowMs ?? 0}ms">${ar(Math.max(0, m.times - m.count))}</span>`
 
 const folded = (m: BandModel) =>
-  `<div class="peek"><span class="pk-text">${esc(m.text)}</span><span class="pk-pos">${esc(m.position)}</span></div>`
+  `<div class="peek">${drawText(m.text, { className: 'pk-text' })}${drawText(m.position, { className: 'pk-pos' })}</div>`
 
 // The folded cover: the title on the right, a short muted hint at the left.
 export const coverHint = (hasBegun: boolean) => `click to ${hasBegun ? 'continue' : 'start'}`
@@ -210,11 +212,11 @@ export const coverHint = (hasBegun: boolean) => `click to ${hasBegun ? 'continue
 const foldedCover = (m: BandModel) => {
   const hint = coverHint(m.hasBegun)
 
-  return `<div class="peek cv-peek"><span class="pk-title">${esc(m.title)}</span><span class="pk-hint" style="font-size:${foldedHintSize(hint, m.width)}px">${hint}</span></div>`
+  return `<div class="peek cv-peek">${drawText(m.title, { className: 'pk-title' })}${drawText(hint, { className: 'pk-hint', lang: 'en', style: `font-size:${foldedHintSize(hint, m.width)}px` })}</div>`
 }
 
 // The folded done row: the note alone.
-const foldedDone = (m: BandModel) => `<div class="peek dn-peek"><span class="pk-text">${esc(m.endNote)}</span></div>`
+const foldedDone = (m: BandModel) => `<div class="peek dn-peek">${drawText(m.endNote, { className: 'pk-text' })}</div>`
 
 const done = (m: BandModel) => {
   const fit = doneFit(m.end, m.endHint, m.width)
@@ -264,7 +266,7 @@ export const questionAreas = (width: number) => {
 const question = (m: BandModel) => {
   const q = m.question
   if (!q) return ''
-  if (isFolded(m)) return `<div class="peek"><span class="pk-text">${esc(q.title)}</span></div>`
+  if (isFolded(m)) return `<div class="peek">${drawText(q.title, { className: 'pk-text' })}</div>`
   return `<div class="end-question" dir="rtl"><strong>${esc(q.title)}</strong><small>${esc(q.remaining)}</small></div>`
     + questionAreas(m.width).map(a => `<span role="button" class="end-choice ${a.act}${q.focus === a.act ? ' selected' : ''}" style="left:calc(${a.x0}px + var(--ax, 0px));width:${a.x1-a.x0}px;font-size:${Math.min(14, (a.x1-a.x0)/8)}px;top:calc(${a.y0}px + var(--ay, 0px))">${esc(a.act === 'finish' ? q.confirm : q.resume)}</span>`).join('')
 }
@@ -297,13 +299,16 @@ const bandContent = (m: BandModel) => {
 
 export const bandHtml = (m: BandModel) => cardHtml(cardFrameOf(m), { ...bandContent(m), css: '' })
 
+// The picture's size is limited (the Client tree stays under 100000 characters), so the rules' comments are not sent.
+const stripComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, '')
+
 export const bandSvg = (m: BandModel) => {
   const fonts = [fontFace('Tajawal', 400, TAJAWAL_REGULAR), fontFace('Tajawal', 700, TAJAWAL_BOLD)]
   if (m.phase === 'cover' || m.finaleMs !== undefined) fonts.push(fontFace('Aref Ruqaa', 700, AREF_RUQAA_BOLD))
   // Both palettes, the app's appearance picks (as the Muslim pane does): dark
   // first, light under prefers-color-scheme. Nothing reads Claude Code's theme.
   const mainColors = (isDark: boolean) => Object.keys(ACCENTS).map(color => `--${color === 'orange' ? 'claude' : color}: ${accentHex(color as Accent, isDark)};`).join(' ')
-  const css = `${fonts.join('\n')}\n:root { ${ROOT_DARK} ${mainColors(true)} ${FONTS} }\n@media (prefers-color-scheme: light) { :root { ${ROOT_LIGHT} ${mainColors(false)} } }\n${BAND_CSS}\n${EXTRA_CSS}${m.phase === 'question' ? QUESTION_CSS : ''}`
+  const css = `${fonts.join('\n')}\n:root { ${ROOT_DARK} ${mainColors(true)} ${FONTS} }\n@media (prefers-color-scheme: light) { :root { ${ROOT_LIGHT} ${mainColors(false)} } }\n${stripComments(`${BAND_CSS}\n${textCss()}\n${EXTRA_CSS}${m.phase === 'question' ? QUESTION_CSS : ''}`)}`
 
   return cardSvg(cardFrameOf(m), { ...bandContent(m), css })
 }

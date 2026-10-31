@@ -8,3 +8,7 @@ node_modules/
 
 # IDE
 .idea/
+
+# Picture tests: downloaded browsers and failure images
+.visual-browsers/
+scripts/visual/out/

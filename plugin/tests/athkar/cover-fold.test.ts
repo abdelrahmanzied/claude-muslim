@@ -62,7 +62,7 @@ test('the done row folds too while faded: the note alone on one slim row; the fi
   expect(svg).not.toContain(END)
   expect(svg).not.toContain('class="pill"')
   expect(svg).not.toContain('البقرة')
-  expect(svg).toContain('<span class="pk-text">أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الصَّبَاحُ</span>')
+  expect(svg).toContain('<span class="pk-text tx tx-line" dir="rtl">أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الصَّبَاحُ</span>')
   expect(svg).not.toContain('reset')
   expect(svg).not.toContain('class="done-row')
   expect(bandSvg(lit)).toContain('class="done-row"')

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- Fixed: the marks (tashkeel) of Arabic text were cut off in the folded athkar row and in some titles of the Muslim pane on the newest Claude desktop app. All drawn text now goes through one shared text component with room for stacked marks, in any language.
+- Picture tests and a font coverage check now guard this on macOS, Windows and Linux.
+
 ## 0.1.0
 
 The first public release.

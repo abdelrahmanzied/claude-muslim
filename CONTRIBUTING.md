@@ -50,6 +50,25 @@ claude plugin install muslim@claude-muslim
 
 The plugin cache (`~/.claude/plugins/cache/claude-muslim/`) should hold only what is in `plugin/`.
 
+## Picture tests
+
+Unit tests cannot see a cut mark, so the desktop pictures are also drawn in a real Chrome and compared with committed images (`scripts/visual/`). The Chrome versions and the Playwright version are in `scripts/visual/versions.json`.
+
+```bash
+npm install
+npm run visual                    # compare every scene with its baseline
+npm run visual -- --channel app   # one channel: app (Chrome matching the Claude desktop app) or beta
+npm run visual -- --update        # rewrite the baselines after a change you meant to make
+npm run visual -- --keep          # also save every drawn image in scripts/visual/out/
+npm run fonts                     # regenerate plugin/src/shared/font/coverage.ts after a font changes
+```
+
+- Baselines live in `scripts/visual/baselines/<os>/<channel>/`. Commit the ones from your computer; look at every changed image before committing.
+- Windows and Linux draw text a little differently, so each has its own baselines. The first CI run (`.github/workflows/visual.yml`) of a new operating system uploads its pictures as the artifact `pictures-<os>-<channel>`: download it into the baselines folder and commit.
+- On a failure the workflow uploads the expected, actual and diff images.
+- When the Claude desktop app updates its Chrome (About box), raise `channels.app` in `versions.json` to the matching Chrome for Testing build, update the baselines and look at what changed. The `beta` channel follows Chrome's beta and runs weekly, to warn before an update.
+- A new language adds its sample strings to `scripts/visual/scenes.ts` and its font to `plugin/tests/shared/font/coverage.test.ts`.
+
 ## Versions
 
 `MAJOR.MINOR.PATCH`: the middle number for a new feature, the right one for a fix. Only the maintainer changes it, when releasing.
