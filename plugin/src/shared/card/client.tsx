@@ -44,6 +44,9 @@ type Local = {
 // How long a press lights the card here before the hooks module must agree.
 const LIT_MS = 3000
 
+// The widest an Svg may be drawn (the engine's bound).
+const SVG_MAX_PX = 4096
+
 export const cardClient = <P extends CardProps>(build: (props: P, view: CardView) => CardPicture): ClientModule<P, Local> => {
   // The last picture's frame, for the pointer.
   let shown: CardPicture | undefined
@@ -102,7 +105,10 @@ export const cardClient = <P extends CardProps>(build: (props: P, view: CardView
     shown = picture
     const { width, height } = frameOf(picture.frame)
     // Svg is not in the region's element table, so it is named by its tag.
-    const svg: SvgProps = { source: picture.svg, alt: picture.alt, width, height }
+    // Over the desktop's card the picture asks for the widest an Svg may be:
+    // the desktop caps it at the slot (max-width: 100%), so it takes the slot's
+    // own width whatever the app's font or text size.
+    const svg: SvgProps = { source: picture.svg, alt: picture.alt, width: picture.frame.card ? SVG_MAX_PX : width, height }
 
     // The picture is the region, so a click anywhere on it reaches here.
     return <Box width="100%">{h('Svg', svg)}</Box>

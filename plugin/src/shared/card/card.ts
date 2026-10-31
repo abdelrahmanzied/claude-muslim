@@ -158,11 +158,12 @@ export const cardHtml = (f: CardFrame, c: CardContent) => {
 export const cardSvg = (f: CardFrame, c: CardContent) => {
   const box = frameOf(f)
   const pad = f.card ? ` style="padding:${box.padY}px ${box.padX}px"` : ''
-  // Over the desktop's card the picture is narrowed to the slot, a hair: it
-  // stretches to fill rather than leave a strip of the card.
-  const size = `width="${box.width}" height="${box.height}" viewBox="0 0 ${box.width} ${box.height}"${f.card ? ' preserveAspectRatio="none"' : ''}`
+  // Over the desktop's card the picture takes the slot's own width: the
+  // content lays out on whatever width the desktop gives, so no cell size is assumed.
+  const width = f.card ? '100%' : `${box.width}`
+  const size = f.card ? `width="100%" height="${box.height}"` : `width="${box.width}" height="${box.height}" viewBox="0 0 ${box.width} ${box.height}"`
 
   return `<svg xmlns="http://www.w3.org/2000/svg" ${size}>`
     + `<style><![CDATA[${CARD_CSS}\n${c.css}]]></style>`
-    + `<foreignObject x="0" y="0" width="${box.width}" height="${box.height}"><div xmlns="http://www.w3.org/1999/xhtml" class="wrap"${pad}>${cardHtml(f, c)}</div></foreignObject></svg>`
+    + `<foreignObject x="0" y="0" width="${width}" height="${box.height}"><div xmlns="http://www.w3.org/1999/xhtml" class="wrap"${pad}>${cardHtml(f, c)}</div></foreignObject></svg>`
 }
