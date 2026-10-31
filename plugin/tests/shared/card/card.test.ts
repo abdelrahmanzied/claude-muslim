@@ -16,6 +16,15 @@ test('over the desktop card the picture reaches a cell past each side and half a
   expect(frameOf(frame({ drawWidth: 900 })).width).toBe(900)
 })
 
+test('over the desktop card the picture is the slot wide with no viewBox; without it a numeric viewBox', () => {
+  const content = { classes: 'mine', style: '', html: '', css: '', hoverClose: false }
+  const root = cardSvg(frame(), content).split('>')[0]
+  expect(root).toContain('width="100%"')
+  expect(root).not.toContain('viewBox')
+  const plain = cardSvg(frame({ card: undefined }), content)
+  expect(plain.split('>')[0]).toContain('viewBox="0 0 840 77"')
+})
+
 test('the × is the top left; folded, the whole row height', () => {
   expect(closeArea(frame())).toEqual({ x0: 0, x1: 34, y0: 0, y1: 30 })
   expect(closeArea(frame({ isFolded: true, height: 24 })).y1).toBe(24)

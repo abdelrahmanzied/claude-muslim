@@ -222,10 +222,8 @@ test('frameOf: the picture is the band plus the card line, at the width given', 
   }
 })
 
-test('the picture declares exactly the frame it was sized to: a viewBox, and no growth', () => {
+test('the picture declares the frame it was sized to: over the desktop card the slot width and no viewBox', () => {
   const heightOfSvg = (svg: string) => Number(/<svg [^>]*height="([0-9.]+)"/.exec(svg)?.[1])
-  const widthOfSvg = (svg: string) => Number(/<svg [^>]*width="([0-9.]+)"/.exec(svg)?.[1])
-  const boxOf = (svg: string) => /viewBox="0 0 ([0-9.]+) ([0-9.]+)"/.exec(svg)
   for (const size of SIZES) {
     for (const width of WIDTHS) {
       for (const [id, period] of [['75', 'morning'], ['77', 'evening'], ['83', 'morning'], ['91', 'evening'], ['91', 'morning']] as const) {
@@ -239,12 +237,12 @@ test('the picture declares exactly the frame it was sized to: a viewBox, and no 
             m.height = bandHeight(m, width)
             const svg = bandSvg(m)
             const f = frameOf(m)
-            const box = boxOf(svg)
-            expect(box).not.toBeNull()
-            expect(Number(box?.[1])).toBe(f.width)
-            expect(Number(box?.[2])).toBe(f.height)
+            const root = svg.split('>')[0]
+            expect(root).toContain('width="100%"')
+            expect(root).not.toContain('viewBox')
+            expect(root).not.toContain('preserveAspectRatio')
+            expect(svg).toContain('<foreignObject x="0" y="0" width="100%"')
             expect(heightOfSvg(svg)).toBe(f.height)
-            expect(widthOfSvg(svg)).toBe(f.width)
             // The picture's height is the band's (or the folded row's) plus the card line.
             expect(f.height).toBe(Math.round(heightOf(m) + CARD.lh))
           }
