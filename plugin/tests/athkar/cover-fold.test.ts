@@ -80,11 +80,13 @@ test('the closing greeting takes the athkar text color and face, not the main co
 
 test('a folded reading shows the set title and where it stands, never the thikr; lit, the thikr', () => {
   const text = 'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ'
-  const folded = bandSvg(cover({ phase: 'reading', text }))
-  expect(folded).toContain('class="peek"')
-  expect(folded).toContain('>أَذْكَارُ الصَّبَاحِ</span>')
-  expect(folded).toContain('١ مِنْ ٢٢')
-  expect(folded).not.toContain(text)
+  for (const style of ['sky', 'frame'] as const) {
+    const folded = bandSvg(cover({ phase: 'reading', text, style }))
+    expect(folded).toContain('class="peek"')
+    expect(folded).toContain('>أَذْكَارُ الصَّبَاحِ</span>')
+    expect(folded).toContain('١ مِنْ ٢٢')
+    expect(folded).not.toContain(text)
+  }
   const lit = bandSvg(cover({ phase: 'reading', text, isActive: true }))
   expect(lit).toContain(text)
   expect(lit).not.toContain('class="peek"')

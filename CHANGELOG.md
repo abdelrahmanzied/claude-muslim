@@ -2,8 +2,8 @@
 
 ## 0.1.1
 
-- Athkar progress now follows you between open sessions: counts, the current thikr, done and × hide are shared, and the latest change in either session wins. A session refreshes when its band is opened or hovered, on each press, and from the Muslim pane and `/athkar` commands, so a stale session no longer wipes another session's counts.
-- A faded athkar reading now folds to its set title (with where it stands) instead of the current thikr's text.
+- Athkar progress now follows you between open sessions. Counts, the current thikr, finished and hidden (×) are shared, and for each of morning, evening and after salah the latest change in any session wins, a reset included. A session picks up the others' progress when its band is opened or unfolded, on desktop when you hover it, on every press, from the Muslim pane and with the `/athkar` commands; there is no background timer. A session that was left open no longer overwrites another session's counts. What stays per session: whether the band is open or folded, a set you picked by command, the finish question, the reset undo.
+- A faded athkar reading now folds to its set title, with where it stands («٣ مِنْ ٢٤»), × and the thin progress line, instead of the current thikr's text. The thikr shows when you open it.
 - Desktop: the athkar and athan cards above the prompt fit the app's own card again after the app's October update, whatever the window width, zoom, font or text size.
 
 ## 0.1.0
