@@ -2,7 +2,7 @@
 // each typed in its own box.
 
 import { PRAYS, type MethodId, type Pray } from './methods.ts'
-import { ENGLISH } from '../../shared/pray/names.ts'
+import { englishName } from '../../shared/pray/names.ts'
 import type { Place } from './place.ts'
 import { clockText, timesOn, type Adjust } from './times.ts'
 import { typedInteger } from '../../shared/digits/index.ts'
@@ -16,7 +16,7 @@ export const reviewRows = (place: Place, method: MethodId, draft: Adjust, at: nu
 
   return PRAYS.map(pray => ({
     pray,
-    name: ENGLISH[pray].padEnd(8),
+    name: englishName(pray, times[pray]).padEnd(8),
     time: clockText(times[pray], place.timeZone),
     minutes: signed(draft[pray]).padStart(3),
   }))

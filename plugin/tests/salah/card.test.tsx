@@ -38,7 +38,7 @@ const engineBand = (on: On, surface: 'desktop' | 'terminal' = 'desktop') => {
   })
 }
 
-const props = (photo: string, pray: 'maghrib' | 'fajr', time: string) => ({ isActive: true, isFolded: false, now: 0, pray, time, photo, width: 800, card: { ch: 8.4, lh: 20 } })
+const props = (photo: string, pray: 'maghrib' | 'fajr', time: string) => ({ isActive: true, isFolded: false, now: 0, pray, at: 0, time, photo, width: 800, card: { ch: 8.4, lh: 20 } })
 
 test('the card markup: the shared card holding the photo, the font and both lines in Arabic', { options: { ...ATHKAR_QUIET } }, async () => {
   const svg = athanSvg(props('QUJD', 'maghrib', '18:05'), { hoverClose: false, columns: 0 })
@@ -377,7 +377,7 @@ for (const ending of ['close', 'expire'] as const) {
     await clock.advance(TOTAL_MS)
     expect(await terminal.find({ text: '▐███▌' })).toBeUndefined()
     expect(await terminal.find({ type: 'Text', text: '☾' })).toBeDefined()
-    expect(await terminal.find({ type: 'Text', text: terminalArabic('terminal', 'reversed', athanText('fajr')) })).toBeDefined()
+    expect(await terminal.find({ type: 'Text', text: terminalArabic('terminal', 'reversed', athanText('fajr', 0)) })).toBeDefined()
     expect(await terminal.find({ type: 'Button', key: 'salah-athan-close' })).toMatchObject({ props: { label: '×' } })
     if (ending === 'close') await terminal.press({ key: 'salah-athan-close' })
     else await clock.advance(DEMO_FOLDED_MS)

@@ -5,7 +5,7 @@ import type { SalahAthkarTimes } from '../../types'
 const HOUR = 3600_000
 const at = (hour: number) => Date.parse('2026-10-11T00:00:00Z') + hour * HOUR
 const times: SalahAthkarTimes = {
-  day: '2026-10-11', previousDay: '2026-10-10',
+  day: '2026-10-11', previousDay: '2026-10-10', dhuhr: 0,
   fajr: at(5.25), sunrise: at(7), maghrib: at(18.5), isha: at(20), nextFajr: at(29.25),
 }
 

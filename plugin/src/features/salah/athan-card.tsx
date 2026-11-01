@@ -5,7 +5,7 @@ import { athanFrame, athanSvg, startHitArea, type AthanCardProps } from './card.
 // The athan card on the desktop: the shared card, holding the call.
 export default cardClient<AthanCardProps>((props, view) => ({
   svg: athanSvg(props, view),
-  alt: athanText(props.pray),
+  alt: athanText(props.pray, props.at),
   frame: athanFrame(props, view.columns),
   action: props.canStart ? startHitArea(athanFrame(props, view.columns)) : undefined,
 }))

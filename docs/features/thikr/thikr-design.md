@@ -24,6 +24,10 @@ Thikr is text only. This follows the shared text-only requirement.
 | Usage limit | AbovePrompt band | One line in the shared main color (`claude` for orange, light/dark hex otherwise) until the window resets |
 | Settings | Command reply | `/thikr` status and help, one line per change |
 
+## Friday
+
+On a device Friday from Fajr the line plays the salawat group, as `/thikr mode salawat` does, still text only in the same places. Friday's own design is [friday design](../friday/friday-design.md).
+
 ## Demo
 
 The shared `/muslim demo` connects a transient signal to this same feature-local starter through a demo-only setup hook. It passes no engine handle across files and writes no state. It tracks its main turn id so unrelated or subagent completions cannot end the demo hold, and signals the shared runner when that hold has ended, so athkar starts after it. Its prompt names the command that started it: `/thikr demo` or `/muslim demo`.

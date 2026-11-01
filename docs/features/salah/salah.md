@@ -43,6 +43,8 @@ Prayer times for the user's city, calculated on their machine with
    - While inside the window, salah publishes `salahWindow`. Thikr does not read it yet; no prayer-window opener is promised for this release.
    - No toast when the window starts: the footer line is the only notice. No OS notification.
 
+**Jumu'ah.** On a device Friday the Dhuhr slot is named «الجمعة» (English Jumu'ah) wherever a prayer name shows: the prayer line, the athan call (`حان وقت صلاة الجمعة`), the athan card, the times table and review, and the Muslim pane. Its time is Dhuhr's. See [friday](../friday/friday.md).
+
 ## Calculation
 
 - **Method:** the official Sunni authority of the place's country

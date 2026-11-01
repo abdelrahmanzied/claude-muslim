@@ -9,6 +9,7 @@ The shared base every feature follows, and the index to each feature's own desig
 | Thikr line | `/thikr` | [thikr spec](docs/features/thikr/thikr.md) | [thikr design](docs/features/thikr/thikr-design.md): text only | [thikr content](docs/features/thikr/thikr-content.md) |
 | Morning, evening and after-salah athkar | `/athkar` | [athkar spec](docs/features/athkar/athkar.md) | [athkar design](docs/features/athkar/athkar-design.md): a drawn reader (Client module, desktop Svg sky) | [athkar content](docs/features/athkar/athkar-content.md) |
 | Salah | `/salah` | [salah spec](docs/features/salah/salah.md) | [salah design](docs/features/salah/salah-design.md): text, richer athan moment | [salah content](docs/features/salah/salah-content.md) |
+| Friday | `/friday` | [friday spec](docs/features/friday/friday.md) | [friday design](docs/features/friday/friday-design.md): text names and salawat; the Al-Kahf reminder is a shared card above the prompt on desktop (title and ▶) and a text row with × on the terminal | [friday content](docs/features/friday/friday-content.md) |
 | Quran | `/quran` | [quran spec](docs/features/quran/quran.md) | [quran design](docs/features/quran/quran-design.md): the player is the Muslim pane's Quran card (no pane of its own, no footer item); `/quran` opens it on desktop and says it is desktop only elsewhere; no subcommands (removed for v0.1.0) | none |
 | Muslim pane | `/muslim` | [muslim-pane spec](docs/features/muslim-pane/muslim-pane.md) | [muslim-pane design](docs/features/muslim-pane/muslim-pane-design.md): a docked desktop pane of three daily cards (prayers, Quran player, athkar progress) and one folded settings card with non-scrolling tabs, a Client-drawn picture; text in the terminal | end-of-turn sample from [thikr content](docs/features/thikr/thikr-content.md) |
 
@@ -44,7 +45,7 @@ A visible setup form takes priority over every reminder above the prompt on ever
 
 Richer surfaces (Pane, Image, Svg, Raster, Client modules) are chosen per feature in its design doc, not here. Passive content does not get a Pane. Every drawn pane follows the [desktop pane design](docs/desktop/pane-design.md): what the Desktop owns, the fixed picture, look, cards, words, settings rows.
 
-Desktop cards above the prompt use `plugin/src/shared/card/` for their size, frame, ×, hover, lighting and input. Each feature supplies its content. Only one of these cards shows at a time: the athan card takes the athkar band's place until it closes or expires. Terminal surfaces are unchanged.
+Desktop cards above the prompt use `plugin/src/shared/card/` for their size, frame, ×, hover, lighting and input. Each feature supplies its content. Only one of these cards shows at a time: the athan card takes the athkar band's place until it closes or expires, and the Friday Al-Kahf reminder waits while the athan card or an open athkar band shows (`plugin/src/shared/card/slot.ts` marks the athkar band). Terminal surfaces are unchanged.
 
 Over the app's own grey card the picture never assumes a cell size: the app measures its band cell live from its font and text-size scale. The Client asks for the widest Svg (4096px, the engine's bound) and the desktop narrows it to the slot; the markup root is `width="100%"` with a height, no `viewBox` and no `preserveAspectRatio`, and the HTML inside lays out on whatever width the slot gives. Features point here instead of repeating it.
 
@@ -77,6 +78,7 @@ One icon per feature, the same everywhere a drawn surface marks it: the Muslim p
 | القرآن | مصحف pane القرآن | `qpane` |
 | الأذكار | شروق وغروب (both periods) | `horizon` |
 | الذكر | حبّات Spinner | `spinbeads` |
+| الجمعة | مسجد | `mosque` |
 | الإعدادات (settings as a whole) | ترس بأسنان | `gearteeth` |
 
 Inside a card, small row icons that describe a row rather than a feature (a bell, a microphone, a check ring) stay free. A new feature adds its row here and to `plugin/src/shared/icon/` before it is drawn anywhere. Text surfaces (terminal, Spinner, SessionMode, band rows) use text glyphs, never these drawings.

@@ -3,7 +3,7 @@ import { dayOf, emptyDay, mayOpenPeriod, nextPeriodAt, periodOn, readDay, setAt 
 import type { SalahAthkarTimes } from '../../types'
 
 const times: SalahAthkarTimes = {
-  day: '2026-10-11', previousDay: '2026-10-10',
+  day: '2026-10-11', previousDay: '2026-10-10', dhuhr: 0,
   fajr: new Date(2026, 9, 11, 6, 12).getTime(),
   sunrise: new Date(2026, 9, 11, 7, 30).getTime(),
   isha: new Date(2026, 9, 11, 20, 10).getTime(),

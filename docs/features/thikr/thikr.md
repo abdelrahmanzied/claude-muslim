@@ -29,6 +29,8 @@ Each turn opens on a random starting phrase, never the one the last turn opened 
 
 End of turn and usage limit keep their own phrases.
 
+**On Fridays** (the device's local day) the same salawat show from Fajr (the whole day with no saved city) whatever the mode, unless `/friday salawat off`. The thikr call keeps its shape and names the Dhuhr slot «الجمعة». See [friday](../friday/friday.md).
+
 ## Desktop step rows
 
 A desktop step row (`Running a command 6s >`) keeps its words with the thikr after them (`Running a command · اللَّهُ أَكْبَرُ`). The desktop keeps a step's row up after its tool ends and during long runs, whatever mode it reports, so a word equal to the last step, or any word while a tool runs, counts as that step.

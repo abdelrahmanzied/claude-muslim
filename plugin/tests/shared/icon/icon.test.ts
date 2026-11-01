@@ -1,9 +1,9 @@
 import { expect, test } from 'claude-code/testing'
 import { FEATURE_ICONS } from '../../../src/shared/icon/index.ts'
 
-test('the standard feature icon set has exactly the six approved keys', () => {
+test('the standard feature icon set has exactly the seven approved keys', () => {
   expect(Object.keys(FEATURE_ICONS).sort()).toEqual([
-    'gearteeth', 'horizon', 'qpane', 'sliders', 'spinbeads', 'sujoodreal',
+    'gearteeth', 'horizon', 'mosque', 'qpane', 'sliders', 'spinbeads', 'sujoodreal',
   ])
 })
 

@@ -730,7 +730,7 @@ export const install = (on: On, options: Options) => {
     if (stage.isGone) return theirs
 
     const accent = await mainColor($, options.color)
-    const label = await renderArabic($, e.surface, athanText(playing.pray), arabicCache)
+    const label = await renderArabic($, e.surface, athanText(playing.pray, playing.until - CARD_MS), arabicCache)
 
     const close = <Button key="salah-athan-close" label="×" plain onPress={() => closeMoment($, timer)} />
     if (stage.isFolded) return (
@@ -771,7 +771,7 @@ export const install = (on: On, options: Options) => {
     photo.base64 ??= await readPhoto($)
     if (!photo.base64) return theirs
     const { Box, Client } = $.ui.resolve(e)
-    const props = { canStart: true, accent: options.color, isActive: true, isFolded: cardIsFolded(shown, now), now, pray: shown.pray, time: shown.time, photo: photo.base64, width: Math.round(e.props.bodyColumns * CELL_PX), card: { ch: CELL_PX, lh: LINE_PX } }
+    const props = { canStart: true, accent: options.color, isActive: true, isFolded: cardIsFolded(shown, now), now, pray: shown.pray, at: shown.until - CARD_MS, time: shown.time, photo: photo.base64, width: Math.round(e.props.bodyColumns * CELL_PX), card: { ch: CELL_PX, lh: LINE_PX } }
     athan.props = props
 
     return (

@@ -12,6 +12,8 @@ export const configRows: ConfigRow[] = [
   'muslim.athkarEvening',
   'muslim.athkarAfterSalah',
   'muslim.athkarStyle',
+  'muslim.fridaySalawat',
+  'muslim.fridayKahf',
   'muslim.color',
   'muslim.salahShow',
   'muslim.salahAthan',

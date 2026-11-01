@@ -6,6 +6,11 @@
 - Athkar progress now follows you between open sessions. Counts, the current thikr, finished and hidden (×) are shared, and for each of morning, evening and after salah the latest change in any session wins, a reset included. A session picks up the others' progress when its band is opened or unfolded, on desktop when you hover it, on every press, from the Muslim pane and with the `/athkar` commands; there is no background timer. A session that was left open no longer overwrites another session's counts. What stays per session: whether the band is open or folded, a set you picked by command, the finish question, the reset undo.
 - A faded athkar reading now folds to its set title, with where it stands («٣ مِنْ ٢٤»), × and the thin progress line, instead of the current thikr's text. The thikr shows when you open it.
 - Desktop: the athkar and athan cards above the prompt fit the app's own card again after the app's October update, whatever the window width, zoom, font or text size.
+- Friday. On a Friday on your device the Dhuhr slot is called «الجمعة» (Jumu'ah) wherever a prayer name shows: the prayer line, the athan call and card, the salah times and review, the Muslim pane and the thikr call.
+- Friday salawat: on a Friday, from Fajr, the thikr line shows the salawat phrases. `/friday salawat on | off`, default on.
+- Al-Kahf reminder: on a Friday, from 30 minutes after Jumu'ah until Maghrib (it needs a saved city), a card says «الجمعة · سورة الكهف», once per Friday for all your sessions, and hides after 3 minutes. On desktop it has ▶ to play Surat al-Kahf with the reciter you last used; on the terminal it is a text line. It waits while the athan card or the athkar band is showing. `/friday kahf on | off` switches the automatic reminder; `/friday kahf` shows it now.
+- `/friday` shows the day and both settings, `/friday help` lists the commands and `/friday demo` previews the card (also the fourth step of `/muslim demo`, before the pane tour).
+- Muslim pane: a new «الجمعة» settings tab with both switches, and on Fridays a «سورة الكهف» button in the Quran card.
 
 ## 0.1.0
 

@@ -3,14 +3,15 @@
 import { QURAN_COMMANDS } from './features/quran/help.ts'
 import { ATHKAR_COMMANDS } from './features/athkar/help.ts'
 import { SALAH_COMMANDS } from './features/salah/help.ts'
+import { FRIDAY_COMMANDS } from './features/friday/help.ts'
 import { THIKR_COMMANDS } from './features/thikr/help.ts'
 import { helpReply, helpTable, type HelpRow } from './table.ts'
 
-const FEATURES = { thikr: THIKR_COMMANDS, athkar: ATHKAR_COMMANDS, salah: SALAH_COMMANDS, quran: QURAN_COMMANDS } as const
+const FEATURES = { thikr: THIKR_COMMANDS, athkar: ATHKAR_COMMANDS, salah: SALAH_COMMANDS, friday: FRIDAY_COMMANDS, quran: QURAN_COMMANDS } as const
 
 export const MUSLIM_COMMANDS: readonly HelpRow[] = [
   ['/muslim', 'Desktop: open the Muslim pane; terminal: the version, every feature\'s state and the shared settings', ''],
-  ['/muslim help', 'Every command table, or one feature\'s', '`<feature>`: thikr, athkar, salah, quran, color, tashkeel, terminal-arabic, update, autoupdate, feedback'],
+  ['/muslim help', 'Every command table, or one feature\'s', '`<feature>`: thikr, athkar, salah, friday, quran, color, tashkeel, terminal-arabic, update, autoupdate, feedback'],
   ['/muslim color', 'The main color in every feature', '`orange` (default, Claude\'s) · `green` · `yellow` · `blue`'],
   ['/muslim tashkeel', 'Arabic diacritics on desktop; the terminal never shows them', '`on` (default) · `off`'],
   ['/muslim terminal-arabic', 'Choose how Arabic shows in this terminal, for every feature', ''],
@@ -18,7 +19,7 @@ export const MUSLIM_COMMANDS: readonly HelpRow[] = [
   ['/muslim autoupdate', 'The background update of muslim by Claude Code, on after the first run; alone it shows the state', '`on` · `off`'],
   ['/muslim feedback', 'Report a bug or send a request, idea, content correction or feedback to GitHub; Claude drafts it and sends only after your yes', '`<what you want to say>` (optional)'],
   // DEMO BEGIN: shared demo help.
-  ['/muslim demo', 'Play thikr, athkar, /salah demo (athan and athkar after salah) and the Muslim pane tour (desktop) in order; thikr uses tokens and leaves a message in the transcript', ''],
+  ['/muslim demo', 'Play thikr, athkar, /salah demo (athan and athkar after salah), /friday demo (the Al-Kahf card) and the Muslim pane tour (desktop) in order; thikr uses tokens and leaves a message in the transcript', ''],
   ['/muslim demo pane', 'Tour the Muslim pane on desktop alone: cards unfold, play and fold back; nothing is saved', ''],
   // DEMO END
 ]

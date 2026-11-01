@@ -14,11 +14,12 @@ import type { Options } from '../../config.ts'
 import { withTashkeel } from '../../shared/arabic/visual.ts'
 import { connectAthkar, connectPanelAction, type PanelAthkar } from '../../shared/panel/signal.ts'
 import { athkarTimesAt } from '../../shared/pray/bounds.ts'
+import { markCard } from '../../shared/card/slot.ts'
 import { mayOpenByItself, REMIND_FROM_KEY, SETUP_LATER_KEY, readRemindFrom, setupPending } from '../../shared/pray/first-run.ts'
 import { helpHint, statusTable } from '../../table.ts'
 import { athkarHelp } from './help.ts'
 import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, KEY_REST_MS, LEAVE_MS, LINE_PX, REST_PX } from '../../shared/card/card.ts'
-import { bandHeight, pixelOf, hitsFor, glowAtTime, GLOW_MS } from './band.ts'
+import { bandHeight, isFolded, pixelOf, hitsFor, glowAtTime, GLOW_MS } from './band.ts'
 import type { BandModel } from './band.ts'
 import { canUndoReset, resetSnapshot, setNamed, undoReset, UNDO_MS, type ResetSnapshot } from './reset.ts'
 import type { AthkarSet } from './logic.ts'
@@ -767,6 +768,8 @@ export const install = (on: On, options: Options) => {
     const theirs = await next(e)
     clock?.cancel()
     clock = undefined
+    // Marked drawn only while the band stands unfolded (cover, reading, question, finale or done): the folded row leaves the slot to the Friday card.
+    markCard('athkar', false)
     connectPanel($, options)
     if (demo && (demo.style === 'frame' || e.surface === 'desktop')) return theirs
     if ((e.surface !== 'terminal' && e.surface !== 'desktop') || await setupShowing($, !!options.salahPlace, e.surface, e.props.hasSurvey)) return theirs
@@ -864,6 +867,7 @@ export const install = (on: On, options: Options) => {
 
     if (e.surface !== 'desktop') {
       lastBand = undefined
+      markCard('athkar', view.isActive || props.phase === 'done')
       return (
         <Box flexDirection="column">
           <Box key="athkar-band" width="100%">
@@ -923,6 +927,7 @@ export const install = (on: On, options: Options) => {
     // One open height for reading, finale and done.
     model.height = bandHeight(model, width)
     lastBand = model
+    markCard('athkar', !isFolded(model))
 
     return (
       // The desktop's card pads the band, and its scroller is the card's whole

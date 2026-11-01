@@ -3,7 +3,7 @@
 
 import type { SalahWindow } from '../../../types'
 import { arabicDigits } from '../../shared/pray/line.ts'
-import { ARABIC } from '../../shared/pray/names.ts'
+import { arabicName } from '../../shared/pray/names.ts'
 import { CALL_TO_PRAY } from './phrases.ts'
 
 const MINUTE_MS = 60_000
@@ -12,7 +12,7 @@ const MINUTE_MS = 60_000
 export const callText = (window: SalahWindow, now: number): string => {
   const minutes = Math.max(1, Math.ceil((window.at - now) / MINUTE_MS))
 
-  return `${CALL_TO_PRAY} · ${ARABIC[window.pray]} بعد ${arabicDigits(String(minutes))} د`
+  return `${CALL_TO_PRAY} · ${arabicName(window.pray, window.at)} بعد ${arabicDigits(String(minutes))} د`
 }
 
 // The window a turn starting at `now` opens with: one still ahead, else none.

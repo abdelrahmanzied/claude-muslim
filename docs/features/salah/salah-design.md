@@ -67,6 +67,7 @@ What the user chose:
 
 - Terminal Arabic follows the shared per-terminal setting in [DESIGN.md](../../../DESIGN.md#4-typography-and-arabic) (`/muslim terminal-arabic`). Convert the footer, minaret label and folded terminal call only at draw time; the desktop footer and athan card keep logical text.
 
+- On a device Friday the Dhuhr slot is named الجمعة / Jumu'ah in these places too, from one lookup in `plugin/src/shared/pray/names.ts`.
 - Prayer names in Arabic in lines (الفجر، الظهر، العصر، المغرب، العشاء), in English in commands (Fajr, Dhuhr, Asr, Maghrib, Isha).
 - حان وقت صلاة … is authored text with tashkeel, never generated.
 - Digits: Arabic-Indic (`١٥:٥٩`, `١٩:٤٢`).

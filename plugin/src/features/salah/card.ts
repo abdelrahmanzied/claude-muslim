@@ -22,6 +22,8 @@ export type AthanCardProps = CardProps & {
   canStart?: boolean
   accent?: Accent
   pray: Pray
+  // The pray's time (ms): on a Friday its Dhuhr reads الجمعة.
+  at: number
   // The clock text, e.g. `15:59`.
   time: string
   // The photo, base64 JPEG.
@@ -94,7 +96,7 @@ export const athanSvg = (p: AthanCardProps, view: Pick<CardView, 'hoverClose' | 
   cardSvg(athanFrame(p, view.columns), {
     classes: `athan active${p.isFolded ? ' rest' : ''}`,
     style: '',
-    html: `${p.canStart ? `<span class="start${view.hoverAction ? ' hot' : ''}"><span class="start-arrow">← </span><span class="start-label">${START_LABEL}</span></span>` : ''}<div class="main">${athanText(p.pray)}</div><div class="time">${arabicDigits(p.time)}</div>`,
+    html: `${p.canStart ? `<span class="start${view.hoverAction ? ' hot' : ''}"><span class="start-arrow">← </span><span class="start-label">${START_LABEL}</span></span>` : ''}<div class="main">${athanText(p.pray, p.at)}</div><div class="time">${arabicDigits(p.time)}</div>`,
     css: css(p.photo, p.accent ?? 'orange'),
     hoverClose: view.hoverClose,
   })

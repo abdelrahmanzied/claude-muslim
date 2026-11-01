@@ -92,7 +92,7 @@ Sources in the code: `plugin/src/features/thikr/phrases.ts`, with the end-of-tur
 
 > يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ
 
-## SALAWAT: salawat mode: one of these for a whole turn, the next one each turn
+## SALAWAT: salawat mode, and Fridays from Fajr: one of these for a whole turn, the next one each turn
 
 ### أذكار وجمل إسلامية عامة — General Islamic phrases
 
@@ -124,7 +124,7 @@ Sources in the code: `plugin/src/features/thikr/phrases.ts`, with the end-of-tur
 
 ### أذكار وجمل إسلامية عامة — General Islamic phrases
 
-- CALL_TO_PRAY: opens the thikr turn inside a pray's countdown window, then the pray and the minutes left.
+- CALL_TO_PRAY: opens the thikr turn inside a pray's countdown window, then the pray and the minutes left. On a device Friday the Dhuhr slot's name is «الجمعة» (see [friday content](../friday/friday-content.md)).
 
 > حَيَّ عَلَى الصَّلَاةِ
 
