@@ -36,7 +36,7 @@ const fixture = (on: On, surface: 'desktop' | 'terminal') => {
 
 for (const surface of ['desktop', 'terminal'] as const) {
   for (const ending of (surface === 'desktop' ? ['expire', 'close', 'start'] : ['expire', 'close']) as ('expire' | 'close' | 'start')[]) {
-    test(`${surface}: demo ${ending} hands off to real Fajr reader scenes, finale and folded done without persistent writes`, { options: OPTIONS, timeoutMs: 15000 }, async ($, on) => {
+    test(`${surface}: demo ${ending} hands off to real Fajr reader scenes, and finale without persistent writes`, { options: OPTIONS, timeoutMs: 15000 }, async ($, on) => {
       const { clock, day, saved, writes } = fixture(on, surface)
       const ui = await $.ui.mount(band(surface))
       await clock.settle()
@@ -62,7 +62,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
       const style = surface === 'desktop' ? 'sky' : 'frame'
       for (const scene of demoScenes(style, 'orange', FINALE_MS, 'afterSalah')) {
         const p = await sceneProps()
-        expect(p).toMatchObject({ period: 'afterSalah', phase: scene.kind === 'reading' ? 'reading' : 'done', isActive: scene.kind !== 'folded' })
+        expect(p).toMatchObject({ period: 'afterSalah', phase: scene.kind === 'reading' ? 'reading' : 'done', isActive: true })
         if (surface === 'desktop') {
           expect(p).toMatchObject({ title: TITLE.afterSalah, sky: 'day', accent: 'orange', style: 'sky' })
           if (scene.kind === 'reading') expect(p.thikrId).toBe(scene.id)
@@ -100,9 +100,9 @@ test('restarting during after-salah cancels the old continuation and its complet
   await $.command.run(run())
   expect(await ui.find({ key: 'athkar-demo' })).toBeUndefined()
   expect(await ui.find({ key: 'salah-athan' })).toBeDefined()
-  await clock.advance(demoDuration('sky', FINALE_MS, 'afterSalah') - 2000)
+  await clock.advance(momentDuration('desktop') + 400)
   expect(await ui.find({ key: 'athkar-demo' })).toBeDefined()
-  await clock.advance(momentDuration('desktop') + 2000)
+  await clock.advance(demoDuration('sky', FINALE_MS, 'afterSalah'))
   expect(await ui.find({ key: 'athkar-demo' })).toBeUndefined()
   expect(writes).toEqual([])
   await ui.unmount()

@@ -21,7 +21,7 @@ The third set, **Athkar after salah** (أَذْكَارُ بَعْدَ الصَ�
 - Without a manual set choice, offer after-salah from the prayer timestamp plus the shared athan duration: `IN_MS` in `plugin/src/shared/pray/line.ts` (`CARD_MS` in salah), currently 15 minutes. This is the same deadline whether the desktop card stays open, is closed with ×, or never appears (terminal, athan off, show off, late session or missing photo). One-shot timers redraw at that start and at `at + 2 * IN_MS` (currently 30 minutes from the athan), re-armed across reloads. At the latter deadline an untouched automatic offer gives the band back to morning/evening (or nothing), without saving any expiry state.
 - If the morning or evening reading is already being counted (begun, not done, not hidden) when that deadline comes, after-salah waits and takes the band once it is done or closed with ×, provided the untouched offer has not expired. If the wait reaches `at + 2 * IN_MS`, it never takes the band for that prayer, so an untouched offer never cuts off a morning/evening reading. An already begun after-salah reading takes precedence over that reading, including after a reload. **ابدأ أذكار بعد الصلاة** on the athan card still starts it at once.
 - On the desktop athan card, **ابدأ أذكار بعد الصلاة** closes the athan moment immediately and starts this prayer's reader lit and opened, skipping the cover and ready to count. Salah writes `salahAfterSalahStart: { pray, at } | null`; athkar reads it and accepts only a match for `salahLast`. It resumes an unfinished slot, unhides it, and restarts a completed slot. This explicit action replaces any manual set choice. The button is always there, even with every reminder off, because it is an explicit start.
-- Once any repetition has been counted before expiry, the reader stays until done, hidden with ×, or replaced by the next obligatory prayer (and the normal day boundary still applies). × returns immediately to morning/evening. Finished in front of the person (the reader, its finish question or the pane's ✓), the slot keeps the band for the same celebration as morning/evening: the finale, then the open done row while the band is lit; once the finale has played and the band rests, morning/evening come back. This hold is a transient module value, never saved; ×, a set choice, back on the done row or the next prayer ends it. Found done (on a reload, or set elsewhere), it returns at once. The next prayer resets the one slot and begins the same delay again; an earlier button request cannot start it early. Manual after-salah selection also ends on that new prayer. Explicit morning/evening choices retain their existing session hold. Without prayer times there is no automatic offer.
+- Once any repetition has been counted before expiry, the reader stays until done, hidden with ×, or replaced by the next obligatory prayer (and the normal day boundary still applies). × returns immediately to morning/evening. Finished in front of the person (the reader, its finish question or the pane's ✓), the slot keeps the band for the same celebration as morning/evening: the finale, then the band closes and morning/evening come back by the normal rules (the current set shows if it isn't finished; nothing shows if it is). This hold is a transient module value, never saved; ×, a set choice or the next prayer ends it. Found done (on a reload, or set elsewhere), it never takes the band. The next prayer resets the one slot and begins the same delay again; an earlier button request cannot start it early. Manual after-salah selection also ends on that new prayer. Explicit morning/evening choices retain their existing session hold. Without prayer times there is no automatic offer.
 - The athan-card start request, `/athkar after-salah`, and a pane choice different from the automatic set are exempt from automatic offer expiry. The pane can still select and open after-salah after expiry. Counts, prayer identity and the clock alone determine expiry; the first-run quiet gate, day boundary, athan card and demos stay unchanged.
 - Counting, undo, navigation, progress, hide, reset, done hint and status use the same paths for all three sets. The sky follows the current prayer bounds (fixed clock hours without a saved place). The desktop athan card keeps precedence.
 
@@ -38,7 +38,15 @@ The third set, **Athkar after salah** (أَذْكَارُ بَعْدَ الصَ�
 - **End question:** next past the last thikr finishes automatically only when every thikr is fully counted. Otherwise the reader replaces the thikr with «أتممتَ الأذكار؟», the number not fully counted in Arabic digits («٨ دون عدّ كامل»), primary «نعم، أتممتُها» and quiet «أكمل العدّ». Confirming fills every count from the period's authored `times` and sets `isDone`; resuming returns to the first thikr not fully counted. Back/previous returns to the last thikr without changing counts. The same completion action is available as ✓ «أتممتُها» in the Muslim pane, for people who count on their fingers.
 - **Question state:** transient `FinishQuestion` (day, period, selected choice, entry-key latch) in the feature module; never in `Reading`, `$.state` or `$.store`. It clears on reset, hiding, switching period, day change or completion. Only confirmation's full counts and `isDone` are saved. Stored completion and counts are read without migration.
 - **Question keys:** Tab or ← selects between the two choices; Enter/Space chooses; →, Backspace or right click returns to the last thikr. The host exposes key presses without key-up or repeat metadata. To prevent a held counting key from confirming, the entry key stays blocked until explicit Tab/← selection; the other activation key can choose immediately. A plain click outside a choice does not confirm. A folded question's first press only wakes it.
-- **End:** «تَقَبَّلَ اللَّهُ 🤲», a short closing du’a addressed to the reader, outside the authored athkar and without a source citation, then the done row with `/athkar <period> reset → to read again`.
+- **End:** «تَقَبَّلَ اللَّهُ 🤲», a short closing du’a addressed to the reader, outside the authored athkar and without a source citation. See *Finished* below.
+
+## Finished: celebrate, then close
+
+- **Finished in front of the person** (the last count, «نعم، أتممتُها», or the pane's ✓): the finale plays for `FINALE_MS` (3.2s; falling stars and «تَقَبَّلَ اللَّهُ 🤲» on desktop; on a terminal the «تَقَبَّلَ اللَّهُ 🤲» done row with the reset hint for the same time), then the band is gone. No open or folded done row stays above the prompt, for the rest of the period or after a reload.
+- **A finished set never takes the band by itself:** not after a reload, not in a new session, not in another open session that learns from the shared store that it is done (there it disappears quietly at its next refresh, with no finale). The finale plays only in the session where the set was finished. The finale hold (`view.finished`) is a transient module value, never saved.
+- **Opening a finished set on purpose** (`/athkar morning|evening|after-salah`, bare `/athkar` when the current set is done, or a set pick from the Muslim pane's title menu) shows the open done row with `/athkar <set> reset → to read again`. When the band rests (idle, pointer away, focus elsewhere) it closes again; there is no folded done row. This view is a transient module value (`view.review`).
+- **Reset** is unchanged: `/athkar <set> reset`, the pane's «إعادة» and its 8-second undo return the set to its cover, also during the finale.
+- A finished after-salah set hands the band back to the current morning/evening set once its finale is over.
 
 ## Sync between open sessions
 
@@ -90,18 +98,18 @@ Not settable: the font and the text size. The mod API sets neither.
 
 ## Demo
 
-The shared `/muslim demo` connects a transient signal to this same feature-local starter through a demo-only setup hook. It passes no engine handle across files and writes no state. Started that way, it reports its end after its folded scene, so the next demo follows it.
+The shared `/muslim demo` connects a transient signal to this same feature-local starter through a demo-only setup hook. It passes no engine handle across files and writes no state. Started that way, it reports its end right after its finale, so the next demo follows it.
 
-The `/salah demo` continuation uses these same builders and `demoStep`, with the real `listFor('afterSalah', reading)` Fajr list in a disposable reading (`pray: 'fajr'`). It shows three readings in order: `66-istighfar` (1.2s, counts every 200ms to three), `69-tasbih` (3.6s, 100ms to 33) and `70-ikhlas` (1.2s, 200ms to three). It skips the readings between them using the existing disposable-counts technique. Reading totals 6.0s, followed by the real `FINALE_MS` (3.2s) and a 1.2s folded done row: 10.4s total. The sky follows the current prayer bounds (fixed clock hours without a saved place) and uses the configured accent and desktop style; terminal uses Frame. There is no new drawing path, command or saved state.
+The `/salah demo` continuation uses these same builders and `demoStep`, with the real `listFor('afterSalah', reading)` Fajr list in a disposable reading (`pray: 'fajr'`). It shows three readings in order: `66-istighfar` (1.2s, counts every 200ms to three), `69-tasbih` (3.6s, 100ms to 33) and `70-ikhlas` (1.2s, 200ms to three). It skips the readings between them using the existing disposable-counts technique. Reading totals 6.0s, followed by the real `FINALE_MS` (3.2s): 9.2s total, ending with the finale like the real band. The sky follows the current prayer bounds (fixed clock hours without a saved place) and uses the configured accent and desktop style; terminal uses Frame. There is no new drawing path, command or saved state.
 
-A demo-only command hook connects the `afterSalah` starter on the shared transient bus for both `/salah demo` and `/muslim demo`. Salah's start button, × or expiry closes its disposable athan and starts this continuation immediately. Athkar calls the supplied completion callback only after the folded done row, allowing salah to report its end to `/muslim demo`. A real athan waits until the continuation finishes, then returns untouched. Restarting the salah demo cancels the previous continuation. Demo input targets `athkar-demo` and cannot change the real reading, store or signals.
+A demo-only command hook connects the `afterSalah` starter on the shared transient bus for both `/salah demo` and `/muslim demo`. Salah's start button, × or expiry closes its disposable athan and starts this continuation immediately. Athkar calls the supplied completion callback right after the finale, allowing salah to report its end to `/muslim demo`. A real athan waits until the continuation finishes, then returns untouched. Restarting the salah demo cancels the previous continuation. Demo input targets `athkar-demo` and cannot change the real reading, store or signals.
 
 `/athkar demo` uses the current desktop style, or Frame in the terminal.
 `/athkar demo sky` is desktop only; the terminal replies that Sky is desktop
-only. `/athkar demo frame` plays on either surface. Sky has eight scenes in
-33.2 seconds: all six skies appear on reading scenes in day order, then the
-finale and folded done stay on crescent in the evening period. Frame keeps
-its six-scene morning story, timings and colors, totaling 24.2 seconds.
+only. `/athkar demo frame` plays on either surface. Sky has seven scenes in
+30.2 seconds: all six skies appear on reading scenes in day order, then the
+finale stays on crescent in the evening period. Frame keeps
+its five-scene morning story, timings and colors, totaling 21.2 seconds.
 The command reply reports the scene count and total seconds for its style.
 
 | Sky scene | Id | Period | Length | Sky |
@@ -113,7 +121,6 @@ The command reply reports the scene count and total seconds for its style.
 | Long thikr, with its authored evening wording | 77 | evening | 5s | bluehour |
 | Last thikr, counting to ten | 98 | evening | 4s | crescent |
 | Celebration: the real finale | finished | evening | `FINALE_MS` (3.2s) | crescent |
-| Finished, folded to one line | finished | evening | 3s | crescent |
 
 | Frame scene | Id | Period | Length | Color |
 | --- | --- | --- | --- | --- |
@@ -122,14 +129,13 @@ The command reply reports the scene count and total seconds for its style.
 | Long thikr | 84 | morning | 5s | yellow |
 | Last thikr, counting to ten | 98 | morning | 4s | blue |
 | Celebration: the real finale | finished | morning | `FINALE_MS` (3.2s) | orange |
-| Finished, folded to one line | finished | morning | 3s | green |
 
 Reading scenes use the authored repetition counts and real list positions.
 The demo skips ahead in a disposable reading, completing preceding items
 there only; the pill counts down and the overall progress glow moves. Id 98
 counts from 0 to 10 in 3 seconds, then holds the completed reading for 1 second.
 Desktop celebrates with falling stars and the rising dua for the real
-`FINALE_MS`; the terminal shows its own open done row, then folded done row.
+`FINALE_MS`; the terminal shows its own open done row for the same time. The demo ends with the finale, as the real band does (no folded done row).
 
 Another demo command restarts playback. Input, including ×, has no handler
 and cannot change the real reading. The demo has its own Client key and

@@ -1,6 +1,6 @@
 import { accentHex, type Accent } from '../../shared/color/index.ts'
 import type { AthkarSet } from './logic.ts'
-import { arabicDigits, countOf, currentOf, END, END_NOTE, hasBegun, incomplete, listFor, overall, textOf, TITLE } from './logic.ts'
+import { arabicDigits, countOf, currentOf, END, hasBegun, incomplete, listFor, overall, textOf, TITLE } from './logic.ts'
 import type { Reading, Sky } from './logic.ts'
 
 export type Style = 'sky' | 'frame'
@@ -100,7 +100,6 @@ export type ReaderProps = {
   progress: number
   end: string
   endHint: string
-  endNote: string
 }
 
 // The done row's hint, and the reply to a finished period's command.
@@ -137,6 +136,5 @@ export const readerProps = (
     progress: overall(period, reading),
     end: display(END),
     endHint: resetHint(period),
-    endNote: display(END_NOTE[period]),
   })
 }

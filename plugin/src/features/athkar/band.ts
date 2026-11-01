@@ -47,7 +47,6 @@ export type BandModel = {
   end: string
   endHint: string
   // Folded, in place of the greeting: finished.
-  endNote: string
   // When it is drawn, so the sky's motion carries on across redraws.
   now: number
   width: number
@@ -66,10 +65,11 @@ export type BandModel = {
   drawWidth?: number
 }
 
-// The reading, the cover and the done row fold to one row while faded; a press
-// lights them and they open. The finale never folds.
+// The reading and the cover fold to one row while faded; a press lights them
+// and they open. The done row (finale, or a finished set opened on purpose)
+// never folds: the band closes instead.
 export const isFolded = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' | 'finaleMs'>) =>
-  !m.isActive && m.restHeight !== undefined && (m.phase !== 'done' || m.finaleMs === undefined)
+  !m.isActive && m.restHeight !== undefined && m.phase !== 'done'
 
 // The height the band stands at now: the folded row, or the full band.
 export const heightOf = (m: Pick<BandModel, 'phase' | 'isActive' | 'restHeight' | 'height' | 'finaleMs'>) => (isFolded(m) ? (m.restHeight ?? m.height) : m.height)
@@ -159,7 +159,7 @@ const EXTRA_CSS = `
 @keyframes riseMsg { 0% { opacity: 0; transform: translate(-50%, 30px); } 30% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -110px); } }
 /* The closing greeting: on a sky the words' color, on Frame the main color, as
    the frame and the progress line. The finale's is in the words' face too. */
-.band.bg-frame .done-row .big, .band.bg-frame .rise-msg, .band.bg-frame .dn-peek .pk-text { color: var(--b-acc); }
+.band.bg-frame .done-row .big, .band.bg-frame .rise-msg { color: var(--b-acc); }
 /* Skies have no edge line, colored or white: the picture is the edge. */
 .band.band.band.sky, .band.band.band.sky.edge:not(.framed) { border-color: transparent !important; }
 /* Frame: at rest the app's own quiet line; lit, the accent line
@@ -217,9 +217,6 @@ const foldedCover = (m: BandModel) => {
   return `<div class="peek cv-peek">${foldedTitle(m)}<span class="pk-hint" style="font-size:${foldedHintSize(hint, m.width)}px">${hint}</span></div>`
 }
 
-// The folded done row: the note alone.
-const foldedDone = (m: BandModel) => `<div class="peek dn-peek"><span class="pk-text">${esc(m.endNote)}</span></div>`
-
 const done = (m: BandModel) => {
   const fit = doneFit(m.end, m.endHint, m.width)
   const hint = fit.hint ? `<span class="dim done-hint">${esc(fit.hint)}</span>` : ''
@@ -275,7 +272,7 @@ const question = (m: BandModel) => {
 
 const bandContent = (m: BandModel) => {
   const isFinale = m.phase === 'done' && m.finaleMs !== undefined
-  const inner = isFinale ? '' : m.phase === 'question' ? question(m) : m.phase === 'cover' ? (isFolded(m) ? foldedCover(m) : cover(m)) : m.phase === 'done' ? (isFolded(m) ? foldedDone(m) : done(m)) : isFolded(m) ? folded(m) : reading(m)
+  const inner = isFinale ? '' : m.phase === 'question' ? question(m) : m.phase === 'cover' ? (isFolded(m) ? foldedCover(m) : cover(m)) : m.phase === 'done' ? done(m) : isFolded(m) ? folded(m) : reading(m)
   const fx = m.style === 'sky' ? `<span class="fx">${SKY_FX[m.sky]}</span>` : ''
   const hasLine = m.phase === 'question' || m.phase === 'reading' || (m.phase === 'cover' && isFolded(m))
   const progress = hasLine ? m.progress : 100

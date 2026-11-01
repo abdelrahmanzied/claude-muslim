@@ -198,6 +198,9 @@ for (const style of ['sky', 'frame'] as const) {
     expect(written).toHaveLength(1)
     expect(String((await ui.find({ in: 'muslim-pane', type: 'Svg' }))?.props.source)).not.toContain('✓ أتممتُها')
     expect(String((await reader.find({ in: 'athkar', type: 'Svg' }))?.props.source)).toContain('class="fall"')
+    // The finale over, the band closes: no folded done row stays above the prompt.
+    await testClock.advance(3201)
+    expect(await reader.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
     await ui.unmount(); await reader.unmount()
   })
 }

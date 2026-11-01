@@ -1,6 +1,6 @@
 # Athkar content
 
-The religious text shown by the athkar feature: 26 morning and evening athkar, 11 athkar after salah, and the fixed titles, closing greeting and done rows, each with its count and source. The code is the source of truth for what is displayed; this file must stay identical to it (see the rule in CLAUDE.md). Arabic is authored with tashkeel and is never generated or reworded. Hadith references are the ones listed on sunnah.com for each Hisn al-Muslim number.
+The religious text shown by the athkar feature: 26 morning and evening athkar, 11 athkar after salah, and the fixed titles, and closing greeting, each with its count and source. The code is the source of truth for what is displayed; this file must stay identical to it (see the rule in CLAUDE.md). Arabic is authored with tashkeel and is never generated or reworded. Hadith references are the ones listed on sunnah.com for each Hisn al-Muslim number.
 
 Sources in the code: `plugin/src/features/athkar/data.ts`, `plugin/src/features/athkar/after-salah.ts`, `plugin/src/features/athkar/logic.ts`, and the titles in `plugin/src/shared/athkar/titles.ts` (shared with the Muslim pane).
 
@@ -410,17 +410,3 @@ Other Arabic religious text shown by the athkar reader (UI labels are not listed
 A short du’a shown as a closing greeting to the reader after morning, evening and after-salah readings, not one of the athkar. No source citation is needed. The words are followed by one space and 🤲; terminal display strips tashkeel through the shared Arabic path and retains the emoji.
 
 > تَقَبَّلَ اللَّهُ 🤲
-
-### Done row (`END_NOTE`, `plugin/src/features/athkar/logic.ts`)
-
-- afterSalah:
-
-> أَتْمَمْتَ وِرْدَكَ ✓
-
-- morning:
-
-> أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الْمَسَاءُ
-
-- evening:
-
-> أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الصَّبَاحُ

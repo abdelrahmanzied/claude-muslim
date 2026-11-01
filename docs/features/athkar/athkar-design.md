@@ -42,7 +42,7 @@ Only automatic selections are gated. Morning/evening need a period start at or a
 
 ## Third set: after salah
 
-The title is أَذْكَارُ بَعْدَ الصَّلَاةِ; the command is `/athkar after-salah`. This uses the same cover, counts, passage labels, progress, undo, ×, reset and two fixed heights as morning/evening. The sky follows the current prayer bounds (fixed clock hours without a saved place), including manual readings. The folded done note is `أَتْمَمْتَ وِرْدَكَ ✓`, with no promise of a next time; the open done row and finale keep the shared closing du’a and the hint `/athkar after-salah reset → to read again`. Finished in front of the person, after-salah keeps the band through the finale and the open done row, however it was started (athan card, automatic offer or command), and gives it back to morning/evening once the band rests.
+The title is أَذْكَارُ بَعْدَ الصَّلَاةِ; the command is `/athkar after-salah`. This uses the same cover, counts, passage labels, progress, undo, ×, reset and two fixed heights as morning/evening. The sky follows the current prayer bounds (fixed clock hours without a saved place), including manual readings. The finale and the open done row keep the shared closing du’a and the hint `/athkar after-salah reset → to read again`. Finished in front of the person, after-salah keeps the band through the finale, however it was started (athan card, automatic offer or command), then the band closes and morning/evening come back by the normal rules.
 
 One slot holds the current prayer's reading (`pray`, `at`), or the general reading with both null. A different prayer time clears counts, done and hidden state and starts on the cover. There is no history. The Fajr day boundary (05:00 without prayer times) also clears it; old days missing the slot are tolerated. The list is authored in Hisn al-Muslim chapter 25 ([hisn:66](https://sunnah.com/hisn:66)–[72](https://sunnah.com/hisn:72)); general readings use base counts, while Fajr/Maghrib carry their specified extras.
 
@@ -65,14 +65,14 @@ On every sky the pill is the main color with a white number. Sunrise takes dark 
 
 ## Demo path
 
-The shared `/muslim demo` connects a transient signal to this same feature-local starter through a demo-only setup hook. It passes no engine handle across files and writes no state. Started that way, it reports its end after its folded scene, so the next demo follows it.
+The shared `/muslim demo` connects a transient signal to this same feature-local starter through a demo-only setup hook. It passes no engine handle across files and writes no state. Started that way, it reports its end right after its finale, so the next demo follows it.
 
-The `/salah demo` continuation uses these same builders and `demoStep`, with the real `listFor('afterSalah', reading)` Fajr list in a disposable reading (`pray: 'fajr'`). It shows three readings in order: `66-istighfar` (1.2s, counts every 200ms to three), `69-tasbih` (3.6s, 100ms to 33) and `70-ikhlas` (1.2s, 200ms to three). It skips the readings between them using the existing disposable-counts technique. Reading totals 6.0s, followed by the real `FINALE_MS` (3.2s) and a 1.2s folded done row: 10.4s total. The sky follows the current prayer bounds (fixed clock hours without a saved place) and uses the configured accent and desktop style; terminal uses Frame. There is no new drawing path, command or saved state.
+The `/salah demo` continuation uses these same builders and `demoStep`, with the real `listFor('afterSalah', reading)` Fajr list in a disposable reading (`pray: 'fajr'`). It shows three readings in order: `66-istighfar` (1.2s, counts every 200ms to three), `69-tasbih` (3.6s, 100ms to 33) and `70-ikhlas` (1.2s, 200ms to three). It skips the readings between them using the existing disposable-counts technique. Reading totals 6.0s, followed by the real `FINALE_MS` (3.2s) : 9.2s total. The sky follows the current prayer bounds (fixed clock hours without a saved place) and uses the configured accent and desktop style; terminal uses Frame. There is no new drawing path, command or saved state.
 
-A demo-only command hook connects the `afterSalah` starter on the shared transient bus for both `/salah demo` and `/muslim demo`. Salah's start button, × or expiry closes its disposable athan and starts this continuation immediately. Athkar calls the supplied completion callback only after the folded done row, allowing salah to report its end to `/muslim demo`. A real athan waits until the continuation finishes, then returns untouched. Restarting the salah demo cancels the previous continuation. Demo input targets `athkar-demo` and cannot change the real reading, store or signals.
+A demo-only command hook connects the `afterSalah` starter on the shared transient bus for both `/salah demo` and `/muslim demo`. Salah's start button, × or expiry closes its disposable athan and starts this continuation immediately. Athkar calls the supplied completion callback right after the finale, allowing salah to report its end to `/muslim demo`. A real athan waits until the continuation finishes, then returns untouched. Restarting the salah demo cancels the previous continuation. Demo input targets `athkar-demo` and cannot change the real reading, store or signals.
 
-`/athkar demo [sky|frame]` plays the real builders. Sky has eight scenes
-(33.2 seconds), with each of the six skies on a distinct reading scene:
+`/athkar demo [sky|frame]` plays the real builders. Sky has seven scenes
+(30.2 seconds), with each of the six skies on a distinct reading scene:
 
 | Sky scene | Id | Period | Length | Sky |
 | --- | --- | --- | --- | --- |
@@ -83,9 +83,8 @@ A demo-only command hook connects the `afterSalah` starter on the shared transie
 | Long thikr, with its authored evening wording | 77 | evening | 5s | bluehour |
 | Last thikr, counting to ten | 98 | evening | 4s | crescent |
 | Celebration: the real finale | finished | evening | `FINALE_MS` (3.2s) | crescent |
-| Finished, folded to one line | finished | evening | 3s | crescent |
 
-Frame keeps its six-scene morning story (24.2 seconds) on both surfaces:
+Frame keeps its five-scene morning story (21.2 seconds) on both surfaces:
 
 | Frame scene | Id | Period | Length | Color |
 | --- | --- | --- | --- | --- |
@@ -94,7 +93,6 @@ Frame keeps its six-scene morning story (24.2 seconds) on both surfaces:
 | Long thikr | 84 | morning | 5s | yellow |
 | Last thikr, counting to ten | 98 | morning | 4s | blue |
 | Celebration: the real finale | finished | morning | `FINALE_MS` (3.2s) | orange |
-| Finished, folded to one line | finished | morning | 3s | green |
 
 All reading scenes are open and lit. Their authored counts and real
 positions are retained, including Kursi's full note from `data.ts`.
@@ -105,9 +103,10 @@ thikr 84 count once halfway through their 5 seconds; thikr 83 counts every
 800 ms to its three repetitions, and thikr 77 counts once halfway through
 its 5 seconds using its evening wording from `data.ts`. Thikr 98 counts
 every 300 ms to ten, holding its last count for the final second. Then the
-desktop plays falling stars and the rising dua for `FINALE_MS`, followed by
-the one-line finished band. Both stay on crescent and evening in Sky.
-The terminal keeps Frame's own open done row, then folded done.
+desktop plays falling stars and the rising dua for `FINALE_MS`, and the demo
+ends there, as the real band closes after its finale. The finale stays on
+crescent and evening in Sky. The terminal keeps Frame's own open done row for
+`FINALE_MS`.
 The command reply reports each style's real scene count and total duration.
 
 Sky is desktop only; no-word playback uses the current style on desktop and
@@ -163,13 +162,14 @@ The terminal draws the question, muted line and two native text buttons through 
 ## End
 
 - The finale (desktop): falling stars, and «تَقَبَّلَ اللَّهُ 🤲» rising centered at a fixed 18px. This short du’a greets the reader on finishing; it is not one of the authored athkar and has no source citation. The chosen closing greeting is an explicit exception to the shared no-emoji voice rule.
-- After it, the done row: the same closing greeting, without a citation, on the right at 14px, like the reading (smaller only if the window is too narrow), the reset hint (`/athkar morning reset → to read again`) on the left.
+- After the finale the band closes completely: no done row stays above the prompt, and a finished set never takes the band by itself (after a reload, in a new session, or when another session finished it). A finished set opened on purpose (`/athkar <set>`, the pane's title menu) shows the done row until the band rests, then closes. On a terminal the done row stands for `FINALE_MS` in place of the stars, then the band closes.
+- The done row: the same closing greeting, without a citation, on the right at 14px, like the reading (smaller only if the window is too narrow), the reset hint (`/athkar morning reset → to read again`) on the left.
 - The closing du’a is always in the words' face (Tajawal), in the finale and the done row alike.
 - Its color: on a sky, the words' color (white or dark, as the sky's text); on Frame, the main color (the frame's and the progress line's).
 - The open done row's progress line is full with a ✓ in the pill at its head, so it reads as finished, not as one more thikr.
 - Widths use the embedded Tajawal font for the words and a separate emoji allowance; tashkeel has no advance width. The terminal keeps 🤲, strips tashkeel and applies the shared Arabic mode. Its native `Text` handles wrapping/truncation and the emoji’s two-cell width; no string-length padding is used for the closing row.
 - The hint marks the command apart from what it does with an arrow: `/athkar morning reset → to read again`.
-- Faded, the done row folds to one slim row: أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الْمَسَاءُ after the morning, أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الصَّبَاحُ after the evening, no closing greeting. The finale (falling stars) never folds.
+- The done row never folds: it is only drawn for the finale or while an opened finished set is lit, and the band closes instead of folding.
 
 ## Limits of the mod API
 

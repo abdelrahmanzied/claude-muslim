@@ -42,7 +42,7 @@ const savedReading = (on: On, day = emptyDay(dayOf(new Date(NOW)))) => {
 }
 
 for (const style of ['sky', 'frame'] as const) {
-  test(`desktop ${style}: the story draws readings, the full finale and folded done, then restores the real band`, { timeoutMs: 20000 }, async ($, on) => {
+  test(`desktop ${style}: the story draws readings, the full finale, then restores the real band`, { timeoutMs: 20000 }, async ($, on) => {
     const clock = mock.clock(on, { now: NOW })
     engineBand(on)
     const day = emptyDay(dayOf(new Date(NOW)))
@@ -52,13 +52,13 @@ for (const style of ['sky', 'frame'] as const) {
     const written = savedReading(on, day)
     const ui = await $.ui.mount(band('desktop'))
     const real = (await ui.find({ type: 'Client', key: 'athkar' }))?.props.props as Record<string, unknown>
-    expect((await $.command.run(run(`demo ${style}`))).text).toBe(`**Athkar demo:** ${style} · ${style === 'sky' ? '8 scenes · 33.2s' : '6 scenes · 24.2s'}`)
+    expect((await $.command.run(run(`demo ${style}`))).text).toBe(`**Athkar demo:** ${style} · ${style === 'sky' ? '7 scenes · 30.2s' : '5 scenes · 21.2s'}`)
     const scenes = demoScenes(style, 'orange', FINALE_MS)
     const model = async () => (await ui.find({ type: 'Client', key: 'athkar-demo' }))?.props.props as Record<string, unknown>
     const picture = async () => String((await ui.find({ in: 'athkar-demo', type: 'Svg' }))?.props.source)
     for (const [i, scene] of scenes.entries()) {
       expect(await ui.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
-      expect(await model()).toMatchObject({ thikrId: scene.id, sky: scene.sky, accent: scene.accent, style, phase: scene.kind === 'reading' ? 'reading' : 'done', isActive: scene.kind !== 'folded' })
+      expect(await model()).toMatchObject({ thikrId: scene.id, sky: scene.sky, accent: scene.accent, style, phase: scene.kind === 'reading' ? 'reading' : 'done', isActive: true })
       if (scene.kind === 'reading') {
         const list = listFor(scene.period)
         const index = list.findIndex(t => t.id === scene.id)
@@ -88,11 +88,6 @@ for (const style of ['sky', 'frame'] as const) {
         expect((await model()).finaleMs).toBe(FINALE_MS - 100)
         expect(await picture()).toContain('class="rise-msg"')
         await clock.advance(100)
-      } else {
-        expect((await model()).finaleMs).toBeUndefined()
-        expect(await picture()).not.toContain('class="rise-msg"')
-        expect(Number((await ui.find({ in: 'athkar-demo', type: 'Svg' }))?.props.height)).toBe(44)
-        await clock.advance(scene.duration)
       }
     }
     expect(await ui.find({ type: 'Client', key: 'athkar-demo' })).toBeUndefined()
@@ -105,7 +100,7 @@ for (const style of ['sky', 'frame'] as const) {
 }
 
 // Plays the whole demo: near 5 s on a CI runner, so it gets more time.
-test('terminal frame plays the same readings and colors, then its own open and folded done rows', { timeoutMs: 20_000 }, async ($, on) => {
+test('terminal frame plays the same readings and colors, then its own open done row', { timeoutMs: 20_000 }, async ($, on) => {
   const clock = mock.clock(on, { now: NOW })
   engineBand(on, 'terminal')
   const written = savedReading(on)
@@ -115,7 +110,7 @@ test('terminal frame plays the same readings and colors, then its own open and f
   for (const [i, scene] of scenes.entries()) {
     expect(await ui.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
     const props = (await ui.find({ type: 'Client', key: 'athkar-demo' }))?.props.props as Record<string, unknown>
-    expect(props).toMatchObject({ phase: i < 4 ? 'reading' : 'done', isActive: i !== 5, look: { style: 'frame', ring: scene.accent === 'orange' ? 'claude' : accentHex(scene.accent, true), ink: 'text', dim: 'subtle', track: 'inactive' } })
+    expect(props).toMatchObject({ phase: i < 4 ? 'reading' : 'done', isActive: true, look: { style: 'frame', ring: scene.accent === 'orange' ? 'claude' : accentHex(scene.accent, true), ink: 'text', dim: 'subtle', track: 'inactive' } })
     expect(await ui.find({ in: 'athkar-demo', type: 'Svg' })).toBeUndefined()
     if (i < 4) {
       const authored = listFor('morning').find(t => t.id === scene.id)!
@@ -127,8 +122,8 @@ test('terminal frame plays the same readings and colors, then its own open and f
         await clock.advance(scene.duration - 10 * scene.countMs)
       } else await clock.advance(scene.duration - scene.countMs)
     } else {
-      expect((await ui.find({ in: 'athkar-demo', key: 'done' }))?.props.paddingY).toBe(i === 4 ? 1 : 0)
-      expect(await ui.find({ in: 'athkar-demo', text: i === 4 ? '/athkar morning reset → to read again' : /أتممت وردك/ })).toBeDefined()
+      expect((await ui.find({ in: 'athkar-demo', key: 'done' }))?.props.paddingY).toBe(1)
+      expect(await ui.find({ in: 'athkar-demo', text: '/athkar morning reset → to read again' })).toBeDefined()
       await clock.advance(scene.duration)
     }
   }
@@ -168,7 +163,7 @@ test('terminal rejects explicit sky without changing the band, and no-word demo 
   expect((await $.command.run(run('demo sky'))).text).toContain('Sky is desktop only')
   expect((await ui.find({ type: 'Client', key: 'athkar' }))?.props.props).toEqual(before)
   expect(await ui.find({ type: 'Client', key: 'athkar-demo' })).toBeUndefined()
-  expect((await $.command.run(run('demo'))).text).toBe('**Athkar demo:** frame · 6 scenes · 24.2s')
+  expect((await $.command.run(run('demo'))).text).toBe('**Athkar demo:** frame · 5 scenes · 21.2s')
   expect(written).toEqual([])
   await ui.unmount()
 })
@@ -205,8 +200,8 @@ for (const visibility of ['hidden', 'done', 'quiet'] as const) {
     await $.command.run(run('demo frame'))
     expect(await ui.find({ type: 'Client', key: 'athkar-demo' })).toBeDefined()
     await clock.advance(demoDuration('frame', FINALE_MS))
-    if (visibility === 'done') expect((await ui.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ phase: 'done', isActive: false })
-    else expect(await ui.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
+    // A set found done never takes the band, so the demo hands back to nothing.
+    expect(await ui.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
     expect(written).toEqual([])
     await ui.unmount()
   })

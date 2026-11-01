@@ -7,7 +7,7 @@ import type { Period } from './data.ts'
 export const DEMO_TICK_MS = 100
 export const DEMO_PERIOD = 'morning' as const
 // Sky walks the day: the morning set under the first three skies, the evening
-// set from rose through the crescent finale and folded row. Frame stays
+// set from rose through the crescent finale. Frame stays
 // on the morning set.
 export const demoPeriod = (style: Style, scene: number): Period =>
   style === 'sky' && scene >= 3 ? 'evening' : DEMO_PERIOD
@@ -17,7 +17,7 @@ export const DEMO_COLORS: readonly Accent[] = [...COLORS, COLORS[0]!, COLORS[1]!
 
 export type DemoSet = 'daily' | 'afterSalah'
 
-type StoryScene = { kind: 'reading' | 'finale' | 'folded'; id: string; duration: number; countMs: number }
+type StoryScene = { kind: 'reading' | 'finale'; id: string; duration: number; countMs: number }
 
 // The real runner supplies FINALE_MS, so the celebration stays exactly as long
 // as the real band's finale. Other durations and counts belong to the story.
@@ -27,7 +27,6 @@ export const demoScenes = (style: Style, accent: Accent, finaleMs: number, set: 
     { kind: 'reading', id: '69-tasbih', duration: 3600, countMs: 100 },
     { kind: 'reading', id: '70-ikhlas', duration: 1200, countMs: 200 },
     { kind: 'finale', id: '70-nas', duration: finaleMs, countMs: 0 },
-    { kind: 'folded', id: '70-nas', duration: 1200, countMs: 0 },
   ] : [
     { kind: 'reading', id: '75', duration: 5000, countMs: 2500 },
     { kind: 'reading', id: '83', duration: 4000, countMs: 400 },
@@ -38,7 +37,6 @@ export const demoScenes = (style: Style, accent: Accent, finaleMs: number, set: 
     ] : []),
     { kind: 'reading', id: '98', duration: 4000, countMs: 300 },
     { kind: 'finale', id: '98', duration: finaleMs, countMs: 0 },
-    { kind: 'folded', id: '98', duration: 3000, countMs: 0 },
   ]
   let at = 0
 
@@ -75,7 +73,7 @@ export const demoStep = (style: Style, accent: Accent, elapsed: number, finaleMs
 
   return {
     ...scene, reading,
-    isActive: scene.kind !== 'folded',
+    isActive: true,
     progress: overall(period, reading),
     from: count > 0 && scene.kind === 'reading' ? overall(period, previous) : overall(period, reading),
     glowMs: scene.kind === 'reading' && count > 0 ? sinceCount : 0,

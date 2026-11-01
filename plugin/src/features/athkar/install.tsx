@@ -22,7 +22,7 @@ import { bandHeight, pixelOf, hitsFor, glowAtTime, GLOW_MS } from './band.ts'
 import type { BandModel } from './band.ts'
 import { canUndoReset, resetSnapshot, setNamed, undoReset, UNDO_MS, type ResetSnapshot } from './reset.ts'
 import type { AthkarSet } from './logic.ts'
-import { statusOf, ADVANCE_MS, asksToFinish, countKey, countOf, currentOf, dayOf, emptyReading, END, hasBegun, holdsFinished, listFor, mayOpenPeriod, mergeDays, overall, offerStart, offerEnd, nextPeriodAt, questionKey, setAt, syncAfterSalah, readDay, shouldAdvance, skyOn, step, textOf, TITLE } from './logic.ts'
+import { statusOf, ADVANCE_MS, playsFinale, asksToFinish, countKey, countOf, currentOf, dayOf, emptyReading, END, hasBegun, holdsFinished, listFor, mayOpenPeriod, mergeDays, overall, offerStart, offerEnd, nextPeriodAt, questionKey, setAt, syncAfterSalah, readDay, shouldAdvance, skyOn, step, textOf, TITLE } from './logic.ts'
 import type { Act, FinishedHold, FinishQuestion, Reading } from './logic.ts'
 import { lookFor, plain, readerProps, resetHint } from './look.ts'
 import type { Style } from './look.ts'
@@ -152,15 +152,22 @@ const REMINDER_FIELDS = { morning: 'athkarMorning', evening: 'athkarEvening', af
 const setLabel = (set: AthkarSet) => set === 'afterSalah' ? 'Athkar after salah' : `${set} athkar`
 
 // Manual choices hold; otherwise offer after-salah after the card, then the
-// automatic period. After-salah finished just now stays for its celebration.
+// automatic period. After-salah finished just now stays for its finale.
 const periodOf = (now: Date, day: Day, last: SalahLast | null, requested?: SalahLast | null, bounds?: SalahAthkarTimes | null): AthkarSet => {
-  if (view.finished && !holdsFinished(view.finished, day.afterSalah, now.getTime(), view.isActive)) view.finished = undefined
-  return setAt(now, day, last, view.chosen ?? (view.finished ? 'afterSalah' : undefined), requested, bounds, reminders.afterSalah)
+  if (view.finished && now.getTime() >= view.finished.until) view.finished = undefined
+  const isHeld = holdsFinished(view.finished, day.afterSalah, now.getTime())
+  return setAt(now, day, last, view.chosen ?? (isHeld ? 'afterSalah' : undefined), requested, bounds, reminders.afterSalah)
 }
 
-// Holds an after-salah slot finished in front of the person on the band.
-const holdIfFinished = (period: AthkarSet, before: Reading, after: Reading, now: Date) => {
-  if (period === 'afterSalah' && !before.isDone && after.isDone) view.finished = { pray: after.pray ?? null, at: after.at ?? null, until: now.getTime() + FINALE_MS }
+// A set finished in front of the person plays its finale, then the band closes.
+// The hold is this session's only; a set found done never plays or keeps it.
+const holdIfFinished = ($: EngineInterface, period: AthkarSet, day: Day, before: Reading, after: Reading, now: Date) => {
+  if (before.isDone || !after.isDone) return
+  view.finished = { period, day: day.day, pray: after.pray ?? null, at: after.at ?? null, until: now.getTime() + FINALE_MS }
+  view.review = undefined
+  // The finished after-salah slot hands the band back to morning or evening once the finale is over.
+  if (period === 'afterSalah' && view.chosen === 'afterSalah') view.chosen = undefined
+  $.clock.after(FINALE_MS, () => $.ui.invalidate('ui.render'))
 }
 
 let resetUndo: ResetSnapshot | undefined
@@ -247,6 +254,8 @@ const openFromPanel = async ($: EngineInterface) => {
   view.opened = { day: day.day, period }
   if (day[period].isHidden) await commit($, period, reading => ({ ...reading, isHidden: false }))
   view.isOpen = true
+  // A finished set opened on purpose shows its done row until it rests.
+  view.review = day[period].isDone ? { day: day.day, period } : undefined
   wake($)
 }
 
@@ -255,7 +264,7 @@ const finishFromPanel = async ($: EngineInterface) => {
   const { now, day, last, requested, bounds } = await today($)
   const period = periodOf(now, day, last, requested, bounds)
   const { before, after } = await commit($, period, reading => step(period, reading, { act: 'finish' }))
-  holdIfFinished(period, before, after, now)
+  holdIfFinished($, period, day, before, after, now)
   if (periodOf(now, day, last, requested, bounds) === period) view.question = undefined
   $.ui.invalidate('ui.render')
 }
@@ -269,6 +278,7 @@ const chooseSet = async ($: EngineInterface, selected: AthkarSet, explicit = tru
   view.chosen = explicit || selected !== setAt(now, day, last, undefined, requested, bounds, reminders.afterSalah) ? selected : undefined
   view.opened = { day: day.day, period: selected }
   view.finished = undefined
+  view.review = reading.isDone ? { day: day.day, period: selected } : undefined
   if (reading.isHidden) await commit($, selected, current => ({ ...current, isHidden: false }))
   wake($)
   return reading
@@ -286,6 +296,7 @@ const resetSet = async ($: EngineInterface, selected: AthkarSet, undoable = fals
   view.opened = { day: day.day, period: selected }
   view.isOpen = false
   view.question = undefined
+  view.review = undefined
   view.revision++
   rest($)
   $.ui.invalidate('ui.render')
@@ -345,7 +356,7 @@ const apply = async ($: EngineInterface, act: Act, target?: AthkarSet) => {
   }
   view.question = undefined
   const { before: fresh, after } = await commit($, period, reading => step(period, reading, act))
-  holdIfFinished(period, fresh, after, now)
+  holdIfFinished($, period, day, fresh, after, now)
   if (act.act === 'hide') { view.opened = undefined; view.chosen = undefined; view.finished = undefined }
   if (act.act === 'count' && shouldAdvance(period, fresh, after)) {
     const revision = view.revision
@@ -372,9 +383,11 @@ const view = {
   // Picked by a set command: holds for this session until the
   // other period is picked or the band is hidden with ×.
   chosen: undefined as AthkarSet | undefined,
-  // After-salah finished just now: it keeps the band for the finale and the
-  // done row, as morning and evening do, until the band rests.
+  // A set finished just now in front of the person: it keeps the band for the
+  // finale, then the band closes. Never saved.
   finished: undefined as FinishedHold | undefined,
+  // A finished set opened on purpose: its done row shows until the band rests.
+  review: undefined as { day: string; period: AthkarSet } | undefined,
 }
 
 // Lights the band, and fades it again after a while with no input.
@@ -438,9 +451,6 @@ export const install = (on: On, options: Options) => {
   let glowFrom = 0
   // When the glow last moved: every redraw is a new picture, so it slides only just after.
   let glowSince = 0
-  // The phase last drawn, and when the set was finished in front of the person.
-  let lastPhase: string | undefined
-  let finishedAt = 0
   // The picture last drawn and the reader's region over it, for its clicks.
   let lastBand: BandModel | undefined
   let region = { columns: 0, rows: 0 }
@@ -450,6 +460,7 @@ export const install = (on: On, options: Options) => {
   view.opened = undefined
   view.chosen = undefined
   view.finished = undefined
+  view.review = undefined
   view.question = undefined
   view.revision++
   view.lastKey = undefined
@@ -574,7 +585,7 @@ export const install = (on: On, options: Options) => {
       title: props.title, thikrId: thikr.id, text: props.text, note: props.note, position: props.position,
       count: countOf(thikr, scene.reading), times: thikr.times,
       progress: scene.progress * 100, from: scene.from * 100, glowMs: scene.glowMs,
-      finaleMs: scene.finaleMs, end: props.end, endHint: props.endHint, endNote: props.endNote,
+      finaleMs: scene.finaleMs, end: props.end, endHint: props.endHint,
       now, width, height: 0, restHeight: REST_PX, card: { ch: CELL_PX, lh: LINE_PX },
     }
     model.height = bandHeight(model, width)
@@ -799,10 +810,17 @@ export const install = (on: On, options: Options) => {
     const slotKey = `${day.day}:${period}:${period === 'afterSalah' ? day.afterSalah.at : ''}`
     if (shownSlot !== undefined && shownSlot.key !== slotKey && (shownSlot.period === 'afterSalah' || period === 'afterSalah')) {
       view.isOpen = false
-      lastPhase = undefined
     }
     shownSlot = { key: slotKey, period }
     if (reading.isHidden) return theirs
+    // A finished set never takes the band by itself: only its finale (finished here, just now) or an
+    // explicit open shows it, and the band closes once that rests.
+    const finale = playsFinale(view.finished, period, day.day, reading, now.getTime())
+    const isReviewed = view.review?.day === day.day && view.review.period === period
+    if (reading.isDone && !finale && !(isReviewed && view.isActive)) {
+      if (isReviewed) view.review = undefined
+      return theirs
+    }
     // Only automatic sets are quiet. Keep both period/offer timers armed above.
     const answered = (await $.state.get({ plugin: 'muslim', key: 'firstRunRemindFrom' })).value
     const from = readRemindFrom(answered ?? (await $.store.get(REMIND_FROM_KEY)))
@@ -836,13 +854,7 @@ export const install = (on: On, options: Options) => {
     const show = (text: string) => terminalArabic(e.surface, arabicMode, withTashkeel(text, options.tashkeel))
     if (view.question && (view.question.day !== dayOf(now, bounds) || view.question.period !== period || reading.isDone)) view.question = undefined
     const props = readerProps(period, reading, look, show, { isOpen: view.isOpen, isActive: view.isActive, isPicture, question: view.question })
-    // Finished just now, not found finished on a reload: the finale plays once.
-    if (props.phase === 'done' && lastPhase !== undefined && lastPhase !== 'done') {
-      finishedAt = (await $.clock.now())
-      $.clock.after(FINALE_MS, () => $.ui.invalidate('ui.render'))
-    }
-    lastPhase = props.phase
-    const finaleMs = props.phase === 'done' && (await $.clock.now()) - finishedAt < FINALE_MS ? (await $.clock.now()) - finishedAt : undefined
+    const finaleMs = finale && view.finished ? now.getTime() - (view.finished.until - FINALE_MS) : undefined
     const { Box, Client } = $.ui.resolve(e)
 
     if (e.surface !== 'desktop') {
@@ -896,7 +908,6 @@ export const install = (on: On, options: Options) => {
       glowMs: glowMs < GLOW_MS ? glowMs : 0,
       end: show(END),
       endHint: props.endHint,
-      endNote: props.endNote,
       now: now.getTime(),
       width,
       height: 0,

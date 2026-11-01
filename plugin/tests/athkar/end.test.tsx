@@ -51,8 +51,14 @@ for (const set of ['morning', 'afterSalah'] as const) {
         expect(shown).toContain('🤲')
         expect(shown).not.toMatch(/[\u064b-\u065f\u0670]/)
         expect(await ui.find({ in: 'athkar', text: /البقرة|—/ })).toBeUndefined()
-        await clock.advance(3200)
+        // The done row stays for the finale's length, then the band closes.
+        await clock.advance(3200 - 1)
         expect(await ui.find({ in: 'athkar', type: 'Text', text: shown })).toBeDefined()
+        await clock.advance(2)
+        // Morning and evening have nothing else due; after-salah hands the band back to the current morning set.
+        const after = (await ui.find({ type: 'Client', key: 'athkar' }))?.props.props as { period: string; phase: string } | undefined
+        if (set === 'afterSalah') expect(after).toMatchObject({ period: 'morning', phase: 'cover' })
+        else expect(after).toBeUndefined()
       }
       await ui.unmount()
     })
