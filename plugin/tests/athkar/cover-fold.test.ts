@@ -77,3 +77,24 @@ test('the closing greeting takes the athkar text color and face, not the main co
   expect(svg).toMatch(/\.done-row \.big \{[^}]*color: var\(--b-ink\)/)
   expect(svg).toMatch(/\.done-row \.big \{[^}]*font-family: var\(--font-band/)
 })
+
+test('a folded reading shows the set title and where it stands, never the thikr; lit, the thikr', () => {
+  const text = 'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ قُلْ أَعُوذُ بِرَبِّ الْفَلَقِ'
+  for (const style of ['sky', 'frame'] as const) {
+    const folded = bandSvg(cover({ phase: 'reading', text, style }))
+    expect(folded).toContain('class="peek"')
+    expect(folded).toContain('>أَذْكَارُ الصَّبَاحِ</span>')
+    expect(folded).toContain('١ مِنْ ٢٢')
+    expect(folded).not.toContain(text)
+    // The same face as the folded cover's title: one shared rule, and the font embedded.
+    expect(folded).toContain('.band.rest .pk-title {')
+    expect(folded).toContain('Aref Ruqaa')
+    expect(folded).not.toContain('pk-rd')
+    // Both folded rows draw the title through the same span.
+    expect(folded).toContain('<span class="pk-title">أَذْكَارُ الصَّبَاحِ</span>')
+    expect(bandSvg(cover({ style }))).toContain('<span class="pk-title">أَذْكَارُ الصَّبَاحِ</span>')
+  }
+  const lit = bandSvg(cover({ phase: 'reading', text, isActive: true }))
+  expect(lit).toContain(text)
+  expect(lit).not.toContain('class="peek"')
+})

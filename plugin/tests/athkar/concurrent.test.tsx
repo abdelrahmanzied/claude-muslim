@@ -32,3 +32,30 @@ for (const surface of ['terminal', 'desktop'] as const) for (const fails of [fal
   expect((state as Day | null)?.morning.counts[id]).toBe(2)
   await ui.unmount()
 })
+
+for (const surface of ['terminal', 'desktop'] as const) test(`a press after another session counted ${surface} adds to its count, never overwrites it`, async ($, on) => {
+  const now = new Date(2026, 9, 10, 10).getTime()
+  mock.clock(on, { now })
+  mock.env(on, {})
+  const day = emptyDay(dayOf(new Date(now)))
+  const list = listFor('morning')
+  day.morning.index = list.findIndex(t => t.times === 3)
+  const id = list[day.morning.index]!.id
+  const stored: Record<string, unknown> = { salahSetupLater: true, athkar: day, arabicTerminals: { unknown: 'plain' } }
+  on('store.get', async (_$, e) => ({ value: stored[e.key] }))
+  on('store.set', async (_$, e) => { stored[e.key] = e.value; return { value: undefined } })
+  on('session.surface', async () => ({ value: surface }))
+  on('config.list', async () => ({ value: [] }))
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e) => { const { Box } = $.ui.resolve(e); return <Box /> })
+  await $.command.run({ command: 'athkar', args: 'morning', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
+  const ui = await $.ui.mount({ plugin: 'muslim', surface, component: 'AbovePrompt', requestId: 'sync', props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 80, scroll: { offset: 0, bodyRows: 20 }, view: {} } })
+  await ui.post({ act: 'key', key: 'return' })
+  await ui.post({ act: 'key', key: 'return' })
+  const mine = (stored.athkar as Day).morning.counts[id] ?? 0
+  expect(mine).toBeGreaterThan(0)
+  // Another session counts one further while this one still shows `mine`.
+  stored.athkar = { ...(stored.athkar as Day), morning: { ...(stored.athkar as Day).morning, counts: { [id]: mine + 1 }, updatedAt: now + 5000 } }
+  await ui.post({ act: 'key', key: 'return' })
+  expect((stored.athkar as Day).morning.counts[id]).toBe(mine + 2)
+  await ui.unmount()
+})

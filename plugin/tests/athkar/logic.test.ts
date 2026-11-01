@@ -411,3 +411,59 @@ test('the finish question\'s two buttons take their whole frame and a margin; th
   expect(at(finish!.x0 - 3, 50)).toBe('finish')
   expect(at(10, 10)).toBe('hide')
 })
+
+// Sync between sessions: the newer reading of each set wins whole.
+import { mergeDays, syncAfterSalah } from '../../src/features/athkar/logic.ts'
+
+const reading = (counts: Record<string, number>, updatedAt?: number, more: Partial<Reading> = {}): Reading => ({ index: 0, counts, isDone: false, isHidden: false, ...(updatedAt ? { updatedAt } : {}), ...more })
+const dayOfReadings = (day: string, parts: Partial<Record<'morning' | 'evening', Reading>> & { afterSalah?: Reading & { pray: 'fajr'; at: number } } = {}) =>
+  ({ ...emptyDay(day), ...parts })
+
+test('merge: the newer reading of each set wins, each set on its own', () => {
+  const stored = dayOfReadings('d', { morning: reading({ a: 7 }, 20), evening: reading({ a: 1 }, 10) })
+  const held = dayOfReadings('d', { morning: reading({ a: 3 }, 10), evening: reading({ a: 5 }, 30) })
+  const merged = mergeDays(stored, held, 'd')
+  expect(merged.morning.counts).toEqual({ a: 7 })
+  expect(merged.evening.counts).toEqual({ a: 5 })
+})
+
+test('merge: a reset in one session beats older progress in another, and the reverse', () => {
+  const progressed = dayOfReadings('d', { morning: reading({ a: 7 }, 10) })
+  const reset = dayOfReadings('d', { morning: reading({}, 20) })
+  expect(mergeDays(progressed, reset, 'd').morning.counts).toEqual({})
+  expect(mergeDays(reset, progressed, 'd').morning.counts).toEqual({})
+})
+
+test('merge: × hides everywhere once it is the newest change', () => {
+  const hidden = dayOfReadings('d', { morning: reading({ a: 2 }, 20, { isHidden: true }) })
+  const open = dayOfReadings('d', { morning: reading({ a: 2 }, 10) })
+  expect(mergeDays(hidden, open, 'd').morning.isHidden).toBe(true)
+  expect(mergeDays(open, hidden, 'd').morning.isHidden).toBe(true)
+})
+
+test('merge: another day only loses; a new day starts fresh', () => {
+  const old = dayOfReadings('yesterday', { morning: reading({ a: 9 }, 50) })
+  const today = dayOfReadings('d', { morning: reading({ a: 1 }, 5) })
+  expect(mergeDays(old, today, 'd').morning.counts).toEqual({ a: 1 })
+  expect(mergeDays(old, old, 'd')).toEqual(emptyDay('d'))
+})
+
+test('merge: the after-salah slot follows the newer reading with its prayer', () => {
+  const asr = { ...reading({ a: 4 }, 10), pray: 'asr' as const, at: 1 }
+  const maghrib = { ...reading({}, 20), pray: 'maghrib' as const, at: 2 }
+  const merged = mergeDays({ ...emptyDay('d'), afterSalah: asr }, { ...emptyDay('d'), afterSalah: maghrib }, 'd')
+  expect(merged.afterSalah).toMatchObject({ pray: 'maghrib', at: 2, counts: {} })
+})
+
+test('merge: readings without updatedAt read as 0; the session copy breaks a tie, a bare store beats nothing', () => {
+  const legacy = dayOfReadings('d', { morning: reading({ a: 4 }) })
+  expect(mergeDays(legacy, null, 'd').morning.counts).toEqual({ a: 4 })
+  expect(mergeDays(legacy, dayOfReadings('d', { morning: reading({ a: 6 }) }), 'd').morning.counts).toEqual({ a: 6 })
+  expect(mergeDays(dayOfReadings('d', { morning: reading({ a: 1 }, 5) }), legacy, 'd').morning.counts).toEqual({ a: 1 })
+  expect(readDay(legacy, 'd').morning).toEqual(legacy.morning)
+})
+
+test('a slot synced to a new prayer is stamped so other sessions take it', () => {
+  const synced = syncAfterSalah(emptyDay('d'), { pray: 'asr', at: 9 }, 77)
+  expect(synced.afterSalah).toMatchObject({ pray: 'asr', at: 9, updatedAt: 77 })
+})

@@ -140,15 +140,15 @@ const EXTRA_CSS = `
 .band.card { padding: calc(12px + var(--ay, 0px)) calc(16px + var(--ax, 0px)); }
 .band.card .done-row { margin-left: 14px; }
 .band { min-height: 100%; }
-/* Faded, the reading folds to one row: the thikr cut short, then where it stands. */
+/* Faded, the reading folds to one row: the set's title, then where it stands. */
 .band.band.rest { display: flex; align-items: center; padding: var(--ay, 0px) calc(14px + var(--ax, 0px)) var(--ay, 0px) calc(34px + var(--ax, 0px)); }
 /* Folded, the sky's moon would sit on the position, so it goes. */
 .band.band.rest.bg-crescent::before { display: none; }
 .band.rest .peek { display: flex; align-items: center; gap: 12px; width: 100%; direction: rtl; }
 .band.rest .pk-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: right; font-family: var(--font-band); font-size: 15px; line-height: 1.6; color: var(--b-ink); }
-.band.rest .cv-peek .pk-title { flex: none; font-family: var(--font-cover); font-size: 17px; line-height: 1.5; white-space: nowrap; color: var(--b-acc); }
+.band.rest .pk-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-cover); font-size: 17px; line-height: 1.5; white-space: nowrap; color: var(--b-acc); }
 .band.rest .cv-peek .pk-hint { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: ltr; text-align: left; font-family: var(--font-ui); font-size: 13px; line-height: 1.6; color: var(--b-dim); }
-.band.rest .pk-pos { flex: none; white-space: nowrap; font-size: 11.5px; color: var(--b-dim); font-family: var(--font-band); }
+.band.rest .pk-pos { flex: none; margin-inline-start: auto; white-space: nowrap; font-size: 11.5px; color: var(--b-dim); font-family: var(--font-band); }
 .band[data-band] .text, .band.line .text { font-size: var(--fs, 14px) !important; max-height: none; overflow: visible; }
 .pglow b { animation: glowTo .7s cubic-bezier(.33, 1, .68, 1) both; }
 @keyframes glowTo { from { width: var(--from); } }
@@ -201,8 +201,12 @@ const DONE_PILL = '<span class="pill" style="--p:100%;--from:100%">✓</span>'
 const pill = (m: BandModel) =>
   `<span class="pill" style="--p:${m.progress}%;--from:${m.from}%;animation-delay:-${m.glowMs ?? 0}ms">${ar(Math.max(0, m.times - m.count))}</span>`
 
+// The folded reading: the set's title, as on the folded cover, and where it stands. The thikr stays out of sight.
 const folded = (m: BandModel) =>
-  `<div class="peek"><span class="pk-text">${esc(m.text)}</span><span class="pk-pos">${esc(m.position)}</span></div>`
+  `<div class="peek">${foldedTitle(m)}<span class="pk-pos">${esc(m.position)}</span></div>`
+
+// The set's title on a folded row: the one builder and the one `.pk-title` rule of the folded cover and the folded reading.
+const foldedTitle = (m: BandModel) => `<span class="pk-title">${esc(m.title)}</span>`
 
 // The folded cover: the title on the right, a short muted hint at the left.
 export const coverHint = (hasBegun: boolean) => `click to ${hasBegun ? 'continue' : 'start'}`
@@ -210,7 +214,7 @@ export const coverHint = (hasBegun: boolean) => `click to ${hasBegun ? 'continue
 const foldedCover = (m: BandModel) => {
   const hint = coverHint(m.hasBegun)
 
-  return `<div class="peek cv-peek"><span class="pk-title">${esc(m.title)}</span><span class="pk-hint" style="font-size:${foldedHintSize(hint, m.width)}px">${hint}</span></div>`
+  return `<div class="peek cv-peek">${foldedTitle(m)}<span class="pk-hint" style="font-size:${foldedHintSize(hint, m.width)}px">${hint}</span></div>`
 }
 
 // The folded done row: the note alone.
@@ -299,7 +303,7 @@ export const bandHtml = (m: BandModel) => cardHtml(cardFrameOf(m), { ...bandCont
 
 export const bandSvg = (m: BandModel) => {
   const fonts = [fontFace('Tajawal', 400, TAJAWAL_REGULAR), fontFace('Tajawal', 700, TAJAWAL_BOLD)]
-  if (m.phase === 'cover' || m.finaleMs !== undefined) fonts.push(fontFace('Aref Ruqaa', 700, AREF_RUQAA_BOLD))
+  if (m.phase === 'cover' || m.finaleMs !== undefined || (m.phase === 'reading' && isFolded(m))) fonts.push(fontFace('Aref Ruqaa', 700, AREF_RUQAA_BOLD))
   // Both palettes, the app's appearance picks (as the Muslim pane does): dark
   // first, light under prefers-color-scheme. Nothing reads Claude Code's theme.
   const mainColors = (isDark: boolean) => Object.keys(ACCENTS).map(color => `--${color === 'orange' ? 'claude' : color}: ${accentHex(color as Accent, isDark)};`).join(' ')

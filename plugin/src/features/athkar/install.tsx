@@ -20,9 +20,9 @@ import { athkarHelp } from './help.ts'
 import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, KEY_REST_MS, LEAVE_MS, LINE_PX, REST_PX } from '../../shared/card/card.ts'
 import { bandHeight, pixelOf, hitsFor, glowAtTime, GLOW_MS } from './band.ts'
 import type { BandModel } from './band.ts'
-import { canUndoReset, resetReading, resetSnapshot, setNamed, undoReset, UNDO_MS, type ResetSnapshot } from './reset.ts'
+import { canUndoReset, resetSnapshot, setNamed, undoReset, UNDO_MS, type ResetSnapshot } from './reset.ts'
 import type { AthkarSet } from './logic.ts'
-import { statusOf, ADVANCE_MS, asksToFinish, countKey, countOf, currentOf, dayOf, emptyReading, END, hasBegun, holdsFinished, listFor, mayOpenPeriod, overall, offerStart, offerEnd, nextPeriodAt, questionKey, setAt, syncAfterSalah, readDay, shouldAdvance, skyOn, step, textOf, TITLE } from './logic.ts'
+import { statusOf, ADVANCE_MS, asksToFinish, countKey, countOf, currentOf, dayOf, emptyReading, END, hasBegun, holdsFinished, listFor, mayOpenPeriod, mergeDays, overall, offerStart, offerEnd, nextPeriodAt, questionKey, setAt, syncAfterSalah, readDay, shouldAdvance, skyOn, step, textOf, TITLE } from './logic.ts'
 import type { Act, FinishedHold, FinishQuestion, Reading } from './logic.ts'
 import { lookFor, plain, readerProps, resetHint } from './look.ts'
 import type { Style } from './look.ts'
@@ -178,34 +178,51 @@ const terminalIsDark = async ($: EngineInterface, isPicture: boolean) => {
 
 const localNow = async ($: EngineInterface) => new Date(await $.clock.now())
 
-// Today's reading as held this session, else as stored, or a fresh day once
-// the day has turned.
-const today = async ($: EngineInterface, persist = true) => {
+// Today's reading: the shared store is the truth, merged with this session's drawing copy (newer set wins), or a
+// fresh day once the day has turned. The drawing copy is rewritten only when it changed, so nothing redraws for nothing.
+const today = async ($: EngineInterface, persist = true, mayWrite = true) => {
   const now = await localNow($)
   const { value } = await $.state.get({ plugin: 'muslim', key: 'athkar' })
 
   const bounds = hasPrayerTimes ? athkarTimesAt(now.getTime()) : null
-  const stored = readDay(value ?? (await $.store.get(STORE_KEY)), dayOf(now, bounds))
+  const stored = mergeDays(await $.store.get(STORE_KEY), value, dayOf(now, bounds))
   const signal = (await $.state.get({ plugin: 'muslim', key: 'salahLast' })).value
   const last = hasPrayerTimes ? signal ?? null : null
-  const day = signal === undefined && hasPrayerTimes ? stored : syncAfterSalah(stored, last)
+  const day = signal === undefined && hasPrayerTimes ? stored : syncAfterSalah(stored, last, now.getTime())
   if (day !== stored) {
     if (view.chosen === 'afterSalah') view.chosen = undefined
-    if (persist) await save($, day)
+    if (persist) await commit($, 'afterSalah', () => day.afterSalah)
+  } else if (value && JSON.stringify(stored) !== JSON.stringify(value)) {
+    // With no copy yet the drawing reads the store itself, so there is nothing to refresh.
+    // A drawing may not write state; it refreshes the copy a moment later instead.
+    if (mayWrite) await $.state.set({ plugin: 'muslim', key: 'athkar' }, stored)
+    else $.clock.after(0, () => { void queueDay(() => today($, false)).catch(() => {}) })
   }
   const requested = (await $.state.get({ plugin: 'muslim', key: 'salahAfterSalahStart' })).value
   if (resetUndo && !canUndoReset(resetUndo, day, periodOf(now, day, last, requested, bounds), now.getTime())) dropUndo()
   return { now, day, last, requested, bounds }
 }
 
-const save = async ($: EngineInterface, day: Day) => {
-  await $.state.set({ plugin: 'muslim', key: 'athkar' }, day)
-  await $.store.set(STORE_KEY, day)
+// Read-merge-write: re-reads the store, applies the change to the fresh reading of one set and writes it back
+// stamped, so a stale session never wipes another session's counts. A change that returns the same reading writes nothing.
+const commit = async ($: EngineInterface, set: AthkarSet, change: (reading: Reading) => Reading): Promise<{ before: Reading; after: Reading }> => {
+  const now = await localNow($)
+  const { value } = await $.state.get({ plugin: 'muslim', key: 'athkar' })
+  const bounds = hasPrayerTimes ? athkarTimesAt(now.getTime()) : null
+  const day = mergeDays(await $.store.get(STORE_KEY), value, dayOf(now, bounds))
+  const before = day[set]
+  const after = change(before)
+  if (after === before) return { before, after }
+  const next = { ...day, [set]: { ...after, updatedAt: now.getTime() } } as Day
+  await $.state.set({ plugin: 'muslim', key: 'athkar' }, next)
+  await $.store.set(STORE_KEY, next)
+
+  return { before, after: next[set] }
 }
 
 // What the Muslim pane shows of today's reading, in the period now.
 const panelAthkar = async ($: EngineInterface, tashkeel: boolean): Promise<PanelAthkar> => {
-  const { now, day, last, requested, bounds } = await today($, false)
+  const { now, day, last, requested, bounds } = await today($, false, false)
   const period = periodOf(now, day, last, requested, bounds)
   const reading = day[period]
   const list = listFor(period, reading)
@@ -228,7 +245,7 @@ const openFromPanel = async ($: EngineInterface) => {
   if (view.chosen !== period) view.question = undefined
   view.chosen = period === setAt(now, day, last, undefined, requested, bounds, reminders.afterSalah) ? undefined : period
   view.opened = { day: day.day, period }
-  if (day[period].isHidden) await save($, { ...day, [period]: { ...day[period], isHidden: false } })
+  if (day[period].isHidden) await commit($, period, reading => ({ ...reading, isHidden: false }))
   view.isOpen = true
   wake($)
 }
@@ -237,9 +254,8 @@ const openFromPanel = async ($: EngineInterface) => {
 const finishFromPanel = async ($: EngineInterface) => {
   const { now, day, last, requested, bounds } = await today($)
   const period = periodOf(now, day, last, requested, bounds)
-  const after = step(period, day[period], { act: 'finish' })
-  await save($, { ...day, [period]: after })
-  holdIfFinished(period, day[period], after, now)
+  const { before, after } = await commit($, period, reading => step(period, reading, { act: 'finish' }))
+  holdIfFinished(period, before, after, now)
   if (periodOf(now, day, last, requested, bounds) === period) view.question = undefined
   $.ui.invalidate('ui.render')
 }
@@ -253,7 +269,7 @@ const chooseSet = async ($: EngineInterface, selected: AthkarSet, explicit = tru
   view.chosen = explicit || selected !== setAt(now, day, last, undefined, requested, bounds, reminders.afterSalah) ? selected : undefined
   view.opened = { day: day.day, period: selected }
   view.finished = undefined
-  if (reading.isHidden) await save($, { ...day, [selected]: { ...reading, isHidden: false } })
+  if (reading.isHidden) await commit($, selected, current => ({ ...current, isHidden: false }))
   wake($)
   return reading
 }
@@ -265,7 +281,7 @@ const resetSet = async ($: EngineInterface, selected: AthkarSet, undoable = fals
     resetUndo = resetSnapshot(day, selected, now.getTime())
     undoTimer = $.clock.after(UNDO_MS, () => { dropUndo(); $.ui.invalidate('ui.render') })
   }
-  await save($, resetReading(day, selected))
+  await commit($, selected, reading => ({ ...reading, ...emptyReading() }))
   view.chosen = selected === setAt(now, day, last, undefined, requested, bounds, reminders.afterSalah) ? undefined : selected
   view.opened = { day: day.day, period: selected }
   view.isOpen = false
@@ -280,12 +296,13 @@ const resetFromPanel = async ($: EngineInterface) => {
 }
 const undoFromPanel = async ($: EngineInterface) => {
   const { now, day, last, requested, bounds } = await today($)
-  const restored = undoReset(resetUndo, day, periodOf(now, day, last, requested, bounds), now.getTime())
+  const period = periodOf(now, day, last, requested, bounds)
+  const restored = undoReset(resetUndo, day, period, now.getTime())
   dropUndo()
   if (restored !== day) {
     view.question = undefined
     view.revision++
-    await save($, restored)
+    await commit($, period, () => restored[period])
   }
   $.ui.invalidate('ui.render')
 }
@@ -327,11 +344,10 @@ const apply = async ($: EngineInterface, act: Act, target?: AthkarSet) => {
     return
   }
   view.question = undefined
-  const after = step(period, before, act)
-  await save($, { ...day, [period]: after })
-  holdIfFinished(period, before, after, now)
+  const { before: fresh, after } = await commit($, period, reading => step(period, reading, act))
+  holdIfFinished(period, fresh, after, now)
   if (act.act === 'hide') { view.opened = undefined; view.chosen = undefined; view.finished = undefined }
-  if (act.act === 'count' && shouldAdvance(period, before, after)) {
+  if (act.act === 'count' && shouldAdvance(period, fresh, after)) {
     const revision = view.revision
     $.clock.after(ADVANCE_MS, () => { void queueDay(() => advance($, period, after.index, revision, after.at)).catch(() => {}) })
   }
@@ -403,6 +419,8 @@ const setupShowing = async ($: EngineInterface, hasPlace: boolean, surface: stri
 export const install = (on: On, options: Options) => {
   hasPrayerTimes = !!options.salahPlace
   reminders = { morning: options.athkarMorning, evening: options.athkarEvening, afterSalah: options.athkarAfterSalah }
+  // The first drawing picks up the shared store once, as a session opened later than the others.
+  let firstDrawn = false
   let shownSlot: { key: string; period: AthkarSet } | undefined
   let openedRequest: number | undefined
   let startsAt: number | null = null
@@ -585,7 +603,7 @@ export const install = (on: On, options: Options) => {
       if (!last || last.at !== signal.at || last.pray !== signal.pray) return result
       // This explicit start resumes an unfinished reading, or restarts a finished one.
       const reading = day.afterSalah
-      await save($, { ...day, afterSalah: { ...reading, ...(reading.isDone ? emptyReading() : {}), isHidden: false } })
+      await commit($, 'afterSalah', current => ({ ...current, ...(reading.isDone ? emptyReading() : {}), isHidden: false }))
       dropUndo()
       view.chosen = undefined
       view.pressedAt = (await $.clock.now())
@@ -617,6 +635,8 @@ export const install = (on: On, options: Options) => {
     if (m.act === 'enter') {
       view.isInside = true
       view.leave?.cancel()
+      // Hovering the band is the desktop's cue to pick up another session's progress.
+      if (!demo) await today($, false)
 
       return {}
     }
@@ -734,6 +754,10 @@ export const install = (on: On, options: Options) => {
     connectPanel($, options)
     if (demo && (demo.style === 'frame' || e.surface === 'desktop')) return theirs
     if ((e.surface !== 'terminal' && e.surface !== 'desktop') || await setupShowing($, !!options.salahPlace, e.surface, e.props.hasSurvey)) return theirs
+    if (!firstDrawn) {
+      firstDrawn = true
+      $.clock.after(0, () => { void queueDay(() => today($, false)).catch(() => {}) })
+    }
     // Read while drawing so a save draws the band again; before the first
     // save this session, the stored day.
     const held = (await read($, dayRef)) ?? (await $.store.get(STORE_KEY))

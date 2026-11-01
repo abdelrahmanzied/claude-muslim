@@ -40,6 +40,17 @@ The third set, **Athkar after salah** (أَذْكَارُ بَعْدَ الصَ�
 - **Question keys:** Tab or ← selects between the two choices; Enter/Space chooses; →, Backspace or right click returns to the last thikr. The host exposes key presses without key-up or repeat metadata. To prevent a held counting key from confirming, the entry key stays blocked until explicit Tab/← selection; the other activation key can choose immediately. A plain click outside a choice does not confirm. A folded question's first press only wakes it.
 - **End:** «تَقَبَّلَ اللَّهُ 🤲», a short closing du’a addressed to the reader, outside the authored athkar and without a source citation, then the done row with `/athkar <period> reset → to read again`.
 
+## Sync between open sessions
+
+Several sessions can be open at once; the shared `$.store` key `athkar` is the one truth. `$.state` (`athkar`) is only a session's drawing copy, so the band redraws.
+
+- **`updatedAt`:** every reading carries `updatedAt` (ms), set on each change (count, back, next, previous, finish, hide, reset, undo, unhide, a new after-salah slot). Stored readings without it read as 0; there is no migration.
+- **Merge (`mergeDays` in `logic.ts`):** only readings of the same `day` merge; another day counts as a fresh day, as before. Each set (morning, evening, afterSalah) is decided alone: the reading with the newer `updatedAt` wins whole (counts, index, done, hidden, after-salah prayer identity). A tie (old data) goes to the session's own copy. The latest action wins in both directions, so a reset in one session beats older progress in another and the reverse.
+- **Every save is read-merge-write:** the store is re-read and merged, the action is applied to the fresh reading of that set, then the stamped day is written to state and store. A at 7 while B shows 3: a press in B gives 8. Operations still run through `queueDay`.
+- **Refresh, no timer:** the drawing copy is read from the store, merged and rewritten only if it changed (so nothing redraws when nothing changed) when the band is first drawn, opened or unfolded, on desktop hover (the reader's pointer `enter`), on every press or act, when the Muslim pane asks for athkar and on every pane action, and on the `/athkar` commands. A drawing never writes state itself; the pane's read schedules the refresh just after.
+- **Shared:** counts, current thikr, done, hidden (× hides everywhere). **Per session only:** open/folded and lit state, a manual set choice, the finish question, the reset-undo snapshot and the after-salah finished hold.
+- The folded row can be one action behind until it is unfolded or hovered. Demos never read or write the store.
+
 ## Counts
 
 Every thikr's count comes from the data file only. There is no choice of counts at reading time (no 10 | 100 switch): 91 and 93 (morning) are a hundred, 92 (evening) and 98 are ten.
