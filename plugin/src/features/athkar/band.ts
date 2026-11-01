@@ -1,7 +1,7 @@
 import type { Act } from './logic.ts'
 import { arabicDigits as ar } from '../../shared/digits/index.ts'
 import { ACCENTS, accentHex, type Accent } from '../../shared/color/index.ts'
-import { BAND_CSS, QUESTION_CSS } from './band-css.ts'
+import { BAND_CSS, FOLDED_READING_CSS, QUESTION_CSS } from './band-css.ts'
 import type { AthkarSet } from './logic.ts'
 import { AREF_RUQAA_BOLD, TAJAWAL_BOLD, TAJAWAL_REGULAR } from './fonts.ts'
 import type { Sky } from './logic.ts'
@@ -140,7 +140,7 @@ const EXTRA_CSS = `
 .band.card { padding: calc(12px + var(--ay, 0px)) calc(16px + var(--ax, 0px)); }
 .band.card .done-row { margin-left: 14px; }
 .band { min-height: 100%; }
-/* Faded, the reading folds to one row: the thikr cut short, then where it stands. */
+/* Faded, the reading folds to one row: the set's title, then where it stands. */
 .band.band.rest { display: flex; align-items: center; padding: var(--ay, 0px) calc(14px + var(--ax, 0px)) var(--ay, 0px) calc(34px + var(--ax, 0px)); }
 /* Folded, the sky's moon would sit on the position, so it goes. */
 .band.band.rest.bg-crescent::before { display: none; }
@@ -201,8 +201,9 @@ const DONE_PILL = '<span class="pill" style="--p:100%;--from:100%">✓</span>'
 const pill = (m: BandModel) =>
   `<span class="pill" style="--p:${m.progress}%;--from:${m.from}%;animation-delay:-${m.glowMs ?? 0}ms">${ar(Math.max(0, m.times - m.count))}</span>`
 
+// The folded reading: the set's title, as on the folded cover, and where it stands. The thikr stays out of sight.
 const folded = (m: BandModel) =>
-  `<div class="peek"><span class="pk-text">${esc(m.text)}</span><span class="pk-pos">${esc(m.position)}</span></div>`
+  `<div class="peek"><span class="pk-title pk-rd">${esc(m.title)}</span><span class="pk-pos">${esc(m.position)}</span></div>`
 
 // The folded cover: the title on the right, a short muted hint at the left.
 export const coverHint = (hasBegun: boolean) => `click to ${hasBegun ? 'continue' : 'start'}`
@@ -303,7 +304,7 @@ export const bandSvg = (m: BandModel) => {
   // Both palettes, the app's appearance picks (as the Muslim pane does): dark
   // first, light under prefers-color-scheme. Nothing reads Claude Code's theme.
   const mainColors = (isDark: boolean) => Object.keys(ACCENTS).map(color => `--${color === 'orange' ? 'claude' : color}: ${accentHex(color as Accent, isDark)};`).join(' ')
-  const css = `${fonts.join('\n')}\n:root { ${ROOT_DARK} ${mainColors(true)} ${FONTS} }\n@media (prefers-color-scheme: light) { :root { ${ROOT_LIGHT} ${mainColors(false)} } }\n${BAND_CSS}\n${EXTRA_CSS}${m.phase === 'question' ? QUESTION_CSS : ''}`
+  const css = `${fonts.join('\n')}\n:root { ${ROOT_DARK} ${mainColors(true)} ${FONTS} }\n@media (prefers-color-scheme: light) { :root { ${ROOT_LIGHT} ${mainColors(false)} } }\n${BAND_CSS}\n${EXTRA_CSS}${m.phase === 'question' ? QUESTION_CSS : ''}${m.phase === 'reading' && isFolded(m) ? FOLDED_READING_CSS : ''}`
 
   return cardSvg(cardFrameOf(m), { ...bandContent(m), css })
 }

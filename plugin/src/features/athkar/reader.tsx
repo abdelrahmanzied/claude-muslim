@@ -120,10 +120,8 @@ const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
   // Faded, the reading folds to one row; a press opens it.
   if (!isLit) {
     return shell([
-      <Box key="rest" flexDirection="row-reverse" gap={2}>
-        <Box flexGrow={1} flexShrink={1}>
-          <Text color={look.dim} wrap="truncate-end">{props.text.replace(/\s+/g, ' ')}</Text>
-        </Box>
+      <Box key="rest" flexDirection="row-reverse" justifyContent="space-between" gap={2}>
+        <Text bold color={look.ring} wrap="truncate-end">{props.title}</Text>
         <Text color={look.dim}>{props.position}</Text>
       </Box>,
     ])

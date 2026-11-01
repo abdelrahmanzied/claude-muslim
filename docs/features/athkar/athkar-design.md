@@ -33,6 +33,7 @@ Only automatic selections are gated. Morning/evening need a period start at or a
 ## Reading
 
 - **Cover:** the title (أَذْكَارُ الصَّبَاحِ, أَذْكَارُ الْمَسَاءِ or أَذْكَارُ بَعْدَ الصَّلَاةِ) and the keys. Faded, it folds to one slim row (24px, the reading's folded height): the title on the right, a muted one-line hint (`click to start`, or `click to continue`) at the left, the × at the left edge and the thin progress line. The first click only opens it (full cover with the keys); the next starts the reading; neither counts.
+- **Folded reading:** while a reading is faded it folds to the same 24px row as the cover: the set's title on the right (the cover's words in the accent, set in Tajawal bold 15px: the cover's Aref Ruqaa is embedded only for the cover and finale, and adding it to a reading would push the sky picture past the engine's 100,000-character tree limit), where it stands («٣ مِنْ ٢٤») at the left, the × and the thin progress line. The current thikr is never shown folded; unfolding (a click or key, or hover for the refresh) reads the store first and then draws the thikr. The same rule holds for sky and frame, on desktop and in the terminal (terminal Arabic still goes through the shared path). A narrow row shortens the title with an ellipsis; the count keeps its place.
 - **Count:** click, Space or Enter adds one. Right click or Backspace takes one back, or goes to the thikr before at 0. ← next, → previous (Arabic reads right to left). Esc gives the prompt back. The band folds by itself once the person stops ([rules](#when-it-folds-collapse-rules)).
 - **Passage name:** Quran items show their name beside the set position on desktop and in the terminal: آية الكرسي and the three short surahs (الإخلاص، الفلق، الناس). Duas have no passage name.
 - **Count on the line:** no circles. The progress line along the bottom shows the whole set; a small pill on its glowing head shows the repetitions left on this thikr in Arabic-Indic digits (٣ then ٢, ١, ٠; ١ for a thikr said once), easing along with the head and kept clear of both ends of the line. The set position (e.g. ١٦ مِنْ ٢٢) sits small and muted at the line's left end. In the terminal the head is `` ٢ `` on the main color.
@@ -174,7 +175,7 @@ The terminal draws the question, muted line and two native text buttons through 
 - The band always sits in the app's slot above the prompt; a mod cannot place it below the input or above the branch bar.
 - No signal for a click elsewhere or for Esc (see rules 4 and 5).
 - No cursor shape: the × shows its hover with a light disc instead of a pointer cursor.
-- Hovering the desktop band (pointer enter) picks up another session's progress; the folded row's thin line may be one action behind until then. See *Sync between open sessions* in `athkar.md`.
+- Hovering the desktop band (pointer enter) picks up another session's progress; the folded row's thin line and count may be one action behind until then. See *Sync between open sessions* in `athkar.md`.
 
 ## Reminder switches
 
