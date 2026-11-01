@@ -135,8 +135,8 @@ export const QUESTION_CSS = `
 .end-choice.selected {outline:1px solid var(--b-ink);outline-offset:1px;}
 `
 
-// The folded reading's title and count; only drawn into the picture when the reading is folded.
+// The folded reading's title shares the cover's `.pk-title` face; this is only its layout: it shortens, the count goes to the far end.
 export const FOLDED_READING_CSS = `
-.band.rest .pk-rd { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font: 700 15px/1.6 var(--font-band); white-space: nowrap; color: var(--b-acc); }
+.band.rest .pk-rd { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .band.rest .pk-rd + .pk-pos { margin-inline-start: auto; }
 `

@@ -146,7 +146,7 @@ const EXTRA_CSS = `
 .band.band.rest.bg-crescent::before { display: none; }
 .band.rest .peek { display: flex; align-items: center; gap: 12px; width: 100%; direction: rtl; }
 .band.rest .pk-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: right; font-family: var(--font-band); font-size: 15px; line-height: 1.6; color: var(--b-ink); }
-.band.rest .cv-peek .pk-title { flex: none; font-family: var(--font-cover); font-size: 17px; line-height: 1.5; white-space: nowrap; color: var(--b-acc); }
+.band.rest .pk-title { flex: none; font-family: var(--font-cover); font-size: 17px; line-height: 1.5; white-space: nowrap; color: var(--b-acc); }
 .band.rest .cv-peek .pk-hint { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: ltr; text-align: left; font-family: var(--font-ui); font-size: 13px; line-height: 1.6; color: var(--b-dim); }
 .band.rest .pk-pos { flex: none; white-space: nowrap; font-size: 11.5px; color: var(--b-dim); font-family: var(--font-band); }
 .band[data-band] .text, .band.line .text { font-size: var(--fs, 14px) !important; max-height: none; overflow: visible; }
@@ -300,7 +300,7 @@ export const bandHtml = (m: BandModel) => cardHtml(cardFrameOf(m), { ...bandCont
 
 export const bandSvg = (m: BandModel) => {
   const fonts = [fontFace('Tajawal', 400, TAJAWAL_REGULAR), fontFace('Tajawal', 700, TAJAWAL_BOLD)]
-  if (m.phase === 'cover' || m.finaleMs !== undefined) fonts.push(fontFace('Aref Ruqaa', 700, AREF_RUQAA_BOLD))
+  if (m.phase === 'cover' || m.finaleMs !== undefined || (m.phase === 'reading' && isFolded(m))) fonts.push(fontFace('Aref Ruqaa', 700, AREF_RUQAA_BOLD))
   // Both palettes, the app's appearance picks (as the Muslim pane does): dark
   // first, light under prefers-color-scheme. Nothing reads Claude Code's theme.
   const mainColors = (isDark: boolean) => Object.keys(ACCENTS).map(color => `--${color === 'orange' ? 'claude' : color}: ${accentHex(color as Accent, isDark)};`).join(' ')
