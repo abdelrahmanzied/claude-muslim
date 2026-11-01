@@ -64,7 +64,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
     await ui.post({ act: 'key', key: 'left' })
     expect((await $.command.run(run('after-salah'))).text).toContain(resetHint('afterSalah'))
     expect((await $.command.run(run('after-salah reset'))).text).toBe('Athkar after salah start again from the first')
-    expect(kept.day.afterSalah).toEqual(emptyDay(day.day).afterSalah)
+    expect(kept.day.afterSalah).toEqual({ ...emptyDay(day.day).afterSalah, updatedAt: expect.any(Number) })
     expect((await $.command.run(run(''))).text).toContain('| Athkar after salah |')
     expect((await $.command.run(run('help'))).text).toContain('offered by itself after the athan card')
     await ui.unmount()
@@ -95,7 +95,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
     expect({ stage: 3, visible: await title('afterSalah') }).toEqual({ stage: 3, visible: true })
     await clock.advance(0)
     let saved = kept.day
-    expect(saved.afterSalah).toEqual({ ...emptyDay(saved.day).afterSalah, ...last })
+    expect(saved.afterSalah).toEqual({ ...emptyDay(saved.day).afterSalah, updatedAt: expect.any(Number), ...last })
     kept.day = { ...saved, afterSalah: { ...saved.afterSalah, isDone: true } }
     await clock.advance(60_000)
     expect({ stage: 4, visible: await title('morning') }).toEqual({ stage: 4, visible: true })

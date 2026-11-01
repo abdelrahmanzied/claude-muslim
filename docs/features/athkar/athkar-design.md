@@ -174,6 +174,7 @@ The terminal draws the question, muted line and two native text buttons through 
 - The band always sits in the app's slot above the prompt; a mod cannot place it below the input or above the branch bar.
 - No signal for a click elsewhere or for Esc (see rules 4 and 5).
 - No cursor shape: the × shows its hover with a light disc instead of a pointer cursor.
+- Hovering the desktop band (pointer enter) picks up another session's progress; the folded row's thin line may be one action behind until then. See *Sync between open sessions* in `athkar.md`.
 
 ## Reminder switches
 

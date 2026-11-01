@@ -14,6 +14,8 @@ export type AthkarReading = {
   counts: Record<string, number>
   isDone: boolean
   isHidden: boolean
+  // When it last changed (ms); sessions keep the newer reading of each set.
+  updatedAt?: number
 }
 
 export type Day = {

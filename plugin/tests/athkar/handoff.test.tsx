@@ -185,7 +185,7 @@ for (const close of [false, true]) {
     }
     await clock.advance(TIMES.asr - (TIMES.dhuhr + CARD_MS + 90 * 60_000 + (close ? 60_000 : 0)))
     await clock.advance(0)
-    expect(held.day.afterSalah).toEqual({ ...emptyDay(held.day.day).afterSalah, pray: 'asr', at: TIMES.asr })
+    expect(held.day.afterSalah).toEqual({ ...emptyDay(held.day.day).afterSalah, updatedAt: expect.any(Number), pray: 'asr', at: TIMES.asr })
     // Close the new athan to observe the wait before its fresh offer.
     await ui.post({ act: 'hide' }, { in: 'salah-athan' })
     expect((await ui.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ period: 'morning' })

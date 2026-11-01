@@ -24,6 +24,8 @@ export type Reading = {
   isDone: boolean
   // × hid the band; the reading is kept.
   isHidden: boolean
+  // When this reading last changed (ms); the newer reading of a set wins when sessions meet. Missing reads as 0.
+  updatedAt?: number
 }
 
 // A day's athkar: morning, evening and one after-salah slot. A day turns at Fajr (05:00 without prayer times), so the
@@ -161,6 +163,7 @@ const readReading = (raw: unknown): Reading => {
     counts: isNumbers(r.counts) ? r.counts : {},
     isDone: r.isDone === true,
     isHidden: r.isHidden === true,
+    ...(typeof r.updatedAt === 'number' && Number.isFinite(r.updatedAt) && r.updatedAt > 0 ? { updatedAt: r.updatedAt } : {}),
   }
 }
 
@@ -185,9 +188,22 @@ export const sameSlot = (a: { pray?: Fard | null; at?: number | null } | null | 
   (a?.pray ?? null) === (b?.pray ?? null) && (a?.at ?? null) === (b?.at ?? null)
 
 // A missing last prayer at midnight keeps the reading until the athkar day turns.
-export const syncAfterSalah = (day: Day, last: SalahLast | null): Day => {
+export const syncAfterSalah = (day: Day, last: SalahLast | null, stamp?: number): Day => {
   if (!last || sameSlot(day.afterSalah, last)) return day
-  return { ...day, afterSalah: { ...emptyReading(), pray: last?.pray ?? null, at: last?.at ?? null } }
+  return { ...day, afterSalah: { ...emptyReading(), ...(stamp ? { updatedAt: stamp } : {}), pray: last?.pray ?? null, at: last?.at ?? null } }
+}
+
+export const stampOf = (reading: Reading) => reading.updatedAt ?? 0
+
+// Two readings of the same day, each set decided alone: the newer `updatedAt` wins whole. A tie (old data without
+// stamps) goes to the session's own copy when it is of that day. A reading of another day counts as a fresh day.
+export const mergeDays = (stored: unknown, held: unknown, day: string): Day => {
+  const a = readDay(stored, day)
+  const b = readDay(held, day)
+  const isHeld = !!held && typeof held === 'object' && (held as Partial<Day>).day === day
+  const pick = <R extends Reading>(x: R, y: R): R => stampOf(y) > stampOf(x) || (isHeld && stampOf(y) === stampOf(x)) ? y : x
+
+  return { day, morning: pick(a.morning, b.morning), evening: pick(a.evening, b.evening), afterSalah: pick(a.afterSalah, b.afterSalah) }
 }
 
 // The card and the automatic reader hand off at the same prayer-based deadline.

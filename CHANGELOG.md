@@ -2,6 +2,7 @@
 
 ## 0.1.1
 
+- Athkar progress now follows you between open sessions: counts, the current thikr, done and × hide are shared, and the latest change in either session wins. A session refreshes when its band is opened or hovered, on each press, and from the Muslim pane and `/athkar` commands, so a stale session no longer wipes another session's counts.
 - Desktop: the athkar and athan cards above the prompt fit the app's own card again after the app's October update, whatever the window width, zoom, font or text size.
 
 ## 0.1.0
