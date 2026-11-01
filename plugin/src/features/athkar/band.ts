@@ -1,7 +1,7 @@
 import type { Act } from './logic.ts'
 import { arabicDigits as ar } from '../../shared/digits/index.ts'
 import { ACCENTS, accentHex, type Accent } from '../../shared/color/index.ts'
-import { BAND_CSS, FOLDED_READING_CSS, QUESTION_CSS } from './band-css.ts'
+import { BAND_CSS, QUESTION_CSS } from './band-css.ts'
 import type { AthkarSet } from './logic.ts'
 import { AREF_RUQAA_BOLD, TAJAWAL_BOLD, TAJAWAL_REGULAR } from './fonts.ts'
 import type { Sky } from './logic.ts'
@@ -146,9 +146,9 @@ const EXTRA_CSS = `
 .band.band.rest.bg-crescent::before { display: none; }
 .band.rest .peek { display: flex; align-items: center; gap: 12px; width: 100%; direction: rtl; }
 .band.rest .pk-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: rtl; text-align: right; font-family: var(--font-band); font-size: 15px; line-height: 1.6; color: var(--b-ink); }
-.band.rest .pk-title { flex: none; font-family: var(--font-cover); font-size: 17px; line-height: 1.5; white-space: nowrap; color: var(--b-acc); }
+.band.rest .pk-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-cover); font-size: 17px; line-height: 1.5; white-space: nowrap; color: var(--b-acc); }
 .band.rest .cv-peek .pk-hint { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: ltr; text-align: left; font-family: var(--font-ui); font-size: 13px; line-height: 1.6; color: var(--b-dim); }
-.band.rest .pk-pos { flex: none; white-space: nowrap; font-size: 11.5px; color: var(--b-dim); font-family: var(--font-band); }
+.band.rest .pk-pos { flex: none; margin-inline-start: auto; white-space: nowrap; font-size: 11.5px; color: var(--b-dim); font-family: var(--font-band); }
 .band[data-band] .text, .band.line .text { font-size: var(--fs, 14px) !important; max-height: none; overflow: visible; }
 .pglow b { animation: glowTo .7s cubic-bezier(.33, 1, .68, 1) both; }
 @keyframes glowTo { from { width: var(--from); } }
@@ -203,7 +203,10 @@ const pill = (m: BandModel) =>
 
 // The folded reading: the set's title, as on the folded cover, and where it stands. The thikr stays out of sight.
 const folded = (m: BandModel) =>
-  `<div class="peek"><span class="pk-title pk-rd">${esc(m.title)}</span><span class="pk-pos">${esc(m.position)}</span></div>`
+  `<div class="peek">${foldedTitle(m)}<span class="pk-pos">${esc(m.position)}</span></div>`
+
+// The set's title on a folded row: the one builder and the one `.pk-title` rule of the folded cover and the folded reading.
+const foldedTitle = (m: BandModel) => `<span class="pk-title">${esc(m.title)}</span>`
 
 // The folded cover: the title on the right, a short muted hint at the left.
 export const coverHint = (hasBegun: boolean) => `click to ${hasBegun ? 'continue' : 'start'}`
@@ -211,7 +214,7 @@ export const coverHint = (hasBegun: boolean) => `click to ${hasBegun ? 'continue
 const foldedCover = (m: BandModel) => {
   const hint = coverHint(m.hasBegun)
 
-  return `<div class="peek cv-peek"><span class="pk-title">${esc(m.title)}</span><span class="pk-hint" style="font-size:${foldedHintSize(hint, m.width)}px">${hint}</span></div>`
+  return `<div class="peek cv-peek">${foldedTitle(m)}<span class="pk-hint" style="font-size:${foldedHintSize(hint, m.width)}px">${hint}</span></div>`
 }
 
 // The folded done row: the note alone.
@@ -304,7 +307,7 @@ export const bandSvg = (m: BandModel) => {
   // Both palettes, the app's appearance picks (as the Muslim pane does): dark
   // first, light under prefers-color-scheme. Nothing reads Claude Code's theme.
   const mainColors = (isDark: boolean) => Object.keys(ACCENTS).map(color => `--${color === 'orange' ? 'claude' : color}: ${accentHex(color as Accent, isDark)};`).join(' ')
-  const css = `${fonts.join('\n')}\n:root { ${ROOT_DARK} ${mainColors(true)} ${FONTS} }\n@media (prefers-color-scheme: light) { :root { ${ROOT_LIGHT} ${mainColors(false)} } }\n${BAND_CSS}\n${EXTRA_CSS}${m.phase === 'question' ? QUESTION_CSS : ''}${m.phase === 'reading' && isFolded(m) ? FOLDED_READING_CSS : ''}`
+  const css = `${fonts.join('\n')}\n:root { ${ROOT_DARK} ${mainColors(true)} ${FONTS} }\n@media (prefers-color-scheme: light) { :root { ${ROOT_LIGHT} ${mainColors(false)} } }\n${BAND_CSS}\n${EXTRA_CSS}${m.phase === 'question' ? QUESTION_CSS : ''}`
 
   return cardSvg(cardFrameOf(m), { ...bandContent(m), css })
 }

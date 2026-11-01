@@ -87,9 +87,12 @@ test('a folded reading shows the set title and where it stands, never the thikr;
     expect(folded).toContain('١ مِنْ ٢٢')
     expect(folded).not.toContain(text)
     // The same face as the folded cover's title: one shared rule, and the font embedded.
-    expect(folded).toContain('.band.rest .pk-title { flex: none; font-family: var(--font-cover)')
+    expect(folded).toContain('.band.rest .pk-title {')
     expect(folded).toContain('Aref Ruqaa')
-    expect(folded).not.toContain('font: 700 15px')
+    expect(folded).not.toContain('pk-rd')
+    // Both folded rows draw the title through the same span.
+    expect(folded).toContain('<span class="pk-title">أَذْكَارُ الصَّبَاحِ</span>')
+    expect(bandSvg(cover({ style }))).toContain('<span class="pk-title">أَذْكَارُ الصَّبَاحِ</span>')
   }
   const lit = bandSvg(cover({ phase: 'reading', text, isActive: true }))
   expect(lit).toContain(text)
