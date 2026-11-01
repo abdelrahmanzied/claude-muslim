@@ -104,7 +104,7 @@ thikr 84 count once halfway through their 5 seconds; thikr 83 counts every
 its 5 seconds using its evening wording from `data.ts`. Thikr 98 counts
 every 300 ms to ten, holding its last count for the final second. Then the
 desktop plays falling stars and the rising dua for `FINALE_MS`, and the demo
-ends there, as the real band closes after its finale. The finale stays on
+ends there, as the real band closes after its finale. The finale is drawn once and left to play, as the real band's is (the demo's 100 ms redraw stops at its start), so its motion is never restarted. It stays on
 crescent and evening in Sky. The terminal keeps Frame's own open done row for
 `FINALE_MS`.
 The command reply reports each style's real scene count and total duration.

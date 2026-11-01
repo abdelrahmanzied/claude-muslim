@@ -85,7 +85,8 @@ for (const style of ['sky', 'frame'] as const) {
         expect(await picture()).toContain('class="rise-msg"')
         expect(await picture()).toContain('class="fall"')
         await clock.advance(scene.duration - 100)
-        expect((await model()).finaleMs).toBe(FINALE_MS - 100)
+        // Drawn once and left to play, like the real band's: no redraw restarts its motion.
+        expect((await model()).finaleMs).toBe(0)
         expect(await picture()).toContain('class="rise-msg"')
         await clock.advance(100)
       }

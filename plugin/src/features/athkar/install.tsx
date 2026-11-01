@@ -29,11 +29,11 @@ import type { Style } from './look.ts'
 
 // DEMO BEGIN: imports and transient runner (no saved state or real view).
 import type { Accent } from '../../shared/color/index.ts'
-import { demoDuration, demoReply, demoStep, DEMO_TICK_MS, type DemoSet } from './demo.ts'
+import { demoDuration, demoFinaleAt, demoReply, demoStep, DEMO_TICK_MS, type DemoSet } from './demo.ts'
 import { connectDemo, doneDemo } from '../../shared/demo/signal.ts'
 
 // shared: started by /muslim demo, which waits for this demo's end.
-let demo: { style: Style; accent: Accent; startedAt: number; shared: boolean; set: DemoSet; finished?: () => void; timer?: { cancel: () => void } } | undefined
+let demo: { style: Style; accent: Accent; startedAt: number; shared: boolean; set: DemoSet; isFinaleDrawn?: boolean; finished?: () => void; timer?: { cancel: () => void } } | undefined
 const demoArabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
 
 const tickDemo = async ($: EngineInterface) => {
@@ -48,6 +48,11 @@ const tickDemo = async ($: EngineInterface) => {
     playing.finished?.()
     if (playing.shared) doneDemo('athkar')
     return
+  }
+  // The finale is drawn once and left to play, as the real band's is: redrawing it every tick restarts its motion.
+  if (now - playing.startedAt >= demoFinaleAt(playing.style, FINALE_MS, playing.set)) {
+    if (playing.isFinaleDrawn) return
+    playing.isFinaleDrawn = true
   }
   $.ui.invalidate('ui.render')
 }

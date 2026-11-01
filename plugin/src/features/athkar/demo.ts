@@ -51,6 +51,8 @@ export const demoScenes = (style: Style, accent: Accent, finaleMs: number, set: 
 
 export const demoDuration = (style: Style, finaleMs: number, set: DemoSet = 'daily') =>
   demoScenes(style, 'orange', finaleMs, set).reduce((total, scene) => total + scene.duration, 0)
+// Where the finale starts: from here the picture is drawn once and left to play, as the real band does.
+export const demoFinaleAt = (style: Style, finaleMs: number, set: DemoSet = 'daily') => demoDuration(style, finaleMs, set) - finaleMs
 export const demoReply = (style: Style, finaleMs: number) =>
   `**Athkar demo:** ${style} · ${demoScenes(style, 'orange', finaleMs).length} scenes · ${demoDuration(style, finaleMs) / 1000}s`
 
