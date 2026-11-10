@@ -67,8 +67,8 @@ export const Q_BROWSER_DY = 24
 export const Q_BROWSER_H = 30
 export const Q_NOTE_EXTRA = 64
 // On Fridays, one full-width «سورة الكهف» button closes the card (30px high, 10px under it).
-export const Q_KAHF_H = 30
-export const Q_KAHF_EXTRA = 40
+export const Q_ALKAHF_H = 30
+export const Q_ALKAHF_EXTRA = 40
 export const Q_BASE_H = 286
 export const Q_PICKER_H = 474
 export const quranOffset = (segmented: boolean): number => segmented ? 30 : 14
@@ -109,13 +109,13 @@ export const SHEET_MIN_THUMB = 28
 
 export type QuranList = 'reciter' | 'surah' | 'segment'
 // Player geometry and playback-dependent settings space, read from the shared Quran feed.
-export type QuranLayout = { isPlaying?: boolean; error?: boolean; note?: boolean; kahf?: boolean; segmented: boolean; picker: { list: QuranList; count: number; scroll: number } | null }
+export type QuranLayout = { isPlaying?: boolean; error?: boolean; note?: boolean; alkahf?: boolean; segmented: boolean; picker: { list: QuranList; count: number; scroll: number } | null }
 export const NO_QURAN: QuranLayout = { segmented: false, picker: null }
 // The note block's top, from the card's top: under the controls, or under the error block.
 export const quranNoteTop = (q: QuranLayout): number => Q_BASE_H + (q.error ? Q_ERROR_EXTRA : 0) + quranOffset(q.segmented)
 // The Friday button's top, from the card's top: under the note block when one shows.
-export const quranKahfTop = (q: QuranLayout): number => quranNoteTop(q) + (q.note ? Q_NOTE_EXTRA : 0)
-export const quranHeight = (q: QuranLayout): number => (q.picker ? Q_PICKER_H : Q_BASE_H + (q.error ? Q_ERROR_EXTRA : 0) + (q.note ? Q_NOTE_EXTRA : 0) + (q.kahf ? Q_KAHF_EXTRA : 0)) + quranOffset(q.segmented)
+export const quranAlkahfTop = (q: QuranLayout): number => quranNoteTop(q) + (q.note ? Q_NOTE_EXTRA : 0)
+export const quranHeight = (q: QuranLayout): number => (q.picker ? Q_PICKER_H : Q_BASE_H + (q.error ? Q_ERROR_EXTRA : 0) + (q.note ? Q_NOTE_EXTRA : 0) + (q.alkahf ? Q_ALKAHF_EXTRA : 0)) + quranOffset(q.segmented)
 export const QURAN_H = quranHeight(NO_QURAN)
 
 // Athkar card, from its top.
@@ -185,7 +185,7 @@ export const ATHKAR_Y = QURAN_Y + QURAN_H + GAP
 export const PANE_HEIGHT = paneHeight(NO_FOLDS)
 
 type QuranRowAct = `quran-row:${number}`
-export type PaneAct = SettingsAct | 'fold-prayer' | 'fold-quran' | 'fold-athkar' | 'athan' | 'quran-prev' | 'quran-retry' | 'quran-browser' | 'quran-kahf' | 'quran-toggle' | 'quran-next' | 'quran-repeat-surah' | 'quran-repeat-segment'
+export type PaneAct = SettingsAct | 'fold-prayer' | 'fold-quran' | 'fold-athkar' | 'athan' | 'quran-prev' | 'quran-retry' | 'quran-browser' | 'quran-alkahf' | 'quran-toggle' | 'quran-next' | 'quran-repeat-surah' | 'quran-repeat-segment'
   | 'quran-pick-reciter' | 'quran-pick-surah' | 'quran-pick-segment' | 'quran-back' | 'quran-scroll' | QuranRowAct | 'athkar-open' | 'athkar-finish' | 'athkar-picker' | 'athkar-reset' | `athkar-set:${typeof ATHKAR_SETS[number]['key']}`
 export const quranRowOf = (act: string): number | null => {
   const m = /^quran-row:(\d+)$/.exec(act)
@@ -236,7 +236,7 @@ const boxes = (width: number, f: Folds, settings: SettingsModel, q: QuranLayout,
     ...(f.quran ? [] : [
       ...(q.error ? [{ act: 'quran-retry' as const, slop: BUTTON_SLOP, x0: PAD + SIDE, x1: width - PAD - SIDE, y0: qy + Q_RETRY_TOP + off, y1: qy + Q_RETRY_TOP + off + Q_RETRY_H }] : []),
       ...(q.note ? [{ act: 'quran-browser' as const, slop: BUTTON_SLOP, x0: PAD + SIDE, x1: width - PAD - SIDE, y0: qy + quranNoteTop(q) + Q_BROWSER_DY, y1: qy + quranNoteTop(q) + Q_BROWSER_DY + Q_BROWSER_H }] : []),
-      ...(q.kahf ? [{ act: 'quran-kahf' as const, slop: BUTTON_SLOP, x0: PAD + SIDE, x1: width - PAD - SIDE, y0: qy + quranKahfTop(q), y1: qy + quranKahfTop(q) + Q_KAHF_H }] : []),
+      ...(q.alkahf ? [{ act: 'quran-alkahf' as const, slop: BUTTON_SLOP, x0: PAD + SIDE, x1: width - PAD - SIDE, y0: qy + quranAlkahfTop(q), y1: qy + quranAlkahfTop(q) + Q_ALKAHF_H }] : []),
       // The title button spans the hero's text column, right of the avatar.
       { act: 'quran-pick-surah' as const, slop: BUTTON_SLOP, x0: PAD + SIDE + Q_AVATAR_W + 8, x1: width - PAD - SIDE, y0: qy + Q_TITLE_TOP, y1: qy + Q_TITLE_TOP + Q_TITLE_H },
       ...(q.segmented ? [{ act: 'quran-pick-segment' as const, slop: BUTTON_SLOP, x0: PAD + Q_SEG_LEFT, x1: width - PAD - SIDE, y0: qy + Q_SEG_TOP, y1: qy + Q_SEG_TOP + Q_SEG_H }] : []),

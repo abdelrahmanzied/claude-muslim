@@ -16,9 +16,9 @@ import { athkarTimesAt } from '../../shared/pray/bounds.ts'
 import { playSurah, readSurahPlay } from '../../shared/panel/signal.ts'
 import { helpHint, statusTable } from '../../table.ts'
 import { CELL_PX, LINE_PX } from '../../shared/card/card.ts'
-import { isOnPlay, kahfFrame, type KahfCardProps } from './card.ts'
+import { isOnPlay, alkahfFrame, type AlkahfCardProps } from './card.ts'
 import { fridayHelp } from './help.ts'
-import { cardAt, KAHF_CARD_MS, KAHF_NEEDS_CITY, KAHF_SURAH, KAHF_TITLE, kahfDecision, kahfLine, kahfStatus } from './logic.ts'
+import { cardAt, ALKAHF_CARD_MS, ALKAHF_NEEDS_CITY, ALKAHF_SURAH, ALKAHF_TITLE, alkahfDecision, alkahfLine, alkahfStatus } from './logic.ts'
 import { withTashkeel } from '../../shared/arabic/visual.ts'
 
 // DEMO BEGIN: imports and transient runner (no settings, store or saved state).
@@ -97,7 +97,7 @@ const renderArabic = async ($: EngineInterface, surface: string, text: string, c
 const cardRef = atom({ plugin: 'muslim', key: 'fridayCard' } as const, null as { day: string; until: number } | null)
 
 // Kept across sessions: the day the reminder was last shown, so it shows once per Friday.
-const SHOWN_KEY = 'friday.kahfDay'
+const SHOWN_KEY = 'friday.alkahfDay'
 
 const shownDayOf = async ($: EngineInterface): Promise<string | undefined> => {
   const value = await $.store.get(SHOWN_KEY).catch(() => undefined)
@@ -122,7 +122,7 @@ const isBusy = async ($: EngineInterface, now: number): Promise<boolean> => {
 }
 
 const openCard = async ($: EngineInterface, now: number) => {
-  await $.state.set({ plugin: 'muslim', key: 'fridayCard' }, { day: dayKey(now), until: now + KAHF_CARD_MS })
+  await $.state.set({ plugin: 'muslim', key: 'fridayCard' }, { day: dayKey(now), until: now + ALKAHF_CARD_MS })
   $.ui.invalidate('ui.render')
 }
 
@@ -133,9 +133,9 @@ const closeCard = async ($: EngineInterface) => {
 
 // «▶ استمع»: closes the card and plays Surat al-Kahf with the reciter last used (the Quran feature's own choice);
 // where Claude Code plays no audio (Windows, Linux) the Quran feature opens the whole surah in the browser instead.
-const playKahf = async ($: EngineInterface) => {
+const playAlkahf = async ($: EngineInterface) => {
   await closeCard($)
-  if (!(await playSurah(KAHF_SURAH))) $.ui.toast('Quran is not ready yet. /quran')
+  if (!(await playSurah(ALKAHF_SURAH))) $.ui.toast('Quran is not ready yet. /quran')
 }
 
 // Preflight and quiet failure mapping stay in this file; callers keep their reply.
@@ -160,10 +160,10 @@ const check = async ($: EngineInterface, options: Options) => {
   if (demo) return
   const now = await $.clock.now()
   const times = athkarTimesAt(now)
-  const decision = kahfDecision({
+  const decision = alkahfDecision({
     now,
     times: times ? { dhuhr: times.dhuhr, maghrib: times.maghrib } : null,
-    enabled: options.fridayKahf,
+    enabled: options.fridayAlkahf,
     shownDay: await shownDayOf($),
     isBusy: await isBusy($, now),
   })
@@ -184,7 +184,7 @@ export const install = (on: On, options: Options) => {
   const arabicCache: { current: { terminalId: string; mode: ArabicMode } | null } = { current: null }
   let hideTimer: { at: number; handle: { cancel: () => void } } | undefined
   // The card last drawn and its region, for its clicks.
-  const drawn: { props: KahfCardProps | undefined; region: { columns: number; rows: number } } = { props: undefined, region: { columns: 0, rows: 0 } }
+  const drawn: { props: AlkahfCardProps | undefined; region: { columns: number; rows: number } } = { props: undefined, region: { columns: 0, rows: 0 } }
 
   on('command.run', { command: 'friday' }, async ($, e) => {
     const [word = '', value = ''] = e.args.trim().split(/\s+/)
@@ -205,17 +205,17 @@ export const install = (on: On, options: Options) => {
           statusTable([
             ['Today', 'Friday on this device\'s local day', isFriday(now) ? 'Friday' : 'not Friday'],
             ['Salawat', 'Salawat on the Prophet in the thikr line on Friday, from Fajr', onOff(options.fridaySalawat)],
-            ['Al-Kahf', 'The reminder to read Surat al-Kahf, once on Friday from 30 minutes after Jumu\'ah until Maghrib', onOff(options.fridayKahf)],
-            ['Reminder', 'Whether it was shown today', kahfStatus(now, await shownDayOf($))],
+            ['Al-Kahf', 'The reminder to read Surat al-Kahf, once on Friday from 30 minutes after Jumu\'ah until Maghrib', onOff(options.fridayAlkahf)],
+            ['Reminder', 'Whether it was shown today', alkahfStatus(now, await shownDayOf($))],
           ]),
-          ...(athkarTimesAt(now) ? [] : ['', KAHF_NEEDS_CITY]),
+          ...(athkarTimesAt(now) ? [] : ['', ALKAHF_NEEDS_CITY]),
         ].join('\n'),
       }
     }
     if (word === 'help') return { text: fridayHelp() }
     if (word === 'salawat' && (value === 'on' || value === 'off')) return set('fridaySalawat', value === 'on', `Friday salawat ${value}`)
-    if (word === 'kahf' && (value === 'on' || value === 'off')) return set('fridayKahf', value === 'on', `Al-Kahf reminder ${value}`)
-    if (word === 'kahf' && value === '') {
+    if (word === 'alkahf' && (value === 'on' || value === 'off')) return set('fridayAlkahf', value === 'on', `Al-Kahf reminder ${value}`)
+    if (word === 'alkahf' && value === '') {
       // Manual opening always works, any day and any time; on a Friday it counts as today's showing.
       if (isFriday(now)) await claim($, dayKey(now))
       await openCard($, now)
@@ -239,7 +239,7 @@ export const install = (on: On, options: Options) => {
     const now = await $.clock.now().catch(() => undefined)
     if (now === undefined) return theirs
     // The timers start only where the reminder can ever fire: on a Friday, switched on, with a saved place.
-    if (options.fridayKahf && isFriday(now) && athkarTimesAt(now)) track($, options)
+    if (options.fridayAlkahf && isFriday(now) && athkarTimesAt(now)) track($, options)
     if (e.surface !== 'desktop' && e.surface !== 'terminal') return theirs
     const shown = demo ? (demoShowing(demo.startedAt, now) ? { until: demo.startedAt + DEMO_MS } : null) : cardAt(await read($, cardRef), now)
     if (!shown) return theirs
@@ -257,7 +257,7 @@ export const install = (on: On, options: Options) => {
     const demoRows = demo ? [
       await renderArabic($, e.surface, demoPrayLine(), arabicCache),
       await renderArabic($, e.surface, withTashkeel(demoSalawat(), options.tashkeel), arabicCache),
-      await renderArabic($, e.surface, e.surface === 'terminal' ? `${KAHF_TITLE} · /friday kahf` : `[ ${KAHF_TITLE} ]`, arabicCache),
+      await renderArabic($, e.surface, e.surface === 'terminal' ? `${ALKAHF_TITLE} · /friday alkahf` : `[ ${ALKAHF_TITLE} ]`, arabicCache),
     ] : []
     const demoBlock = demo ? (
       <Box key="friday-demo-rows" flexDirection="column">
@@ -269,13 +269,13 @@ export const install = (on: On, options: Options) => {
     // DEMO END
 
     if (e.surface === 'terminal') {
-      const label = await renderArabic($, e.surface, kahfLine(reciter), arabicCache)
+      const label = await renderArabic($, e.surface, alkahfLine(reciter), arabicCache)
 
       return (
         <Box flexDirection="column">
-          <Box key="friday-kahf-row" gap={1}>
+          <Box key="friday-alkahf-row" gap={1}>
             <Text bold color={await mainColor($, options.color)} wrap="truncate-end">{label}</Text>
-            <Button key="friday-kahf-close" label="×" plain onPress={() => (demo ? endDemo($) : closeCard($))} />
+            <Button key="friday-alkahf-close" label="×" plain onPress={() => (demo ? endDemo($) : closeCard($))} />
           </Box>
           {demoBlock}
           {theirs}
@@ -283,24 +283,24 @@ export const install = (on: On, options: Options) => {
       )
     }
 
-    const props: KahfCardProps = { isActive: true, now, accent: options.color, reciter, inBrowser: !!surahPlay?.inBrowser, startedAt: shown.until - (demo ? DEMO_MS : KAHF_CARD_MS), width: Math.round(e.props.bodyColumns * CELL_PX), card: { ch: CELL_PX, lh: LINE_PX } }
+    const props: AlkahfCardProps = { isActive: true, now, accent: options.color, reciter, inBrowser: !!surahPlay?.inBrowser, startedAt: shown.until - (demo ? DEMO_MS : ALKAHF_CARD_MS), width: Math.round(e.props.bodyColumns * CELL_PX), card: { ch: CELL_PX, lh: LINE_PX } }
     drawn.props = props
 
     return (
       // As the athkar band and the athan card: the picture reaches a cell past the slot each side
       // and half a line above and below, over the desktop's own card.
       <Box flexDirection="column">
-        <Box key="friday-kahf-card" marginX={-1} marginY={-1}>
-          <Client key="friday-kahf" module="./card.tsx" props={props} width="100%" />
+        <Box key="friday-alkahf-card" marginX={-1} marginY={-1}>
+          <Client key="friday-alkahf" module="./card.tsx" props={props} width="100%" />
         </Box>
         {demoBlock}
-        {theirs ?? <Box key="friday-kahf-end" height={0} />}
+        {theirs ?? <Box key="friday-alkahf-end" height={0} />}
       </Box>
     )
   })
 
   // The shared × closes the card, ▶ plays the surah; Enter or Space plays it, Escape closes it.
-  on('ui.message', { element: 'friday-kahf' }, async ($, e) => {
+  on('ui.message', { element: 'friday-alkahf' }, async ($, e) => {
     const m = e.data
     if (!isCardMessage(m)) return {}
     if (m.act === 'size') {
@@ -312,10 +312,10 @@ export const install = (on: On, options: Options) => {
     const rows = m.act === 'pointer' ? (m.rows ?? drawn.region.rows) : 0
     const props = drawn.props
     if (m.act === 'hide' || (m.act === 'key' && m.key === 'escape')) await close()
-    else if (m.act === 'key' && (m.key === 'return' || m.key === 'space')) await (demo ? close() : playKahf($))
+    else if (m.act === 'key' && (m.key === 'return' || m.key === 'space')) await (demo ? close() : playAlkahf($))
     else if (m.act === 'pointer' && m.button === 'left' && props && columns > 0 && rows > 0) {
-      if (isOnClose(kahfFrame(props, columns), m.x, m.y, columns, rows)) await close()
-      else if (isOnPlay(props, m.x, m.y, columns, rows)) await (demo ? close() : playKahf($))
+      if (isOnClose(alkahfFrame(props, columns), m.x, m.y, columns, rows)) await close()
+      else if (isOnPlay(props, m.x, m.y, columns, rows)) await (demo ? close() : playAlkahf($))
     }
 
     return {}

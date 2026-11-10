@@ -7,11 +7,11 @@ test('the table has a header and one row per command', () => {
   expect([title, blank]).toEqual(['**Muslim › Friday › Help**', ''])
   expect(lines.slice(0, 2)).toEqual(['| Command | Description | Options |', '| --- | --- | --- |'])
   expect(lines.length).toBe(2 + FRIDAY_COMMANDS.length)
-  expect(FRIDAY_COMMANDS.map(row => row[0])).toEqual(['/friday', '/friday help', '/friday salawat', '/friday kahf', '/friday demo'])
+  expect(FRIDAY_COMMANDS.map(row => row[0])).toEqual(['/friday', '/friday help', '/friday salawat', '/friday alkahf', '/friday demo'])
 })
 
-test('salawat and kahf take on and off', () => {
+test('salawat and alkahf take on and off', () => {
   const lines = fridayHelp().split('\n')
   expect(lines.some(line => line.startsWith('| `/friday salawat` |') && line.endsWith('| `on` (default) · `off` |'))).toBe(true)
-  expect(lines.some(line => line.startsWith('| `/friday kahf` |') && line.includes('`on` (default) · `off`'))).toBe(true)
+  expect(lines.some(line => line.startsWith('| `/friday alkahf` |') && line.includes('`on` (default) · `off`'))).toBe(true)
 })

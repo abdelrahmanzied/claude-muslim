@@ -5,7 +5,7 @@ export { isFriday } from '../pray/names.ts'
 import { isFriday } from '../pray/names.ts'
 
 // Surat al-Kahf is surah 18: the Friday shortcuts (the reminder card, the Quran card's button) play it.
-export const KAHF_SURAH = 18
+export const ALKAHF_SURAH = 18
 
 // The device's local day as `YYYY-MM-DD`: the key a once-per-Friday flag is kept under.
 export const dayKey = (at: number): string => {

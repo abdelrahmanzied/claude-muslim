@@ -2,7 +2,7 @@
 
 The religious text shown by the Friday feature. The code is the source of truth for what is displayed; this file must stay identical to it (see the rule in CLAUDE.md). Arabic is never generated or reworded.
 
-Sources in the code: `plugin/src/features/friday/logic.ts` (`KAHF_TITLE`, `KAHF_PLAY`, `KAHF_BROWSER`, `kahfSubtitle`, `kahfLine`), `plugin/src/shared/pray/names.ts` (`JUMUAH`). Friday's salawat reuse thikr's authored phrases (`plugin/src/shared/thikr/salawat.ts`, `SALAWAT`, re-exported by thikr's `phrases.ts`, five phrases listed in [thikr content](../thikr/thikr-content.md)); Friday adds none.
+Sources in the code: `plugin/src/features/friday/logic.ts` (`ALKAHF_TITLE`, `ALKAHF_PLAY`, `ALKAHF_BROWSER`, `alkahfSubtitle`, `alkahfLine`), `plugin/src/shared/pray/names.ts` (`JUMUAH`). Friday's salawat reuse thikr's authored phrases (`plugin/src/shared/thikr/salawat.ts`, `SALAWAT`, re-exported by thikr's `phrases.ts`, five phrases listed in [thikr content](../thikr/thikr-content.md)); Friday adds none.
 
 ## The Al-Kahf card
 

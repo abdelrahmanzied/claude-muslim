@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { dayKey, isSalawatTime, KAHF_SURAH } from '../../../src/shared/friday/index.ts'
+import { dayKey, isSalawatTime, ALKAHF_SURAH } from '../../../src/shared/friday/index.ts'
 
 const at = (day: number, hour: number, minute = 0): number => new Date(2026, 10, day, hour, minute).getTime()
 
@@ -10,7 +10,7 @@ test('the day key is the device\'s local date, zero padded', () => {
 })
 
 test('Al-Kahf is surah 18', () => {
-  expect(KAHF_SURAH).toBe(18)
+  expect(ALKAHF_SURAH).toBe(18)
 })
 
 test('salawat runs on Friday from Fajr, and the whole device day with no saved place', () => {

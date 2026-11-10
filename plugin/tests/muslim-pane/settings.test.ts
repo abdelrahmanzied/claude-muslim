@@ -499,17 +499,17 @@ test('version and commands keep LTR isolation and the end sample follows tashkee
 })
 
 test('the Friday tab (desktop) and its terminal lines carry the same two settings, with the same state',()=>{
-  for(const [salawat,kahf] of [[true,true],[false,true],[true,false]] as const){
-    const m=make('friday','main',0,{fridaySalawat:salawat,fridayKahf:kahf} as never)
+  for(const [salawat,alkahf] of [[true,true],[false,true],[true,false]] as const){
+    const m=make('friday','main',0,{fridaySalawat:salawat,fridayAlkahf:alkahf} as never)
     const rows=settingsRows(m)
     expect(rows.map(r=>r.label)).toEqual(['الصلاة على النبي ﷺ','تذكير سورة الكهف'])
     // Each row's switch writes its own setting and shows its state.
     const switches=rows.map(r=>r.controls.find(c=>c.style==='switch'))
-    expect(switches.map(c=>c?.id)).toEqual(['settings:fridaySalawat','settings:fridayKahf'])
-    expect(switches.map(c=>c?.selected)).toEqual([salawat,kahf])
+    expect(switches.map(c=>c?.id)).toEqual(['settings:fridaySalawat','settings:fridayAlkahf'])
+    expect(switches.map(c=>c?.selected)).toEqual([salawat,alkahf])
     const text=terminalSettings(m,s=>`SHOWN(${s})`)
     expect(text).toContain('**SHOWN(الجمعة)**')
     expect(text).toContain(`Friday · salawat: ${salawat?'on':'off'} · /friday salawat on | off`)
-    expect(text).toContain(`Friday · Al-Kahf reminder: ${kahf?'on':'off'} · /friday kahf on | off`)
+    expect(text).toContain(`Friday · Al-Kahf reminder: ${alkahf?'on':'off'} · /friday alkahf on | off`)
   }
 })

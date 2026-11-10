@@ -13,9 +13,9 @@ import { accentHex, type Accent } from '../../shared/color/index.ts'
 import { AREF_RUQAA_BOLD } from '../../shared/font/aref-ruqaa-embedded.ts'
 import { TAJAWAL_BOLD_WOFF2, TAJAWAL_REGULAR_WOFF2 } from '../../shared/font/tajawal-embedded.ts'
 import { avatarSvg } from '../../shared/quran-avatar/index.ts'
-import { KAHF_BROWSER, KAHF_PLAY, KAHF_TITLE, kahfSubtitle } from './logic.ts'
+import { ALKAHF_BROWSER, ALKAHF_PLAY, ALKAHF_TITLE, alkahfSubtitle } from './logic.ts'
 
-export type KahfCardProps = CardProps & {
+export type AlkahfCardProps = CardProps & {
   accent: Accent
   // The reciter last used, short Arabic name; empty until the Quran is ready.
   reciter: string
@@ -29,7 +29,7 @@ export type KahfCardProps = CardProps & {
 }
 
 // The folded row's height, as the athkar folded row has it.
-export const kahfFrame = (p: Pick<KahfCardProps, 'width' | 'card'>, columns = 0): CardFrame => ({
+export const alkahfFrame = (p: Pick<AlkahfCardProps, 'width' | 'card'>, columns = 0): CardFrame => ({
   width: p.width,
   height: REST_PX,
   isFolded: true,
@@ -50,7 +50,7 @@ const PILL_W = { play: 76, browser: 128 }
 // The one height every part shares: the band's own room for content. The picture's height less what the shell takes
 // of it (its padding around the band, the band's extra padding over the desktop's card, and the frame's two lines).
 // Nothing in the row is taller, so the band never outgrows its picture, whatever the cell or the fonts.
-export const kahfInner = (f: CardFrame): number => {
+export const alkahfInner = (f: CardFrame): number => {
   const box = frameOf(f)
 
   return Math.floor(box.height - 2 * (f.card ? box.padY : 1) - 2 * box.addY - 2 * FRAME_LINE)
@@ -61,7 +61,7 @@ const pillWidth = (inBrowser: boolean) => (inBrowser ? PILL_W.browser : PILL_W.p
 const avatarSize = (inner: number) => (Math.min(AVATAR_MAX, inner) * 32) / 30
 
 // Where each part sits, from the card's left edge in CSS pixels (the row's padding in, the frame's line first): in the row's own order from the left, the pill, the avatar, then the text.
-export const kahfLayout = (inBrowser: boolean, inner = kahfInner(kahfFrame({ width: 800, card: { ch: 8.4, lh: LINE_PX } }))) => {
+export const alkahfLayout = (inBrowser: boolean, inner = alkahfInner(alkahfFrame({ width: 800, card: { ch: 8.4, lh: LINE_PX } }))) => {
   const pillLeft = FRAME_LINE + PAD_LEFT
   const avatarWidth = Math.round(avatarSize(inner))
   const avatarLeft = pillLeft + pillWidth(inBrowser) + GAP
@@ -75,7 +75,7 @@ export const kahfLayout = (inBrowser: boolean, inner = kahfInner(kahfFrame({ wid
 // Same bounds for drawing-thread hover and hooks-thread clicks, including the desktop shell's extra padding.
 export const playArea = (f: CardFrame, inBrowser = false) => {
   const box = frameOf(f)
-  const l = kahfLayout(inBrowser, kahfInner(f))
+  const l = alkahfLayout(inBrowser, alkahfInner(f))
   const x0 = (f.card ? box.padX : 1) + l.pillLeft + box.addX - box.left
 
   return { x0, x1: x0 + l.pillWidth, y0: (f.height - l.pillHeight) / 2, y1: (f.height + l.pillHeight) / 2 }
@@ -87,8 +87,8 @@ export const playHitArea = (f: CardFrame, inBrowser = false) => {
 
   return { x0: Math.max(a.x0 - MARGIN, closeArea(f).x1 + 1), x1: a.x1 + MARGIN, y0: 0, y1: f.height }
 }
-export const isOnPlay = (p: KahfCardProps, x: number, y: number, columns: number, rows: number): boolean => {
-  const frame = kahfFrame(p, columns)
+export const isOnPlay = (p: AlkahfCardProps, x: number, y: number, columns: number, rows: number): boolean => {
+  const frame = alkahfFrame(p, columns)
   const { px, py } = pixelOf(frame, x, y, columns, rows)
   const a = playHitArea(frame, p.inBrowser)
 
@@ -97,7 +97,7 @@ export const isOnPlay = (p: KahfCardProps, x: number, y: number, columns: number
 
 // The athkar frame look's rules (athkar/band.ts), lit: the frame in the main color, a quiet glow breathing inside it, and the app's own light or dark behind.
 const css = (accent: Accent, inBrowser: boolean, inner: number) => {
-  const l = kahfLayout(inBrowser, inner)
+  const l = alkahfLayout(inBrowser, inner)
 
   return [
     fontFace('Tajawal', 400, TAJAWAL_REGULAR_WOFF2),
@@ -112,32 +112,32 @@ const css = (accent: Accent, inBrowser: boolean, inner: number) => {
     '@media (prefers-color-scheme: light) { .band.bg-frame { background: var(--bg); } }',
     '@media (prefers-reduced-motion: reduce) { .band.band.al-breathe.active { animation: none; } }',
     // One box the picture's size; one row height (--row) every part stays within; the room left over is only padding.
-    `.band.band.kahf { --row: ${inner}px; display: flex; align-items: center; gap: ${GAP}px; direction: rtl; font-family: Tajawal, sans-serif; font-weight: 700; width: 100%; height: 100%; min-height: 0; box-sizing: border-box;`,
+    `.band.band.alkahf { --row: ${inner}px; display: flex; align-items: center; gap: ${GAP}px; direction: rtl; font-family: Tajawal, sans-serif; font-weight: 700; width: 100%; height: 100%; min-height: 0; box-sizing: border-box;`,
     `  padding: var(--ay, 0px) calc(${PAD_RIGHT}px + var(--ax, 0px)) var(--ay, 0px) calc(${PAD_LEFT}px + var(--ax, 0px)); }`,
-    '.kahf > * { max-height: var(--row); min-height: 0; }',
-    '.kahf .text { flex: 1 1 auto; min-width: 0; height: var(--row); display: flex; align-items: center; gap: 10px; overflow: hidden; white-space: nowrap; }',
-    '.kahf .title { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: "Aref Ruqaa", Tajawal, serif; font-weight: 700; font-size: 17px; line-height: var(--row); max-height: var(--row); color: var(--b-acc); }',
-    '.kahf .sub { flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 12.5px; font-weight: 400; line-height: var(--row); max-height: var(--row); color: var(--b-dim); }',
-    `.kahf .pic { flex: none; width: ${l.avatarWidth}px; height: ${l.avatarHeight}px; direction: ltr; }`,
-    '.kahf .pic svg { display: block; }',
-    `.kahf .play { flex: none; width: ${l.pillWidth}px; height: ${l.pillHeight}px; display: flex; align-items: center; justify-content: center; white-space: nowrap; font-size: 12px; font-weight: 700; line-height: 1; direction: rtl;`,
+    '.alkahf > * { max-height: var(--row); min-height: 0; }',
+    '.alkahf .text { flex: 1 1 auto; min-width: 0; height: var(--row); display: flex; align-items: center; gap: 10px; overflow: hidden; white-space: nowrap; }',
+    '.alkahf .title { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: "Aref Ruqaa", Tajawal, serif; font-weight: 700; font-size: 17px; line-height: var(--row); max-height: var(--row); color: var(--b-acc); }',
+    '.alkahf .sub { flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 12.5px; font-weight: 400; line-height: var(--row); max-height: var(--row); color: var(--b-dim); }',
+    `.alkahf .pic { flex: none; width: ${l.avatarWidth}px; height: ${l.avatarHeight}px; direction: ltr; }`,
+    '.alkahf .pic svg { display: block; }',
+    `.alkahf .play { flex: none; width: ${l.pillWidth}px; height: ${l.pillHeight}px; display: flex; align-items: center; justify-content: center; white-space: nowrap; font-size: 12px; font-weight: 700; line-height: 1; direction: rtl;`,
     '  border-radius: 999px; border: 1.5px solid var(--b-acc); color: var(--b-acc); cursor: pointer; transition: background .2s, color .2s; }',
-    '.kahf .play.hot { background: var(--b-acc); color: var(--bg); }',
+    '.alkahf .play.hot { background: var(--b-acc); color: var(--bg); }',
   ].join('\n')
 }
 
 const escape = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-export const kahfSvg = (p: KahfCardProps, view: Pick<CardView, 'hoverClose' | 'columns' | 'hoverAction' | 'gone'>) => {
-  const frame = kahfFrame(p, view.columns)
-  const inner = kahfInner(frame)
+export const alkahfSvg = (p: AlkahfCardProps, view: Pick<CardView, 'hoverClose' | 'columns' | 'hoverAction' | 'gone'>) => {
+  const frame = alkahfFrame(p, view.columns)
+  const inner = alkahfInner(frame)
 
   return cardSvg(frame, {
-    classes: 'line compact bg-frame al-breathe kahf rest active',
+    classes: 'line compact bg-frame al-breathe alkahf rest active',
     style: '',
-    html: `<div class="text"><span class="title">${KAHF_TITLE}</span><span class="sub">${escape(kahfSubtitle(p.reciter))}</span></div>`
+    html: `<div class="text"><span class="title">${ALKAHF_TITLE}</span><span class="sub">${escape(alkahfSubtitle(p.reciter))}</span></div>`
       + `<div class="pic">${avatarSvg(true, Math.max(0, p.now - p.startedAt) + view.gone, avatarSize(inner))}</div>`
-      + `<span class="play${view.hoverAction ? ' hot' : ''}">${p.inBrowser ? KAHF_BROWSER : KAHF_PLAY}</span>`,
+      + `<span class="play${view.hoverAction ? ' hot' : ''}">${p.inBrowser ? ALKAHF_BROWSER : ALKAHF_PLAY}</span>`,
     css: css(p.accent, p.inBrowser, inner),
     hoverClose: view.hoverClose,
   })

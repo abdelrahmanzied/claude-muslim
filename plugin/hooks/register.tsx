@@ -273,7 +273,7 @@ export const register: Register = (on, options) => {
 
     await $.command.register({
       name: 'friday',
-      description: 'Friday: salawat in the thikr line, the Al-Kahf reminder: help, salawat, kahf, demo',
+      description: 'Friday: salawat in the thikr line, the Al-Kahf reminder: help, salawat, alkahf, demo',
     })
 
     await $.command.register({ name: 'quran', description: 'Desktop only: open the Muslim pane with its Quran card unfolded' })
@@ -390,7 +390,7 @@ export const register: Register = (on, options) => {
           ['Thikr', 'Tasbih in Claude\'s working line', onOff(settings.thikr)],
           ['Athkar', 'Morning, evening and after-salah athkar above the prompt; reminders morning · evening · after salah', [settings.athkarMorning, settings.athkarEvening, settings.athkarAfterSalah].map(onOff).join(' · ')],
           ['Salah', 'Pray times and the next pray under the prompt', settings.salahPlace ? showText(settings.salahShow) : 'not set up'],
-          ['Friday', 'Salawat in the thikr line and the Al-Kahf reminder on Friday; salawat · Al-Kahf', [settings.fridaySalawat, settings.fridayKahf].map(onOff).join(' · ')],
+          ['Friday', 'Salawat in the thikr line and the Al-Kahf reminder on Friday; salawat · Al-Kahf', [settings.fridaySalawat, settings.fridayAlkahf].map(onOff).join(' · ')],
           ['Quran', 'Desktop recitation player', 'desktop only'],
         ], 'Feature'),
         '',

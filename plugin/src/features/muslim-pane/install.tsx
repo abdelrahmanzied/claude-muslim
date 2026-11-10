@@ -12,7 +12,7 @@ import { enabledOf, NO_FOLDS, cardRects, hitOfCells, isFolds, isPaneMessage, key
 import { paneModel, quranLayout, textLines, widthOf, type PaneModel } from './model.ts'
 import { dragBar, dragCell, isPanePicker, openPicker, pickerKey, pickerView, pressBar, type PickerView } from './picker.ts'
 import { CATEGORIES, CLOSED_SETTINGS, COPIED_MS, changeCategory, copiedAt, fieldKey, fieldSpec, fieldSubmit, isSwitchField, loadSettings, optimisticOptions, settingsBody, type SettingsState } from './settings.ts'
-import { KAHF_SURAH } from '../../shared/friday/index.ts'
+import { ALKAHF_SURAH } from '../../shared/friday/index.ts'
 import { skipPaneScroll } from '../../shared/scroll/index.ts'
 // DEMO BEGIN
 import { DEMO_TICK_MS, demoAthkar, demoFolds, demoNow, demoQuran, demoReply, demoSalah, demoTerminalReply, isDemoOver } from './demo.ts'
@@ -197,9 +197,9 @@ async function press($: EngineInterface, options: Options, act: PaneAct): Promis
     if (option) await choose($, picker, option)
     return
   }
-  if (act === 'quran-kahf') {
+  if (act === 'quran-alkahf') {
     // Plays the surah; where Claude Code plays no audio (Windows, Linux) the Quran feature opens it in the browser.
-    if (!(await playSurah(KAHF_SURAH))) $.ui.toast('Quran is not ready yet. /quran')
+    if (!(await playSurah(ALKAHF_SURAH))) $.ui.toast('Quran is not ready yet. /quran')
     return
   }
   const action: PanelAction | null = act === 'quran-retry' || act === 'quran-browser' || act === 'quran-toggle' || act === 'quran-prev' || act === 'quran-next' || act === 'quran-repeat-surah' || act === 'quran-repeat-segment' || act === 'athkar-open' || act === 'athkar-finish' ? act : null

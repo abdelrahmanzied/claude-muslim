@@ -17,7 +17,7 @@ export type Options = {
   athkarAfterSalah: boolean
   athkarStyle: Style
   fridaySalawat: boolean
-  fridayKahf: boolean
+  fridayAlkahf: boolean
   color: Accent
   salahShow: Show
   salahAthan: boolean
@@ -50,7 +50,7 @@ export const readOptions = (raw: Record<string, unknown>): Options => ({
   athkarStyle: raw.athkarStyle === 'frame' ? 'frame' : 'sky',
   // Friday: salawat in the thikr line, and the Al-Kahf reminder; manual opening always works.
   fridaySalawat: raw.fridaySalawat !== false,
-  fridayKahf: raw.fridayKahf !== false,
+  fridayAlkahf: raw.fridayAlkahf !== false,
   color: readColor(raw.color),
   salahShow: readShow(raw),
   salahAthan: raw.salahAthan !== false,

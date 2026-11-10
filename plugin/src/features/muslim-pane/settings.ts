@@ -25,7 +25,7 @@ export const isSettings = (v: unknown): v is SettingsState => {
 export const loadSettings = (saved: unknown): SettingsState => isSettings(saved) ? saved : CLOSED_SETTINGS
 export type SettingsOptions = Omit<Options, 'salahPlace'> & { salahPlace: NonNullable<Options['salahPlace']> | null }
 export const settingsOptions = (o: Options): SettingsOptions => ({ ...o, salahPlace: o.salahPlace ?? null })
-export const SWITCH_FIELDS = ['tashkeel', 'thikr', 'athkarMorning', 'athkarEvening', 'athkarAfterSalah', 'salahAthan', 'paneButton', 'thikrEnd', 'fridaySalawat', 'fridayKahf'] as const
+export const SWITCH_FIELDS = ['tashkeel', 'thikr', 'athkarMorning', 'athkarEvening', 'athkarAfterSalah', 'salahAthan', 'paneButton', 'thikrEnd', 'fridaySalawat', 'fridayAlkahf'] as const
 export const isSwitchField = (field: keyof Options): field is keyof PaneOptimistic => SWITCH_FIELDS.some(f => f === field)
 // Only valid, differing pending values affect drawing. The installer supplies
 // current-module presses and retires inherited entries outside ui.render.
@@ -200,7 +200,7 @@ export const settingsRows = (m: SettingsModel): SettingRow[] => {
     ]
     case 'friday': return [
       row('الصلاة على النبي ﷺ',toggle(o,'fridaySalawat'),'في سطر الذكر يوم الجمعة، من الفجر'),
-      row('تذكير سورة الكهف',toggle(o,'fridayKahf'),'مرة كل جمعة، بعد الجمعة بنصف ساعة حتى المغرب'),
+      row('تذكير سورة الكهف',toggle(o,'fridayAlkahf'),'مرة كل جمعة، بعد الجمعة بنصف ساعة حتى المغرب'),
     ]
     case 'general': return [
       row('زر مسلم',toggle(o,'paneButton'),'في الشريط تحت خانة الكتابة · عند الإيقاف افتح اللوحة بـ /muslim'),
@@ -288,6 +288,6 @@ export const terminalSettings = (m: SettingsModel, show: (s:string)=>string, isP
     `Thikr · speed: ${o.thikrSpeed} · /thikr speed auto | <1–60>`, `End of turn: ${on(o.thikrEnd)} · /thikr end on | off`,
     `**${show('الجمعة')}**`,
     `Friday · salawat: ${on(o.fridaySalawat)} · /friday salawat on | off`,
-    `Friday · Al-Kahf reminder: ${on(o.fridayKahf)} · /friday kahf on | off`,
+    `Friday · Al-Kahf reminder: ${on(o.fridayAlkahf)} · /friday alkahf on | off`,
   ]
 }

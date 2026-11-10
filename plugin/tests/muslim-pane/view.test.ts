@@ -1,7 +1,7 @@
 import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
 import { listFor, emptyReading, overall } from '../../src/features/athkar/logic.ts'
 import { expect, test } from 'claude-code/testing'
-import { enabledOf, PANE_HEIGHT, cardRects, settingsBoxes, hitAt, Q_BASE_H, Q_BROWSER_DY, Q_BROWSER_H, Q_ERROR_EXTRA, Q_NOTE_EXTRA, Q_KAHF_EXTRA, Q_KAHF_H, Q_NOTE_H, Q_RETRY_H, Q_RETRY_TOP, quranKahfTop, quranNoteTop, quranOffset } from '../../src/features/muslim-pane/layout.ts'
+import { enabledOf, PANE_HEIGHT, cardRects, settingsBoxes, hitAt, Q_BASE_H, Q_BROWSER_DY, Q_BROWSER_H, Q_ERROR_EXTRA, Q_NOTE_EXTRA, Q_ALKAHF_EXTRA, Q_ALKAHF_H, Q_NOTE_H, Q_RETRY_H, Q_RETRY_TOP, quranAlkahfTop, quranNoteTop, quranOffset } from '../../src/features/muslim-pane/layout.ts'
 import { paneModel, quranLayout, textLines } from '../../src/features/muslim-pane/model.ts'
 import { CLOSED_SETTINGS, CATEGORIES, DEFAULT_SETTINGS, SETTINGS_BODY_TOP, QURAN_SETTINGS_NOTE, QURAN_SETTINGS_NOTE_H, settingsBody } from '../../src/features/muslim-pane/settings.ts'
 import { paneAlt, paneSvg, paletteCss } from '../../src/features/muslim-pane/view.ts'
@@ -470,14 +470,14 @@ test('on Fridays the Quran card adds a «سورة الكهف» button under its 
     expect(plain.isFriday).toBe(false)
     expect(model.isFriday).toBe(true)
     const q = quranLayout(model), r = cardRects(model.folds, model.settings.state, model.settings.options, q)
-    expect(r.quranH - cardRects(plain.folds, plain.settings.state, plain.settings.options, quranLayout(plain)).quranH).toBe(Q_KAHF_EXTRA)
-    const top = quranKahfTop(q)
+    expect(r.quranH - cardRects(plain.folds, plain.settings.state, plain.settings.options, quranLayout(plain)).quranH).toBe(Q_ALKAHF_EXTRA)
+    const top = quranAlkahfTop(q)
     expect(top).toBe(Q_BASE_H + (audioNote ? Q_NOTE_EXTRA : 0) + quranOffset(true))
-    expect(paneSvg(model)).toContain(`top:${top}px;left:16px;right:16px;height:${Q_KAHF_H}px"><span class="ar">سورة الكهف</span>`)
+    expect(paneSvg(model)).toContain(`top:${top}px;left:16px;right:16px;height:${Q_ALKAHF_H}px"><span class="ar">سورة الكهف</span>`)
     expect(paneSvg(plain)).not.toContain('سورة الكهف</span>')
     const y0 = r.quranY + top
-    for (const y of [y0, y0 + Q_KAHF_H / 2, y0 + Q_KAHF_H]) for (const x of [28, width / 2, width - 28]) expect(hitAt(width, x, y, on, 0, 0, model.folds, model.settings, q)).toBe('quran-kahf')
-    expect(hitAt(width, width / 2, y0 + Q_KAHF_H / 2, on, 0, 0, plain.folds, plain.settings, quranLayout(plain))).not.toBe('quran-kahf')
+    for (const y of [y0, y0 + Q_ALKAHF_H / 2, y0 + Q_ALKAHF_H]) for (const x of [28, width / 2, width - 28]) expect(hitAt(width, x, y, on, 0, 0, model.folds, model.settings, q)).toBe('quran-alkahf')
+    expect(hitAt(width, width / 2, y0 + Q_ALKAHF_H / 2, on, 0, 0, plain.folds, plain.settings, quranLayout(plain))).not.toBe('quran-alkahf')
   }
 })
 
@@ -490,5 +490,5 @@ test('the Friday button is gone while the Quran card is folded', () => {
 
 test('the Quran card needs a feed for the Friday button', () => {
   const model = paneModel({ ...feeds, quran: null }, FRIDAY, 360, 'orange')
-  expect(quranLayout(model).kahf).toBeUndefined()
+  expect(quranLayout(model).alkahf).toBeUndefined()
 })

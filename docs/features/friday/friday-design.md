@@ -32,7 +32,7 @@ Desktop: click the pill plays (or opens the browser), click × closes; Enter or 
 
 ## Demo
 
-`/friday demo` and the shared demo draw the same card on both surfaces for 8 seconds, with three rows beside it: the pray line «☾ الجمعة ١٢:٣٠» (the shared pray-line code on a fixed Friday), one salawat in the main color (the thikr line's phrase) and the pane's «سورة الكهف» button as a text row (`[ سورة الكهف ]` on desktop, `سورة الكهف · /friday kahf` on the terminal). The pill closes the demo instead of playing. The demo only drives drawing: settings, store and state are untouched.
+`/friday demo` and the shared demo draw the same card on both surfaces for 8 seconds, with three rows beside it: the pray line «☾ الجمعة ١٢:٣٠» (the shared pray-line code on a fixed Friday), one salawat in the main color (the thikr line's phrase) and the pane's «سورة الكهف» button as a text row (`[ سورة الكهف ]` on desktop, `سورة الكهف · /friday alkahf` on the terminal). The pill closes the demo instead of playing. The demo only drives drawing: settings, store and state are untouched.
 
 ## Checklist for a change
 

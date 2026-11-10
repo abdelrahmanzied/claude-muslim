@@ -1,7 +1,7 @@
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
-import { KAHF_CARD_MS, KAHF_TITLE } from '../../src/features/friday/logic.ts'
+import { ALKAHF_CARD_MS, ALKAHF_TITLE } from '../../src/features/friday/logic.ts'
 import { defaultReciter } from '../../src/features/quran/catalog.ts'
 import { QURAN_CATALOG } from '../../src/features/quran/catalog-data.ts'
 import { runPanelAction } from '../../src/shared/panel/signal.ts'
@@ -45,7 +45,7 @@ const fixture = (on: On, now: number, entries: Record<string, unknown> = {}, sur
 }
 type Ui = { find: (q: { type: string; text?: string; key?: string }) => Promise<unknown> }
 // The card is up: the terminal's line holding the title, the desktop's Client picture.
-const shown = (ui: Ui, surface: Surface) => surface === 'terminal' ? ui.find({ type: 'Text', text: KAHF_TITLE }) : ui.find({ type: 'Client', key: 'friday-kahf' })
+const shown = (ui: Ui, surface: Surface) => surface === 'terminal' ? ui.find({ type: 'Text', text: ALKAHF_TITLE }) : ui.find({ type: 'Client', key: 'friday-alkahf' })
 
 test('/friday tells the day, both settings and whether the reminder was shown today', { options: OPTIONS }, async ($, on) => {
   fixture(on, INSIDE)
@@ -61,15 +61,15 @@ test('/friday on another day says it is not Friday', { options: OPTIONS }, async
   expect((await $.command.run(run(''))).text).toContain('| Today | Friday on this device\'s local day | not Friday |')
 })
 
-test('/friday salawat and /friday kahf change their own setting only', { options: OPTIONS }, async ($, on) => {
+test('/friday salawat and /friday alkahf change their own setting only', { options: OPTIONS }, async ($, on) => {
   const { writes } = fixture(on, INSIDE)
   await $.command.run(run('salawat off'))
-  await $.command.run(run('kahf off'))
-  await $.command.run(run('kahf on'))
+  await $.command.run(run('alkahf off'))
+  await $.command.run(run('alkahf on'))
   expect(writes).toEqual([
     { key: 'muslim.fridaySalawat', value: false },
-    { key: 'muslim.fridayKahf', value: false },
-    { key: 'muslim.fridayKahf', value: true },
+    { key: 'muslim.fridayAlkahf', value: false },
+    { key: 'muslim.fridayAlkahf', value: true },
   ])
 })
 
@@ -81,16 +81,16 @@ test('/friday help is the table', { options: OPTIONS }, async ($, on) => {
 const waitFor = async (clock: { advance: (ms: number) => Promise<unknown> }) => { await clock.advance(1600) }
 
 for (const surface of SURFACES) {
-  test(`${surface}: /friday kahf shows the card now, on any day and time, and it hides itself after three minutes`, { options: OPTIONS }, async ($, on) => {
+  test(`${surface}: /friday alkahf shows the card now, on any day and time, and it hides itself after three minutes`, { options: OPTIONS }, async ($, on) => {
     const { clock } = fixture(on, THURSDAY, {}, surface)
     const ui = await $.ui.mount(band(surface))
     expect(await shown(ui, surface)).toBeUndefined()
-    const reply = (await $.command.run(run('kahf'))).text!
+    const reply = (await $.command.run(run('alkahf'))).text!
     expect(reply).toContain('shown above the prompt')
     // Only the desktop has ▶, and only its reply says so.
     expect(reply.includes('▶')).toBe(surface === 'desktop')
     expect(await shown(ui, surface)).toBeDefined()
-    await clock.advance(KAHF_CARD_MS - 1000)
+    await clock.advance(ALKAHF_CARD_MS - 1000)
     expect(await shown(ui, surface)).toBeDefined()
     await clock.advance(1100)
     expect(await shown(ui, surface)).toBeUndefined()
@@ -102,9 +102,9 @@ for (const surface of SURFACES) {
     const ui = await $.ui.mount(band(surface))
     await waitFor(clock)
     expect(await shown(ui, surface)).toBeDefined()
-    expect(stored['friday.kahfDay']).toBe(dayKey(INSIDE))
+    expect(stored['friday.alkahfDay']).toBe(dayKey(INSIDE))
     // Three minutes later it is gone and does not come back.
-    await clock.advance(KAHF_CARD_MS + 100)
+    await clock.advance(ALKAHF_CARD_MS + 100)
     expect(await shown(ui, surface)).toBeUndefined()
     await clock.advance(60_000)
     expect(await shown(ui, surface)).toBeUndefined()
@@ -118,7 +118,7 @@ for (const surface of SURFACES) {
       await waitFor(clock)
       await clock.advance(30_000)
       expect(await shown(ui, surface)).toBeUndefined()
-      expect(stored['friday.kahfDay']).toBeUndefined()
+      expect(stored['friday.alkahfDay']).toBeUndefined()
       await ui.unmount()
     })
   }
@@ -130,28 +130,28 @@ for (const surface of SURFACES) {
     await waitFor(clock)
     await clock.advance(8 * 60_000)
     expect(await shown(ui, surface)).toBeUndefined()
-    expect(stored['friday.kahfDay']).toBeUndefined()
+    expect(stored['friday.alkahfDay']).toBeUndefined()
     // By 11:40 it opened inside the window (and is up for three minutes at most).
     await clock.advance(12 * 60_000)
-    expect(stored['friday.kahfDay']).toBe(dayKey(Date.parse('2026-10-09T11:40:00Z')))
+    expect(stored['friday.alkahfDay']).toBe(dayKey(Date.parse('2026-10-09T11:40:00Z')))
 
     await ui.unmount()
   })
 
   test(`${surface}: already shown today, on any session, it does not show again`, { options: OPTIONS }, async ($, on) => {
-    const { clock } = fixture(on, INSIDE, { 'friday.kahfDay': dayKey(INSIDE) }, surface)
+    const { clock } = fixture(on, INSIDE, { 'friday.alkahfDay': dayKey(INSIDE) }, surface)
     const ui = await $.ui.mount(band(surface))
     await waitFor(clock)
     expect(await shown(ui, surface)).toBeUndefined()
     await ui.unmount()
   })
 
-  test(`${surface}: with the reminder off it never shows by itself, while the command still opens it`, { options: { ...OPTIONS, fridayKahf: false } }, async ($, on) => {
+  test(`${surface}: with the reminder off it never shows by itself, while the command still opens it`, { options: { ...OPTIONS, fridayAlkahf: false } }, async ($, on) => {
     const { clock } = fixture(on, INSIDE, {}, surface)
     const ui = await $.ui.mount(band(surface))
     await waitFor(clock)
     expect(await shown(ui, surface)).toBeUndefined()
-    await $.command.run(run('kahf'))
+    await $.command.run(run('alkahf'))
     expect(await shown(ui, surface)).toBeDefined()
     await ui.unmount()
   })
@@ -161,7 +161,7 @@ for (const surface of SURFACES) {
     const ui = await $.ui.mount(band(surface))
     await waitFor(clock)
     expect(await shown(ui, surface)).toBeUndefined()
-    await $.command.run(run('kahf'))
+    await $.command.run(run('alkahf'))
     expect(await shown(ui, surface)).toBeDefined()
     await ui.unmount()
   })
@@ -177,7 +177,7 @@ for (const surface of SURFACES) {
     const ui = await $.ui.mount(band(surface))
     await waitFor(clock)
     expect(await shown(ui, surface)).toBeUndefined()
-    expect(stored['friday.kahfDay']).toBeUndefined()
+    expect(stored['friday.alkahfDay']).toBeUndefined()
     await clock.advance(61_000)
     expect(await shown(ui, surface)).toBeDefined()
     await ui.unmount()
@@ -198,7 +198,7 @@ for (const surface of SURFACES) {
     await waitFor(clock)
     expect(await ui.find({ type: 'Client', key: 'athkar' }), 'the athkar reading is open').toBeDefined()
     expect(await shown(ui, surface)).toBeUndefined()
-    expect(stored['friday.kahfDay']).toBeUndefined()
+    expect(stored['friday.alkahfDay']).toBeUndefined()
     await ui.post({ act: 'hide' }, { in: 'athkar' })
     await ui.redraw()
     await clock.advance(16_000)
@@ -214,8 +214,8 @@ for (const surface of SURFACES) {
       const ui = await $.ui.mount(band(surface))
       // The Quran feature connects its player actions when it is first used.
       await $.command.run({ command: 'quran', args: '', origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } })
-      await $.command.run(run('kahf'))
-      await ui.post({ act: 'key', key: 'return' }, { in: 'friday-kahf' })
+      await $.command.run(run('alkahf'))
+      await ui.post({ act: 'key', key: 'return' }, { in: 'friday-alkahf' })
       expect(played).toContain(18)
       expect(await shown(ui, surface)).toBeUndefined()
       await ui.unmount()
@@ -225,9 +225,9 @@ for (const surface of SURFACES) {
   test(`${surface}: the × closes the card before its three minutes`, { options: OPTIONS }, async ($, on) => {
     fixture(on, THURSDAY, {}, surface)
     const ui = await $.ui.mount(band(surface))
-    await $.command.run(run('kahf'))
-    if (surface === 'terminal') await ui.press({ key: 'friday-kahf-close' })
-    else await ui.post({ act: 'hide' }, { in: 'friday-kahf' })
+    await $.command.run(run('alkahf'))
+    if (surface === 'terminal') await ui.press({ key: 'friday-alkahf-close' })
+    else await ui.post({ act: 'hide' }, { in: 'friday-alkahf' })
     expect(await shown(ui, surface)).toBeUndefined()
     await ui.unmount()
   })
@@ -241,22 +241,22 @@ for (const surface of SURFACES) {
     expect(await ui.find({ type: 'Box', key: 'friday-demo-rows' }), 'rows box').toBeDefined()
     expect(await ui.find({ type: 'Text', text: '☾ الجمعة' })).toBeDefined()
     expect(await ui.find({ type: 'Text', text: surface === 'terminal' ? stripTashkeel('اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ') : 'اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ' })).toBeDefined()
-    expect(await ui.find({ type: 'Text', text: surface === 'terminal' ? 'سورة الكهف · /friday kahf' : '[ سورة الكهف ]' }), 'pane button').toBeDefined()
+    expect(await ui.find({ type: 'Text', text: surface === 'terminal' ? 'سورة الكهف · /friday alkahf' : '[ سورة الكهف ]' }), 'pane button').toBeDefined()
     await clock.advance(7500)
     expect(await shown(ui, surface)).toBeDefined()
     await clock.advance(1100)
     expect(await shown(ui, surface)).toBeUndefined()
     expect(await ui.find({ type: 'Box', key: 'friday-demo-rows' })).toBeUndefined()
-    expect(stored['friday.kahfDay']).toBeUndefined()
+    expect(stored['friday.alkahfDay']).toBeUndefined()
     expect(writes).toEqual([])
     await ui.unmount()
   })
 
-  test(`${surface}: with no city /friday says the automatic reminder needs one, and /friday kahf still works`, { options: NO_PLACE }, async ($, on) => {
+  test(`${surface}: with no city /friday says the automatic reminder needs one, and /friday alkahf still works`, { options: NO_PLACE }, async ($, on) => {
     fixture(on, INSIDE, {}, surface)
     const status = (await $.command.run(run(''))).text!
     expect(status).toContain('The automatic Al-Kahf reminder needs a city: set one with `/salah city`.')
-    expect((await $.command.run(run('kahf'))).text).toContain('shown above the prompt')
+    expect((await $.command.run(run('alkahf'))).text).toContain('shown above the prompt')
   })
 
   test(`${surface}: with a city /friday has no city line`, { options: OPTIONS }, async ($, on) => {
@@ -271,8 +271,8 @@ for (const surface of SURFACES) {
     expect(status).toContain('| Al-Kahf |')
     expect((await $.command.run(run('help'))).text?.split('\n')[0]).toBe('**Muslim › Friday › Help**')
     await $.command.run(run('salawat off'))
-    await $.command.run(run('kahf off'))
-    expect(writes.map(w => w.key)).toEqual(['muslim.fridaySalawat', 'muslim.fridayKahf'])
+    await $.command.run(run('alkahf off'))
+    expect(writes.map(w => w.key)).toEqual(['muslim.fridaySalawat', 'muslim.fridayAlkahf'])
   })
 }
 
@@ -302,7 +302,7 @@ const watch = (on: On) => {
 
   return { surahs, toasts }
 }
-const cardProps = async (ui: Ui) => ((await ui.find({ type: 'Client', key: 'friday-kahf' })) as { props: { props: { reciter: string; inBrowser: boolean } } }).props.props
+const cardProps = async (ui: Ui) => ((await ui.find({ type: 'Client', key: 'friday-alkahf' })) as { props: { props: { reciter: string; inBrowser: boolean } } }).props.props
 
 test('macOS: the pill reads «▶ استمع» and ▶ plays Al-Kahf in the player; no browser opens', { options: OPTIONS }, async ($, on) => {
   fixture(on, THURSDAY, {}, 'desktop')
@@ -310,9 +310,9 @@ test('macOS: the pill reads «▶ استمع» and ▶ plays Al-Kahf in the play
   const { surahs } = watch(on)
   const ui = await $.ui.mount(band('desktop'))
   await $.command.run(quranRun)
-  await $.command.run(run('kahf'))
+  await $.command.run(run('alkahf'))
   expect(await cardProps(ui)).toMatchObject({ reciter: FIRST.name, inBrowser: false })
-  await ui.post({ act: 'key', key: 'return' }, { in: 'friday-kahf' })
+  await ui.post({ act: 'key', key: 'return' }, { in: 'friday-alkahf' })
   expect(surahs).toContain(18)
   expect(argvs.filter(isOpen)).toEqual([])
   expect(await shown(ui, 'desktop')).toBeUndefined()
@@ -325,9 +325,9 @@ test('Windows: the pill reads «↗ افتح في المتصفح»; pressing it 
   const { surahs, toasts } = watch(on)
   const ui = await $.ui.mount(band('desktop'))
   await $.command.run(quranRun)
-  await $.command.run(run('kahf'))
+  await $.command.run(run('alkahf'))
   expect(await cardProps(ui)).toMatchObject({ reciter: FIRST.name, inBrowser: true })
-  await ui.post({ act: 'key', key: 'return' }, { in: 'friday-kahf' })
+  await ui.post({ act: 'key', key: 'return' }, { in: 'friday-alkahf' })
   expect(argvs.filter(isOpen)).toEqual([['cmd', '/d', '/c', 'start', '', `${FIRST.server}018.mp3`]])
   expect(surahs).not.toContain(18)
   expect(toasts).toEqual([])
@@ -341,9 +341,9 @@ test('Linux: the same with xdg-open, the reciter last used, and no #t= segment',
   const { surahs } = watch(on)
   const ui = await $.ui.mount(band('desktop'))
   await $.command.run(quranRun)
-  await $.command.run(run('kahf'))
+  await $.command.run(run('alkahf'))
   expect(await cardProps(ui)).toMatchObject({ reciter: OTHER.name, inBrowser: true })
-  await ui.post({ act: 'key', key: 'return' }, { in: 'friday-kahf' })
+  await ui.post({ act: 'key', key: 'return' }, { in: 'friday-alkahf' })
   expect(argvs.filter(isOpen)).toEqual([['xdg-open', `${OTHER.server}018.mp3`]])
   expect(argvs.filter(isOpen)[0]![1]).not.toContain('#t=')
   expect(surahs).not.toContain(18)
@@ -356,8 +356,8 @@ test('Linux: a browser that does not open shows the Quran player\'s toast; the c
   const { toasts } = watch(on)
   const ui = await $.ui.mount(band('desktop'))
   await $.command.run(quranRun)
-  await $.command.run(run('kahf'))
-  await ui.post({ act: 'key', key: 'return' }, { in: 'friday-kahf' })
+  await $.command.run(run('alkahf'))
+  await ui.post({ act: 'key', key: 'return' }, { in: 'friday-alkahf' })
   expect(toasts).toEqual(['Could not open the browser.'])
   expect(await shown(ui, 'desktop')).toBeUndefined()
   await ui.unmount()
@@ -368,16 +368,16 @@ test('terminal: the line reads «سورة الكهف · يوم الجمعة · �
   spawns(on, 'Darwin')
   const ui = await $.ui.mount(band('terminal'))
   await $.command.run(quranRun)
-  await $.command.run(run('kahf'))
+  await $.command.run(run('alkahf'))
   expect(await ui.find({ type: 'Text', text: `سورة الكهف · يوم الجمعة · بصوت ${OTHER.name}` })).toBeDefined()
-  expect(await ui.find({ type: 'Button', key: 'friday-kahf-close' })).toBeDefined()
+  expect(await ui.find({ type: 'Button', key: 'friday-alkahf-close' })).toBeDefined()
   await ui.unmount()
 })
 
 test('before the Quran is ready the card names only the day', { options: OPTIONS }, async ($, on) => {
   fixture(on, THURSDAY, {}, 'terminal')
   const ui = await $.ui.mount(band('terminal'))
-  await $.command.run(run('kahf'))
+  await $.command.run(run('alkahf'))
   expect(await ui.find({ type: 'Text', text: 'سورة الكهف · يوم الجمعة' })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: 'بصوت' })).toBeUndefined()
   await ui.unmount()

@@ -55,7 +55,7 @@ export type PaneCopied = { command: string; until: number }
 export type PanePicker = { list: 'reciter' | 'surah' | 'segment'; query: string; highlight: number; scroll: number; drag: { y: number; scroll: number; cell: number | null } | null }
 // A settings number box being typed in: which box (`thikrSpeed`, `salahShow` or `adjust:<pray>`) and its text so far.
 export type PaneField = { id: string; text: string }
-export type PaneOptimistic = Partial<Record<'tashkeel' | 'thikr' | 'athkarMorning' | 'athkarEvening' | 'athkarAfterSalah' | 'salahAthan' | 'paneButton' | 'thikrEnd' | 'fridaySalawat' | 'fridayKahf', boolean>>
+export type PaneOptimistic = Partial<Record<'tashkeel' | 'thikr' | 'athkarMorning' | 'athkarEvening' | 'athkarAfterSalah' | 'salahAthan' | 'paneButton' | 'thikrEnd' | 'fridaySalawat' | 'fridayAlkahf', boolean>>
 
 declare module 'claude-code' {
   interface PluginState {

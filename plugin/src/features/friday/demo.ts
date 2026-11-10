@@ -1,13 +1,13 @@
 // DEMO BEGIN: Friday, all at once, for a fixed Friday; no settings, store or saved state.
 import { prayLine } from '../../shared/pray/line.ts'
 import { SALAWAT } from '../../shared/thikr/salawat.ts'
-import { KAHF_TITLE } from './logic.ts'
+import { ALKAHF_TITLE } from './logic.ts'
 
 export const DEMO_MS = 8000
 export const DEMO_TICK_MS = 500
 
 export const demoReply = (): string =>
-  `**Friday demo:** for ${DEMO_MS / 1000} s, whatever the day: the Al-Kahf card, the pray line with الجمعة in place of الظهر, one Friday salawat on the thikr line and the pane's «${KAHF_TITLE}» button. Nothing is saved.`
+  `**Friday demo:** for ${DEMO_MS / 1000} s, whatever the day: the Al-Kahf card, the pray line with الجمعة in place of الظهر, one Friday salawat on the thikr line and the pane's «${ALKAHF_TITLE}» button. Nothing is saved.`
 
 // The card is showing at `now`, for a demo started at `startedAt`.
 export const demoShowing = (startedAt: number, now: number): boolean => now - startedAt < DEMO_MS
