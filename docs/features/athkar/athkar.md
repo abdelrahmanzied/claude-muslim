@@ -42,7 +42,7 @@ The third set, **Athkar after salah** (أَذْكَارُ بَعْدَ الصَ�
 
 ## Finished: celebrate, then close
 
-- **Finished in front of the person** (the last count, «نعم، أتممتُها», or the pane's ✓): the finale plays for `FINALE_MS` (3.2s; falling stars and «تَقَبَّلَ اللَّهُ 🤲» on desktop; on a terminal the «تَقَبَّلَ اللَّهُ 🤲» done row with the reset hint for the same time), then the band is gone. No open or folded done row stays above the prompt, for the rest of the period or after a reload.
+- **Finished in front of the person** (the last count, «نعم، أتممتُها», or the pane's ✓): the finale plays for `FINALE_MS` (3.2s; falling stars and «تَقَبَّلَ اللَّهُ 🤲» on desktop; on a terminal the «تَقَبَّلَ اللَّهُ 🤲» done row, the closing line alone with no reset hint, for the same time), then the band is gone. No open or folded done row stays above the prompt, for the rest of the period or after a reload.
 - **A finished set never takes the band by itself:** not after a reload, not in a new session, not in another open session that learns from the shared store that it is done (there it disappears quietly at its next refresh, with no finale). The finale plays only in the session where the set was finished. The finale hold (`view.finished`) is a transient module value, never saved.
 - **Opening a finished set on purpose** (`/athkar morning|evening|after-salah`, bare `/athkar` when the current set is done, or a set pick from the Muslim pane's title menu) shows the open done row with `/athkar <set> reset → to read again`. When the band rests (idle, pointer away, focus elsewhere) it closes again; there is no folded done row. This view is a transient module value (`view.review`).
 - **Reset** is unchanged: `/athkar <set> reset`, the pane's «إعادة» and its 8-second undo return the set to its cover, also during the finale.
@@ -135,7 +135,7 @@ The demo skips ahead in a disposable reading, completing preceding items
 there only; the pill counts down and the overall progress glow moves. Id 98
 counts from 0 to 10 in 3 seconds, then holds the completed reading for 1 second.
 Desktop celebrates with falling stars and the rising dua for the real
-`FINALE_MS`; the terminal shows its own open done row for the same time. The demo ends with the finale, as the real band does (no folded done row).
+`FINALE_MS`; the terminal shows its own done row, closing line alone, for the same time. The demo ends with the finale, as the real band does (no folded done row).
 
 Another demo command restarts playback. Input, including ×, has no handler
 and cannot change the real reading. The demo has its own Client key and

@@ -46,13 +46,17 @@ for (const surface of ['terminal', 'desktop'] as const) {
   test(`${surface}: finished in front of the person plays the finale for FINALE_MS, then the band is gone`, async ($, on) => {
     const { clock, kept } = fixture(on, surface, nearlyDone())
     const ui = await $.ui.mount(band(surface))
-    const props = async () => (await ui.find({ type: 'Client', key: 'athkar' }))?.props.props as { phase: string; finaleMs?: number } | undefined
+    const props = async () => (await ui.find({ type: 'Client', key: 'athkar' }))?.props.props as { phase: string; isFinale?: boolean; finaleMs?: number } | undefined
     await ui.key({ in: 'athkar', key: 'return' }); await ui.key({ in: 'athkar', key: 'return' }); await ui.key({ in: 'athkar', key: 'return' })
     await clock.advance(650)
     expect(kept.day.morning.isDone).toBe(true)
     expect((await props())?.phase).toBe('done')
     if (surface === 'desktop') expect(String((await ui.find({ in: 'athkar', type: 'Svg' }))?.props.source)).toContain('class="fall"')
-    else expect(await ui.find({ in: 'athkar', type: 'Text', text: END.replace(/[ً-ٰٟ]/g, '') })).toBeDefined()
+    else {
+      expect(await ui.find({ in: 'athkar', type: 'Text', text: END.replace(/[ً-ٰٟ]/g, '') })).toBeDefined()
+      expect(await ui.find({ in: 'athkar', type: 'Text', text: HINT })).toBeUndefined()
+      expect(await props()).toMatchObject({ isFinale: true })
+    }
     await clock.advance(FINALE_MS - 1)
     expect((await props())?.phase).toBe('done')
     await clock.advance(2)
@@ -88,8 +92,12 @@ for (const surface of ['terminal', 'desktop'] as const) {
     const { clock } = fixture(on, surface, doneDay())
     const ui = await $.ui.mount(band(surface))
     expect((await $.command.run(command('morning'))).text).toContain(HINT)
-    const props = async () => (await ui.find({ type: 'Client', key: 'athkar' }))?.props.props as { phase: string; endHint: string; finaleMs?: number } | undefined
+    const props = async () => (await ui.find({ type: 'Client', key: 'athkar' }))?.props.props as { phase: string; endHint: string; isFinale: boolean; finaleMs?: number } | undefined
     expect(await props()).toMatchObject({ phase: 'done', endHint: HINT, isActive: true })
+    if (surface === 'terminal') {
+      expect(await props()).toMatchObject({ isFinale: false })
+      expect(await ui.find({ in: 'athkar', type: 'Text', text: HINT })).toBeDefined()
+    }
     expect((await props())?.finaleMs).toBeUndefined()
     await clock.advance(IDLE_MS + 1)
     expect(await props()).toBeUndefined()

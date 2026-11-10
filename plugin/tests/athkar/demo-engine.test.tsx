@@ -124,7 +124,9 @@ test('terminal frame plays the same readings and colors, then its own open done 
       } else await clock.advance(scene.duration - scene.countMs)
     } else {
       expect((await ui.find({ in: 'athkar-demo', key: 'done' }))?.props.paddingY).toBe(1)
-      expect(await ui.find({ in: 'athkar-demo', text: '/athkar morning reset → to read again' })).toBeDefined()
+      // The finale is the closing line alone, as on the desktop: no reset hint.
+      expect(props).toMatchObject({ isFinale: true })
+      expect(await ui.find({ in: 'athkar-demo', text: '/athkar morning reset → to read again' })).toBeUndefined()
       await clock.advance(scene.duration)
     }
   }

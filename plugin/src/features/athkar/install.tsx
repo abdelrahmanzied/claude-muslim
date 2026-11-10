@@ -569,7 +569,7 @@ export const install = (on: On, options: Options) => {
     const look = lookFor(scene.style, scene.accent, scene.sky, isDark, isPicture)
     const arabicMode = await arabicModeOf($, e.surface, demoArabicCache)
     const show = (text: string) => terminalArabic(e.surface, arabicMode, withTashkeel(text, options.tashkeel))
-    const props = readerProps(scene.period, scene.reading, look, show, { isOpen: true, isActive: scene.isActive, isPicture })
+    const props = readerProps(scene.period, scene.reading, look, show, { isOpen: true, isActive: scene.isActive, isPicture, isFinale: scene.kind === 'finale' })
     const thikr = currentOf(scene.period, scene.reading)
     if (thikr.note) props.note = show(thikr.note)
     const { Box, Client } = $.ui.resolve(e)
@@ -858,8 +858,8 @@ export const install = (on: On, options: Options) => {
     const arabicMode = await arabicModeOf($, e.surface, arabicCache)
     const show = (text: string) => terminalArabic(e.surface, arabicMode, withTashkeel(text, options.tashkeel))
     if (view.question && (view.question.day !== dayOf(now, bounds) || view.question.period !== period || reading.isDone)) view.question = undefined
-    const props = readerProps(period, reading, look, show, { isOpen: view.isOpen, isActive: view.isActive, isPicture, question: view.question })
     const finaleMs = finale && view.finished ? now.getTime() - (view.finished.until - FINALE_MS) : undefined
+    const props = readerProps(period, reading, look, show, { isOpen: view.isOpen, isActive: view.isActive, isPicture, isFinale: finaleMs !== undefined, question: view.question })
     const { Box, Client } = $.ui.resolve(e)
 
     if (e.surface !== 'desktop') {

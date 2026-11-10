@@ -100,6 +100,8 @@ export type ReaderProps = {
   progress: number
   end: string
   endHint: string
+  // The finale shows the closing line alone, on both surfaces; an opened done set adds the hint.
+  isFinale: boolean
 }
 
 // The done row's hint, and the reply to a finished period's command.
@@ -113,7 +115,7 @@ export const readerProps = (
   reading: Reading,
   look: Look,
   display: (text: string) => string,
-  view: { isOpen: boolean; isActive: boolean; isPicture: boolean; question?: { focus: 'finish' | 'resume' } },
+  view: { isOpen: boolean; isActive: boolean; isPicture: boolean; isFinale?: boolean; question?: { focus: 'finish' | 'resume' } },
 ): ReaderProps => {
   const list = listFor(period, reading)
   const thikr = currentOf(period, reading)
@@ -136,5 +138,6 @@ export const readerProps = (
     progress: overall(period, reading),
     end: display(END),
     endHint: resetHint(period),
+    isFinale: !!view.isFinale,
   })
 }

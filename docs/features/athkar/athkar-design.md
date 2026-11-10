@@ -105,8 +105,8 @@ its 5 seconds using its evening wording from `data.ts`. Thikr 98 counts
 every 300 ms to ten, holding its last count for the final second. Then the
 desktop plays falling stars and the rising dua for `FINALE_MS`, and the demo
 ends there, as the real band closes after its finale. The finale is drawn once and left to play, as the real band's is (the demo's 100 ms redraw stops at its start), so its motion is never restarted. It stays on
-crescent and evening in Sky. The terminal keeps Frame's own open done row for
-`FINALE_MS`.
+crescent and evening in Sky. The terminal keeps Frame's own done row for
+`FINALE_MS`, with the closing line alone and no reset hint, as the desktop's finale.
 The command reply reports each style's real scene count and total duration.
 
 Sky is desktop only; no-word playback uses the current style on desktop and
@@ -162,7 +162,7 @@ The terminal draws the question, muted line and two native text buttons through 
 ## End
 
 - The finale (desktop): falling stars, and «تَقَبَّلَ اللَّهُ 🤲» rising centered at a fixed 18px. This short du’a greets the reader on finishing; it is not one of the authored athkar and has no source citation. The chosen closing greeting is an explicit exception to the shared no-emoji voice rule.
-- After the finale the band closes completely: no done row stays above the prompt, and a finished set never takes the band by itself (after a reload, in a new session, or when another session finished it). A finished set opened on purpose (`/athkar <set>`, the pane's title menu) shows the done row until the band rests, then closes. On a terminal the done row stands for `FINALE_MS` in place of the stars, then the band closes.
+- After the finale the band closes completely: no done row stays above the prompt, and a finished set never takes the band by itself (after a reload, in a new session, or when another session finished it). A finished set opened on purpose (`/athkar <set>`, the pane's title menu) shows the done row until the band rests, then closes. On a terminal the done row stands for `FINALE_MS` in place of the stars, with the closing line alone and no reset hint (`isFinale`), then the band closes; the hint belongs only to a done set opened on purpose, on both surfaces.
 - The done row: the same closing greeting, without a citation, on the right at 14px, like the reading (smaller only if the window is too narrow), the reset hint (`/athkar morning reset → to read again`) on the left.
 - The closing du’a is always in the words' face (Tajawal), in the finale and the done row alike.
 - Its color: on a sky, the words' color (white or dark, as the sky's text); on Frame, the main color (the frame's and the progress line's).

@@ -92,10 +92,10 @@ const Reader: ClientModule<ReaderProps, Local> = (props, surface) => {
 
   if (props.phase === 'done') {
     return shell([
-      // The band is only drawn for the finale or an opened done set, so it never folds.
-      <Box key="done" flexDirection="row-reverse" justifyContent="space-between" alignItems="center" paddingY={1} gap={2}>
+      // The band is only drawn for the finale or an opened done set, so it never folds. The finale is the closing line alone, as on the desktop.
+      <Box key="done" flexDirection="row-reverse" justifyContent={props.isFinale ? 'center' : 'space-between'} alignItems="center" paddingY={1} gap={2}>
         <Text bold color={look.style === 'sky' ? look.ink : look.ring} wrap="wrap">{props.end}</Text>
-        <Text color={look.dim} wrap="truncate-end">{props.endHint}</Text>
+        {props.isFinale ? undefined : <Text color={look.dim} wrap="truncate-end">{props.endHint}</Text>}
       </Box>,
     ])
   }
