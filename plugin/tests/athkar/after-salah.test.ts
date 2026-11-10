@@ -1,7 +1,7 @@
 import { IN_MS } from '../../src/shared/pray/line.ts'
 import { expect, test } from 'claude-code/testing'
 import { AFTER_SALAH, afterSalah } from '../../src/features/athkar/after-salah.ts'
-import { currentOf, dayOf, emptyAfterSalah, emptyDay, emptyReading, holdsFinished, listFor, overall, readDay, setAt, shouldAdvance, step, syncAfterSalah } from '../../src/features/athkar/logic.ts'
+import { currentOf, dayOf, emptyAfterSalah, emptyDay, emptyReading, holdsFinished, listFor, playsFinale, overall, readDay, setAt, shouldAdvance, step, syncAfterSalah } from '../../src/features/athkar/logic.ts'
 import { resetHint } from '../../src/features/athkar/look.ts'
 import { bandHeight, fitOf } from '../../src/features/athkar/band.ts'
 import { TEXT_WIDTH } from '../../src/features/athkar/metrics.ts'
@@ -108,14 +108,26 @@ test('after-salah waits while a morning reading is being counted, unless asked f
   expect(setAt(new Date(NOW), busy, last, undefined, last)).toBe('afterSalah')
 })
 
-test('a slot finished in front of the person holds through the finale, then while lit, and never a new prayer', () => {
+test('a slot finished in front of the person holds through the finale only, and never a new prayer', () => {
   const slot = { ...fresh().afterSalah, isDone: true }
-  const hold = { pray: slot.pray, at: slot.at, until: NOW + 3200 }
-  expect(holdsFinished(undefined, slot, NOW, true)).toBe(false)
-  expect(holdsFinished(hold, slot, NOW + 3199, false)).toBe(true)
-  expect(holdsFinished(hold, slot, NOW + 3200, true)).toBe(true)
-  expect(holdsFinished(hold, slot, NOW + 3200, false)).toBe(false)
+  const hold = { period: 'afterSalah' as const, day: 'd', pray: slot.pray, at: slot.at, until: NOW + 3200 }
+  expect(holdsFinished(undefined, slot, NOW)).toBe(false)
+  expect(holdsFinished(hold, slot, NOW + 3199)).toBe(true)
+  expect(holdsFinished(hold, slot, NOW + 3200)).toBe(false)
+  // Another set's finale never holds the slot.
+  expect(holdsFinished({ ...hold, period: 'morning' }, slot, NOW)).toBe(false)
   // Undone with back, or replaced by the next prayer.
-  expect(holdsFinished(hold, { ...slot, isDone: false }, NOW, true)).toBe(false)
-  expect(holdsFinished(hold, { ...slot, pray: 'asr', at: NOW + 3 * 3600_000 }, NOW, true)).toBe(false)
+  expect(holdsFinished(hold, { ...slot, isDone: false }, NOW)).toBe(false)
+  expect(holdsFinished(hold, { ...slot, pray: 'asr', at: NOW + 3 * 3600_000 }, NOW)).toBe(false)
+})
+
+test('the finale plays only for the set finished here, today, while it lasts', () => {
+  const done = { ...emptyReading(), isDone: true }
+  const hold = { period: 'morning' as const, day: 'd', pray: null, at: null, until: NOW + 3200 }
+  expect(playsFinale(hold, 'morning', 'd', done, NOW + 3199)).toBe(true)
+  expect(playsFinale(hold, 'morning', 'd', done, NOW + 3200)).toBe(false)
+  expect(playsFinale(undefined, 'morning', 'd', done, NOW)).toBe(false)
+  expect(playsFinale(hold, 'evening', 'd', done, NOW)).toBe(false)
+  expect(playsFinale(hold, 'morning', 'e', done, NOW)).toBe(false)
+  expect(playsFinale(hold, 'morning', 'd', emptyReading(), NOW)).toBe(false)
 })

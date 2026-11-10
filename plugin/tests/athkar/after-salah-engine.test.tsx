@@ -205,7 +205,8 @@ test('an offer waiting for morning until thirty-five minutes never takes the ban
   kept.day = { ...kept.day, morning: { ...kept.day.morning, isDone: true } }
   await clock.advance(0)
   await ui.post({ act: 'key', key: 'return' })
-  expect((await ui.find({ type: 'Client', key: 'athkar' }))?.props.props).toMatchObject({ period: 'morning' })
+  // Morning finished elsewhere closes quietly, and the late offer still never takes the band.
+  expect(await ui.find({ type: 'Client', key: 'athkar' })).toBeUndefined()
   await ui.unmount()
 })
 

@@ -60,13 +60,6 @@ export const TITLE: Record<AthkarSet, string> = ATHKAR_TITLE
 
 export const END = 'تَقَبَّلَ اللَّهُ 🤲'
 
-// The folded done row: finished, and when the next period comes.
-export const END_NOTE: Record<AthkarSet, string> = {
-  afterSalah: 'أَتْمَمْتَ وِرْدَكَ ✓',
-  morning: 'أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الْمَسَاءُ',
-  evening: 'أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الصَّبَاحُ',
-}
-
 export const periodAt = (hour: number): Period => (hour >= MORNING_FROM && hour < EVENING_FROM ? 'morning' : 'evening')
 
 // The sky follows the clock, hour with minutes as a fraction.
@@ -228,13 +221,17 @@ export const setAt = (now: Date, day: Day, last: SalahLast | null, chosen?: Athk
     ? 'afterSalah' : period
 }
 
-// An after-salah slot finished in front of the person, held on the band.
-export type FinishedHold = { pray: Fard | null; at: number | null; until: number }
+// A set finished in front of the person, in this session only: it keeps the band for the finale (until `until`),
+// then the band closes. For after-salah it also keeps the slot as the period until then.
+export type FinishedHold = { period: AthkarSet; day: string; pray: Fard | null; at: number | null; until: number }
 
-// The finished slot keeps the band through its finale (until `until`) and its
-// done row while the band is lit; once it rests, morning or evening come back.
-export const holdsFinished = (hold: FinishedHold | undefined, slot: AfterSalahReading, now: number, isActive: boolean) =>
-  !!hold && slot.isDone && sameSlot(slot, hold) && (now < hold.until || isActive)
+// The finale is playing for this set, today.
+export const playsFinale = (hold: FinishedHold | undefined, period: AthkarSet, day: string, reading: Reading, now: number) =>
+  !!hold && hold.period === period && hold.day === day && reading.isDone && now < hold.until
+
+// The finished after-salah slot keeps the band through its finale; after it morning or evening come back.
+export const holdsFinished = (hold: FinishedHold | undefined, slot: AfterSalahReading, now: number) =>
+  !!hold && hold.period === 'afterSalah' && slot.isDone && sameSlot(slot, hold) && now < hold.until
 
 const isNumbers =(value: unknown): value is Record<string, number> =>
   !!value && typeof value === 'object' && Object.values(value).every(n => typeof n === 'number')

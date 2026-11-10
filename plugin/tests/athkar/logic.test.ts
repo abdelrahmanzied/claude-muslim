@@ -2,7 +2,7 @@ import { lookFor } from '../../src/features/athkar/look.ts'
 import { expect, test } from 'claude-code/testing'
 
 import { ATHKAR } from '../../src/features/athkar/data.ts'
-import { statusOf, sameSlot, arabicDigits, dayOf, END, END_NOTE, isAct, emptyDay, emptyReading, listFor, overall, periodAt, readDay, shouldAdvance, skyAt, step, textOf } from '../../src/features/athkar/logic.ts'
+import { statusOf, sameSlot, arabicDigits, dayOf, END, isAct, emptyDay, emptyReading, listFor, overall, periodAt, readDay, shouldAdvance, skyAt, step, textOf } from '../../src/features/athkar/logic.ts'
 import type { Reading } from '../../src/features/athkar/logic.ts'
 import { glowAtTime, GLOW_MS, bandHeight, bandSvg, closeArea, coverFit, doneFit, endWidth, finaleSize, fitOf, pixelOf } from '../../src/features/athkar/band.ts'
 import type { BandModel } from '../../src/features/athkar/band.ts'
@@ -94,7 +94,7 @@ test('there is no 10 | 100 choice: no such act, and an extra saved key is droppe
 const model = (over: Partial<BandModel>): BandModel => ({
   phase: 'reading', period: 'morning', sky: 'crescent', style: 'sky', accent: 'orange', isActive: true, hasBegun: true,
   title: 't', thikrId: '91', text: 'x', position: '١ مِنْ ٢٢', count: 3, times: 100, progress: 30, from: 20,
-  end: 'e', endHint: 'h', endNote: 'n', now: 0, width: 900, height: 93, ...over,
+  end: 'e', endHint: 'h', now: 0, width: 900, height: 93, ...over,
 })
 
 test('every band picture fits the size limit and carries its fonts', async () => {
@@ -306,7 +306,7 @@ test('the closing greeting takes the words color on a sky, the main color on Fra
   const sky = bandSvg(model({ phase: 'done', isActive: true, end: END, style: 'sky' }))
   expect(sky).toMatch(/\.done-row \.big \{[^}]*color: var\(--b-ink\)/)
   expect(sky).toMatch(/\.rise-msg \{[^}]*color: var\(--b-ink\)/)
-  expect(sky).toContain('.band.bg-frame .done-row .big, .band.bg-frame .rise-msg, .band.bg-frame .dn-peek .pk-text { color: var(--b-acc); }')
+  expect(sky).toContain('.band.bg-frame .done-row .big, .band.bg-frame .rise-msg { color: var(--b-acc); }')
   expect(bandSvg(model({ phase: 'done', isActive: true, end: END, style: 'frame' }))).toContain('bg-frame')
 })
 
@@ -315,11 +315,6 @@ test('the look is sky or frame; the old outline reads as sky, the dropped sand a
   expect(readOptions({ athkarStyle: 'frame' }).athkarStyle).toBe('frame')
   expect(readOptions({ athkarStyle: 'outline' }).athkarStyle).toBe('sky')
   expect(readOptions({ athkarStyle: 'sand' }).athkarStyle).toBe('sky')
-})
-
-test('the folded done note: finished, with a check, and the next period it meets', () => {
-  expect(END_NOTE.morning).toBe('أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الْمَسَاءُ')
-  expect(END_NOTE.evening).toBe('أَتْمَمْتَ وِرْدَكَ ✓ · مَوْعِدُنَا الصَّبَاحُ')
 })
 
 test('the open done row carries a ✓ at the full line\'s head; folded and the finale do not', () => {

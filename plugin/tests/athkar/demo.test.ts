@@ -9,15 +9,15 @@ for (const style of ['sky', 'frame'] as const) {
   test(`${style}: authored scenes, periods, looks, timing and exact boundaries`, () => {
     const scenes = demoScenes(style, 'yellow', FINALE_MS)
     const isSky = style === 'sky'
-    expect(scenes.map(s => s.kind)).toEqual([...Array(isSky ? 6 : 4).fill('reading'), 'finale', 'folded'])
-    expect(scenes.map(s => s.id)).toEqual(isSky ? ['75', '83', '84', '97', '77', '98', '98', '98'] : ['75', '83', '84', '98', '98', '98'])
-    expect(scenes.map(s => s.duration)).toEqual(isSky ? [5000, 4000, 5000, 4000, 5000, 4000, FINALE_MS, 3000] : [5000, 4000, 5000, 4000, FINALE_MS, 3000])
-    expect(scenes.map(s => s.countMs)).toEqual(isSky ? [2500, 400, 2500, 800, 2500, 300, 0, 0] : [2500, 400, 2500, 300, 0, 0])
-    expect(scenes.map(s => s.sky)).toEqual(isSky ? [...DEMO_SKIES, 'crescent', 'crescent'] : DEMO_SKIES)
-    expect(scenes.map(s => s.period)).toEqual(isSky ? ['morning', 'morning', 'morning', 'evening', 'evening', 'evening', 'evening', 'evening'] : Array(6).fill('morning'))
-    expect(scenes.map(s => s.accent)).toEqual(isSky ? Array(8).fill('yellow') : ['orange', 'green', 'yellow', 'blue', 'orange', 'green'])
-    expect(demoDuration(style, FINALE_MS)).toBe(isSky ? 33_200 : 24_200)
-    expect(demoReply(style, FINALE_MS)).toBe(`**Athkar demo:** ${style} · ${isSky ? '8 scenes · 33.2s' : '6 scenes · 24.2s'}`)
+    expect(scenes.map(s => s.kind)).toEqual([...Array(isSky ? 6 : 4).fill('reading'), 'finale'])
+    expect(scenes.map(s => s.id)).toEqual(isSky ? ['75', '83', '84', '97', '77', '98', '98'] : ['75', '83', '84', '98', '98'])
+    expect(scenes.map(s => s.duration)).toEqual(isSky ? [5000, 4000, 5000, 4000, 5000, 4000, FINALE_MS] : [5000, 4000, 5000, 4000, FINALE_MS])
+    expect(scenes.map(s => s.countMs)).toEqual(isSky ? [2500, 400, 2500, 800, 2500, 300, 0] : [2500, 400, 2500, 300, 0])
+    expect(scenes.map(s => s.sky)).toEqual(isSky ? [...DEMO_SKIES, 'crescent'] : DEMO_SKIES.slice(0, 5))
+    expect(scenes.map(s => s.period)).toEqual(isSky ? ['morning', 'morning', 'morning', 'evening', 'evening', 'evening', 'evening'] : Array(5).fill('morning'))
+    expect(scenes.map(s => s.accent)).toEqual(isSky ? Array(7).fill('yellow') : ['orange', 'green', 'yellow', 'blue', 'orange'])
+    expect(demoDuration(style, FINALE_MS)).toBe(isSky ? 30_200 : 21_200)
+    expect(demoReply(style, FINALE_MS)).toBe(`**Athkar demo:** ${style} · ${isSky ? '7 scenes · 30.2s' : '5 scenes · 21.2s'}`)
     let elapsed = 0
     for (const scene of scenes) {
       expect(scene.startsAt).toBe(elapsed)
@@ -65,19 +65,16 @@ for (const style of ['sky', 'frame'] as const) {
     expect(JSON.stringify(lists)).toBe(before)
   })
 
-  test(`${style}: full real finale followed by folded done`, () => {
+  test(`${style}: full real finale, then the demo ends (no folded done)`, () => {
     const scenes = demoScenes(style, 'blue', FINALE_MS)
     const finale = demoStep(style, 'blue', scenes.find(s => s.kind === 'finale')!.startsAt + 700, FINALE_MS)!
     expect(finale).toMatchObject({ finaleMs: 700, isActive: true, progress: 1, reading: { isDone: true } })
-    const folded = demoStep(style, 'blue', scenes.find(s => s.kind === 'folded')!.startsAt, FINALE_MS)!
-    expect(folded.finaleMs).toBeUndefined()
-    expect(folded).toMatchObject({ isActive: false, progress: 1, reading: { isDone: true } })
-    if (style === 'sky') {
-      expect(finale).toMatchObject({ sky: 'crescent', period: 'evening' })
-      expect(folded).toMatchObject({ sky: 'crescent', period: 'evening' })
-    }
+    expect(scenes.some(s => s.kind !== 'reading' && s.kind !== 'finale')).toBe(false)
+    const end = scenes.at(-1)!
+    expect(demoStep(style, 'blue', end.startsAt + end.duration, FINALE_MS)).toBeUndefined()
+    if (style === 'sky') expect(finale).toMatchObject({ sky: 'crescent', period: 'evening' })
     expect(demoScenes(style, 'orange', 4200).find(s => s.kind === 'finale')!.duration).toBe(4200)
-    expect(demoDuration(style, 4200)).toBe(style === 'sky' ? 34_200 : 25_200)
+    expect(demoDuration(style, 4200)).toBe(style === 'sky' ? 31_200 : 22_200)
   })
 }
 
@@ -94,11 +91,11 @@ test('sky shows each sky on a distinct reading, including an evening-only short 
 })
 
 for (const style of ['sky', 'frame'] as const) {
-  test(`${style}: after-salah scenes use the real Fajr list, fast counts, finale and folded done`, () => {
+  test(`${style}: after-salah scenes use the real Fajr list, fast counts and finale`, () => {
     const before = JSON.stringify(listFor('afterSalah', { index: 0, counts: {}, isDone: false, isHidden: false, pray: 'fajr' }))
     const scenes = demoScenes(style, 'yellow', FINALE_MS, 'afterSalah', 'rose')
-    expect(scenes.map(s => s.id)).toEqual(['66-istighfar', '69-tasbih', '70-ikhlas', '70-nas', '70-nas'])
-    expect(scenes.map(s => s.duration)).toEqual([1200, 3600, 1200, FINALE_MS, 1200])
+    expect(scenes.map(s => s.id)).toEqual(['66-istighfar', '69-tasbih', '70-ikhlas', '70-nas'])
+    expect(scenes.map(s => s.duration)).toEqual([1200, 3600, 1200, FINALE_MS])
     expect(scenes.every(s => s.period === 'afterSalah' && s.sky === 'rose' && s.accent === 'yellow')).toBe(true)
     let elapsed = 0
     for (const scene of scenes) {
@@ -119,12 +116,12 @@ for (const style of ['sky', 'frame'] as const) {
         expect(countOf(current, end.reading)).toBe(current.times)
         if (scene.id.startsWith('70-')) expect(current.times).toBe(3)
       } else {
-        expect(first).toMatchObject({ progress: 1, isActive: scene.kind === 'finale', reading: { isDone: true } })
-        expect(first.finaleMs).toBe(scene.kind === 'finale' ? 0 : undefined)
+        expect(first).toMatchObject({ progress: 1, isActive: true, reading: { isDone: true } })
+        expect(first.finaleMs).toBe(0)
       }
       elapsed += scene.duration
     }
-    expect(elapsed).toBe(10400)
+    expect(elapsed).toBe(9200)
     expect(demoDuration(style, FINALE_MS, 'afterSalah')).toBe(elapsed)
     expect(demoStep(style, 'yellow', -1, FINALE_MS, 'afterSalah')).toBeUndefined()
     expect(demoStep(style, 'yellow', elapsed, FINALE_MS, 'afterSalah')).toBeUndefined()
