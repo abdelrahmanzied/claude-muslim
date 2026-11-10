@@ -39,7 +39,7 @@ Runtime help follows the shared `Command | Description | Options` table; `/musli
 | --- | --- |
 | `/quran` | Desktop only: open the Muslim pane with its Quran card unfolded. Terminal and any other surface: `Quran is a desktop feature: open the Muslim pane in the Claude desktop app.` |
 
-On a device Friday the Muslim pane's Quran card adds a «سورة الكهف» button that picks surah 18 through the same `quran-surah` panel action as the surah list (see [friday](../friday/friday.md)); the Friday reminder card's ▶ uses it too, with the reciter last used (`quran.reciter`).
+On a device Friday the Muslim pane's Quran card adds a «سورة الكهف» button that picks surah 18 through the same `quran-surah` panel action as the surah list (see [friday](../friday/friday.md)); the Friday reminder card's pill uses it too, with the reciter last used (`quran.reciter`). On Windows and Linux, where Claude Code plays no audio, both use the `quran-surah-browser` panel action instead: the whole surah's MP3 (no segment, https only) opens in the default browser with `start` or `xdg-open`, as the card's «استمع في المتصفح» does, with the same `Could not open the browser.` toast on failure and no change to the player's state. The Quran feature also tells the Friday card which reciter to name (the catalog's short Arabic `name`) and whether the OS opens the browser, through the shared `connectSurahPlay` feed.
 
 No `/quran` subcommands exist (removed for v0.1.0); `/quran <anything>` behaves as bare `/quran`. Play, stop, next, previous, repeat, retry and the reciter pick are the Muslim pane's Quran card controls.
 

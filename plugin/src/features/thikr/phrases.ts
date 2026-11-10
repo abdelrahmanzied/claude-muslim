@@ -34,14 +34,8 @@ export const LONG = [
   'يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ',
 ]
 
-// Salawat mode: one of these for a whole turn, the next one each turn.
-export const SALAWAT = [
-  'اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ',
-  'اللَّهُمَّ صَلِّ وَسَلِّمْ عَلَىٰ نَبِيِّنَا مُحَمَّدٍ',
-  'اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ وَعَلَىٰ آلِ مُحَمَّدٍ',
-  'اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ عَبْدِكَ وَرَسُولِكَ',
-  'اللَّهُمَّ صَلِّ وَسَلِّمْ وَبَارِكْ عَلَىٰ سَيِّدِنَا مُحَمَّدٍ',
-]
+// Salawat mode: one of these for a whole turn, the next one each turn. Shared with Friday's demo.
+export { SALAWAT } from '../../shared/thikr/salawat.ts'
 
 // Opens the thikr turn inside a pray's countdown window, before the usual
 // phrases: the call to pray, then the pray and the minutes left.

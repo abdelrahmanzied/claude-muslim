@@ -13,15 +13,16 @@ import { isCardMessage, isOnClose } from '../../shared/card/card.ts'
 import { isAnotherCardShown } from '../../shared/card/slot.ts'
 import { dayKey, isFriday } from '../../shared/friday/index.ts'
 import { athkarTimesAt } from '../../shared/pray/bounds.ts'
-import { runPanelAction } from '../../shared/panel/signal.ts'
+import { playSurah, readSurahPlay } from '../../shared/panel/signal.ts'
 import { helpHint, statusTable } from '../../table.ts'
 import { CELL_PX, LINE_PX } from '../../shared/card/card.ts'
 import { isOnPlay, kahfFrame, type KahfCardProps } from './card.ts'
 import { fridayHelp } from './help.ts'
-import { cardAt, KAHF_CARD_MS, KAHF_SURAH, KAHF_TITLE, kahfDecision, kahfStatus } from './logic.ts'
+import { cardAt, KAHF_CARD_MS, KAHF_NEEDS_CITY, KAHF_SURAH, KAHF_TITLE, kahfDecision, kahfLine, kahfStatus } from './logic.ts'
+import { withTashkeel } from '../../shared/arabic/visual.ts'
 
 // DEMO BEGIN: imports and transient runner (no settings, store or saved state).
-import { DEMO_MS, DEMO_TICK_MS, demoReply, demoShowing } from './demo.ts'
+import { DEMO_MS, DEMO_TICK_MS, demoPrayLine, demoReply, demoSalawat, demoShowing } from './demo.ts'
 import { connectDemo, doneDemo } from '../../shared/demo/signal.ts'
 
 let demo: { startedAt: number; shared: boolean; timer?: { cancel: () => void } } | undefined
@@ -130,10 +131,11 @@ const closeCard = async ($: EngineInterface) => {
   $.ui.invalidate('ui.render')
 }
 
-// ▶: closes the card and plays Surat al-Kahf with the reciter last used (the Quran feature's own choice).
+// «▶ استمع»: closes the card and plays Surat al-Kahf with the reciter last used (the Quran feature's own choice);
+// where Claude Code plays no audio (Windows, Linux) the Quran feature opens the whole surah in the browser instead.
 const playKahf = async ($: EngineInterface) => {
   await closeCard($)
-  if (!(await runPanelAction('quran-surah', String(KAHF_SURAH)))) $.ui.toast('Quran is not ready yet. /quran')
+  if (!(await playSurah(KAHF_SURAH))) $.ui.toast('Quran is not ready yet. /quran')
 }
 
 // Preflight and quiet failure mapping stay in this file; callers keep their reply.
@@ -206,6 +208,7 @@ export const install = (on: On, options: Options) => {
             ['Al-Kahf', 'The reminder to read Surat al-Kahf, once on Friday from 30 minutes after Jumu\'ah until Maghrib', onOff(options.fridayKahf)],
             ['Reminder', 'Whether it was shown today', kahfStatus(now, await shownDayOf($))],
           ]),
+          ...(athkarTimesAt(now) ? [] : ['', KAHF_NEEDS_CITY]),
         ].join('\n'),
       }
     }
@@ -246,9 +249,27 @@ export const install = (on: On, options: Options) => {
       hideTimer = { at: shown.until, handle: $.clock.after(Math.max(0, shown.until - now) + 50, () => $.ui.invalidate('ui.render')) }
     }
     const { Box, Button, Client, Text } = $.ui.resolve(e)
+    // The reciter last used and the OS rule come from the Quran feature, through the shared panel link.
+    const surahPlay = await readSurahPlay()
+    const reciter = surahPlay?.reciter ?? ''
+
+    // DEMO BEGIN: the other Friday things, drawn beside the card for the demo only.
+    const demoRows = demo ? [
+      await renderArabic($, e.surface, demoPrayLine(), arabicCache),
+      await renderArabic($, e.surface, withTashkeel(demoSalawat(), options.tashkeel), arabicCache),
+      await renderArabic($, e.surface, e.surface === 'terminal' ? `${KAHF_TITLE} · /friday kahf` : `[ ${KAHF_TITLE} ]`, arabicCache),
+    ] : []
+    const demoBlock = demo ? (
+      <Box key="friday-demo-rows" flexDirection="column">
+        <Text key="friday-demo-pray">{demoRows[0]}</Text>
+        <Text key="friday-demo-thikr" color={await mainColor($, options.color)}>{demoRows[1]}</Text>
+        <Text key="friday-demo-pane" dimColor>{demoRows[2]}</Text>
+      </Box>
+    ) : null
+    // DEMO END
 
     if (e.surface === 'terminal') {
-      const label = await renderArabic($, e.surface, KAHF_TITLE, arabicCache)
+      const label = await renderArabic($, e.surface, kahfLine(reciter), arabicCache)
 
       return (
         <Box flexDirection="column">
@@ -256,12 +277,13 @@ export const install = (on: On, options: Options) => {
             <Text color={await mainColor($, options.color)}>{label}</Text>
             <Button key="friday-kahf-close" label="×" plain onPress={() => (demo ? endDemo($) : closeCard($))} />
           </Box>
+          {demoBlock}
           {theirs}
         </Box>
       )
     }
 
-    const props: KahfCardProps = { isActive: true, now, accent: options.color, canPlay: !demo, width: Math.round(e.props.bodyColumns * CELL_PX), card: { ch: CELL_PX, lh: LINE_PX } }
+    const props: KahfCardProps = { isActive: true, now, accent: options.color, reciter, inBrowser: !!surahPlay?.inBrowser, startedAt: shown.until - (demo ? DEMO_MS : KAHF_CARD_MS), width: Math.round(e.props.bodyColumns * CELL_PX), card: { ch: CELL_PX, lh: LINE_PX } }
     drawn.props = props
 
     return (
@@ -271,6 +293,7 @@ export const install = (on: On, options: Options) => {
         <Box key="friday-kahf-card" marginX={-1} marginY={-1}>
           <Client key="friday-kahf" module="./card.tsx" props={props} width="100%" />
         </Box>
+        {demoBlock}
         {theirs ?? <Box key="friday-kahf-end" height={0} />}
       </Box>
     )

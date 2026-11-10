@@ -10,7 +10,14 @@ export const KAHF_DELAY_MS = 30 * 60_000
 export const KAHF_CARD_MS = 3 * 60_000
 
 // The words on the card, authored in docs/features/friday/friday-content.md.
-export const KAHF_TITLE = 'الجمعة · سورة الكهف'
+export const KAHF_TITLE = 'سورة الكهف'
+export const KAHF_PLAY = '▶ استمع'
+export const KAHF_BROWSER = '↗ افتح في المتصفح'
+
+// «يوم الجمعة · بصوت <reciter>»: the reciter is the one last used, named as the Quran feature names it; empty until the Quran is ready.
+export const kahfSubtitle = (reciter: string): string => (reciter ? `يوم الجمعة · بصوت ${reciter}` : 'يوم الجمعة')
+// The terminal's one line: the title and the subtitle.
+export const kahfLine = (reciter: string): string => `${KAHF_TITLE} · ${kahfSubtitle(reciter)}`
 
 // The saved place's Dhuhr and Maghrib today (ms); null with no place saved.
 export type KahfTimes = { dhuhr: number; maghrib: number } | null
@@ -37,6 +44,9 @@ export const kahfDecision = (i: KahfInput): 'show' | 'wait' | 'no' => {
 
   return i.isBusy ? 'wait' : 'show'
 }
+
+// `/friday` when no prayer place is saved: the automatic reminder has no window to wait for.
+export const KAHF_NEEDS_CITY = 'The automatic Al-Kahf reminder needs a city: set one with `/salah city`. `/friday kahf` works without it.'
 
 // What `/friday` says about today.
 export const kahfStatus = (now: number, shownDay: string | undefined): string =>

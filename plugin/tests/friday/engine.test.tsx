@@ -2,8 +2,11 @@ import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
 import { KAHF_CARD_MS, KAHF_TITLE } from '../../src/features/friday/logic.ts'
+import { defaultReciter } from '../../src/features/quran/catalog.ts'
+import { QURAN_CATALOG } from '../../src/features/quran/catalog-data.ts'
 import { runPanelAction } from '../../src/shared/panel/signal.ts'
 import { dayOf, emptyDay } from '../../src/features/athkar/logic.ts'
+import { stripTashkeel } from '../../src/shared/arabic/visual.ts'
 import { dayKey } from '../../src/shared/friday/index.ts'
 import { ATHKAR_QUIET, configRows } from '../fixtures/config.ts'
 
@@ -26,9 +29,9 @@ const band = (surface: 'terminal' | 'desktop') => ({
 const SURFACES = ['terminal', 'desktop'] as const
 type Surface = (typeof SURFACES)[number]
 
-const fixture = (on: On, now: number, entries: Record<string, unknown> = {}, surface: Surface = 'terminal') => {
+const fixture = (on: On, now: number, entries: Record<string, unknown> = {}, surface: Surface = 'terminal', env: Record<string, string> = {}) => {
   on('session.surface', async () => ({ value: surface }))
-  mock.env(on, { TERM_PROGRAM: 'WarpTerminal' })
+  mock.env(on, { TERM_PROGRAM: 'WarpTerminal', ...env })
   const stored: Record<string, unknown> = { arabicTerminals: { WarpTerminal: 'plain' }, ...entries }
   on('store.get', async (_$, e) => ({ value: stored[e.key] }))
   on('store.set', async (_$, e) => (stored[e.key] = e.value, { value: undefined }))
@@ -229,16 +232,36 @@ for (const surface of SURFACES) {
     await ui.unmount()
   })
 
-  test(`${surface}: the demo shows the card for six seconds and saves nothing`, { options: OPTIONS }, async ($, on) => {
+  test(`${surface}: the demo shows the card, the Jumu'ah pray line, a salawat and the pane button for eight seconds, and saves nothing`, { options: OPTIONS }, async ($, on) => {
     const { clock, writes, stored } = fixture(on, THURSDAY, {}, surface)
     const ui = await $.ui.mount(band(surface))
     expect((await $.command.run(run('demo'))).text).toContain('Friday demo')
     expect(await shown(ui, surface)).toBeDefined()
-    await clock.advance(6600)
+    // Today is a Thursday, and the pray line still names the Dhuhr slot الجمعة.
+    expect(await ui.find({ type: 'Box', key: 'friday-demo-rows' }), 'rows box').toBeDefined()
+    expect(await ui.find({ type: 'Text', text: '☾ الجمعة' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: surface === 'terminal' ? stripTashkeel('اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ') : 'اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ' })).toBeDefined()
+    expect(await ui.find({ type: 'Text', text: surface === 'terminal' ? 'سورة الكهف · /friday kahf' : '[ سورة الكهف ]' }), 'pane button').toBeDefined()
+    await clock.advance(7500)
+    expect(await shown(ui, surface)).toBeDefined()
+    await clock.advance(1100)
     expect(await shown(ui, surface)).toBeUndefined()
+    expect(await ui.find({ type: 'Box', key: 'friday-demo-rows' })).toBeUndefined()
     expect(stored['friday.kahfDay']).toBeUndefined()
     expect(writes).toEqual([])
     await ui.unmount()
+  })
+
+  test(`${surface}: with no city /friday says the automatic reminder needs one, and /friday kahf still works`, { options: NO_PLACE }, async ($, on) => {
+    fixture(on, INSIDE, {}, surface)
+    const status = (await $.command.run(run(''))).text!
+    expect(status).toContain('The automatic Al-Kahf reminder needs a city: set one with `/salah city`.')
+    expect((await $.command.run(run('kahf'))).text).toContain('shown above the prompt')
+  })
+
+  test(`${surface}: with a city /friday has no city line`, { options: OPTIONS }, async ($, on) => {
+    fixture(on, INSIDE, {}, surface)
+    expect((await $.command.run(run(''))).text).not.toContain('needs a city')
   })
 
   test(`${surface}: /friday replies the same: status, settings and help`, { options: OPTIONS }, async ($, on) => {
@@ -252,3 +275,110 @@ for (const surface of SURFACES) {
     expect(writes.map(w => w.key)).toEqual(['muslim.fridaySalawat', 'muslim.fridayKahf'])
   })
 }
+
+// ▶ / «افتح في المتصفح» on each OS, through the real Quran feature (connected by /quran).
+const FIRST = defaultReciter(QURAN_CATALOG)
+const OTHER = QURAN_CATALOG.reciters.find(r => r.key !== FIRST.key)!
+const quranRun = { command: 'quran', args: '', origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } }
+const isOpen = (argv: readonly string[]) => argv[0] === 'xdg-open' || (argv[0] === 'cmd' && argv[3] === 'start')
+
+// `uname` answers the OS probe; every other process succeeds (or fails, for the browser, when `opens` is false).
+const spawns = (on: On, uname: string, opens = true) => {
+  const argvs: string[][] = []
+  on('process.run', async (_$, e) => {
+    const argv = [...e.argv]
+    argvs.push(argv)
+
+    return { value: { exitCode: isOpen(argv) && !opens ? 1 : 0, stdout: argv[0] === 'uname' ? `${uname}\n` : '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+  })
+
+  return argvs
+}
+const watch = (on: On) => {
+  const surahs: unknown[] = []
+  const toasts: string[] = []
+  on('state.set', { plugin: 'muslim', key: 'quranSurah' }, async (_$, e, next) => { surahs.push(e.value); return next(e) })
+  on('ui.toast', async (_$, e) => { toasts.push(e.text); return { value: undefined } })
+
+  return { surahs, toasts }
+}
+const cardProps = async (ui: Ui) => ((await ui.find({ type: 'Client', key: 'friday-kahf' })) as { props: { props: { reciter: string; inBrowser: boolean } } }).props.props
+
+test('macOS: the pill reads «▶ استمع» and ▶ plays Al-Kahf in the player; no browser opens', { options: OPTIONS }, async ($, on) => {
+  fixture(on, THURSDAY, {}, 'desktop')
+  const argvs = spawns(on, 'Darwin')
+  const { surahs } = watch(on)
+  const ui = await $.ui.mount(band('desktop'))
+  await $.command.run(quranRun)
+  await $.command.run(run('kahf'))
+  expect(await cardProps(ui)).toMatchObject({ reciter: FIRST.name, inBrowser: false })
+  await ui.post({ act: 'key', key: 'return' }, { in: 'friday-kahf' })
+  expect(surahs).toContain(18)
+  expect(argvs.filter(isOpen)).toEqual([])
+  expect(await shown(ui, 'desktop')).toBeUndefined()
+  await ui.unmount()
+})
+
+test('Windows: the pill reads «↗ افتح في المتصفح»; pressing it opens the whole surah 18 MP3 with start and closes the card', { options: OPTIONS }, async ($, on) => {
+  fixture(on, THURSDAY, {}, 'desktop', { OS: 'Windows_NT' })
+  const argvs = spawns(on, '')
+  const { surahs, toasts } = watch(on)
+  const ui = await $.ui.mount(band('desktop'))
+  await $.command.run(quranRun)
+  await $.command.run(run('kahf'))
+  expect(await cardProps(ui)).toMatchObject({ reciter: FIRST.name, inBrowser: true })
+  await ui.post({ act: 'key', key: 'return' }, { in: 'friday-kahf' })
+  expect(argvs.filter(isOpen)).toEqual([['cmd', '/d', '/c', 'start', '', `${FIRST.server}018.mp3`]])
+  expect(surahs).not.toContain(18)
+  expect(toasts).toEqual([])
+  expect(await shown(ui, 'desktop')).toBeUndefined()
+  await ui.unmount()
+})
+
+test('Linux: the same with xdg-open, the reciter last used, and no #t= segment', { options: OPTIONS }, async ($, on) => {
+  fixture(on, THURSDAY, { 'quran.reciter': OTHER.key }, 'desktop')
+  const argvs = spawns(on, 'Linux')
+  const { surahs } = watch(on)
+  const ui = await $.ui.mount(band('desktop'))
+  await $.command.run(quranRun)
+  await $.command.run(run('kahf'))
+  expect(await cardProps(ui)).toMatchObject({ reciter: OTHER.name, inBrowser: true })
+  await ui.post({ act: 'key', key: 'return' }, { in: 'friday-kahf' })
+  expect(argvs.filter(isOpen)).toEqual([['xdg-open', `${OTHER.server}018.mp3`]])
+  expect(argvs.filter(isOpen)[0]![1]).not.toContain('#t=')
+  expect(surahs).not.toContain(18)
+  await ui.unmount()
+})
+
+test('Linux: a browser that does not open shows the Quran player\'s toast; the card still closes', { options: OPTIONS }, async ($, on) => {
+  fixture(on, THURSDAY, {}, 'desktop')
+  spawns(on, 'Linux', false)
+  const { toasts } = watch(on)
+  const ui = await $.ui.mount(band('desktop'))
+  await $.command.run(quranRun)
+  await $.command.run(run('kahf'))
+  await ui.post({ act: 'key', key: 'return' }, { in: 'friday-kahf' })
+  expect(toasts).toEqual(['Could not open the browser.'])
+  expect(await shown(ui, 'desktop')).toBeUndefined()
+  await ui.unmount()
+})
+
+test('terminal: the line reads «سورة الكهف · يوم الجمعة · بصوت <reciter>» with the ×', { options: OPTIONS }, async ($, on) => {
+  fixture(on, THURSDAY, { 'quran.reciter': OTHER.key }, 'terminal')
+  spawns(on, 'Darwin')
+  const ui = await $.ui.mount(band('terminal'))
+  await $.command.run(quranRun)
+  await $.command.run(run('kahf'))
+  expect(await ui.find({ type: 'Text', text: `سورة الكهف · يوم الجمعة · بصوت ${OTHER.name}` })).toBeDefined()
+  expect(await ui.find({ type: 'Button', key: 'friday-kahf-close' })).toBeDefined()
+  await ui.unmount()
+})
+
+test('before the Quran is ready the card names only the day', { options: OPTIONS }, async ($, on) => {
+  fixture(on, THURSDAY, {}, 'terminal')
+  const ui = await $.ui.mount(band('terminal'))
+  await $.command.run(run('kahf'))
+  expect(await ui.find({ type: 'Text', text: 'سورة الكهف · يوم الجمعة' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'بصوت' })).toBeUndefined()
+  await ui.unmount()
+})

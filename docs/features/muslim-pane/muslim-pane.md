@@ -98,7 +98,7 @@ Auto-update reads and writes remain in `plugin/hooks/register.tsx`: its own Pane
 
 ## Friday shortcut
 
-On a device Friday the Quran card shows a «سورة الكهف» button under its controls that picks Surat al-Kahf (surah 18) with the reciter last used. See [friday](../friday/friday.md) and the [pane design](muslim-pane-design.md).
+On a device Friday the Quran card shows a «سورة الكهف» button under its controls that picks Surat al-Kahf (surah 18) with the reciter last used (on Windows and Linux it opens the surah in the browser instead, as the Friday card's pill does). See [friday](../friday/friday.md) and the [pane design](muslim-pane-design.md).
 
 ## Demo
 

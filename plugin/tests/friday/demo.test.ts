@@ -1,14 +1,30 @@
 import { expect, test } from 'claude-code/testing'
 
-import { DEMO_MS, demoReply, demoShowing } from '../../src/features/friday/demo.ts'
+import { DEMO_MS, demoPrayLine, demoReply, demoSalawat, demoShowing } from '../../src/features/friday/demo.ts'
+import { SALAWAT } from '../../src/shared/thikr/salawat.ts'
 
-test('the demo shows the card for six seconds and says nothing is saved', () => {
-  expect(DEMO_MS).toBe(6000)
-  expect(demoReply()).toBe('**Friday demo:** the Al-Kahf card for 6 s. Nothing is saved.')
+test('the demo shows everything for eight seconds and says nothing is saved', () => {
+  expect(DEMO_MS).toBe(8000)
+  expect(demoReply()).toContain('for 8 s')
+  expect(demoReply()).toContain('the Al-Kahf card')
+  expect(demoReply()).toContain('الجمعة in place of الظهر')
+  expect(demoReply()).toContain('one Friday salawat on the thikr line')
+  expect(demoReply()).toContain('«سورة الكهف» button')
+  expect(demoReply()).toContain('Nothing is saved.')
 })
 
-test('it is showing until the six seconds are over', () => {
+test('it is showing until the eight seconds are over', () => {
   expect(demoShowing(1000, 1000)).toBe(true)
-  expect(demoShowing(1000, 6999)).toBe(true)
-  expect(demoShowing(1000, 7000)).toBe(false)
+  expect(demoShowing(1000, 8999)).toBe(true)
+  expect(demoShowing(1000, 9000)).toBe(false)
+})
+
+test('the pray line names the Dhuhr slot الجمعة whatever today is', () => {
+  expect(demoPrayLine()).toBe('☾ الجمعة ١٢:٣٠')
+  expect(demoPrayLine()).not.toContain('الظهر')
+})
+
+test('the thikr line shows the first authored salawat', () => {
+  expect(demoSalawat()).toBe(SALAWAT[0])
+  expect(demoSalawat()).toContain('مُحَمَّدٍ')
 })

@@ -9,7 +9,7 @@ const TIMES = { dhuhr: at(6, 12), maghrib: at(6, 17) }
 const input = (over: Partial<KahfInput> = {}): KahfInput => ({ now: at(6, 14), times: TIMES, enabled: true, shownDay: undefined, isBusy: false, ...over })
 
 test('the card says the authored words and stays three minutes', () => {
-  expect(KAHF_TITLE).toBe('الجمعة · سورة الكهف')
+  expect(KAHF_TITLE).toBe('سورة الكهف')
   expect(KAHF_CARD_MS).toBe(3 * 60_000)
   expect(KAHF_DELAY_MS).toBe(30 * 60_000)
 })

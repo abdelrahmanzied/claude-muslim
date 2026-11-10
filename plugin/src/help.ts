@@ -19,7 +19,7 @@ export const MUSLIM_COMMANDS: readonly HelpRow[] = [
   ['/muslim autoupdate', 'The background update of muslim by Claude Code, on after the first run; alone it shows the state', '`on` · `off`'],
   ['/muslim feedback', 'Report a bug or send a request, idea, content correction or feedback to GitHub; Claude drafts it and sends only after your yes', '`<what you want to say>` (optional)'],
   // DEMO BEGIN: shared demo help.
-  ['/muslim demo', 'Play thikr, athkar, /salah demo (athan and athkar after salah), /friday demo (the Al-Kahf card) and the Muslim pane tour (desktop) in order; thikr uses tokens and leaves a message in the transcript', ''],
+  ['/muslim demo', 'Play thikr, athkar, /salah demo (athan and athkar after salah), /friday demo (the Al-Kahf card, the Jumu\'ah pray line, a Friday salawat, the pane button) and the Muslim pane tour (desktop) in order; thikr uses tokens and leaves a message in the transcript', ''],
   ['/muslim demo pane', 'Tour the Muslim pane on desktop alone: cards unfold, play and fold back; nothing is saved', ''],
   // DEMO END
 ]

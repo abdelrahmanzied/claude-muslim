@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { connectQuranOptions, readQuranOptions, connectAthkar, connectPanelAction, connectQuran, connectSalah, readAthkar, readQuran, readSalah, resetPanel, runPanelAction } from '../../../src/shared/panel/signal.ts'
+import { connectQuranOptions, readQuranOptions, connectAthkar, connectPanelAction, connectQuran, connectSalah, readAthkar, readQuran, readSalah, readSurahPlay, connectSurahPlay, playSurah, resetPanel, runPanelAction } from '../../../src/shared/panel/signal.ts'
 
 test('nothing connected reads as null and no action is taken', async () => {
   resetPanel()
@@ -54,4 +54,23 @@ test('athkar set/reset/undo actions and the shown set/undo flag cross only the s
   expect(await readAthkar()).toMatchObject({ set: 'after-salah', canUndo: true })
   resetPanel()
   expect(await runPanelAction('athkar-reset')).toBe(false)
+})
+
+test('one surah from another card: played in the player, or opened in the browser where no audio plays', async () => {
+  resetPanel()
+  expect(await readSurahPlay()).toBeNull()
+  expect(await playSurah(18)).toBe(false)
+  const got: string[] = []
+  for (const a of ['quran-surah', 'quran-surah-browser'] as const) connectPanelAction(a, async v => { got.push(`${a}:${v}`) })
+  connectSurahPlay(async () => ({ reciter: 'ماهر المعيقلي', inBrowser: false }))
+  expect(await readSurahPlay()).toEqual({ reciter: 'ماهر المعيقلي', inBrowser: false })
+  expect(await playSurah(18)).toBe(true)
+  connectSurahPlay(async () => ({ reciter: 'ماهر المعيقلي', inBrowser: true }))
+  expect(await playSurah(18)).toBe(true)
+  expect(got).toEqual(['quran-surah:18', 'quran-surah-browser:18'])
+  connectSurahPlay(async () => { throw new Error('x') })
+  expect(await readSurahPlay()).toBeNull()
+  expect(await playSurah(18)).toBe(false)
+  resetPanel()
+  expect(await readSurahPlay()).toBeNull()
 })
