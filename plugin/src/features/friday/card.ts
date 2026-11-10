@@ -41,7 +41,8 @@ export const kahfFrame = (p: Pick<KahfCardProps, 'width' | 'card'>, columns = 0)
 const PAD_LEFT = 34
 const PAD_RIGHT = 14
 const GAP = 12
-const PILL_H = 22
+// The row's content must fit what the shell leaves of the folded height (24 + 20 less its 10px each side and the 3px frame: 21px), or the band outgrows its picture and the frame's bottom is cut off.
+const PILL_H = 20
 const PILL_W = { play: 76, browser: 128 }
 // The avatar's height, taller than the row's line: it keeps its place in the flow with a negative margin. Its width follows its 32:30 picture.
 const AVATAR_H = 36
@@ -98,11 +99,11 @@ const css = (accent: Accent, inBrowser: boolean) => [
   '@media (prefers-color-scheme: light) { .band.bg-frame { background: var(--bg); } }',
   '@media (prefers-reduced-motion: reduce) { .band.band.al-breathe.active { animation: none; } }',
   // The row: the athkar folded row's padding and gap, everything in the flow.
-  `.band.band.kahf { display: flex; align-items: center; gap: ${GAP}px; direction: rtl; font-family: Tajawal, sans-serif; font-weight: 700; min-height: 100%;`,
+  `.band.band.kahf { display: flex; align-items: center; gap: ${GAP}px; direction: rtl; font-family: Tajawal, sans-serif; font-weight: 700; height: 100%; min-height: 0;`,
   `  padding: var(--ay, 0px) calc(${PAD_RIGHT}px + var(--ax, 0px)) var(--ay, 0px) calc(${PAD_LEFT}px + var(--ax, 0px)); }`,
   '.kahf .text { flex: 1 1 auto; min-width: 0; display: flex; align-items: baseline; gap: 10px; overflow: hidden; white-space: nowrap; }',
-  '.kahf .title { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: "Aref Ruqaa", Tajawal, serif; font-weight: 700; font-size: 17px; line-height: 1.5; color: var(--b-acc); }',
-  '.kahf .sub { flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 12.5px; font-weight: 400; line-height: 1.5; color: var(--b-dim); }',
+  '.kahf .title { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: "Aref Ruqaa", Tajawal, serif; font-weight: 700; font-size: 17px; line-height: 20px; color: var(--b-acc); }',
+  '.kahf .sub { flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 12.5px; font-weight: 400; line-height: 20px; color: var(--b-dim); }',
   `.kahf .pic { flex: none; width: ${AVATAR_W}px; height: ${AVATAR_H}px; margin: -${AVATAR_PULL}px 0; direction: ltr; }`,
   '.kahf .pic svg { display: block; }',
   `.kahf .play { flex: none; width: ${pillWidth(inBrowser)}px; height: ${PILL_H}px; display: flex; align-items: center; justify-content: center; white-space: nowrap; font-size: 12px; font-weight: 700; direction: rtl;`,
