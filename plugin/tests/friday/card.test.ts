@@ -1,7 +1,7 @@
 import { expect, test } from 'claude-code/testing'
 
-import { REST_PX, closeArea } from '../../src/shared/card/card.ts'
-import { isOnPlay, kahfFrame, kahfLayout, kahfSvg, playArea, playHitArea, type KahfCardProps } from '../../src/features/friday/card.ts'
+import { REST_PX, closeArea, frameOf } from '../../src/shared/card/card.ts'
+import { isOnPlay, kahfFrame, kahfInner, kahfLayout, kahfSvg, playArea, playHitArea, type KahfCardProps } from '../../src/features/friday/card.ts'
 import { KAHF_BROWSER, KAHF_PLAY, KAHF_TITLE, kahfSubtitle } from '../../src/features/friday/logic.ts'
 
 const props = (inBrowser: boolean, reciter = 'ماهر المعيقلي'): KahfCardProps => ({ isActive: true, now: 5000, startedAt: 2000, accent: 'orange', reciter, inBrowser, width: 800, card: { ch: 8.4, lh: 20 } })
@@ -19,7 +19,7 @@ test('the desktop card is the shared card at the folded row: title in Ruqaa, sub
   // The athkar frame look's classes, a row like the folded one, and no border or clipping of its own.
   expect(svg).toContain('class="band line compact bg-frame al-breathe kahf rest active"')
   const row = svg.slice(svg.indexOf('.band.band.kahf'), svg.indexOf('.kahf .text'))
-  expect(row).not.toMatch(/overflow|border|position/)
+  expect(row).not.toMatch(/overflow|border:|position/)
   expect(svg).not.toMatch(/\.kahf[^\n]*position: absolute/)
   expect(kahfFrame(props(false)).height).toBe(REST_PX)
   expect(kahfFrame(props(false)).isFolded).toBe(true)
@@ -56,13 +56,14 @@ test('the parts keep apart in the flow: × then pill, avatar, text; the subtitle
     expect(l.pillLeft).toBeGreaterThan(closeArea(kahfFrame(props(inBrowser))).x1)
     expect(l.avatarLeft).toBeGreaterThan(l.pillLeft + l.pillWidth)
     expect(l.textLeft).toBeGreaterThanOrEqual(l.avatarLeft + l.avatarWidth)
-    expect(l.avatarHeight).toBeGreaterThanOrEqual(36)
-    expect(l.pillHeight).toBeLessThanOrEqual(REST_PX)
+    expect(l.avatarHeight).toBeLessThanOrEqual(l.inner)
+    expect(l.pillHeight).toBeLessThanOrEqual(l.inner)
     const svg = kahfSvg(props(inBrowser), VIEW)
     // The row's padding takes the shell's own extra, as the athkar folded row does.
     expect(svg).toContain('padding: var(--ay, 0px) calc(14px + var(--ax, 0px)) var(--ay, 0px) calc(34px + var(--ax, 0px))')
     expect(svg).toContain('text-overflow: ellipsis')
     expect(svg).toContain('flex: 0 100 auto')
+    expect(svg).toContain(`--row: ${l.inner}px`)
   }
   expect(kahfLayout(true).pillWidth).toBeGreaterThan(kahfLayout(false).pillWidth)
 })
@@ -82,4 +83,31 @@ test('the pill is its own target, apart from the × and the avatar, and follows 
   }
   const frame = kahfFrame(props(false), columns)
   expect(playHitArea(frame, true).x1).toBeGreaterThan(playHitArea(frame, false).x1)
+})
+
+// The content can never outgrow the card: one inner height, from the shell, that every part stays within.
+test('every part is no taller than the row, and the band is its picture less the shell\'s padding, for any cell', () => {
+  for (const lh of [14, 16, 20, 24, 26, 30, 40]) {
+    const p: KahfCardProps = { ...props(false), card: { ch: 8.4, lh } }
+    const frame = kahfFrame(p)
+    const box = frameOf(frame)
+    const inner = kahfInner(frame)
+    // The picture less its padding around the band holds the band's padding, frame and row.
+    expect(inner).toBeGreaterThan(0)
+    expect(inner + 2 * box.addY + 3).toBeLessThanOrEqual(box.height - 2 * box.padY)
+    for (const inBrowser of [false, true]) {
+      const l = kahfLayout(inBrowser, inner)
+      expect(Math.max(l.avatarHeight, l.pillHeight, l.textHeight)).toBeLessThanOrEqual(inner)
+      const svg = kahfSvg({ ...p, inBrowser }, VIEW)
+      expect(svg).toContain(`--row: ${inner}px`)
+      // The one band: the picture's width and height, border-box, no negative margin, every child capped.
+      expect(svg).toContain('width: 100%; height: 100%; min-height: 0; box-sizing: border-box;')
+      expect(svg).toContain('.kahf > * { max-height: var(--row); min-height: 0; }')
+      expect(svg.slice(svg.indexOf('.band.band.kahf'))).not.toMatch(/margin|position: absolute/)
+      expect(svg).toContain(`height="${box.height}"`)
+    }
+  }
+  // Without the desktop's card the shell's own 1px padding and the frame are all it takes.
+  const plain = { ...props(false), card: undefined as never }
+  expect(kahfInner(kahfFrame(plain))).toBe(REST_PX - 2 - 3)
 })
