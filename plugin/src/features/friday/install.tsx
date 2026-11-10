@@ -274,7 +274,7 @@ export const install = (on: On, options: Options) => {
       return (
         <Box flexDirection="column">
           <Box key="friday-kahf-row" gap={1}>
-            <Text color={await mainColor($, options.color)}>{label}</Text>
+            <Text bold color={await mainColor($, options.color)} wrap="truncate-end">{label}</Text>
             <Button key="friday-kahf-close" label="×" plain onPress={() => (demo ? endDemo($) : closeCard($))} />
           </Box>
           {demoBlock}
