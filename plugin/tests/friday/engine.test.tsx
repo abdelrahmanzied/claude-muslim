@@ -363,13 +363,14 @@ test('Linux: a browser that does not open shows the Quran player\'s toast; the c
   await ui.unmount()
 })
 
-test('terminal: the line reads «سورة الكهف · يوم الجمعة · بصوت <reciter>» with the ×', { options: OPTIONS }, async ($, on) => {
+test('terminal: the line reads «سورة الكهف · يوم الجمعة» with the ×, never a reciter (it plays no Quran)', { options: OPTIONS }, async ($, on) => {
   fixture(on, THURSDAY, { 'quran.reciter': OTHER.key }, 'terminal')
   spawns(on, 'Darwin')
   const ui = await $.ui.mount(band('terminal'))
   await $.command.run(quranRun)
   await $.command.run(run('alkahf'))
-  expect(await ui.find({ type: 'Text', text: `سورة الكهف · يوم الجمعة · بصوت ${OTHER.name}` })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'سورة الكهف · يوم الجمعة' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'بصوت' })).toBeUndefined()
   expect(await ui.find({ type: 'Button', key: 'friday-alkahf-close' })).toBeDefined()
   await ui.unmount()
 })

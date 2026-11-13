@@ -269,7 +269,7 @@ export const install = (on: On, options: Options) => {
     // DEMO END
 
     if (e.surface === 'terminal') {
-      const label = await renderArabic($, e.surface, alkahfLine(reciter), arabicCache)
+      const label = await renderArabic($, e.surface, alkahfLine(), arabicCache)
 
       return (
         <Box flexDirection="column">
@@ -288,9 +288,10 @@ export const install = (on: On, options: Options) => {
 
     return (
       // As the athkar band and the athan card: the picture reaches a cell past the slot each side
-      // and half a line above and below, over the desktop's own card.
+      // and half a line above and below, over the desktop's own card. With the demo's rows under it,
+      // it keeps its whole height (no bleed below), so its frame never lies over them.
       <Box flexDirection="column">
-        <Box key="friday-alkahf-card" marginX={-1} marginY={-1}>
+        <Box key="friday-alkahf-card" marginX={-1} marginTop={-1} marginBottom={demoBlock ? 0 : -1}>
           <Client key="friday-alkahf" module="./card.tsx" props={props} width="100%" />
         </Box>
         {demoBlock}

@@ -17,7 +17,8 @@ export const ALKAHF_BROWSER = '↗ افتح في المتصفح'
 // «يوم الجمعة · بصوت <reciter>»: the reciter is the one last used, named as the Quran feature names it; empty until the Quran is ready.
 export const alkahfSubtitle = (reciter: string): string => (reciter ? `يوم الجمعة · بصوت ${reciter}` : 'يوم الجمعة')
 // The terminal's one line: the title and the subtitle.
-export const alkahfLine = (reciter: string): string => `${ALKAHF_TITLE} · ${alkahfSubtitle(reciter)}`
+// The terminal line: no reciter, since the terminal plays no Quran (#45 brings a player there).
+export const alkahfLine = (): string => `${ALKAHF_TITLE} · ${alkahfSubtitle('')}`
 
 // The saved place's Dhuhr and Maghrib today (ms); null with no place saved.
 export type AlkahfTimes = { dhuhr: number; maghrib: number } | null

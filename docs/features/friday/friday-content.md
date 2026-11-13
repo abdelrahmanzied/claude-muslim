@@ -15,9 +15,9 @@ The subtitle under it (desktop) or after it (terminal): Friday, and the reciter 
 > يوم الجمعة · بصوت <reciter>
 > يوم الجمعة
 
-The terminal line joins them:
+The terminal line joins the title and the day, never a reciter (the terminal plays no Quran):
 
-> سورة الكهف · يوم الجمعة · بصوت <reciter>
+> سورة الكهف · يوم الجمعة
 
 The desktop pill (button) beside the avatar:
 
