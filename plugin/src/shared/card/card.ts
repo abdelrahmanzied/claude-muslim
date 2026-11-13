@@ -54,6 +54,11 @@ export type CardFrame = {
 // The desktop's card around the band: 8px at the sides, and a 40px row less a
 // line, halved, above and below; its corners round at 10px.
 const DESK_X = 8
+// How far inside the desktop card's edge the card's frame sits. The picture
+// reaches a cell past the slot, and the desktop's cell is not always CELL_PX:
+// a slightly wider one put the frame's side lines past the crop (only the
+// corners showed). Two pixels in keeps a 1.5px frame whole on any cell.
+export const EDGE_INSET = 2
 const deskY = (lh: number) => Math.max(0, (40 - lh) / 2)
 
 // The width the picture is drawn at for a region of `columns` cells.
@@ -69,11 +74,11 @@ export const frameOf = (f: CardFrame) => {
     height: Math.round(f.height + lh),
     left: ch,
     top: lh / 2,
-    // Past the desktop card's edge the picture is cut off: left empty.
-    padX: Math.max(0, ch - DESK_X),
+    // Past the desktop card's edge the picture is cut off: left empty, and the frame a little inside it.
+    padX: Math.max(0, ch - DESK_X) + EDGE_INSET,
     padY: Math.max(0, lh / 2 - deskY(lh)),
-    // Over the desktop's card: the card grows to its edges, its content where it was.
-    addX: DESK_X,
+    // Over the desktop's card: the card grows to its edges (less the inset), its content where it was.
+    addX: DESK_X - EDGE_INSET,
     addY: deskY(lh),
   }
 }
