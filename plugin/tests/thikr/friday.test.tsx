@@ -48,10 +48,10 @@ for (const surface of SURFACES) {
     expect(seen.every(text => salawat(text, surface))).toBe(true)
   })
 
-  test(`${surface}: with Friday salawat off, istighfar mode shows its phrase with the count on a Friday`, { options: { thikrMode: 'istighfar', fridaySalawat: false } }, async ($, on) => {
+  test(`${surface}: with Friday salawat off, istighfar mode shows only its phrase on a Friday`, { options: { thikrMode: 'istighfar', fridaySalawat: false } }, async ($, on) => {
     const seen = await words($, on, FRIDAY, surface)
     expect(seen.length).toBeGreaterThan(0)
-    expect(seen.every(text => text.startsWith(surface === 'terminal' ? stripTashkeel(ISTIGHFAR) : ISTIGHFAR))).toBe(true)
+    expect(seen.every(text => text === (surface === 'terminal' ? stripTashkeel(ISTIGHFAR) : ISTIGHFAR))).toBe(true)
   })
 
   test(`${surface}: on a Friday the thikr line shows the salawat, one per turn`, async ($, on) => {

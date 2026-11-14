@@ -60,7 +60,7 @@
     "thikrMode": {
       "type": "string",
       "title": "Thikr mode",
-      "description": "all: every group in turn; salawat: one salawat on the Prophet ﷺ for each whole turn; istighfar: أَسْتَغْفِرُ اللَّهَ renewed every few seconds with the day's count (times shown, not said)",
+      "description": "all: every group in turn; salawat: one salawat on the Prophet ﷺ for each whole turn; istighfar: أَسْتَغْفِرُ اللَّهَ for each whole turn",
       "options": [
         "all",
         "salawat",

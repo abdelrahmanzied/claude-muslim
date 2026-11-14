@@ -26,7 +26,7 @@ Thikr is text only. This follows the shared text-only requirement.
 
 ## Istighfar mode
 
-`/thikr mode istighfar` draws one phrase, a spinning star and the day's count, «أَسْتَغْفِرُ اللَّهَ · ✻ ٣», as plain text in the same places as the other modes, renewed at the rotation's pace (the count goes up each renewal, in Arabic-Indic digits). The star is the chosen "spin" style: `· ✢ ✳ ✶ ✻ ✽ ✻ ✶ ✳ ✢`, one frame per 200 ms, text only, in the same color as the line. In this mode the thikr ticker redraws every 200 ms; the shaped Arabic line is cached per count and only the star glyph is swapped on each frame, so a tick costs no new shaping. Terminal Arabic goes through the shared shaping, the desktop shows it as authored. The count is not shown in the Muslim pane. Friday salawat wins on Friday.
+`/thikr mode istighfar` is drawn exactly like salawat mode: the one phrase «أَسْتَغْفِرُ اللَّهَ» as plain text in the same places, still for the whole turn, with no ticker. Terminal Arabic goes through the shared shaping, desktop shows it as authored. Friday salawat wins on Friday.
 
 ## Friday
 
