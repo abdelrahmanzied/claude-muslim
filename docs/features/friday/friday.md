@@ -17,9 +17,10 @@ A card above the prompt: the title «سورة الكهف» and, after it on the 
 - **When:** on a Friday, from 30 minutes after Dhuhr (Jumu'ah) until Maghrib, in the saved city's times. The 30 minutes are fixed, not a setting. It needs a saved city (`/salah city`); without one there is no window and nothing shows by itself.
 - **Once per Friday, across sessions:** the first session open inside the window shows it. A session opened in the morning shows nothing. The day it showed is kept in the shared store (`friday.alkahfDay`), written read-merge-write as the athkar progress is, so a second session never shows it again that day.
 - **Waits for a free slot:** if the athan card or minaret, or the athkar band (open, not folded) is showing, the reminder waits and shows when it closes, still inside the window. A card that ends after Maghrib is not shown.
-- **Stays 3 minutes,** then hides by itself. × closes it earlier.
+- **Stays 1 minute,** then hides by itself. × closes it earlier.
 - **Desktop:** the card is one row, the athkar folded row's height, and shows the Quran avatar (the Muslim pane's own, moving as it does while playing, and still when reduced motion is asked for), a pill and ×. On macOS the pill reads «▶ استمع» and plays Surat al-Kahf (surah 18) in the Quran player with the reciter last used. On Windows and Linux, where Claude Code plays no audio, it reads «↗ افتح في المتصفح» and opens the whole surah 18 MP3 of that reciter (no segment, https only) in the default browser, as the Quran card's «استمع في المتصفح» does; if the browser does not open, the Quran player's toast shows. The card closes after the press. Enter or Space presses the pill too.
-- **Terminal:** one line above the prompt, «سورة الكهف · يوم الجمعة» with no reciter (the terminal plays no Quran; #45 brings a player and a ▶ there), and the same window, 3 minutes, once-per-Friday rule and wait for other cards; there is no play button (the Quran player is desktop only). It closes early by pressing its × button (a click, as every terminal button); otherwise it hides by itself after 3 minutes.
+- **Terminal:** one line above the prompt, «سورة الكهف · يوم الجمعة» with no reciter (the terminal plays no Quran; #45 brings a player and a ▶ there), and the same window, 1 minute, once-per-Friday rule and wait for other cards; there is no play button (the Quran player is desktop only). It closes early by pressing its × button (a click, as every terminal button); otherwise it hides by itself after 3 minutes.
+- After Jumu'ah the athkar after salah are not offered by themselves (the person goes to the prayer); an explicit ask still opens them. See [athkar](../athkar/athkar.md).
 - `/friday alkahf on | off` switches the automatic reminder only (default on).
 - `/friday alkahf` alone shows the card now, on any day and at any time. On a Friday it counts as that day's showing.
 - **No saved city:** there is no window, so nothing shows by itself, and no time is guessed. `/friday` says so («The automatic Al-Kahf reminder needs a city: set one with `/salah city`»); `/friday alkahf` keeps working.
@@ -33,7 +34,7 @@ Every behaviour is on both surfaces and each is tested on both (`plugin/tests/fr
 | Jumu'ah name | Athan card, pane prayer card and rows | Prayer line, athan text, `/salah` table, review form, thikr call, the pane's text fallback |
 | Salawat in the thikr line | the phrase as authored, with tashkeel | the same phrase, tashkeel as the terminal setting says |
 | Al-Kahf reminder | card: avatar, «▶ استمع» (macOS) or «↗ افتح في المتصفح» (Windows, Linux) and × | text line «سورة الكهف · يوم الجمعة · بصوت <reciter>» with ×; no pill |
-| Window, 3 minutes, once per Friday, waits for other cards | same | same |
+| Window, 1 minute, once per Friday, waits for other cards | same | same |
 | `/friday`, `/friday salawat`, `/friday alkahf` | same replies | same replies; `/friday alkahf` says nothing of ▶ |
 | Settings | Muslim pane «الجمعة» tab | `/muslim` text lines (`Friday · salawat`, `Friday · Al-Kahf reminder`) |
 | Quran Friday shortcut | «سورة الكهف» button (plays on macOS, opens the browser on Windows and Linux) | none: the Quran player is desktop only |
@@ -63,7 +64,7 @@ The Muslim pane's «الجمعة» settings tab has both switches.
 
 ## Demo
 
-`/friday demo` plays, on any day and on both surfaces, two real looks in order: the athan card with the Dhuhr slot named «الجمعة» (the same card or minaret `/salah demo` draws, on a fixed Friday 12:30), which shows and goes; then the Al-Kahf card for 8 seconds (its pill closes the demo instead of playing or opening a browser), which goes too. Nothing else is drawn beside them. It never touches settings, the store or saved state. It is the fourth step of the shared `/muslim demo` (thikr, athkar, salah, **friday**, pane tour).
+`/friday demo` plays, on any day and on both surfaces, two real looks in order: the athan card with the Dhuhr slot named «الجمعة» (the same card or minaret `/salah demo` draws, on a fixed Friday 12:30), which shows and goes; then the Al-Kahf card for 5 seconds (its pill closes the demo instead of playing or opening a browser), which goes too. Nothing else is drawn beside them. It never touches settings, the store or saved state. It is the fourth step of the shared `/muslim demo` (thikr, athkar, salah, **friday**, pane tour).
 
 ## Code
 

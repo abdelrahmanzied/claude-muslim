@@ -32,7 +32,7 @@ Desktop: click the pill plays (or opens the browser), click × closes; Enter or 
 
 ## Demo
 
-`/friday demo` and the shared demo play two real looks in order, on both surfaces, and nothing else: first the real athan card (the one `/salah demo` draws: the desktop card, the terminal's minaret then its folded line) with the Dhuhr slot named «الجمعة» (a fixed Friday 12:30, so it reads «حان وقت صلاة الجمعة» on any day), which shows and goes by its own timings; then the Al-Kahf card for 8 seconds, which goes too. No pray line, salawat or button rows are drawn beside them. Salah draws the athan step and tells Friday when it has gone, through a transient signal in `plugin/src/shared/demo/` (features never import each other); Friday's `demo.ts` holds the steps and the card's length. The pill closes the demo instead of playing. The demo only drives drawing: settings, store and state are untouched.
+`/friday demo` and the shared demo play two real looks in order, on both surfaces, and nothing else: first the real athan card (the one `/salah demo` draws: the desktop card, the terminal's minaret then its folded line) with the Dhuhr slot named «الجمعة» (a fixed Friday 12:30, so it reads «حان وقت صلاة الجمعة» on any day), which shows and goes by its own timings; then the Al-Kahf card for 5 seconds, which goes too. No pray line, salawat or button rows are drawn beside them. Salah draws the athan step and tells Friday when it has gone, through a transient signal in `plugin/src/shared/demo/` (features never import each other); Friday's `demo.ts` holds the steps and the card's length. The pill closes the demo instead of playing. The demo only drives drawing: settings, store and state are untouched.
 
 ## Checklist for a change
 

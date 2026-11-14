@@ -3,6 +3,7 @@ import { expect, mock, test } from 'claude-code/testing'
 
 import { TOTAL_MS as MINARET_MS } from '../../src/features/salah/minaret.ts'
 import { demoDuration } from '../../src/features/salah/demo.ts'
+import { DEMO_MS } from '../../src/features/friday/demo.ts'
 import { ALKAHF_CARD_MS, ALKAHF_TITLE } from '../../src/features/friday/logic.ts'
 import { defaultReciter } from '../../src/features/quran/catalog.ts'
 import { QURAN_CATALOG } from '../../src/features/quran/catalog-data.ts'
@@ -85,7 +86,7 @@ test('/friday help is the table', { options: OPTIONS }, async ($, on) => {
 const waitFor = async (clock: { advance: (ms: number) => Promise<unknown> }) => { await clock.advance(1600) }
 
 for (const surface of SURFACES) {
-  test(`${surface}: /friday alkahf shows the card now, on any day and time, and it hides itself after three minutes`, { options: OPTIONS }, async ($, on) => {
+  test(`${surface}: /friday alkahf shows the card now, on any day and time, and it hides itself after one minute`, { options: OPTIONS }, async ($, on) => {
     const { clock } = fixture(on, THURSDAY, {}, surface)
     const ui = await $.ui.mount(band(surface))
     expect(await shown(ui, surface)).toBeUndefined()
@@ -135,7 +136,7 @@ for (const surface of SURFACES) {
     await clock.advance(8 * 60_000)
     expect(await shown(ui, surface)).toBeUndefined()
     expect(stored['friday.alkahfDay']).toBeUndefined()
-    // By 11:40 it opened inside the window (and is up for three minutes at most).
+    // By 11:40 it opened inside the window (and is up for one minute at most).
     await clock.advance(12 * 60_000)
     expect(stored['friday.alkahfDay']).toBe(dayKey(Date.parse('2026-10-09T11:40:00Z')))
 
@@ -226,7 +227,7 @@ for (const surface of SURFACES) {
     })
   }
 
-  test(`${surface}: the × closes the card before its three minutes`, { options: OPTIONS }, async ($, on) => {
+  test(`${surface}: the × closes the card before its minute`, { options: OPTIONS }, async ($, on) => {
     fixture(on, THURSDAY, {}, surface)
     const ui = await $.ui.mount(band(surface))
     await $.command.run(run('alkahf'))
@@ -256,7 +257,7 @@ for (const surface of SURFACES) {
     // Step 2: the Al-Kahf card, then it goes too.
     expect(await shown(ui, surface), 'card after athan').toBeDefined()
     if (surface === 'terminal') expect(await ui.find({ type: 'Text', text: 'حان وقت صلاة الجمعة' })).toBeUndefined()
-    await clock.advance(7000)
+    await clock.advance(DEMO_MS - 1500)
     expect(await shown(ui, surface), 'card still').toBeDefined()
     await clock.advance(1100)
     expect(await shown(ui, surface)).toBeUndefined()

@@ -1,5 +1,5 @@
 // DEMO BEGIN: Friday as a sequence in the real looks: the athan card named الجمعة (salah draws it), then the Al-Kahf card; no settings, store or saved state.
-export const DEMO_MS = 8000
+export const DEMO_MS = 5000
 export const DEMO_TICK_MS = 500
 
 export type DemoStep = 'athan' | 'alkahf'

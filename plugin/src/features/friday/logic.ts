@@ -7,7 +7,7 @@ export { ALKAHF_SURAH }
 // The window opens this long after Jumu'ah (the Dhuhr time) and closes at Maghrib. Fixed, not a setting.
 export const ALKAHF_DELAY_MS = 30 * 60_000
 // How long the card stays when nobody closes it.
-export const ALKAHF_CARD_MS = 3 * 60_000
+export const ALKAHF_CARD_MS = 60_000
 
 // The words on the card, authored in docs/features/friday/friday-content.md.
 export const ALKAHF_TITLE = 'سورة الكهف'

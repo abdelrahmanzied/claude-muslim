@@ -8,9 +8,9 @@ const at = (day: number, hour: number, minute = 0): number => new Date(2026, 10,
 const TIMES = { dhuhr: at(6, 12), maghrib: at(6, 17) }
 const input = (over: Partial<AlkahfInput> = {}): AlkahfInput => ({ now: at(6, 14), times: TIMES, enabled: true, shownDay: undefined, isBusy: false, ...over })
 
-test('the card says the authored words and stays three minutes', () => {
+test('the card says the authored words and stays one minute', () => {
   expect(ALKAHF_TITLE).toBe('سورة الكهف')
-  expect(ALKAHF_CARD_MS).toBe(3 * 60_000)
+  expect(ALKAHF_CARD_MS).toBe(60_000)
   expect(ALKAHF_DELAY_MS).toBe(30 * 60_000)
 })
 
@@ -58,8 +58,8 @@ test('status names the day and whether it was shown', () => {
 
 test('a session\'s card is gone after its time and on another day', () => {
   const card = { day: dayKey(at(6, 14)), until: at(6, 14) + ALKAHF_CARD_MS }
-  expect(cardAt(card, at(6, 14, 2))).toBe(card)
-  expect(cardAt(card, at(6, 14, 3))).toBeNull()
+  expect(cardAt(card, at(6, 14) + 30_000)).toBe(card)
+  expect(cardAt(card, at(6, 14, 2))).toBeNull()
   expect(cardAt(card, at(13, 14, 1))).toBeNull()
   expect(cardAt(null, at(6, 14))).toBeNull()
 })

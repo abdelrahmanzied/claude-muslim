@@ -16,9 +16,9 @@ test('each step is followed by the next, and the last by nothing', () => {
   expect(demoNext('alkahf')).toBeNull()
 })
 
-test('the Al-Kahf card shows for eight seconds', () => {
-  expect(DEMO_MS).toBe(8000)
+test('the Al-Kahf card shows for five seconds', () => {
+  expect(DEMO_MS).toBe(5000)
   expect(demoShowing(1000, 1000)).toBe(true)
-  expect(demoShowing(1000, 8999)).toBe(true)
-  expect(demoShowing(1000, 9000)).toBe(false)
+  expect(demoShowing(1000, 5999)).toBe(true)
+  expect(demoShowing(1000, 6000)).toBe(false)
 })
