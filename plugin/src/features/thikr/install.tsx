@@ -20,7 +20,7 @@ import { ISTIGHFAR, SALAWAT, STARTING, USAGE_LIMIT } from './phrases.ts'
 import { isSalawatTime } from '../../shared/friday/index.ts'
 import { athkarTimesAt } from '../../shared/pray/bounds.ts'
 import { END_OF_TURN } from '../../shared/thikr/end.ts'
-import { istighfarLine, ISTIGHFAR_KEY, nextCount, slotAt } from './istighfar.ts'
+import { istighfarLine, ISTIGHFAR_KEY, nextCount, slotAt, STAR_MS, STAR_SLOT, starAt } from './istighfar.ts'
 import { durationOf, groupFor, isStepRow, phraseAt, pickStart, startOf, withThikr } from './rotation.ts'
 import { withTashkeel } from '../../shared/arabic/visual.ts'
 import type { Group, Speed } from './rotation.ts'
@@ -217,6 +217,8 @@ export const install = (on: On, options: Options) => {
   const isSalawat = (now: number): boolean => options.thikrMode === 'salawat' || isSalawatTime(options.fridaySalawat, now, athkarTimesAt(now)?.fajr ?? null)
   // Istighfar mode: when the turn began, and the showing now on the line with its day count (one more each renewal).
   const istighfar: IstighfarShown = { turnStart: 0, slot: undefined, count: Promise.resolve(0) }
+  // The shaped line of the count showing now, so the Arabic is shaped once per count and not on every star frame.
+  let shaped: { key: string; text: string } | undefined
   let ticker: { cancel: () => void } | undefined
   // Long moments: compacting, subagents at work, tools by start time.
   let isCompacting = false
@@ -333,7 +335,8 @@ export const install = (on: On, options: Options) => {
     const startedAt = await $.clock.now()
     istighfar.turnStart = startedAt
     istighfar.slot = undefined
-    ticker = isSalawat(startedAt) ? undefined : $.clock.every(TICK_MS, () => $.ui.invalidate('ui.render'))
+    // Istighfar mode redraws at the star's pace; the other modes at the usual one.
+    ticker = isSalawat(startedAt) ? undefined : $.clock.every(options.thikrMode === 'istighfar' ? STAR_MS : TICK_MS, () => $.ui.invalidate('ui.render'))
     limitTimer?.cancel()
     limitTimer = undefined
     await setLimit($, null)
@@ -391,12 +394,18 @@ export const install = (on: On, options: Options) => {
       group = current
       groupSince = now - (played.get(current) ?? 0)
     }
-    const text = isSalawat(now)
-      ? SALAWAT[Math.max(0, turns - 1) % SALAWAT.length] ?? ''
-      : options.thikrMode === 'istighfar'
-        ? istighfarLine(await istighfarCount($, istighfar, now, durationOf(ISTIGHFAR, options.thikrSpeed)))
+    let phrase: string
+    if (!isSalawat(now) && options.thikrMode === 'istighfar') {
+      const count = await istighfarCount($, istighfar, now, durationOf(ISTIGHFAR, options.thikrSpeed))
+      const key = `${e.surface}|${options.tashkeel}|${count}`
+      if (shaped?.key !== key) shaped = { key, text: await renderArabic($, e.surface, withTashkeel(istighfarLine(count), options.tashkeel), arabicCache) }
+      phrase = shaped.text.replace(STAR_SLOT, starAt(now, istighfar.turnStart))
+    } else {
+      const text = isSalawat(now)
+        ? SALAWAT[Math.max(0, turns - 1) % SALAWAT.length] ?? ''
         : phraseAt(current, now - groupSince, options.thikrSpeed)
-    const phrase = await renderArabic($, e.surface, withTashkeel(text, options.tashkeel), arabicCache)
+      phrase = await renderArabic($, e.surface, withTashkeel(text, options.tashkeel), arabicCache)
+    }
 
     const isStep = isStepRow(e.surface, e.props, lastStep, toolsSince.size > 0)
     if (isStep) lastStep = e.props.word

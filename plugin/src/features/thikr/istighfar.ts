@@ -15,8 +15,21 @@ export const nextCount = (saved: unknown, now: number): IstighfarCount => {
   return { day, count: before + 1 }
 }
 
-// The line: the phrase, then the count in Arabic-Indic digits.
-export const istighfarLine = (count: number): string => `${ISTIGHFAR} · ${arabicDigits(count)}`
+// The spinning star between the phrase and the count: a Claude-like star that cycles back and forth. All five glyphs are single-width.
+export const STAR_FRAMES: readonly string[] = ['·', '✢', '✳', '✶', '✻', '✽', '✻', '✶', '✳', '✢']
+
+// How long each frame stays; the thikr ticker redraws this often in istighfar mode.
+export const STAR_MS = 200
+
+// The star at a moment: one frame every STAR_MS from the turn's start.
+export const starAt = (now: number, turnStart: number): string =>
+  STAR_FRAMES[Math.floor(Math.max(0, now - turnStart) / STAR_MS) % STAR_FRAMES.length] ?? '✻'
+
+// The glyph the shaped line is made with; the frame of the moment replaces it, so the Arabic is shaped once per count.
+export const STAR_SLOT = '✻'
+
+// The line: the phrase, the star, then the count in Arabic-Indic digits.
+export const istighfarLine = (count: number, star: string = STAR_SLOT): string => `${ISTIGHFAR} · ${star} ${arabicDigits(count)}`
 
 // Which showing a moment falls in: the phrase renews every `everyMs` from the turn's start.
 export const slotAt = (now: number, turnStart: number, everyMs: number): number => Math.floor(Math.max(0, now - turnStart) / Math.max(1, everyMs))

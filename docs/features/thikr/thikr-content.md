@@ -92,7 +92,7 @@ Sources in the code: `plugin/src/features/thikr/phrases.ts`, with the salawat in
 
 > يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ
 
-## ISTIGHFAR: istighfar mode: this one phrase, renewed with the day's count (1 phrase; «· ١» «· ٢» … in Arabic-Indic digits after it)
+## ISTIGHFAR: istighfar mode: this one phrase, renewed with the day's count (1 phrase; «· ✻ ١» «· ✻ ٢» … a star `· ✢ ✳ ✶ ✻ ✽` cycling, then the count in Arabic-Indic digits)
 
 > أَسْتَغْفِرُ اللَّهَ
 
