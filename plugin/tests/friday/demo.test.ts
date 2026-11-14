@@ -1,30 +1,24 @@
 import { expect, test } from 'claude-code/testing'
 
-import { DEMO_MS, demoPrayLine, demoReply, demoSalawat, demoShowing } from '../../src/features/friday/demo.ts'
-import { SALAWAT } from '../../src/shared/thikr/salawat.ts'
+import { DEMO_MS, DEMO_STEPS, demoNext, demoReply, demoShowing } from '../../src/features/friday/demo.ts'
 
-test('the demo shows everything for eight seconds and says nothing is saved', () => {
-  expect(DEMO_MS).toBe(8000)
-  expect(demoReply()).toContain('for 8 s')
-  expect(demoReply()).toContain('the Al-Kahf card')
-  expect(demoReply()).toContain('الجمعة in place of الظهر')
-  expect(demoReply()).toContain('one Friday salawat on the thikr line')
-  expect(demoReply()).toContain('«سورة الكهف» button')
+test('the demo is the athan card named الجمعة, then the Al-Kahf card, and says nothing is saved', () => {
+  expect(DEMO_STEPS).toEqual(['athan', 'alkahf'])
+  expect(demoReply()).toContain('the athan card with الجمعة, then the Al-Kahf card')
+  expect(demoReply()).toContain('Each shows, then goes.')
   expect(demoReply()).toContain('Nothing is saved.')
+  // The fake rows are gone: no pray line, salawat or pane button.
+  expect(demoReply()).not.toMatch(/salawat|pray line|button/)
 })
 
-test('it is showing until the eight seconds are over', () => {
+test('each step is followed by the next, and the last by nothing', () => {
+  expect(demoNext('athan')).toBe('alkahf')
+  expect(demoNext('alkahf')).toBeNull()
+})
+
+test('the Al-Kahf card shows for eight seconds', () => {
+  expect(DEMO_MS).toBe(8000)
   expect(demoShowing(1000, 1000)).toBe(true)
   expect(demoShowing(1000, 8999)).toBe(true)
   expect(demoShowing(1000, 9000)).toBe(false)
-})
-
-test('the pray line names the Dhuhr slot الجمعة whatever today is', () => {
-  expect(demoPrayLine()).toBe('☾ الجمعة ١٢:٣٠')
-  expect(demoPrayLine()).not.toContain('الظهر')
-})
-
-test('the thikr line shows the first authored salawat', () => {
-  expect(demoSalawat()).toBe(SALAWAT[0])
-  expect(demoSalawat()).toContain('مُحَمَّدٍ')
 })

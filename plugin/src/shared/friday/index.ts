@@ -7,6 +7,9 @@ import { isFriday } from '../pray/names.ts'
 // Surat al-Kahf is surah 18: the Friday shortcuts (the reminder card, the Quran card's button) play it.
 export const ALKAHF_SURAH = 18
 
+// A Friday at 12:30 on the device's own calendar, for the demos: Dhuhr named الجمعة whatever today is.
+export const FRIDAY_NOON = new Date(2026, 9, 9, 12, 30).getTime()
+
 // The device's local day as `YYYY-MM-DD`: the key a once-per-Friday flag is kept under.
 export const dayKey = (at: number): string => {
   const d = new Date(at)

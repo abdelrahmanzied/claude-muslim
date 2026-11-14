@@ -42,7 +42,7 @@ The differences that remain are only what the surface cannot do: no ▶ and no Q
 
 ## Seeing it on a day that is not Friday
 
-`/friday alkahf` shows the card now (desktop and terminal), `/friday demo` plays everything Friday shows for 8 seconds, `/friday` shows the day and the settings, and the Muslim pane's «الجمعة» tab (desktop) or `/muslim` (terminal) shows both switches. The Jumu'ah name, the salawat phrases and the Quran button follow the device's real Friday.
+`/friday alkahf` shows the card now (desktop and terminal), `/friday demo` plays the athan card named «الجمعة», then the Al-Kahf card, `/friday` shows the day and the settings, and the Muslim pane's «الجمعة» tab (desktop) or `/muslim` (terminal) shows both switches. The Jumu'ah name, the salawat phrases and the Quran button follow the device's real Friday.
 
 ## Quran card shortcut
 
@@ -63,7 +63,7 @@ The Muslim pane's «الجمعة» settings tab has both switches.
 
 ## Demo
 
-`/friday demo` shows, for 8 seconds on any day and on both surfaces: the Al-Kahf card (its pill closes the demo instead of playing or opening a browser), the pray line with «الجمعة» in place of «الظهر» (the real pray-line code on a fixed Friday 12:30), one Friday salawat as a thikr line (the first of the shared authored list) and the pane's «سورة الكهف» button (a text row on both surfaces). It never touches settings, the store or saved state. It is the fourth step of the shared `/muslim demo` (thikr, athkar, salah, **friday**, pane tour).
+`/friday demo` plays, on any day and on both surfaces, two real looks in order: the athan card with the Dhuhr slot named «الجمعة» (the same card or minaret `/salah demo` draws, on a fixed Friday 12:30), which shows and goes; then the Al-Kahf card for 8 seconds (its pill closes the demo instead of playing or opening a browser), which goes too. Nothing else is drawn beside them. It never touches settings, the store or saved state. It is the fourth step of the shared `/muslim demo` (thikr, athkar, salah, **friday**, pane tour).
 
 ## Code
 

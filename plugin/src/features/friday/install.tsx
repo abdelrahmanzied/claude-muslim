@@ -22,10 +22,10 @@ import { cardAt, ALKAHF_CARD_MS, ALKAHF_NEEDS_CITY, ALKAHF_SURAH, ALKAHF_TITLE, 
 import { withTashkeel } from '../../shared/arabic/visual.ts'
 
 // DEMO BEGIN: imports and transient runner (no settings, store or saved state).
-import { DEMO_MS, DEMO_TICK_MS, demoPrayLine, demoReply, demoSalawat, demoShowing } from './demo.ts'
-import { connectDemo, doneDemo } from '../../shared/demo/signal.ts'
+import { DEMO_MS, DEMO_TICK_MS, demoNext, demoReply, demoShowing, type DemoStep } from './demo.ts'
+import { connectDemo, doneDemo, startDemo } from '../../shared/demo/signal.ts'
 
-let demo: { startedAt: number; shared: boolean; timer?: { cancel: () => void } } | undefined
+let demo: { step: DemoStep; startedAt: number; shared: boolean; timer?: { cancel: () => void } } | undefined
 
 const endDemo = ($: EngineInterface) => {
   const playing = demo
@@ -36,14 +36,27 @@ const endDemo = ($: EngineInterface) => {
   if (playing.shared) doneDemo('friday')
 }
 
-const playDemo = async ($: EngineInterface, shared = false) => {
-  demo?.timer?.cancel()
-  demo = { startedAt: await $.clock.now(), shared }
-  const playing = demo
+// The athan card has gone: the Al-Kahf card shows, then it goes too.
+const nextDemoStep = async ($: EngineInterface, playing: NonNullable<typeof demo>) => {
+  if (demo !== playing) return
+  const step = demoNext(playing.step)
+  if (!step) return endDemo($)
+  playing.step = step
+  playing.startedAt = await $.clock.now()
+  if (demo !== playing) return
+  playing.timer?.cancel()
   playing.timer = $.clock.every(DEMO_TICK_MS, () => void $.clock.now().then(now => {
     if (demo === playing && !demoShowing(playing.startedAt, now)) endDemo($)
   }).catch(() => {}))
   $.ui.invalidate('ui.render')
+}
+
+const playDemo = async ($: EngineInterface, shared = false) => {
+  demo?.timer?.cancel()
+  const playing = { step: 'athan' as DemoStep, startedAt: await $.clock.now(), shared }
+  demo = playing
+  // The real athan card first (salah draws it, named الجمعة); with none to draw, straight to ours.
+  startDemo('fridayAthan', () => void nextDemoStep($, playing)).catch(() => void nextDemoStep($, playing))
 
   return demoReply()
 }
@@ -186,7 +199,7 @@ export const install = (on: On, options: Options) => {
   // The card last drawn and its region, for its clicks.
   const drawn: { props: AlkahfCardProps | undefined; region: { columns: number; rows: number } } = { props: undefined, region: { columns: 0, rows: 0 } }
 
-  on('command.run', { command: 'friday' }, async ($, e) => {
+  on('command.run', { command: 'friday' }, async ($, e, next) => {
     const [word = '', value = ''] = e.args.trim().split(/\s+/)
     const set = async (field: string, to: boolean, said: string) => ({ text: await writeSetting($, `muslim.${field}`, to) ?? said })
     const onOff = (v: boolean) => (v ? 'on' : 'off')
@@ -194,7 +207,12 @@ export const install = (on: On, options: Options) => {
     const now = await $.clock.now()
 
     // DEMO BEGIN: command entry; no settings or saved state.
-    if (word === 'demo') return { text: await playDemo($) }
+    if (word === 'demo') {
+      // Walk the demo-only setup hooks once (salah connects the athan card).
+      await next(e)
+
+      return { text: await playDemo($) }
+    }
     // DEMO END
     if (word === '') {
       return {
@@ -241,7 +259,7 @@ export const install = (on: On, options: Options) => {
     // The timers start only where the reminder can ever fire: on a Friday, switched on, with a saved place.
     if (options.fridayAlkahf && isFriday(now) && athkarTimesAt(now)) track($, options)
     if (e.surface !== 'desktop' && e.surface !== 'terminal') return theirs
-    const shown = demo ? (demoShowing(demo.startedAt, now) ? { until: demo.startedAt + DEMO_MS } : null) : cardAt(await read($, cardRef), now)
+    const shown = demo ? (demo.step === 'alkahf' && demoShowing(demo.startedAt, now) ? { until: demo.startedAt + DEMO_MS } : null) : cardAt(await read($, cardRef), now)
     if (!shown) return theirs
     // Hides itself: one redraw at the deadline.
     if (hideTimer?.at !== shown.until) {
@@ -253,21 +271,6 @@ export const install = (on: On, options: Options) => {
     const surahPlay = await readSurahPlay()
     const reciter = surahPlay?.reciter ?? ''
 
-    // DEMO BEGIN: the other Friday things, drawn beside the card for the demo only.
-    const demoRows = demo ? [
-      await renderArabic($, e.surface, demoPrayLine(), arabicCache),
-      await renderArabic($, e.surface, withTashkeel(demoSalawat(), options.tashkeel), arabicCache),
-      await renderArabic($, e.surface, e.surface === 'terminal' ? `${ALKAHF_TITLE} · /friday alkahf` : `[ ${ALKAHF_TITLE} ]`, arabicCache),
-    ] : []
-    const demoBlock = demo ? (
-      <Box key="friday-demo-rows" flexDirection="column">
-        <Text key="friday-demo-pray">{demoRows[0]}</Text>
-        <Text key="friday-demo-thikr" color={await mainColor($, options.color)}>{demoRows[1]}</Text>
-        <Text key="friday-demo-pane" dimColor>{demoRows[2]}</Text>
-      </Box>
-    ) : null
-    // DEMO END
-
     if (e.surface === 'terminal') {
       const label = await renderArabic($, e.surface, alkahfLine(), arabicCache)
 
@@ -277,7 +280,6 @@ export const install = (on: On, options: Options) => {
             <Text bold color={await mainColor($, options.color)} wrap="truncate-end">{label}</Text>
             <Button key="friday-alkahf-close" label="×" plain onPress={() => (demo ? endDemo($) : closeCard($))} />
           </Box>
-          {demoBlock}
           {theirs}
         </Box>
       )
@@ -288,13 +290,11 @@ export const install = (on: On, options: Options) => {
 
     return (
       // As the athkar band and the athan card: the picture reaches a cell past the slot each side
-      // and half a line above and below, over the desktop's own card. With the demo's rows under it,
-      // it keeps its whole height (no bleed below), so its frame never lies over them.
+      // and half a line above and below, over the desktop's own card.
       <Box flexDirection="column">
-        <Box key="friday-alkahf-card" marginX={-1} marginTop={-1} marginBottom={demoBlock ? 0 : -1}>
+        <Box key="friday-alkahf-card" marginX={-1} marginY={-1}>
           <Client key="friday-alkahf" module="./card.tsx" props={props} width="100%" />
         </Box>
-        {demoBlock}
         {theirs ?? <Box key="friday-alkahf-end" height={0} />}
       </Box>
     )

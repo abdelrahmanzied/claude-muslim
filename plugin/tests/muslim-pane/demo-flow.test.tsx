@@ -48,7 +48,8 @@ const startTour = async ($: Engine, clock: ReturnType<typeof mock.clock>, surfac
   await clock.advance(DEMO_GAP_MS + athkarDuration(surface === 'desktop' ? 'sky' : 'frame', 3200))
   await clock.advance(DEMO_GAP_MS + salahDuration(surface))
   await clock.advance(athkarDuration('frame', 3200, 'afterSalah'))
-  await clock.advance(DEMO_GAP_MS + FRIDAY_MS)
+  // The Friday demo: the athan card named الجمعة, then the Al-Kahf card.
+  await clock.advance(DEMO_GAP_MS + salahDuration(surface) + FRIDAY_MS)
   await clock.advance(DEMO_GAP_MS)
 }
 

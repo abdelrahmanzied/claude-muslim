@@ -5,5 +5,5 @@ export const DEMO_GAP_MS = 100
 export const DEMO_STEPS = ['thikr', 'athkar', 'salah', 'friday', 'pane'] as const
 
 export const demoReply = (): string =>
-  '**Muslim demo:** playing. Thikr (a real turn, about 30 s), then athkar, then /salah demo (athan and athkar after salah), then the Friday demo (the Al-Kahf card, الجمعة on the pray line, a Friday salawat and the Al-Kahf button of the pane), then the Muslim pane tour on desktop. The thikr part uses tokens and leaves a message in the transcript.'
+  '**Muslim demo:** playing. Thikr (a real turn, about 30 s), then athkar, then /salah demo (athan and athkar after salah), then the Friday demo (the athan card named الجمعة, then the Al-Kahf card), then the Muslim pane tour on desktop. The thikr part uses tokens and leaves a message in the transcript.'
 // DEMO END

@@ -1,6 +1,7 @@
 // DEMO BEGIN: transient signals, no engine API or persistent state.
 export type DemoFeature = 'thikr' | 'athkar' | 'salah' | 'friday' | 'pane'
-type DemoPart = DemoFeature | 'afterSalah'
+// 'afterSalah' and 'fridayAthan' are parts another demo starts: the athkar after salah, and the athan card named الجمعة.
+type DemoPart = DemoFeature | 'afterSalah' | 'fridayAthan'
 type Starter = (finished?: () => void) => string | Promise<string>
 const starters = new Map<DemoPart, { start: Starter; cancel?: () => void }>()
 let failure: (() => void) | undefined

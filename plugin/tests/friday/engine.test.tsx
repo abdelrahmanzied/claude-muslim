@@ -1,6 +1,8 @@
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
+import { TOTAL_MS as MINARET_MS } from '../../src/features/salah/minaret.ts'
+import { demoDuration } from '../../src/features/salah/demo.ts'
 import { ALKAHF_CARD_MS, ALKAHF_TITLE } from '../../src/features/friday/logic.ts'
 import { defaultReciter } from '../../src/features/quran/catalog.ts'
 import { QURAN_CATALOG } from '../../src/features/quran/catalog-data.ts'
@@ -28,6 +30,8 @@ const band = (surface: 'terminal' | 'desktop') => ({
 
 const SURFACES = ['terminal', 'desktop'] as const
 type Surface = (typeof SURFACES)[number]
+// How long the demo's athan step lasts on each surface (salah's own demo lengths).
+const athanMs = (surface: Surface) => demoDuration(surface)
 
 const fixture = (on: On, now: number, entries: Record<string, unknown> = {}, surface: Surface = 'terminal', env: Record<string, string> = {}) => {
   on('session.surface', async () => ({ value: surface }))
@@ -232,21 +236,30 @@ for (const surface of SURFACES) {
     await ui.unmount()
   })
 
-  test(`${surface}: the demo shows the card, the Jumu'ah pray line, a salawat and the pane button for eight seconds, and saves nothing`, { options: OPTIONS }, async ($, on) => {
+  test(`${surface}: the demo plays the athan card named الجمعة, then the Al-Kahf card, each showing and going, and saves nothing`, { options: OPTIONS }, async ($, on) => {
     const { clock, writes, stored } = fixture(on, THURSDAY, {}, surface)
     const ui = await $.ui.mount(band(surface))
     expect((await $.command.run(run('demo'))).text).toContain('Friday demo')
-    expect(await shown(ui, surface)).toBeDefined()
-    // Today is a Thursday, and the pray line still names the Dhuhr slot الجمعة.
-    expect(await ui.find({ type: 'Box', key: 'friday-demo-rows' }), 'rows box').toBeDefined()
-    expect(await ui.find({ type: 'Text', text: '☾ الجمعة' })).toBeDefined()
-    expect(await ui.find({ type: 'Text', text: surface === 'terminal' ? stripTashkeel('اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ') : 'اللَّهُمَّ صَلِّ عَلَىٰ مُحَمَّدٍ' })).toBeDefined()
-    expect(await ui.find({ type: 'Text', text: surface === 'terminal' ? 'سورة الكهف · /friday alkahf' : '[ سورة الكهف ]' }), 'pane button').toBeDefined()
-    await clock.advance(7500)
-    expect(await shown(ui, surface)).toBeDefined()
+    // Step 1: the real athan (the terminal's minaret, which folds to a line naming الجمعة); the Al-Kahf card waits.
+    expect(await shown(ui, surface)).toBeUndefined()
+    let spent = 0
+    if (surface === 'terminal') {
+      expect(await ui.find({ text: '▐███▌' }), 'minaret').toBeDefined()
+      await clock.advance(MINARET_MS + 500)
+      spent = MINARET_MS + 500
+      expect(await ui.find({ type: 'Text', text: 'حان وقت صلاة الجمعة' }), 'athan line').toBeDefined()
+    }
+    // None of the old fake rows.
+    expect(await ui.find({ type: 'Box', key: 'friday-demo-rows' })).toBeUndefined()
+    expect(await ui.find({ type: 'Text', text: '☾ الجمعة ١٢:٣٠' })).toBeUndefined()
+    await clock.advance(athanMs(surface) + 500 - spent)
+    // Step 2: the Al-Kahf card, then it goes too.
+    expect(await shown(ui, surface), 'card after athan').toBeDefined()
+    if (surface === 'terminal') expect(await ui.find({ type: 'Text', text: 'حان وقت صلاة الجمعة' })).toBeUndefined()
+    await clock.advance(7000)
+    expect(await shown(ui, surface), 'card still').toBeDefined()
     await clock.advance(1100)
     expect(await shown(ui, surface)).toBeUndefined()
-    expect(await ui.find({ type: 'Box', key: 'friday-demo-rows' })).toBeUndefined()
     expect(stored['friday.alkahfDay']).toBeUndefined()
     expect(writes).toEqual([])
     await ui.unmount()
