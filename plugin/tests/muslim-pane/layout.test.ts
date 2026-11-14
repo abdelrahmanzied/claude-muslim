@@ -246,9 +246,9 @@ test('a press reported a row above a button low in the pane still picks it', () 
   const on: Enabled = { athan: true, quran: false, canPrev: false, canNext: false, segmented: false, athkar: false, athkarFinish: false }
   const folds = { prayer: false, quran: false, athkar: false }
   const settings = { ...DEFAULT_SETTINGS, state: { open: true, category: 'thikr' as const, face: 'main' as const, page: 0 }, options: settingsOptions(readOptions({ thikrSpeed: 'auto' })) }
-  expect(paneHeight(folds, settings.state, settings.options)).toBe(1368)
-  for (const column of [10, 11, 14, 16, 17, 18]) expect(hitOfCells(512, column + 0.5, 62.5, 61, 72, true, on, folds, settings)).toBe('settings:field:thikrSpeed')
-  expect(hitOfCells(512, 6.5, 57.5, 61, 72, true, on, folds, settings)).toBe('settings:thikrMode:all')
+  expect(paneHeight(folds, settings.state, settings.options)).toBe(1420)
+  for (const column of [10, 11, 14, 16, 17, 18]) expect(hitOfCells(512, column + 0.5, 65.5, 61, 74, true, on, folds, settings)).toBe('settings:field:thikrSpeed')
+  expect(hitOfCells(512, 6.5, 56.9, 61, 74, true, on, folds, settings)).toBe('settings:thikrMode:all')
 })
 
 test('a number box takes every whole-cell press on it, never the choice above it', () => {

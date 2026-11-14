@@ -1,5 +1,8 @@
 // State contract: each value the mod keeps in `$.state`, under the mod's name.
 
+// The day's istighfar count kept in `$.store` under `istighfarCount`: how many times the phrase was shown on the device day `YYYY-MM-DD`.
+export type IstighfarCount = { day: string; count: number }
+
 export type Fard = 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha'
 
 // A usage limit that stopped Claude: when it resets (ms since epoch), or

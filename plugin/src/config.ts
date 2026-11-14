@@ -30,7 +30,7 @@ export type Options = {
 // many minutes before a pray, counting down) or `off`.
 export type Show = 'always' | 'off' | number
 
-// `all`: every group in turn; `salawat`: one salawat for the whole turn; `istighfar`: «أستغفر الله» for the whole turn.
+// `all`: every group in turn; `salawat`: one salawat for the whole turn; `istighfar`: «أستغفر الله» renewed with the day's count.
 export type Mode = 'all' | 'salawat' | 'istighfar'
 
 export const SPEED_MIN = 1

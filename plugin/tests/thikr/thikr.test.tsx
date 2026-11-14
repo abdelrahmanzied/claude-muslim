@@ -1,6 +1,7 @@
 import type { On } from 'claude-code'
-import { expect, mock, test } from 'claude-code/testing'
+import { expect, mock, test, type Engine } from 'claude-code/testing'
 
+import { dayKey } from '../../src/shared/friday/index.ts'
 import { ISTIGHFAR, END_OF_TURN, LONG, SALAWAT, STARTING, THINKING, USAGE_LIMIT, WRITING } from '../../src/features/thikr/phrases.ts'
 import { stripTashkeel } from '../../src/shared/arabic/visual.ts'
 import { ATHKAR_QUIET } from '../fixtures/config.ts'
@@ -176,7 +177,49 @@ test('salawat mode keeps one salawat for a whole turn, the next one each turn', 
   }
 })
 
-test('istighfar mode keeps one phrase for every turn, with no ticker', { options: { thikrMode: 'istighfar' } }, async ($, on) => {
+const DAY = 24 * 60 * 60 * 1000
+
+// The spinner's words for one turn, rendered at each given offset (ms) from the turn's start.
+const istighfarWords = async ($: Engine, on: On, saved: unknown, offsets: number[], startAt = 0): Promise<{ seen: string[] }> => {
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' }, ...(saved === undefined ? {} : { istighfarCount: saved }) })
+  mock.env(on, {})
+  const clock = mock.clock(on, { now: startAt })
+  answerTurns(on)
+  const seen: string[] = []
+  on('ui.render', { component: 'Spinner' }, async ($, e) => {
+    seen.push(e.props.word)
+    const { Text } = $.ui.resolve(e)
+
+    return <Text>{e.props.word}</Text>
+  })
+  await $.turn.start({ text: 'hi', turnId: 't0' })
+  let at = 0
+  for (const offset of offsets) {
+    await clock.advance(offset - at)
+    at = offset
+    await $.ui.render(spinner('terminal', 'thinking'))
+  }
+
+  return { seen }
+}
+
+test('istighfar mode renews the phrase every 2 s with a count that goes up', { options: { thikrMode: 'istighfar' } }, async ($, on) => {
+  const { seen } = await istighfarWords($, on, undefined, [0, 500, 2000, 2500, 4000, 6000])
+  const line = (n: string) => `${stripTashkeel(ISTIGHFAR)} · ${n}`
+  expect(seen).toEqual([line('١'), line('١'), line('٢'), line('٢'), line('٣'), line('٤')])
+})
+
+test('istighfar count carries on from the day\'s saved count and digits are Arabic-Indic', { options: { thikrMode: 'istighfar' } }, async ($, on) => {
+  const { seen } = await istighfarWords($, on, { day: dayKey(0), count: 119 }, [0, 2000, 4000])
+  expect(seen.map(text => text.split(' · ')[1])).toEqual(['١٢٠', '١٢١', '١٢٢'])
+})
+
+test('istighfar count starts again at 0 on a new day', { options: { thikrMode: 'istighfar' } }, async ($, on) => {
+  const { seen } = await istighfarWords($, on, { day: dayKey(-3 * DAY), count: 500 }, [0, 2000])
+  expect(seen.map(text => text.split(' · ')[1])).toEqual(['١', '٢'])
+})
+
+test('istighfar mode keeps its count across turns', { options: { thikrMode: 'istighfar' } }, async ($, on) => {
   mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
   mock.env(on, {})
   const clock = mock.clock(on, { now: 0 })
@@ -188,18 +231,14 @@ test('istighfar mode keeps one phrase for every turn, with no ticker', { options
 
     return <Text>{e.props.word}</Text>
   })
-
-  for (let turn = 0; turn < 3; turn++) {
+  for (const turn of [0, 1]) {
     await $.turn.start({ text: 'hi', turnId: `t${turn}` })
-    for (const mode of ['requesting', 'thinking', 'tool-use', 'responding'] as const) {
-      await $.ui.render(spinner('terminal', mode))
-      await clock.advance(20_000)
-    }
+    await $.ui.render(spinner('terminal', 'thinking'))
+    await clock.advance(2000)
+    await $.ui.render(spinner('terminal', 'thinking'))
+    await clock.advance(5000)
   }
-
-  expect(seen).toHaveLength(12)
-  expect(ISTIGHFAR).toBe('أَسْتَغْفِرُ اللَّهَ')
-  expect(seen.every(text => text === stripTashkeel(ISTIGHFAR))).toBe(true)
+  expect(seen.map(text => text.split(' · ')[1])).toEqual(['١', '٢', '٣', '٤'])
 })
 
 test('desktop keeps the step row\'s words after its tool ends', async ($, on) => {

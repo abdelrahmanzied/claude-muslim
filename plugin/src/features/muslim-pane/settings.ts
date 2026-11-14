@@ -94,7 +94,7 @@ export const LIST_H = 548
 // Constants, per tab, for the tallest row set: «عرض الصلاة» counts its number-box line (EXTRA_ROW_H) here.
 export const MAIN_HEIGHTS = {
   prayer: bodyH(EXTRA_ROW_H, SWITCH_ROW_H, ROW_H, ROW_H, ROW_H), athkar: bodyH(SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H, ROW_H),
-  thikr: bodyH(SWITCH_ROW_H, ROW_H, ROW_H, TWO_LINE_SWITCH_ROW_H), friday: bodyH(SWITCH_ROW_H, SWITCH_ROW_H), general: bodyH(SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H, ROW_H, DIVIDER_H, SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H),
+  thikr: bodyH(SWITCH_ROW_H, EXTRA_ROW_H, ROW_H, TWO_LINE_SWITCH_ROW_H), friday: bodyH(SWITCH_ROW_H, SWITCH_ROW_H), general: bodyH(SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H, ROW_H, DIVIDER_H, SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H),
 } as const
 export const FACE_HEIGHTS = { methods: LIST_H, adjust: ADJUST_NOTE_TOP + 50, city: 310 } as const
 // With the options, a tab is only as tall as its visible rows: a hidden number-box line takes no space,
@@ -125,7 +125,7 @@ const PRAYERS = [['fajr','الفجر'],['sunrise','الشروق'],['dhuhr','ال
 const config = (field: keyof Options, value: string | boolean): Effect => ({ kind: 'config', field, value })
 const control = (id: string, label: string, effect: Effect, style: SettingControl['style'] = 'pill', width = 42, selected = false, disabled = false): SettingControl => ({ id: `settings:${id}`, label, effect, style, width, selected, disabled })
 const toggle = (o: SettingsOptions, field: keyof PaneOptimistic) => [control(field, o[field] ? 'on' : 'off', config(field, !o[field]), 'switch', 38, o[field])]
-const pills = (field: keyof Options, selected: string, values: readonly (readonly [string, string])[]) => values.map(([v,l]) => control(`${field}:${v}`, l, config(field, v), 'pill', l.length > 10 ? (values.length > 2 ? 100 : 108) : 46, selected === v))
+const pills = (field: keyof Options, selected: string, values: readonly (readonly [string, string])[]) => values.map(([v,l]) => control(`${field}:${v}`, l, config(field, v), 'pill', l.length > 10 ? 108 : l.length > 6 ? 80 : 46, selected === v))
 const face = (id: SettingsState['face'], label: string) => [control(id, label, { kind: 'face', face: id }, 'value', 142)]
 // Heights include the ROW_GAP after each row. Switches, color dots and compact buttons share the label line.
 export const isInline = (c: SettingControl | undefined): boolean => c?.style === 'switch' || c?.style === 'swatch' || c?.style === 'inline'
@@ -194,7 +194,7 @@ export const settingsRows = (m: SettingsModel): SettingRow[] => {
     ]
     case 'thikr': return [
       row('الذكر',toggle(o,'thikr'),'عبارات في Spinner (سطر العمل) في Claude Code'),
-      row('المحتوى',pills('thikrMode',o.thikrMode,[['all','الكل'],['salawat','الصلاة على النبي'],['istighfar','الاستغفار']]),'كل الأذكار أو صلاة على النبي أو الاستغفار في كل رد'),
+      row('المحتوى',pills('thikrMode',o.thikrMode,[['all','الكل'],['salawat','الصلاة على النبي']]),'كل الأذكار أو صلاة على النبي أو الاستغفار مع عدّاد اليوم',{label:'',controls:pills('thikrMode',o.thikrMode,[['istighfar','الاستغفار']])}),
       row('السرعة',[...pills('thikrSpeed',String(o.thikrSpeed),[['auto','تلقائي']]),{...numberField(m,'thikrSpeed',o.thikrSpeed === 'auto' ? 'وقت ثابت' : arabicDigits(o.thikrSpeed),SECOND_UNIT),selected:o.thikrSpeed !== 'auto',...(o.thikrSpeed === 'auto' && m.field?.id !== 'thikrSpeed' ? {label:'',placeholder:'وقت ثابت',unit:undefined} : {})}],m.field?.id === 'thikrSpeed' ? FIELD_EDIT_LABEL : 'تلقائي: ثانية + نصف ثانية لكل كلمة'),
       {...row('نهاية الرد',toggle(o,'thikrEnd'),`«${withTashkeel(END_OF_TURN,o.tashkeel)}» في آخر الرد`),hintSecondLine:'بدل كلمة Claude مثل Baked · في الترمينال فقط',height:TWO_LINE_SWITCH_ROW_H},
     ]

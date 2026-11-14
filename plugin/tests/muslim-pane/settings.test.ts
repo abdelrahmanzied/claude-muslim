@@ -314,8 +314,8 @@ test('a tab is only as tall as its visible rows when the options are known',()=>
   const prayerHidden=make('prayer','main',0,{salahShow:'always'}), prayerShown=make('prayer','main',0,{salahShow:'20'})
   expect(settingsBodyHeight(prayerShown.state,prayerShown.options)-settingsBodyHeight(prayerHidden.state,prayerHidden.options)).toBe(EXTRA_ROW_H-ROW_H)
   const thikrHidden=make('thikr','main',0,{thikrSpeed:'auto'}), thikrShown=make('thikr','main',0,{thikrSpeed:'5'})
-  expect(settingsBodyHeight(thikrShown.state,thikrShown.options)).toBe(362)
-  expect(settingsBodyHeight(thikrHidden.state,thikrHidden.options)).toBe(362)
+  expect(settingsBodyHeight(thikrShown.state,thikrShown.options)).toBe(414)
+  expect(settingsBodyHeight(thikrHidden.state,thikrHidden.options)).toBe(414)
   for(const m of [prayerHidden,prayerShown,thikrHidden,thikrShown]){
     const rows=settingsRows(m)
     expect(settingsBodyHeight(m.state,m.options)).toBe(rows.reduce((h,r)=>h+r.height,BODY_TOP)-ROW_GAP+BODY_END)
@@ -382,7 +382,7 @@ test('general rows and thikr end share fixed geometry and Arabic labels',()=>{
     expect(rows.at(-1)!.label).toBe('نهاية الرد')
     expect(rows.at(-1)!.height).toBe(TWO_LINE_SWITCH_ROW_H)
     expect(rows.at(-1)!.controls[0]!.effect).toEqual({kind:'config',field:'thikrEnd',value:false})
-    expect(MAIN_HEIGHTS.thikr).toBe(362)
+    expect(MAIN_HEIGHTS.thikr).toBe(414)
   }
 })
 
@@ -470,7 +470,7 @@ test('the authored end hint has two full lines and never inherits chrome truncat
     expect(last.hint).toBe(`«${tashkeel ? END_OF_TURN : stripTashkeel(END_OF_TURN)}» في آخر الرد`)
     expect(last.hintSecondLine).toBe('بدل كلمة Claude مثل Baked · في الترمينال فقط')
     expect(last.height-HINT_TOP-2*HINT_H).toBe(ROW_GAP)
-    expect(mainHeight('thikr',{salahShow:'off',thikrSpeed:'auto'})).toBe(362)
+    expect(mainHeight('thikr',{salahShow:'off',thikrSpeed:'auto'})).toBe(414)
     const model=paneModel({salah:null,quran:null,athkar:null},0,width,'orange');model.settings=m
     const svg=paneSvg(model), hint=svg.match(/<span class="setting-hint" style="top:\d+px"><span class="hint-line".*?<\/span><span class="hint-line chrome-hint">.*?<\/span><\/span>/)![0]
     expect(hint).toContain(last.hint)

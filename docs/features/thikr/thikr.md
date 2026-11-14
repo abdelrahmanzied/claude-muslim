@@ -33,7 +33,9 @@ End of turn and usage limit keep their own phrases.
 
 ## Istighfar mode
 
-`/thikr mode istighfar` replaces every group with one phrase, «أَسْتَغْفِرُ اللَّهَ», held still on the working line for the whole turn, every turn the same (no rotation, no ticker), like salawat mode. Source: Sahih Muslim 591 (Thawban: the Prophet ﷺ said it three times after finishing the prayer). The call to pray, usage limit and end of turn keep their own phrases. On a Friday with `fridaySalawat` on, Friday's salawat wins over istighfar (the day's sunnah).
+`/thikr mode istighfar` replaces every group with one phrase, «أَسْتَغْفِرُ اللَّهَ», and a count of the day: «أَسْتَغْفِرُ اللَّهَ · ١» → «· ٢» → «· ٣»… The line renews at the same pace as the other modes (the phrase's reading time in auto, or the fixed seconds of `/thikr speed`), counted from the turn's start, and each renewal adds one. Source: Sahih Muslim 591 (Thawban: the Prophet ﷺ said it three times after finishing the prayer).
+
+The count is the day's total: it carries across turns and sessions, is kept in the store keyed by the device's local date, and starts again from 0 at 00:00 local time. It counts how many times the phrase was **shown**, not said. Digits are Arabic-Indic. The Muslim pane does not show it, and the demos never touch it. The call to pray, usage limit and end of turn keep their own phrases. On a Friday with `fridaySalawat` on, Friday's salawat wins over istighfar (the day's sunnah).
 
 ## Desktop step rows
 
@@ -95,6 +97,7 @@ Text only, in Claude's font, size and colors: [thikr design](thikr-design.md).
 | File | Holds |
 | --- | --- |
 | `plugin/src/features/thikr/install.tsx` | the hooks: spinner text, end of turn, usage limit, and the `/thikr` command |
+| `plugin/src/features/thikr/istighfar.ts` | the istighfar day count: next count, midnight reset, the line with Arabic-Indic digits, the showing a moment falls in |
 | `plugin/src/features/thikr/phrases.ts` | the authored phrases with tashkeel: starting, thinking, writing, long, salawat, end of turn, usage limit |
 | `plugin/src/features/thikr/rotation.ts` | pure logic: moment to group, phrase timing and speed, start pick, joining thikr to Claude's words |
 | `plugin/src/features/thikr/limit.ts` | pure logic: when a usage limit ends, from the rate-limit windows |

@@ -71,7 +71,7 @@ The open card, selected tab, face and page live in session state `muslim.paneSet
 | الأذكار | `athkarAfterSalah` | «تذكير أذكار بعد الصلاة» switch. `/athkar after-salah on` or `off` |
 | الأذكار | `athkarStyle` | Sky / Frame pills (no preview box). `/athkar style` |
 | الذكر | `thikr` | Switch. `/thikr on` or `off` |
-| الذكر | `thikrMode` | All / Salawat / Istighfar pills («الكل» · «الصلاة على النبي» · «الاستغفار»). `/thikr mode` |
+| الذكر | `thikrMode` | «الكل» · «الصلاة على النبي» pills on one line and «الاستغفار» on a second line under them (each pill at its full text width, never truncated; the row is `EXTRA_ROW_H` tall). The istighfar count is not shown in the pane. `/thikr mode` |
 | الذكر | `thikrSpeed` | «تلقائي» pill and a number box for 1–60 seconds side by side, always shown; the box shows dim «وقت ثابت» with no unit while auto, and a selected seconds value while fixed (0 and negatives are not saved). `/thikr speed` |
 | الذكر | `thikrEnd` · «نهاية الرد» | An 86px switch row after speed with a two-line hint at 12px: «تَمَّ بِحَمْدِ اللَّهِ» في آخر الرد on the first line, never cut; «بدل كلمة Claude مثل Baked · في الترمينال فقط» on the second, the only line that may end in … at narrow widths. Changes the terminal end-of-turn word (such as Claude’s Baked); the authored example comes from `plugin/src/shared/thikr/end.ts`, shared with thikr, with the pane’s tashkeel setting. `/thikr end on` or `off` |
 | الجمعة | `fridaySalawat` · «الصلاة على النبي ﷺ» | Switch. Hint: «في سطر الذكر يوم الجمعة، من الفجر». `/friday salawat on` or `off` |
