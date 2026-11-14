@@ -513,3 +513,23 @@ test('the Friday tab (desktop) and its terminal lines carry the same two setting
     expect(text).toContain(`Friday · Al-Kahf reminder: ${alkahf?'on':'off'} · /friday alkahf on | off`)
   }
 })
+
+test('the thikr mode is one dropdown row: the field shows the choice, an open list takes every press',()=>{
+  const m=make('thikr','main',0,{thikrMode:'salawat'} as never)
+  const row=settingsRows(m)[1]!
+  expect(row.height).toBe(ROW_H)
+  expect(row.controls.map(c=>c.label)).toEqual(['الصلاة على النبي'])
+  expect(row.controls[0]!.effect).toEqual({kind:'menu',id:'thikrMode'})
+  for(const width of [240,320,420]){
+    expect(settingsBody(width,m).targets.map(t=>t.act)).toContain('settings:thikrMode:menu')
+    expect(settingsBody(width,m).menu).toBeNull()
+    const open={...m,state:{...m.state,menu:{id:'thikrMode' as const,highlight:1}}}
+    const body=settingsBody(width,open)
+    expect(body.targets.map(t=>t.act)).toEqual(['settings:thikrMode:menu','settings:thikrMode:all','settings:thikrMode:salawat','settings:thikrMode:istighfar'])
+    expect(body.menu!.rows.map(r=>r.control.label)).toEqual(['الكل','الصلاة على النبي','الاستغفار'])
+    expect(body.menu!.rows.map(r=>r.highlighted)).toEqual([false,true,false])
+    expect(body.menu!.rows.map(r=>r.control.selected)).toEqual([false,true,false])
+    // Each option spans the whole row, so no label is cut; the list stays inside the body.
+    for(const t of body.targets.slice(1)){expect(t.x1-t.x0).toBe(width-56);expect(t.y1).toBeLessThanOrEqual(MAIN_HEIGHTS.thikr)}
+  }
+})

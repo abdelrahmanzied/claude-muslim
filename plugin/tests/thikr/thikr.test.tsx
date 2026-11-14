@@ -1,7 +1,7 @@
 import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
-import { END_OF_TURN, LONG, SALAWAT, STARTING, THINKING, USAGE_LIMIT, WRITING } from '../../src/features/thikr/phrases.ts'
+import { ISTIGHFAR, END_OF_TURN, LONG, SALAWAT, STARTING, THINKING, USAGE_LIMIT, WRITING } from '../../src/features/thikr/phrases.ts'
 import { stripTashkeel } from '../../src/shared/arabic/visual.ts'
 import { ATHKAR_QUIET } from '../fixtures/config.ts'
 
@@ -174,6 +174,32 @@ test('salawat mode keeps one salawat for a whole turn, the next one each turn', 
   for (let turn = 0; turn < turns; turn++) {
     expect(seen.slice(turn * 4, turn * 4 + 4)).toEqual(Array(4).fill(stripTashkeel(SALAWAT[turn % SALAWAT.length]!)))
   }
+})
+
+test('istighfar mode keeps one phrase for every turn, with no ticker', { options: { thikrMode: 'istighfar' } }, async ($, on) => {
+  mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } })
+  mock.env(on, {})
+  const clock = mock.clock(on, { now: 0 })
+  answerTurns(on)
+  const seen: string[] = []
+  on('ui.render', { component: 'Spinner' }, async ($, e) => {
+    seen.push(e.props.word)
+    const { Text } = $.ui.resolve(e)
+
+    return <Text>{e.props.word}</Text>
+  })
+
+  for (let turn = 0; turn < 3; turn++) {
+    await $.turn.start({ text: 'hi', turnId: `t${turn}` })
+    for (const mode of ['requesting', 'thinking', 'tool-use', 'responding'] as const) {
+      await $.ui.render(spinner('terminal', mode))
+      await clock.advance(20_000)
+    }
+  }
+
+  expect(seen).toHaveLength(12)
+  expect(ISTIGHFAR).toBe('أَسْتَغْفِرُ اللَّهَ')
+  expect(seen.every(text => text === stripTashkeel(ISTIGHFAR))).toBe(true)
 })
 
 test('desktop keeps the step row\'s words after its tool ends', async ($, on) => {

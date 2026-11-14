@@ -231,7 +231,6 @@ const settingCases: {category:SettingsState['category'];face?:SettingsState['fac
   {category:'thikr',act:'thikr',field:'thikr',value:false},
   {category:'thikr',act:'thikrEnd',field:'thikrEnd',value:false},
   {category:'general',act:'paneButton',field:'paneButton',value:false},
-  {category:'thikr',act:'thikrMode:salawat',field:'thikrMode',value:'salawat'},
   {category:'general',act:'tashkeel',field:'tashkeel',value:false},
   {category:'general',act:'color:blue',field:'color',value:'blue'},
   {category:'athkar',act:'athkarMorning',field:'athkarMorning',value:false},
@@ -254,6 +253,38 @@ for(const c of settingCases) test(`settings press writes ${c.field} = ${c.value}
   await settingsClick(ui,`settings:${c.act}`)
   if(c.typed!==undefined) await typeKeys(ui,c.typed)
   expect(sets).toEqual([{key:`muslim.${c.field}`,value:c.value}])
+})
+
+// The thikr «المحتوى» dropdown: one field with the choice and ▾; pressing it opens the list, a press or Return chooses.
+for (const how of ['pointer', 'keys'] as const) test(`the thikr mode dropdown opens and a ${how} choice writes thikrMode`, async ($, on) => {
+  engine(on, 'desktop')
+  const state = settingsState(on, { open: true, category: 'thikr', face: 'main', page: 0 })
+  const sets: { key: string; value: unknown }[] = []
+  on('config.set', async (_$, e) => { sets.push({ key: e.key, value: e.value }); return { value: e.value } })
+  const ui = await $.ui.mount(pane('desktop'))
+  await settingsClick(ui, 'settings:thikrMode:menu')
+  expect(state().menu).toEqual({ id: 'thikrMode', highlight: 0 })
+  if (how === 'pointer') await settingsClick(ui, 'settings:thikrMode:istighfar')
+  else {
+    for (const key of ['down', 'down', 'return']) await ui.post({ act: 'key', key }, { in: 'muslim-pane' })
+  }
+  expect(sets).toEqual([{ key: 'muslim.thikrMode', value: 'istighfar' }])
+  expect(state().menu ?? null).toBeNull()
+})
+
+test('the thikr mode dropdown closes on its field, on Escape and on another tab', async ($, on) => {
+  engine(on, 'desktop')
+  const state = settingsState(on, { open: true, category: 'thikr', face: 'main', page: 0 })
+  const ui = await $.ui.mount(pane('desktop'))
+  await settingsClick(ui, 'settings:thikrMode:menu')
+  await settingsClick(ui, 'settings:thikrMode:menu')
+  expect(state().menu ?? null).toBeNull()
+  await settingsClick(ui, 'settings:thikrMode:menu')
+  await ui.post({ act: 'key', key: 'escape' }, { in: 'muslim-pane' })
+  expect(state().menu ?? null).toBeNull()
+  await settingsClick(ui, 'settings:thikrMode:menu')
+  await settingsClick(ui, 'settings:tab:friday')
+  expect(state().menu ?? null).toBeNull()
 })
 
 test('settings config deny shows a toast and leaves the category open',async($,on)=>{

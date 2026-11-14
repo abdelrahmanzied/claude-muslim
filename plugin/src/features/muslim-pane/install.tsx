@@ -11,7 +11,7 @@ import { pointerPixels } from '../../shared/card/pointer.ts'
 import { enabledOf, NO_FOLDS, cardRects, hitOfCells, isFolds, isPaneMessage, keyAct, paneHeight, quranRowOf, type Folds, type PaneAct, type PaneMessage } from './layout.ts'
 import { paneModel, quranLayout, textLines, widthOf, type PaneModel } from './model.ts'
 import { dragBar, dragCell, isPanePicker, openPicker, pickerKey, pickerView, pressBar, type PickerView } from './picker.ts'
-import { CATEGORIES, CLOSED_SETTINGS, COPIED_MS, changeCategory, copiedAt, fieldKey, fieldSpec, fieldSubmit, isSwitchField, loadSettings, optimisticOptions, settingsBody, type SettingsState } from './settings.ts'
+import { CATEGORIES, CLOSED_SETTINGS, MODE_CHOICES, closeMenu, COPIED_MS, changeCategory, copiedAt, fieldKey, fieldSpec, fieldSubmit, isSwitchField, loadSettings, optimisticOptions, settingsBody, type SettingsState } from './settings.ts'
 import { ALKAHF_SURAH } from '../../shared/friday/index.ts'
 import { skipPaneScroll } from '../../shared/scroll/index.ts'
 // DEMO BEGIN
@@ -284,7 +284,7 @@ async function settingsPress($: EngineInterface, options: Options, act: PaneAct)
   const model = await modelNow($, options, 50)
   const s = model.settings.state
   if (act === 'settings:fold') {
-    await $.state.set(settingsRef, { ...s, open: !s.open })
+    await $.state.set(settingsRef, { ...closeMenu(s), open: !s.open })
   } else if (act.startsWith('settings:tab:')) {
     const category = CATEGORIES.find(c => act === `settings:tab:${c[0]}`)?.[0]
     if (!category || !s.open || s.category === category) return
@@ -292,7 +292,17 @@ async function settingsPress($: EngineInterface, options: Options, act: PaneAct)
   } else {
     const effect = settingsBody(model.width, model.settings).targets.find(t => t.act === act)?.effect
     if (!effect) return
-    if (effect.kind === 'config') {
+    if (effect.kind === 'menu') {
+      if (s.menu?.id === effect.id) await $.state.set(settingsRef, closeMenu(s))
+      else {
+        await writeAthkarMenu($, false)
+        await writePicker($, null)
+        await writeField($, null)
+        const at = MODE_CHOICES.findIndex(c => c[0] === model.settings.options.thikrMode)
+        await $.state.set(settingsRef, { ...s, menu: { id: effect.id, highlight: Math.max(0, at) } })
+      }
+    } else if (effect.kind === 'config') {
+      if (s.menu) await $.state.set(settingsRef, closeMenu(s))
       await changeSetting($, effect.field, effect.value, s)
     } else if (effect.kind === 'command') {
       try { await $.command.run({ command: 'muslim', args: effect.args }) }
@@ -318,6 +328,22 @@ async function settingsPress($: EngineInterface, options: Options, act: PaneAct)
     else if ((await $.ui.copy({ text: effect.command, surface: 'desktop' })).isCopied) await confirmCopy($, effect.command)
     else $.ui.toast(effect.command)
   }
+  $.ui.invalidate('ui.render')
+}
+
+// A key with the settings dropdown open, as in the reciter list: ↑ ↓ move the highlight, Return chooses it, Escape and Tab close.
+async function menuKeyPress($: EngineInterface, options: Options, key: string): Promise<void> {
+  const s = await readSettings($)
+  const menu = s.menu
+  if (!menu) return
+  if (key === 'up' || key === 'down') {
+    const highlight = Math.max(0, Math.min(MODE_CHOICES.length - 1, menu.highlight + (key === 'up' ? -1 : 1)))
+    if (highlight !== menu.highlight) await $.state.set(settingsRef, { ...s, menu: { ...menu, highlight } })
+  } else if (key === 'return') {
+    const choice = MODE_CHOICES[Math.max(0, Math.min(MODE_CHOICES.length - 1, menu.highlight))]
+    await $.state.set(settingsRef, closeMenu(s))
+    if (choice) await changeSetting($, 'thikrMode', choice[0], s)
+  } else if (key === 'escape' || key === 'esc' || key === 'tab') await $.state.set(settingsRef, closeMenu(s))
   $.ui.invalidate('ui.render')
 }
 
@@ -477,8 +503,13 @@ export const install = (on: On, options: Options) => {
       if (act === 'quran-scroll') { await barPress($, model, message); return {} }
       // A press anywhere but the open number box closes it unsaved.
       if (model.settings.field && act !== `settings:field:${model.settings.field.id}`) await writeField($, null)
+      // A press outside the open dropdown (not on its field or options) closes it.
+      if (model.settings.state.menu && !act?.startsWith('settings:thikrMode:')) await $.state.set(settingsRef, closeMenu(model.settings.state))
     } else if (await readField($) && (await modelNow($, options, 50)).settings.field) {
       await fieldKeyPress($, options, (await readField($))!, message.key)
+      return {}
+    } else if ((await readSettings($)).menu && (await modelNow($, options, 50)).settings.state.open) {
+      await menuKeyPress($, options, message.key)
       return {}
     } else if ((await $.state.get(athkarMenuRef)).value === true && !(await readFolds($)).athkar) {
       // The host consumes Escape on this build; also accept it if a host forwards it.

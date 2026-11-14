@@ -47,7 +47,9 @@ export type SalahCard = { pray: SalahWindow['pray']; time: string; foldsAt: numb
 export type QuranRepeat = 'off' | 'surah' | 'segment'
 export type QuranPlaying = { moshafKey: string; surah: number; startedAt: number; durationMs: number | null; segmentIndex?: number; segmentCount?: number }
 
-export type PaneSettings = { open: boolean; category: 'prayer' | 'athkar' | 'thikr' | 'friday' | 'general'; face: 'main' | 'methods' | 'adjust' | 'city'; page: number }
+export type PaneSettings = { open: boolean; category: 'prayer' | 'athkar' | 'thikr' | 'friday' | 'general'; face: 'main' | 'methods' | 'adjust' | 'city'; page: number; menu?: PaneMenu | null }
+// The open dropdown of a settings row (the thikr «المحتوى» choice) and the highlighted option.
+export type PaneMenu = { id: 'thikrMode'; highlight: number }
 // A copy button that just copied: its command and the time (ms since the epoch) its «تم النسخ» confirmation ends.
 export type PaneCopied = { command: string; until: number }
 // The Muslim pane's open Quran picker: which list, the typed query, the highlighted row, the first visible row and a

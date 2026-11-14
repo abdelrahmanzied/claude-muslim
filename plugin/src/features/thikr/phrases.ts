@@ -34,6 +34,9 @@ export const LONG = [
   'يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ',
 ]
 
+// Istighfar mode: the one phrase held still for a whole turn (the authored one in THINKING; a test guards the index).
+export const ISTIGHFAR = THINKING[6] ?? ''
+
 // Salawat mode: one of these for a whole turn, the next one each turn. Shared with Friday's demo.
 export { SALAWAT } from '../../shared/thikr/salawat.ts'
 

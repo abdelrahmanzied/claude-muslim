@@ -225,7 +225,7 @@ test('a settings control takes a press on every pixel and just outside it; a pre
   const folds = { prayer: true, quran: true, athkar: true }
   const settings = { ...DEFAULT_SETTINGS, state: { open: true, category: 'thikr' as const, face: 'main' as const, page: 0 }, options: settingsOptions(readOptions({ thikrSpeed: '3' })) }
   const pills = settingsBoxes(420, folds, settings).filter(b => /thikr(Mode|Speed):|field:thikrSpeed$/.test(b.act))
-  expect(pills.length).toBe(4)
+  expect(pills.length).toBe(3)
   for (const b of pills) {
     for (let x = b.x0; x <= b.x1; x += 2) for (let y = b.y0; y <= b.y1; y += 2) expect(hitAt(420, x, y, on, 0, 0, folds, settings)).toBe(b.act)
     const midX = (b.x0 + b.x1) / 2, midY = (b.y0 + b.y1) / 2
@@ -248,7 +248,7 @@ test('a press reported a row above a button low in the pane still picks it', () 
   const settings = { ...DEFAULT_SETTINGS, state: { open: true, category: 'thikr' as const, face: 'main' as const, page: 0 }, options: settingsOptions(readOptions({ thikrSpeed: 'auto' })) }
   expect(paneHeight(folds, settings.state, settings.options)).toBe(1368)
   for (const column of [10, 11, 14, 16, 17, 18]) expect(hitOfCells(512, column + 0.5, 62.5, 61, 72, true, on, folds, settings)).toBe('settings:field:thikrSpeed')
-  expect(hitOfCells(512, 6.5, 57.5, 61, 72, true, on, folds, settings)).toBe('settings:thikrMode:all')
+  expect(hitOfCells(512, 6.5, 57.5, 61, 72, true, on, folds, settings)).toBe('settings:thikrMode:menu')
 })
 
 test('a number box takes every whole-cell press on it, never the choice above it', () => {

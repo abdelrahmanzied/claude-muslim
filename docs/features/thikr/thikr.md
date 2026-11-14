@@ -31,6 +31,10 @@ End of turn and usage limit keep their own phrases.
 
 **On Fridays** (the device's local day) the same salawat show from Fajr (the whole day with no saved city) whatever the mode, unless `/friday salawat off`. The thikr call keeps its shape and names the Dhuhr slot «الجمعة». See [friday](../friday/friday.md).
 
+## Istighfar mode
+
+`/thikr mode istighfar` replaces every group with one phrase, «أَسْتَغْفِرُ اللَّهَ», held still on the working line for the whole turn, every turn the same (no rotation, no ticker), like salawat mode. Source: Sahih Muslim 591 (Thawban: the Prophet ﷺ said it three times after finishing the prayer). The call to pray, usage limit and end of turn keep their own phrases. On a Friday with `fridaySalawat` on, Friday's salawat wins over istighfar (the day's sunnah).
+
 ## Desktop step rows
 
 A desktop step row (`Running a command 6s >`) keeps its words with the thikr after them (`Running a command · اللَّهُ أَكْبَرُ`). The desktop keeps a step's row up after its tool ends and during long runs, whatever mode it reports, so a word equal to the last step, or any word while a tool runs, counts as that step.
@@ -58,7 +62,7 @@ Terminal Arabic uses the shared three-mode behavior, and terminal output always 
 | `thikr` | `/thikr on` · `/thikr off` | on |
 | `thikrSpeed` | `/thikr speed auto` · `/thikr speed <1-60>` | auto |
 | `thikrEnd` | `/thikr end on` · `off` | on |
-| `thikrMode` | `/thikr mode all` · `/thikr mode salawat` | all |
+| `thikrMode` | `/thikr mode all` · `/thikr mode salawat` · `/thikr mode istighfar` | all |
 
 `/thikr` alone shows the current settings and help. All four fields can also be changed in the Muslim pane’s الذكر tab, including «نهاية الرد» (`thikrEnd`); its effect remains terminal-only.
 

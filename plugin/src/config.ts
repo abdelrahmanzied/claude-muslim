@@ -30,8 +30,8 @@ export type Options = {
 // many minutes before a pray, counting down) or `off`.
 export type Show = 'always' | 'off' | number
 
-// `all`: every group in turn; `salawat`: one salawat for the whole turn.
-export type Mode = 'all' | 'salawat'
+// `all`: every group in turn; `salawat`: one salawat for the whole turn; `istighfar`: «أستغفر الله» for the whole turn.
+export type Mode = 'all' | 'salawat' | 'istighfar'
 
 export const SPEED_MIN = 1
 export const SPEED_MAX = 60
@@ -42,7 +42,7 @@ export const readOptions = (raw: Record<string, unknown>): Options => ({
   thikrSpeed: readSpeed(raw.thikrSpeed),
   tashkeel: raw.tashkeel !== false,
   thikrEnd: raw.thikrEnd !== false,
-  thikrMode: raw.thikrMode === 'salawat' ? 'salawat' : 'all',
+  thikrMode: raw.thikrMode === 'salawat' || raw.thikrMode === 'istighfar' ? raw.thikrMode : 'all',
   // Reminders: each set opens above the prompt by itself; manual opening always works.
   athkarMorning: raw.athkarMorning !== false,
   athkarEvening: raw.athkarEvening !== false,

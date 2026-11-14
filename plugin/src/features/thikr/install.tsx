@@ -16,7 +16,7 @@ import { readSpeed, SPEED_MAX, SPEED_MIN } from '../../config.ts'
 import type { Mode, Options } from '../../config.ts'
 import { limitUntil } from './limit.ts'
 import type { RateLimitWindow } from './limit.ts'
-import { SALAWAT, STARTING, USAGE_LIMIT } from './phrases.ts'
+import { ISTIGHFAR, SALAWAT, STARTING, USAGE_LIMIT } from './phrases.ts'
 import { isSalawatTime } from '../../shared/friday/index.ts'
 import { athkarTimesAt } from '../../shared/pray/bounds.ts'
 import { END_OF_TURN } from '../../shared/thikr/end.ts'
@@ -95,7 +95,7 @@ const holdLimit = async ($: EngineInterface, windows: readonly RateLimitWindow[]
 
 const onOff = (value: boolean) => (value ? 'on' : 'off')
 
-const isMode = (value: string): value is Mode => value === 'all' || value === 'salawat'
+const isMode = (value: string): value is Mode => value === 'all' || value === 'salawat' || value === 'istighfar'
 
 const speedText = (speed: Speed) => (speed === 'auto' ? 'auto' : `${speed}s`)
 
@@ -196,6 +196,8 @@ export const install = (on: On, options: Options) => {
   let turns = 0
   // Salawat for the whole turn: the chosen mode, or Friday's from Fajr when that setting is on.
   const isSalawat = (now: number): boolean => options.thikrMode === 'salawat' || isSalawatTime(options.fridaySalawat, now, athkarTimesAt(now)?.fajr ?? null)
+  // A still phrase for the whole turn: salawat (mode or Friday, which wins), or istighfar.
+  const isStill = (now: number): boolean => isSalawat(now) || options.thikrMode === 'istighfar'
   let ticker: { cancel: () => void } | undefined
   // Long moments: compacting, subagents at work, tools by start time.
   let isCompacting = false
@@ -309,7 +311,7 @@ export const install = (on: On, options: Options) => {
     subagents = 0
     toolsSince.clear()
     ticker?.cancel()
-    ticker = isSalawat(await $.clock.now()) ? undefined : $.clock.every(TICK_MS, () => $.ui.invalidate('ui.render'))
+    ticker = isStill(await $.clock.now()) ? undefined : $.clock.every(TICK_MS, () => $.ui.invalidate('ui.render'))
     limitTimer?.cancel()
     limitTimer = undefined
     await setLimit($, null)
@@ -369,7 +371,9 @@ export const install = (on: On, options: Options) => {
     }
     const text = isSalawat(now)
       ? SALAWAT[Math.max(0, turns - 1) % SALAWAT.length] ?? ''
-      : phraseAt(current, now - groupSince, options.thikrSpeed)
+      : options.thikrMode === 'istighfar'
+        ? ISTIGHFAR
+        : phraseAt(current, now - groupSince, options.thikrSpeed)
     const phrase = await renderArabic($, e.surface, withTashkeel(text, options.tashkeel), arabicCache)
 
     const isStep = isStepRow(e.surface, e.props, lastStep, toolsSince.size > 0)
