@@ -9,6 +9,10 @@ import { arabicDigits, athanText, IN_MS } from '../../shared/pray/line.ts'
 import type { Pray } from '../../shared/pray/names.ts'
 import { accentHex, type Accent } from '../../shared/color/index.ts'
 import { ARUQAA_BOLD } from './card-font.ts'
+import { isFriday } from '../../shared/friday/index.ts'
+
+// The «ابدأ أذكار بعد الصلاة» button is on every athan card but Jumu'ah's (Dhuhr on a Friday): the person goes to the prayer first.
+export const offersAfterSalah = (pray: Pray, at: number): boolean => !(pray === 'dhuhr' && isFriday(at))
 
 // How long the card stays when nobody closes it: the call's window.
 export const CARD_MS = IN_MS

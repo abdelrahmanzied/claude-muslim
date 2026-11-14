@@ -107,3 +107,15 @@ test('restarting during after-salah cancels the old continuation and its complet
   expect(writes).toEqual([])
   await ui.unmount()
 })
+
+test('desktop: the Friday demo athan card (الجمعة) has no after-salah start button, the Fajr demo keeps it', { options: OPTIONS, timeoutMs: 15000 }, async ($, on) => {
+  const { clock } = fixture(on, 'desktop')
+  const ui = await $.ui.mount(band('desktop'))
+  await clock.settle()
+  await $.command.run({ ...run(), command: 'friday' })
+  await clock.settle()
+  const friday = String((await ui.find({ in: 'salah-athan', type: 'Svg' }))?.props.source)
+  expect(friday).toContain('الجمعة')
+  expect(friday).not.toContain(START_LABEL)
+  await ui.unmount()
+})

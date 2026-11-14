@@ -3,7 +3,7 @@ import type { On } from 'claude-code'
 import { expect, mock, test } from 'claude-code/testing'
 
 import { cardHeight, closeArea, FOCUS_GRACE_MS, frameOf, IDLE_MS, KEY_REST_MS, LEAVE_MS, REST_PX } from '../../src/shared/card/card.ts'
-import { athanFrame, athanSvg, CARD_MS, FOLD_MS, isOnStart, startArea, startHitArea, START_LABEL, START_MARGIN } from '../../src/features/salah/card.ts'
+import { athanFrame, athanSvg, CARD_MS, FOLD_MS, isOnStart, startArea, startHitArea, offersAfterSalah, START_LABEL, START_MARGIN } from '../../src/features/salah/card.ts'
 import { FRAME_MS, HOLD_MS, ROWS_COUNT, TOTAL_MS } from '../../src/features/salah/minaret.ts'
 import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
 import { athanText } from '../../src/shared/pray/line.ts'
@@ -599,3 +599,15 @@ for (const isFolded of [false, true]) {
     })
   }
 }
+
+test('the after-salah start button is on every athan card except Jumu\'ah (Dhuhr on a Friday)', () => {
+  const FRIDAY = new Date(2026, 9, 9, 12, 30).getTime(), SATURDAY = new Date(2026, 9, 10, 12, 30).getTime()
+  expect(offersAfterSalah('dhuhr', FRIDAY)).toBe(false)
+  expect(offersAfterSalah('asr', FRIDAY)).toBe(true)
+  expect(offersAfterSalah('fajr', FRIDAY)).toBe(true)
+  expect(offersAfterSalah('dhuhr', SATURDAY)).toBe(true)
+  const p = { ...props('QUJD', 'fajr', '12:30'), pray: 'dhuhr' as const, at: FRIDAY, canStart: offersAfterSalah('dhuhr', FRIDAY) }
+  expect(athanSvg(p, { hoverClose: false, columns: 100 })).not.toContain(START_LABEL)
+  expect(athanSvg({ ...p, canStart: true }, { hoverClose: false, columns: 100 })).toContain(START_LABEL)
+  expect(isOnStart(p, 10, 1, 100, 5)).toBe(false)
+})

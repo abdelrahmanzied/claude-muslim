@@ -30,7 +30,7 @@ import { REMIND_FROM_KEY, SETUP_LATER_KEY, readRemindFrom, setupPending } from '
 import { ACCENT_ROWS, FRAME_MS, isDue, LABEL_ROW, minaretRows, minaretStage, ROWS_COUNT } from './minaret.ts'
 import { MINUTES_ERROR, reviewHint, reviewRows, typedMinutes, withTyped } from './review.ts'
 import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, isOnClose, KEY_REST_MS, LEAVE_MS, LINE_PX } from '../../shared/card/card.ts'
-import { athanFrame, cardIsFolded, CARD_MS, isOnStart, type AthanCardProps } from './card.ts'
+import { athanFrame, cardIsFolded, CARD_MS, isOnStart, offersAfterSalah, type AthanCardProps } from './card.ts'
 import { localTime } from './clock.ts'
 import { athkarTimes, clockText, lastPray, lastSalahToday, nextSalah, type Adjust } from './times.ts'
 import { connectSalah, connectPanelAction } from '../../shared/panel/signal.ts'
@@ -785,7 +785,8 @@ export const install = (on: On, options: Options) => {
     photo.base64 ??= await readPhoto($)
     if (!photo.base64) return theirs
     const { Box, Client } = $.ui.resolve(e)
-    const props = { canStart: true, accent: options.color, isActive: true, isFolded: cardIsFolded(shown, now), now, pray: shown.pray, at: (demo?.friday && demoCardAt(now) === shown ? demo.friday.at : shown.until - CARD_MS), time: shown.time, photo: photo.base64, width: Math.round(e.props.bodyColumns * CELL_PX), card: { ch: CELL_PX, lh: LINE_PX } }
+    const at = demo?.friday && demoCardAt(now) === shown ? demo.friday.at : shown.until - CARD_MS
+    const props = { canStart: offersAfterSalah(shown.pray, at), accent: options.color, isActive: true, isFolded: cardIsFolded(shown, now), now, pray: shown.pray, at, time: shown.time, photo: photo.base64, width: Math.round(e.props.bodyColumns * CELL_PX), card: { ch: CELL_PX, lh: LINE_PX } }
     athan.props = props
 
     return (
