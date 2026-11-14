@@ -13,6 +13,7 @@
 - `/friday` shows the day and both settings, `/friday help` lists the commands and `/friday demo` previews, on any day, the athan card named Jumu'ah and then the Al-Kahf card, each showing and going (also the fourth step of `/muslim demo`, before the pane tour). Without a saved city `/friday` says the automatic reminder needs one.
 - Muslim pane: a new «الجمعة» settings tab with both switches, and on Fridays a «سورة الكهف» button in the Quran card.
 - On a Friday the athkar after salah are no longer offered after Dhuhr (Jumu'ah), since you go to the prayer: the athan card shows no «ابدأ أذكار بعد الصلاة» button then and the reader does not open by itself; `/athkar after-salah` still opens it. Other prayers are unchanged.
+- Jumu'ah's athan card (and `/friday demo`'s) now shows Surat al-Jumu'ah, verse 9 (﴿يَا أَيُّهَا الَّذِينَ آمَنُوا …﴾), with «سورة الجمعة · الآية ٩» under it, where the start button is on the other prayers. Open, it sits beside the title; folded, or when the card is too narrow for it, it slides slowly, and it stays still (reference only) when your system asks for less motion. On the terminal it follows the athan line, on its own lines when it does not fit. No word is ever cut.
 
 ## 0.1.0
 

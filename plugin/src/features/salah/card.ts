@@ -10,9 +10,19 @@ import type { Pray } from '../../shared/pray/names.ts'
 import { accentHex, type Accent } from '../../shared/color/index.ts'
 import { ARUQAA_BOLD } from './card-font.ts'
 import { isFriday } from '../../shared/friday/index.ts'
+import { ayahInBrackets, jumuahVerse } from '../../shared/friday/jumuah-ayah.ts'
+import { withTashkeel } from '../../shared/arabic/visual.ts'
+import { TAJAWAL_REGULAR_WOFF2 } from '../../shared/font/tajawal-embedded.ts'
 
 // The «ابدأ أذكار بعد الصلاة» button is on every athan card but Jumu'ah's (Dhuhr on a Friday): the person goes to the prayer first.
 export const offersAfterSalah = (pray: Pray, at: number): boolean => !(pray === 'dhuhr' && isFriday(at))
+
+// The verse the card of this prayer shows (Dhuhr on a Friday only), with or without tashkeel as the setting says.
+export const cardVerse = (pray: Pray, at: number, tashkeel: boolean): AthanCardProps['verse'] => {
+  const v = jumuahVerse(pray, at)
+
+  return v ? { text: withTashkeel(v.text, tashkeel), ref: v.ref } : undefined
+}
 
 // How long the card stays when nobody closes it: the call's window.
 export const CARD_MS = IN_MS
@@ -35,6 +45,8 @@ export type AthanCardProps = CardProps & {
   // The slot's width and the desktop's cell, in CSS pixels.
   width: number
   card: { ch: number; lh: number }
+  // Jumu'ah's verse (the card is Dhuhr on a Friday): its words, already with or without tashkeel, and its reference.
+  verse?: { text: string; ref: string }
 }
 
 export const athanFrame = (p: Pick<AthanCardProps, 'width' | 'card' | 'isFolded'>, columns = 0): CardFrame => ({
@@ -96,11 +108,59 @@ const css = (photo: string, accent: Accent) => [
   '.athan .time { font-size: 17px; line-height: 1.4; color: rgba(255,255,255,.85); }',
 ].join('\n')
 
-export const athanSvg = (p: AthanCardProps, view: Pick<CardView, 'hoverClose' | 'columns' | 'hoverAction'>) =>
-  cardSvg(athanFrame(p, view.columns), {
-    classes: `athan active${p.isFolded ? ' rest' : ''}`,
+// Jumu'ah's verse sits on the left of the open card, where the start button is on the other prayers; the card never grows
+// for it. The widths below are measured in the real fonts (headless Chrome): the verse in ﴿ ﴾ on one line at 13px with its
+// tashkeel, the widest head (the call at 26px) and the room one wrapped line may waste at the end of a word.
+export const VERSE_PX = 590
+export const HEAD_PX = 165
+export const VERSE_WORD_PX = 60
+const VERSE_GAP = 14
+
+// The room beside the head, in the card's own pixels: the picture's width less the wrap, the desktop's padding and the card's own side padding.
+export const verseRoom = (f: CardFrame) => {
+  const box = frameOf(f)
+
+  return box.width - 2 * box.padX - 2 - 2 * (36 + box.addX) - HEAD_PX - VERSE_GAP
+}
+
+// Folded, or an open card too narrow for the verse in two lines: it slides, slowly, in one line. Otherwise it is two lines beside the head.
+export const versePlacement = (f: CardFrame): 'beside' | 'slide' =>
+  !f.isFolded && verseRoom(f) >= VERSE_PX / 2 + VERSE_WORD_PX ? 'beside' : 'slide'
+
+const verseCss = () => [
+  fontFace('Tajawal', 400, TAJAWAL_REGULAR_WOFF2),
+  '.athan.verse { flex-direction: row; justify-content: flex-start; align-items: center; gap: ' + VERSE_GAP + 'px; }',
+  '.athan.verse .head { flex: none; display: flex; flex-direction: column; justify-content: center; white-space: nowrap; }',
+  '.athan.verse.rest .head { flex-direction: row; align-items: center; gap: 12px; }',
+  '.athan .side { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }',
+  '.athan .ayah { font: 400 13px/1.55 Tajawal, sans-serif; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.8); text-align: right; direction: rtl; }',
+  '.athan .ref { font: 400 11.5px/1.3 Tajawal, sans-serif; color: rgba(255,255,255,.78); white-space: nowrap; text-shadow: 0 1px 3px rgba(0,0,0,.8); }',
+  // The slide: the verse's start is at the right edge at once and the text moves right, so later words come in from the left; faded at both ends.
+  '.athan .track { flex: 1; min-width: 0; overflow: hidden; -webkit-mask-image: linear-gradient(to left, transparent, #000 18px, #000 calc(100% - 18px), transparent); mask-image: linear-gradient(to left, transparent, #000 18px, #000 calc(100% - 18px), transparent); }',
+  '.athan .move { display: inline-flex; gap: 10px; align-items: baseline; white-space: nowrap; padding-left: 100%; animation: jslide 26s linear infinite; }',
+  '.athan .move .ayah { font-size: 14px; }',
+  '@keyframes jslide { from { transform: translateX(0); } to { transform: translateX(100%); } }',
+  // No motion asked for: nothing slides, so only the reference stays (a clipped verse would cut words).
+  '@media (prefers-reduced-motion: reduce) { .athan .move { animation: none; padding-left: 0; } .athan .move .ayah { display: none; } }',
+].join('\n')
+
+const verseHtml = (p: AthanCardProps, f: CardFrame, call: string) => {
+  const text = ayahInBrackets(p.verse!.text)
+  const ref = p.verse!.ref
+  if (versePlacement(f) === 'beside') return `<div class="head">${call}</div><div class="side"><div class="ayah">${text}</div><div class="ref">${ref}</div></div>`
+
+  return `<div class="head">${call}</div><div class="track"><div class="move"><span class="ayah">${text}</span><span class="ref">${ref}</span></div></div>`
+}
+
+export const athanSvg = (p: AthanCardProps, view: Pick<CardView, 'hoverClose' | 'columns' | 'hoverAction'>) => {
+  const frame = athanFrame(p, view.columns)
+  const call = `<div class="main">${athanText(p.pray, p.at)}</div><div class="time">${arabicDigits(p.time)}</div>`
+
+  return cardSvg(frame, {
+    classes: `athan active${p.isFolded ? ' rest' : ''}${p.verse ? ' verse' : ''}`,
     style: '',
-    html: `${p.canStart ? `<span class="start${view.hoverAction ? ' hot' : ''}"><span class="start-arrow">← </span><span class="start-label">${START_LABEL}</span></span>` : ''}<div class="main">${athanText(p.pray, p.at)}</div><div class="time">${arabicDigits(p.time)}</div>`,
-    css: css(p.photo, p.accent ?? 'orange'),
+    html: p.verse ? verseHtml(p, frame, call) : `${p.canStart ? `<span class="start${view.hoverAction ? ' hot' : ''}"><span class="start-arrow">← </span><span class="start-label">${START_LABEL}</span></span>` : ''}${call}`,
+    css: css(p.photo, p.accent ?? 'orange') + (p.verse ? '\n' + verseCss() : ''),
     hoverClose: view.hoverClose,
   })
+}

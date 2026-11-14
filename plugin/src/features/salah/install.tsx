@@ -30,7 +30,8 @@ import { REMIND_FROM_KEY, SETUP_LATER_KEY, readRemindFrom, setupPending } from '
 import { ACCENT_ROWS, FRAME_MS, isDue, LABEL_ROW, minaretRows, minaretStage, ROWS_COUNT } from './minaret.ts'
 import { MINUTES_ERROR, reviewHint, reviewRows, typedMinutes, withTyped } from './review.ts'
 import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, isOnClose, KEY_REST_MS, LEAVE_MS, LINE_PX } from '../../shared/card/card.ts'
-import { athanFrame, cardIsFolded, CARD_MS, isOnStart, offersAfterSalah, type AthanCardProps } from './card.ts'
+import { terminalVerse } from './terminal-verse.ts'
+import { athanFrame, cardIsFolded, CARD_MS, isOnStart, offersAfterSalah, cardVerse, type AthanCardProps } from './card.ts'
 import { localTime } from './clock.ts'
 import { athkarTimes, clockText, lastPray, lastSalahToday, nextSalah, type Adjust } from './times.ts'
 import { connectSalah, connectPanelAction } from '../../shared/panel/signal.ts'
@@ -744,14 +745,19 @@ export const install = (on: On, options: Options) => {
     if (stage.isGone) return theirs
 
     const accent = await mainColor($, options.color)
-    const label = await renderArabic($, e.surface, athanText(playing.pray, demo?.friday && demoMinaretAt(await $.clock.now()) === playing ? demo.friday.at : playing.until - CARD_MS), arabicCache)
+    const athanAt = demo?.friday && demoMinaretAt(await $.clock.now()) === playing ? demo.friday.at : playing.until - CARD_MS
+    const label = await renderArabic($, e.surface, athanText(playing.pray, athanAt), arabicCache)
+    const verse = terminalVerse(playing.pray, athanAt, e.props.bodyColumns, athanText(playing.pray, athanAt), stage.isFolded)
+    const verseRows = async (rows: string[]) => Promise.all(rows.map(async (row, n) => <Text key={`salah-verse-${n}`} dimColor={n === rows.length - 1}>{await renderArabic($, e.surface, row, arabicCache)}</Text>))
 
     const close = <Button key="salah-athan-close" label="×" plain onPress={() => closeMoment($, timer)} />
     if (stage.isFolded) return (
       <Box flexDirection="column">
         <Box key="salah-athan-row" gap={1}>
-          <Text color={accent}>☾</Text><Text color={accent}>{label}</Text>{close}
+          <Text color={accent}>☾</Text><Text color={accent}>{label}</Text>
+          {verse?.inline ? <Text>{await renderArabic($, e.surface, verse.inline, arabicCache)}</Text> : null}{close}
         </Box>
+        {verse?.rows.length ? <Box key="salah-verse" flexDirection="column">{await verseRows(verse.rows)}</Box> : null}
         {theirs}
       </Box>
     )
@@ -765,6 +771,7 @@ export const install = (on: On, options: Options) => {
             {i === LABEL_ROW && stage.frame >= ROWS_COUNT - LABEL_ROW ? <Text color={accent}>{label}</Text> : null}
           </Box>
         ))}
+        {verse?.rows.length && stage.frame >= ROWS_COUNT - LABEL_ROW ? <Box key="salah-verse" flexDirection="column">{await verseRows(verse.rows)}</Box> : null}
         {theirs}
       </Box>
     )
@@ -786,7 +793,8 @@ export const install = (on: On, options: Options) => {
     if (!photo.base64) return theirs
     const { Box, Client } = $.ui.resolve(e)
     const at = demo?.friday && demoCardAt(now) === shown ? demo.friday.at : shown.until - CARD_MS
-    const props = { canStart: offersAfterSalah(shown.pray, at), accent: options.color, isActive: true, isFolded: cardIsFolded(shown, now), now, pray: shown.pray, at, time: shown.time, photo: photo.base64, width: Math.round(e.props.bodyColumns * CELL_PX), card: { ch: CELL_PX, lh: LINE_PX } }
+    const verse = cardVerse(shown.pray, at, options.tashkeel)
+    const props = { ...(verse ? { verse } : {}), canStart: offersAfterSalah(shown.pray, at), accent: options.color, isActive: true, isFolded: cardIsFolded(shown, now), now, pray: shown.pray, at, time: shown.time, photo: photo.base64, width: Math.round(e.props.bodyColumns * CELL_PX), card: { ch: CELL_PX, lh: LINE_PX } }
     athan.props = props
 
     return (

@@ -249,6 +249,8 @@ for (const surface of SURFACES) {
       await clock.advance(MINARET_MS + 500)
       spent = MINARET_MS + 500
       expect(await ui.find({ type: 'Text', text: 'حان وقت صلاة الجمعة' }), 'athan line').toBeDefined()
+      // The verse and its reference follow, on their own rows at 80 columns (terminal: no tashkeel), no word cut.
+      expect(await ui.find({ type: 'Text', text: 'سورة الجمعة · الآية ٩' }), 'verse reference').toBeDefined()
     }
     // None of the old fake rows.
     expect(await ui.find({ type: 'Box', key: 'friday-demo-rows' })).toBeUndefined()

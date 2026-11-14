@@ -117,5 +117,6 @@ test('desktop: the Friday demo athan card (الجمعة) has no after-salah star
   const friday = String((await ui.find({ in: 'salah-athan', type: 'Svg' }))?.props.source)
   expect(friday).toContain('الجمعة')
   expect(friday).not.toContain(START_LABEL)
+  expect(friday).toContain('سورة الجمعة · الآية ٩')
   await ui.unmount()
 })

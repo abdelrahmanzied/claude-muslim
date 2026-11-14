@@ -2,7 +2,7 @@
 
 The religious text shown by the Friday feature. The code is the source of truth for what is displayed; this file must stay identical to it (see the rule in CLAUDE.md). Arabic is never generated or reworded.
 
-Sources in the code: `plugin/src/features/friday/logic.ts` (`ALKAHF_TITLE`, `ALKAHF_PLAY`, `ALKAHF_BROWSER`, `alkahfSubtitle`, `alkahfLine`), `plugin/src/shared/pray/names.ts` (`JUMUAH`). Friday's salawat reuse thikr's authored phrases (`plugin/src/shared/thikr/salawat.ts`, `SALAWAT`, re-exported by thikr's `phrases.ts`, five phrases listed in [thikr content](../thikr/thikr-content.md)); Friday adds none.
+Sources in the code: `plugin/src/features/friday/logic.ts` (`ALKAHF_TITLE`, `ALKAHF_PLAY`, `ALKAHF_BROWSER`, `alkahfSubtitle`, `alkahfLine`), `plugin/src/shared/pray/names.ts` (`JUMUAH`), `plugin/src/shared/friday/jumuah-ayah.ts` (`JUMUAH_AYAH`, `JUMUAH_REF`). Friday's salawat reuse thikr's authored phrases (`plugin/src/shared/thikr/salawat.ts`, `SALAWAT`, re-exported by thikr's `phrases.ts`, five phrases listed in [thikr content](../thikr/thikr-content.md)); Friday adds none.
 
 ## The Al-Kahf card
 
@@ -38,3 +38,7 @@ The Arabic name of the Dhuhr slot on a device Friday, wherever a prayer name sho
 The Muslim pane's Quran card on a Friday has a button that picks Surat al-Kahf; its label is the surah's name.
 
 > سورة الكهف
+
+## The Jumu'ah verse
+
+The Jumu'ah athan card (Dhuhr on a Friday, also the `/friday demo` card) shows Surat al-Jumu'ah, verse 9, and its reference «سورة الجمعة · الآية ٩». The text, its count (one verse) and its source (Tanzil, Simple edition with tashkeel) are listed once, in [salah content](../salah/salah-content.md), because salah's card shows it.
