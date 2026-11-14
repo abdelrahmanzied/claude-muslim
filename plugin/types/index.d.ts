@@ -35,7 +35,7 @@ export type SalahWindow = { pray: 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
 export type SalahLast = { pray: Fard; at: number }
 
 // Current place-calendar-day bounds in epoch ms, supplied on read by salah for athkar.
-export type SalahAthkarTimes = { day: string; previousDay: string; fajr: number; sunrise: number; maghrib: number; isha: number; nextFajr: number }
+export type SalahAthkarTimes = { day: string; previousDay: string; fajr: number; sunrise: number; dhuhr: number; maghrib: number; isha: number; nextFajr: number }
 
 // The terminal moment: rise frame (1 to 7), fold and expiry deadlines in ms since epoch.
 export type SalahMinaret = { pray: SalahWindow['pray']; frame: number; startedAt: number; foldsAt: number; isFolded: boolean; until: number }
@@ -47,7 +47,7 @@ export type SalahCard = { pray: SalahWindow['pray']; time: string; foldsAt: numb
 export type QuranRepeat = 'off' | 'surah' | 'segment'
 export type QuranPlaying = { moshafKey: string; surah: number; startedAt: number; durationMs: number | null; segmentIndex?: number; segmentCount?: number }
 
-export type PaneSettings = { open: boolean; category: 'prayer' | 'athkar' | 'thikr' | 'general'; face: 'main' | 'methods' | 'adjust' | 'city'; page: number }
+export type PaneSettings = { open: boolean; category: 'prayer' | 'athkar' | 'thikr' | 'friday' | 'general'; face: 'main' | 'methods' | 'adjust' | 'city'; page: number }
 // A copy button that just copied: its command and the time (ms since the epoch) its «تم النسخ» confirmation ends.
 export type PaneCopied = { command: string; until: number }
 // The Muslim pane's open Quran picker: which list, the typed query, the highlighted row, the first visible row and a
@@ -55,7 +55,7 @@ export type PaneCopied = { command: string; until: number }
 export type PanePicker = { list: 'reciter' | 'surah' | 'segment'; query: string; highlight: number; scroll: number; drag: { y: number; scroll: number; cell: number | null } | null }
 // A settings number box being typed in: which box (`thikrSpeed`, `salahShow` or `adjust:<pray>`) and its text so far.
 export type PaneField = { id: string; text: string }
-export type PaneOptimistic = Partial<Record<'tashkeel' | 'thikr' | 'athkarMorning' | 'athkarEvening' | 'athkarAfterSalah' | 'salahAthan' | 'paneButton' | 'thikrEnd', boolean>>
+export type PaneOptimistic = Partial<Record<'tashkeel' | 'thikr' | 'athkarMorning' | 'athkarEvening' | 'athkarAfterSalah' | 'salahAthan' | 'paneButton' | 'thikrEnd' | 'fridaySalawat' | 'fridayAlkahf', boolean>>
 
 declare module 'claude-code' {
   interface PluginState {
@@ -103,6 +103,8 @@ declare module 'claude-code' {
       salahAthanShown: number | null
       salahMinaret: SalahMinaret | null
       salahCard: SalahCard | null
+      // The Friday Al-Kahf card showing in this session: its day (`YYYY-MM-DD`, device) and when it hides (ms); null when none.
+      fridayCard: { day: string; until: number } | null
       // The pray line drawn as its own row above the prompt, else null.
       salahLine: string | null
     }

@@ -179,12 +179,12 @@ test('settings picture draws only the open category, escapes city text and keeps
   expect(svg).toContain(`height="${paneHeight(model.folds,model.settings.state,model.settings.options)}"`)
 })
 
-test('four equal tabs fit the card in RTL order at every supported width',()=>{
-  expect(CATEGORIES.map(c=>c[0])).toEqual(['general','prayer','athkar','thikr'])
-  expect(CATEGORIES.map(c=>c[1])).toEqual(['عام','الصلاة','الأذكار','الذكر'])
+test('five equal tabs fit the card in RTL order at every supported width',()=>{
+  expect(CATEGORIES.map(c=>c[0])).toEqual(['general','prayer','athkar','thikr','friday'])
+  expect(CATEGORIES.map(c=>c[1])).toEqual(['عام','الصلاة','الأذكار','الذكر','الجمعة'])
   for(const width of [240,320,360,420,1200]){
     const tabs=categoryTabs(width), w=tabs[0]!.x1-tabs[0]!.x0
-    expect(tabs).toHaveLength(4)
+    expect(tabs).toHaveLength(5)
     for(const [i,t] of tabs.entries()){
       expect(Math.abs(t.x1-t.x0-w)).toBeLessThan(0.000001)
       expect(t.x0).toBeGreaterThanOrEqual(12+16)
@@ -496,4 +496,20 @@ test('version and commands keep LTR isolation and the end sample follows tashkee
   const noMarks={...make('thikr'),options:{...make('thikr').options,tashkeel:false}}
   expect(settingsRows(noMarks).at(-1)!.hint).toContain(stripTashkeel(END_OF_TURN))
   expect(settingsRows(noMarks).at(-1)!.hint).not.toContain(END_OF_TURN)
+})
+
+test('the Friday tab (desktop) and its terminal lines carry the same two settings, with the same state',()=>{
+  for(const [salawat,alkahf] of [[true,true],[false,true],[true,false]] as const){
+    const m=make('friday','main',0,{fridaySalawat:salawat,fridayAlkahf:alkahf} as never)
+    const rows=settingsRows(m)
+    expect(rows.map(r=>r.label)).toEqual(['الصلاة على النبي ﷺ','تذكير سورة الكهف'])
+    // Each row's switch writes its own setting and shows its state.
+    const switches=rows.map(r=>r.controls.find(c=>c.style==='switch'))
+    expect(switches.map(c=>c?.id)).toEqual(['settings:fridaySalawat','settings:fridayAlkahf'])
+    expect(switches.map(c=>c?.selected)).toEqual([salawat,alkahf])
+    const text=terminalSettings(m,s=>`SHOWN(${s})`)
+    expect(text).toContain('**SHOWN(الجمعة)**')
+    expect(text).toContain(`Friday · salawat: ${salawat?'on':'off'} · /friday salawat on | off`)
+    expect(text).toContain(`Friday · Al-Kahf reminder: ${alkahf?'on':'off'} · /friday alkahf on | off`)
+  }
 })

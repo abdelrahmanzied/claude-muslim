@@ -7,7 +7,7 @@ test('prayer-day bounds are null before salah connects', () => {
 })
 
 test('each read calls the connected provider with its current time', () => {
-  const times: SalahAthkarTimes = { day: '2026-06-10', previousDay: '2026-06-09', fajr: 1, sunrise: 2, maghrib: 3, isha: 4, nextFajr: 5 }
+  const times: SalahAthkarTimes = { day: '2026-06-10', previousDay: '2026-06-09', fajr: 1, sunrise: 2, dhuhr: 2.5, maghrib: 3, isha: 4, nextFajr: 5 }
   const calls: number[] = []
   connectAthkarTimes(at => { calls.push(at); return at === 10 ? times : null })
   expect(athkarTimesAt(10)).toBe(times)

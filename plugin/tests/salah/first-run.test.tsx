@@ -12,7 +12,7 @@ const MUNICH = 'Munich; 48.1372, 11.5755; Europe/Berlin; DE'
 const run = { command: 'salah', args: 'city 48.14, 11.58', origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } }
 const band = {
   plugin: 'muslim', surface: 'desktop' as const, component: 'AbovePrompt' as const, requestId: 'save-first-run',
-  props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} },
+  props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} },
 }
 const engine = (on: On, entries: Record<string, unknown> = {}, rows = configRows) => {
   mock.env(on, {})

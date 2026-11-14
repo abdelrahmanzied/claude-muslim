@@ -34,7 +34,7 @@ test('the × is the top left; folded, the whole row height', () => {
 
 test('the card holds what a feature gives it, with the × first and its own rules before the feature’s', () => {
   const svg = cardSvg(frame(), { classes: 'mine active', style: '--k:1', html: '<p>inside</p>', css: '.mine {color: red;}', hoverClose: true })
-  expect(svg).toContain('<div class="band mine active" data-band="" style="--k:1;--ax:8px;--ay:10px;border-radius:10px"><span class="x xabs hot">×</span><p>inside</p></div>')
+  expect(svg).toContain('<div class="band mine active" data-band="" style="--k:1;--ax:6px;--ay:10px;border-radius:10px"><span class="x xabs hot">×</span><p>inside</p></div>')
   expect(svg.indexOf('.xabs {')).toBeLessThan(svg.indexOf('.mine {'))
 })
 

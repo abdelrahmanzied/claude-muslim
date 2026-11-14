@@ -16,7 +16,7 @@ import { CITY_MODEL, CITY_SYSTEM, cityPrompt, parseCities, parseCoordinates, typ
 import { helpHint } from '../../table.ts'
 import { salahHelp } from './help.ts'
 // DEMO BEGIN
-import { demoMoment, demoState } from './demo.ts'
+import { demoFridayMoment, demoMoment, demoState } from './demo.ts'
 import { cancelDemo, connectDemo, doneDemo, startDemo } from '../../shared/demo/signal.ts'
 // DEMO END
 import { momentState } from './moment.ts'
@@ -30,7 +30,8 @@ import { REMIND_FROM_KEY, SETUP_LATER_KEY, readRemindFrom, setupPending } from '
 import { ACCENT_ROWS, FRAME_MS, isDue, LABEL_ROW, minaretRows, minaretStage, ROWS_COUNT } from './minaret.ts'
 import { MINUTES_ERROR, reviewHint, reviewRows, typedMinutes, withTyped } from './review.ts'
 import { CELL_PX, FOCUS_GRACE_MS, IDLE_MS, isCardMessage, isOnClose, KEY_REST_MS, LEAVE_MS, LINE_PX } from '../../shared/card/card.ts'
-import { athanFrame, cardIsFolded, CARD_MS, isOnStart, type AthanCardProps } from './card.ts'
+import { terminalVerse } from './terminal-verse.ts'
+import { athanFrame, cardIsFolded, CARD_MS, isOnStart, offersAfterSalah, cardVerse, type AthanCardProps } from './card.ts'
 import { localTime } from './clock.ts'
 import { athkarTimes, clockText, lastPray, lastSalahToday, nextSalah, type Adjust } from './times.ts'
 import { connectSalah, connectPanelAction } from '../../shared/panel/signal.ts'
@@ -375,7 +376,8 @@ const readPhoto = async ($: EngineInterface): Promise<string | undefined> => {
 
 // DEMO BEGIN: disposable moments; never write the real card, minaret or timers.
 // shared: started by /muslim demo, which waits for this demo's end.
-let demo: (ReturnType<typeof demoState> & { timers: { cancel: () => void }[]; shared: boolean; stage: 'athan' | 'afterSalah'; until: number }) | undefined
+// friday: the Friday demo's athan (named الجمعة from `at`), which ends when the athan goes and tells whoever started it.
+let demo: (ReturnType<typeof demoState> & { timers: { cancel: () => void }[]; shared: boolean; stage: 'athan' | 'afterSalah'; until: number; friday?: { at: number; finished: () => void } }) | undefined
 const demoCardAt = (now: number) => demo?.stage === 'athan' && demo.card.until > now ? demo.card : undefined
 const demoMinaretAt = (now: number) => demo?.stage === 'athan' && demo.minaret.until > now ? demo.minaret : undefined
 
@@ -389,6 +391,12 @@ const closeDemo = async ($: EngineInterface) => {
   const closed = demo
   if (!closed || closed.stage !== 'athan') return
   closed.timers.forEach(timer => timer.cancel())
+  if (closed.friday) {
+    demo = undefined
+    $.ui.invalidate('ui.render')
+    closed.friday.finished()
+    return
+  }
   closed.stage = 'afterSalah'
   await startDemo('afterSalah', () => finishDemo($, closed))
   $.ui.invalidate('ui.render')
@@ -401,13 +409,14 @@ const tickDemo = async ($: EngineInterface) => {
   if (now >= playing.until) await closeDemo($)
   else $.ui.invalidate('ui.render')
 }
-const playDemo = async ($: EngineInterface, shared = false) => {
+const playDemo = async ($: EngineInterface, shared = false, friday?: () => void) => {
   demo?.timers.forEach(timer => timer.cancel())
   cancelDemo('afterSalah')
   const now = await $.clock.now()
-  const moment = demoState(now)
+  const fridayMoment = friday ? demoFridayMoment() : undefined
+  const moment = demoState(now, fridayMoment)
   const until = await $.session.surface() === 'terminal' ? moment.minaret.until : moment.card.until
-  const playing = { ...moment, timers: [] as { cancel: () => void }[], shared, stage: 'athan' as const, until }
+  const playing = { ...moment, timers: [] as { cancel: () => void }[], shared, stage: 'athan' as const, until, friday: friday && fridayMoment ? { at: fridayMoment.at, finished: friday } : undefined }
   demo = playing
   playing.timers.push($.clock.every(FRAME_MS, () => void tickDemo($).catch(() => {})))
   // Exact stage boundaries alongside the rise's regular redraws.
@@ -578,6 +587,12 @@ export const install = (on: On, options: Options) => {
   // DEMO BEGIN: connect feature-local starters; shield real input during playback.
   on('command.run', { command: 'muslim', args: /^\s*demo\s*$/ }, $ => {
     connectDemo('salah', () => playDemo($, true))
+    connectDemo('fridayAthan', finished => playDemo($, false, finished))
+    return { text: '' }
+  }).catch(($, e, next) => next.called ? next(e) : { text: commandFailure(e.command, e.args, next.error) })
+  // The Friday demo's first step is this athan card, named الجمعة: its starter is connected the same way.
+  on('command.run', { command: 'friday', args: /^\s*demo\s*$/ }, $ => {
+    connectDemo('fridayAthan', finished => playDemo($, false, finished))
     return { text: '' }
   }).catch(($, e, next) => next.called ? next(e) : { text: commandFailure(e.command, e.args, next.error) })
   on('ui.press', { plugin: 'muslim', element: 'salah-athan-close' }, async ($, e, next) => {
@@ -596,7 +611,7 @@ export const install = (on: On, options: Options) => {
     if (m.act === 'hide' || (m.act === 'pointer' && m.button === 'left' && athan.props !== undefined && columns > 0 && rows > 0 && (isOnClose(athanFrame(athan.props, columns), m.x, m.y, columns, rows) || isOnStart(athan.props, m.x, m.y, columns, rows)))) await closeDemo($)
     return {}
   })
-  on('ui.focus', { component: 'AbovePrompt' }, async ($, e, next) => {
+  on('ui.focus', { component: 'AbovePrompt', plugin: '*' }, async ($, e, next) => {
     if (demo) return {}
     return next(e)
   }).catch(($, e, next) => next(e))
@@ -730,14 +745,19 @@ export const install = (on: On, options: Options) => {
     if (stage.isGone) return theirs
 
     const accent = await mainColor($, options.color)
-    const label = await renderArabic($, e.surface, athanText(playing.pray), arabicCache)
+    const athanAt = demo?.friday && demoMinaretAt(await $.clock.now()) === playing ? demo.friday.at : playing.until - CARD_MS
+    const label = await renderArabic($, e.surface, athanText(playing.pray, athanAt), arabicCache)
+    const verse = terminalVerse(playing.pray, athanAt, e.props.bodyColumns, athanText(playing.pray, athanAt), stage.isFolded)
+    const verseRows = async (rows: string[]) => Promise.all(rows.map(async (row, n) => <Text key={`salah-verse-${n}`} dimColor={n === rows.length - 1}>{await renderArabic($, e.surface, row, arabicCache)}</Text>))
 
     const close = <Button key="salah-athan-close" label="×" plain onPress={() => closeMoment($, timer)} />
     if (stage.isFolded) return (
       <Box flexDirection="column">
         <Box key="salah-athan-row" gap={1}>
-          <Text color={accent}>☾</Text><Text color={accent}>{label}</Text>{close}
+          <Text color={accent}>☾</Text><Text color={accent}>{label}</Text>
+          {verse?.inline ? <Text>{await renderArabic($, e.surface, verse.inline, arabicCache)}</Text> : null}{close}
         </Box>
+        {verse?.rows.length ? <Box key="salah-verse" flexDirection="column">{await verseRows(verse.rows)}</Box> : null}
         {theirs}
       </Box>
     )
@@ -751,6 +771,7 @@ export const install = (on: On, options: Options) => {
             {i === LABEL_ROW && stage.frame >= ROWS_COUNT - LABEL_ROW ? <Text color={accent}>{label}</Text> : null}
           </Box>
         ))}
+        {verse?.rows.length && stage.frame >= ROWS_COUNT - LABEL_ROW ? <Box key="salah-verse" flexDirection="column">{await verseRows(verse.rows)}</Box> : null}
         {theirs}
       </Box>
     )
@@ -771,7 +792,9 @@ export const install = (on: On, options: Options) => {
     photo.base64 ??= await readPhoto($)
     if (!photo.base64) return theirs
     const { Box, Client } = $.ui.resolve(e)
-    const props = { canStart: true, accent: options.color, isActive: true, isFolded: cardIsFolded(shown, now), now, pray: shown.pray, time: shown.time, photo: photo.base64, width: Math.round(e.props.bodyColumns * CELL_PX), card: { ch: CELL_PX, lh: LINE_PX } }
+    const at = demo?.friday && demoCardAt(now) === shown ? demo.friday.at : shown.until - CARD_MS
+    const verse = cardVerse(shown.pray, at, options.tashkeel)
+    const props = { ...(verse ? { verse } : {}), canStart: offersAfterSalah(shown.pray, at), accent: options.color, isActive: true, isFolded: cardIsFolded(shown, now), now, pray: shown.pray, at, time: shown.time, photo: photo.base64, width: Math.round(e.props.bodyColumns * CELL_PX), card: { ch: CELL_PX, lh: LINE_PX } }
     athan.props = props
 
     return (
@@ -843,7 +866,8 @@ export const install = (on: On, options: Options) => {
     return {}
   })
 
-  on('ui.focus', { component: 'AbovePrompt' }, async ($, e, next) => {
+  // `plugin: '*'`: a hook leaving it out hears only this plugin's own drawings, and this one acts on another plugin's focus.
+  on('ui.focus', { component: 'AbovePrompt', plugin: '*' }, async ($, e, next) => {
     const now = await $.clock.now()
     if (e.plugin !== 'muslim' && cardView.isEngaged
       && (cardView.pressedAt === undefined || now - cardView.pressedAt > FOCUS_GRACE_MS)) {

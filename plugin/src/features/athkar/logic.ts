@@ -6,6 +6,7 @@ import { afterSalah } from './after-salah.ts'
 import type { SalahAthkarTimes, SalahLast } from '../../../types'
 import type { Fard } from '../../shared/pray/names.ts'
 import { ATHKAR_TITLE } from '../../shared/athkar/titles.ts'
+import { isFriday } from '../../shared/friday/index.ts'
 
 export type AthkarSet = Period | 'afterSalah'
 export type ReaderThikr = Pick<Thikr, 'id' | 'times' | 'text' | 'evening' | 'note'> & { periods?: Thikr['periods'] }
@@ -208,6 +209,9 @@ export const offerStart = (last: SalahLast, requested?: SalahLast | null) =>
 export const offerEnd = (slot: Pick<SalahLast, 'at'>) => slot.at + 2 * IN_MS
 
 // With the after-salah reminder off, only an explicit start or a begun slot takes the band.
+// Dhuhr on a Friday is Jumu'ah, which the person goes to pray: it is never offered by itself (an explicit ask still works).
+const isJumuah = (last: Pick<SalahLast, 'pray' | 'at'>) => last.pray === 'dhuhr' && isFriday(last.at)
+
 export const setAt = (now: Date, day: Day, last: SalahLast | null, chosen?: AthkarSet, requested?: SalahLast | null, times?: SalahAthkarTimes | null, remindAfterSalah = true): AthkarSet => {
   if (chosen) return chosen
   const slot = day.afterSalah
@@ -216,7 +220,7 @@ export const setAt = (now: Date, day: Day, last: SalahLast | null, chosen?: Athk
   // Unless asked for from the athan card, after-salah waits while a morning or evening reading is being counted.
   const isAsked = !!last && sameSlot(requested, last)
   const isBusy = (r: Reading) => hasBegun(r) && !r.isDone && !r.isHidden
-  const isOffered = isAsked || hasBegun(slot) || remindAfterSalah && !!last && now.getTime() < offerEnd(last)
+  const isOffered = isAsked || hasBegun(slot) || remindAfterSalah && !!last && !isJumuah(last) && now.getTime() < offerEnd(last)
   return last && now.getTime() >= offerStart(last, requested) && isOffered && !slot.isDone && !slot.isHidden && (isAsked || !isBusy(day[period]))
     ? 'afterSalah' : period
 }

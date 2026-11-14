@@ -95,6 +95,18 @@
       ],
       "default": "sky"
     },
+    "fridaySalawat": {
+      "type": "boolean",
+      "title": "Friday salawat",
+      "description": "On Friday, from Fajr, the thikr line shows salawat on the Prophet ﷺ",
+      "default": true
+    },
+    "fridayAlkahf": {
+      "type": "boolean",
+      "title": "Al-Kahf reminder",
+      "description": "On Friday, from 30 minutes after Jumu'ah until Maghrib, open a reminder to read Surat al-Kahf above the prompt once; manual opening always works",
+      "default": true
+    },
     "color": {
       "type": "string",
       "title": "Main color",

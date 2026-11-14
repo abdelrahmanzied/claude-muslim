@@ -6,7 +6,7 @@ import { DEFAULT_SETTINGS, terminalSettings, type SettingsModel } from './settin
 import { NO_FOLDS, NO_QURAN, type Folds, type QuranLayout } from './layout.ts'
 import type { PickerView } from './picker.ts'
 import type { Accent } from '../../shared/color/index.ts'
-import { ARABIC } from '../../shared/pray/names.ts'
+import { arabicName, isFriday } from '../../shared/pray/names.ts'
 import { arabicDigits } from '../../shared/pray/line.ts'
 import type { PanelAthkar, PanelAthkarSet, PanelQuran, PanelSalah } from '../../shared/panel/signal.ts'
 
@@ -37,11 +37,13 @@ export type PaneModel = {
   // The Quran card's open list; null when none is open (or the card is folded).
   picker: PickerView | null
   athkarMenu: boolean
+  // The device's local day is a Friday: the Quran card adds the «سورة الكهف» shortcut.
+  isFriday: boolean
 }
 
 // Player geometry and the settings note; isPlaying includes preparation in the shared feed.
-export const quranLayout = (m: Pick<PaneModel, 'quran' | 'picker'>): QuranLayout =>
-  !m.quran.isAvailable ? NO_QURAN : { isPlaying: m.quran.isPlaying, error: !!m.quran.error, note: !!m.quran.audioNote, segmented: m.quran.segmented, picker: m.picker ? { list: m.picker.list, count: m.picker.count, scroll: m.picker.scroll } : null }
+export const quranLayout = (m: Pick<PaneModel, 'quran' | 'picker' | 'isFriday'>): QuranLayout =>
+  !m.quran.isAvailable ? NO_QURAN : { isPlaying: m.quran.isPlaying, error: !!m.quran.error, note: !!m.quran.audioNote, alkahf: m.isFriday, segmented: m.quran.segmented, picker: m.picker ? { list: m.picker.list, count: m.picker.count, scroll: m.picker.scroll } : null }
 
 export const PANE_MIN_WIDTH = 240
 export const PANE_MAX_WIDTH = 1200
@@ -62,7 +64,7 @@ export const untilText = (ms: number): string => {
 // after Isha every row is done and the next is tomorrow's Fajr.
 export const prayerRows = (salah: PanelSalah, now: number): PrayerRow[] =>
   salah.prays.map(p => ({
-    name: ARABIC[p.pray],
+    name: arabicName(p.pray, p.at),
     time: arabicDigits(p.clock),
     state: p.at === salah.next.at && p.pray === salah.next.pray && p.at > now ? 'next' : p.at <= now ? 'done' : 'upcoming',
   }))
@@ -72,7 +74,7 @@ export const prayerCard = (salah: PanelSalah | null, now: number): PrayerCard =>
   : {
     isSet: true,
     city: salah.city,
-    nextName: ARABIC[salah.next.pray],
+    nextName: arabicName(salah.next.pray, salah.next.at),
     nextTime: arabicDigits(salah.next.clock),
     until: untilText(salah.next.at - now),
     rows: prayerRows(salah, now),
@@ -99,6 +101,7 @@ export const paneModel = (feeds: { salah: PanelSalah | null; quran: PanelQuran |
   quran: quranCard(feeds.quran),
   athkar: athkarCard(feeds.athkar),
   picker: feeds.quran && !folds.quran ? picker : null,
+  isFriday: isFriday(now),
 })
 
 // The terminal fallback: the same three cards as plain lines. `show` is the

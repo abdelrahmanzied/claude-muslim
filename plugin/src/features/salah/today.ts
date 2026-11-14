@@ -3,7 +3,7 @@
 import { statusTable } from '../../table.ts'
 import { ALWAYS_COUNTDOWN, type Options, type Show } from '../../config.ts'
 import { METHODS, methodFor, PRAYS, type MethodId } from './methods.ts'
-import { ENGLISH } from '../../shared/pray/names.ts'
+import { englishName, ENGLISH } from '../../shared/pray/names.ts'
 import type { Place } from './place.ts'
 import { prayLine } from '../../shared/pray/line.ts'
 import { clockText, lastPray, nextSalah, timesOn } from './times.ts'
@@ -29,7 +29,7 @@ export const timesTable = (options: Options, place: Place, at: number): string =
   const rows = PRAYS.map(pray => {
     const moved = options.salahAdjust[pray]
     const time = clockText(times[pray], place.timeZone) + (moved === 0 ? '' : ` (${moved > 0 ? '+' : ''}${moved} min)`)
-    const name = next.at === times[pray] ? `**${ENGLISH[pray]}** · next` : ENGLISH[pray]
+    const name = next.at === times[pray] ? `**${englishName(pray, times[pray])}** · next` : englishName(pray, times[pray])
 
     return `| ${name} | ${time} |`
   })

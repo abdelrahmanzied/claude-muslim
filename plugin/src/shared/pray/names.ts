@@ -26,3 +26,13 @@ export const ARABIC: Readonly<Record<Pray, string>> = {
 // A pray named in a command, in any case: `asr`, `Asr`.
 export const prayNamed = (word: string): Pray | undefined =>
   (Object.keys(ENGLISH) as Pray[]).find(pray => pray === word.toLowerCase())
+
+// Jumu'ah: on the device's local Friday the Dhuhr slot is named الجمعة / Jumu'ah.
+// Every place a pray name is shown goes through these two, with the pray's time.
+export const isFriday = (at: number): boolean => new Date(at).getDay() === 5
+
+export const JUMUAH = { english: "Jumu'ah", arabic: 'الجمعة' } as const
+
+export const englishName = (pray: Pray, at: number): string => (pray === 'dhuhr' && isFriday(at) ? JUMUAH.english : ENGLISH[pray])
+
+export const arabicName = (pray: Pray, at: number): string => (pray === 'dhuhr' && isFriday(at) ? JUMUAH.arabic : ARABIC[pray])

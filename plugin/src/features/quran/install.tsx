@@ -15,7 +15,7 @@ import { SegmentScanner, SEGMENT_LEAD_MS, cbrByte, cbrCheckpoint, cbrStream, enc
 import { formatTime, isNotPlayedError, nextPlaybackItem, notPlayedError, playedThrough, repeatMode, toggleRepeat, type Command } from './player.ts'
 import { AUDIO_WORKS_KEY, audioNote, audioOsOf, browserUrl, openArgv, type AudioOs } from './audio-support.ts'
 import { isAvailable, nearestAvailable, nextAvailable, UNAVAILABLE_ERROR } from './availability.ts'
-import { connectPanelAction, connectQuran, connectQuranOptions, type PanelList, type PanelOption, type PanelQuran } from '../../shared/panel/signal.ts'
+import { connectPanelAction, connectQuran, connectQuranOptions, connectSurahPlay, type PanelList, type PanelOption, type PanelQuran, type PanelSurahPlay } from '../../shared/panel/signal.ts'
 import { isPickMessage, options as listOptions, paneModel, type List } from './pane.ts'
 import { segmentLabel } from './label.ts'
 import { avatarSvg } from '../../shared/quran-avatar/index.ts'
@@ -574,6 +574,21 @@ async function openInBrowser($: EngineInterface): Promise<void> {
     if (!argv || (await $.process.run(argv, { timeoutMs: 10000 })).exitCode !== 0) throw new Error('not opened')
   } catch { $.ui.toast('Could not open the browser.') }
 }
+// «سورة الكهف» and the like from another card: the whole surah's MP3 with the reciter last used, no segment, in the default browser (Windows and Linux).
+async function openSurahInBrowser($: EngineInterface, value: string): Promise<void> {
+  const os = await audioOs($)
+  const surah = Number(value)
+  if (!os || !Number.isInteger(surah) || surah < 1 || surah > 114 || String(surah) !== value) return
+  const reciter = await chosen($)
+  const argv = isAvailable(reciter.key, surah) ? openArgv(os, audioUrl(reciter, surah)) : null
+  try {
+    if (!argv || (await $.process.run(argv, { timeoutMs: 10000 })).exitCode !== 0) throw new Error('not opened')
+  } catch { $.ui.toast('Could not open the browser.') }
+}
+// The reciter last used (short Arabic name) and whether this OS opens a surah in the browser.
+async function panelSurahPlay($: EngineInterface): Promise<PanelSurahPlay> {
+  return { reciter: (await chosen($)).name, inBrowser: !!(await audioOs($)) }
+}
 // The rows of one list for the Muslim card's pickers: the Quran feature's own options and search.
 async function panelOptions($: EngineInterface, list: PanelList, query: string): Promise<PanelOption[]> {
   const state = await panelModel($)
@@ -620,6 +635,8 @@ function connectToPanel($: EngineInterface): void {
   connectPanelAction('quran-repeat-surah', () => paneAction($, { kind: 'repeat' }))
   connectPanelAction('quran-repeat-segment', () => paneAction($, { kind: 'repeat-segment' }))
   connectPanelAction('quran-browser', () => openInBrowser($))
+  connectPanelAction('quran-surah-browser', value => openSurahInBrowser($, value ?? ''))
+  connectSurahPlay(() => panelSurahPlay($))
 }
 
 export const install = (on: On, _options: Options) => {

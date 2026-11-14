@@ -13,7 +13,7 @@ const OPTIONS = { thikr: false, ...ATHKAR_QUIET, salahShow: 'off', salahAthan: f
 const run = () => ({ command: 'salah', args: 'demo', origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } })
 const band = (surface: 'desktop' | 'terminal') => ({
   plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'salah-flow',
-  props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} },
+  props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} },
 })
 const fixture = (on: On, surface: 'desktop' | 'terminal') => {
   const clock = mock.clock(on, { now: NOW })
@@ -105,5 +105,18 @@ test('restarting during after-salah cancels the old continuation and its complet
   await clock.advance(demoDuration('sky', FINALE_MS, 'afterSalah'))
   expect(await ui.find({ key: 'athkar-demo' })).toBeUndefined()
   expect(writes).toEqual([])
+  await ui.unmount()
+})
+
+test('desktop: the Friday demo athan card (الجمعة) has no after-salah start button, the Fajr demo keeps it', { options: OPTIONS, timeoutMs: 15000 }, async ($, on) => {
+  const { clock } = fixture(on, 'desktop')
+  const ui = await $.ui.mount(band('desktop'))
+  await clock.settle()
+  await $.command.run({ ...run(), command: 'friday' })
+  await clock.settle()
+  const friday = String((await ui.find({ in: 'salah-athan', type: 'Svg' }))?.props.source)
+  expect(friday).toContain('الجمعة')
+  expect(friday).not.toContain(START_LABEL)
+  expect(friday).toContain('سورة الجمعة · الآية ٩')
   await ui.unmount()
 })

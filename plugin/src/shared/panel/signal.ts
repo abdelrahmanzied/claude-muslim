@@ -57,7 +57,12 @@ export type PanelAthkar = {
 }
 
 // The Quran's list picks carry a validated string: a reciter key, a surah number, a segment index.
-export type PanelAction = 'muslim-autoupdate' | 'salah-city' | 'quran-toggle' | 'quran-retry' | 'quran-prev' | 'quran-next' | 'quran-reciter' | 'quran-surah' | 'quran-segment' | 'quran-repeat-surah' | 'quran-repeat-segment' | 'quran-browser' | 'athkar-open' | 'athkar-finish' | 'athkar-set' | 'athkar-reset' | 'athkar-undo'
+export type PanelAction = 'muslim-autoupdate' | 'salah-city' | 'quran-toggle' | 'quran-retry' | 'quran-prev' | 'quran-next' | 'quran-reciter' | 'quran-surah' | 'quran-segment' | 'quran-repeat-surah' | 'quran-repeat-segment' | 'quran-browser' | 'quran-surah-browser' | 'athkar-open' | 'athkar-finish' | 'athkar-set' | 'athkar-reset' | 'athkar-undo'
+
+// What a card that offers one surah (the Friday Al-Kahf card, the pane's shortcut) needs of the Quran player:
+// the short Arabic name of the reciter last used, and whether Claude Code plays no audio on this OS (Windows,
+// Linux), so the surah opens in the default browser instead of playing here.
+export type PanelSurahPlay = { reciter: string; inBrowser: boolean }
 
 export type PanelAutoUpdate = 'on' | 'off' | 'default' | 'missing' | 'unknown'
 const feeds: {
@@ -66,6 +71,7 @@ const feeds: {
   quran?: () => Promise<PanelQuran | null>
   quranOptions?: (list: PanelList, query: string) => Promise<PanelOption[]>
   athkar?: () => Promise<PanelAthkar | null>
+  surahPlay?: () => Promise<PanelSurahPlay | null>
 } = {}
 const actions = new Map<PanelAction, (value?: string) => Promise<void>>()
 
@@ -78,6 +84,7 @@ export const connectSalah = (read: (now: number) => PanelSalah | null) => { feed
 export const connectQuran = (read: () => Promise<PanelQuran | null>) => { feeds.quran = read }
 export const connectQuranOptions = (read: (list: PanelList, query: string) => Promise<PanelOption[]>) => { feeds.quranOptions = read }
 export const connectAthkar = (read: () => Promise<PanelAthkar | null>) => { feeds.athkar = read }
+export const connectSurahPlay = (read: () => Promise<PanelSurahPlay | null>) => { feeds.surahPlay = read }
 export const connectPanelAction = (action: PanelAction, run: (value?: string) => Promise<void>) => { actions.set(action, run) }
 
 // A feature that is off, or not drawn yet, reads as null; one failing read never breaks the pane.
@@ -100,4 +107,14 @@ export const runPanelAction = async (action: PanelAction, value?: string): Promi
   if (!run) return false
   try { await run(value); return true } catch { return false }
 }
-export const resetPanel = () => { delete feeds.autoUpdate; delete feeds.salah; delete feeds.quran; delete feeds.quranOptions; delete feeds.athkar; actions.clear() }
+export const resetPanel = () => { delete feeds.autoUpdate; delete feeds.salah; delete feeds.quran; delete feeds.quranOptions; delete feeds.athkar; delete feeds.surahPlay; actions.clear() }
+// Null while the Quran feature is not connected (not drawn yet).
+export const readSurahPlay = async (): Promise<PanelSurahPlay | null> => {
+  try { return (await feeds.surahPlay?.()) ?? null } catch { return null }
+}
+// «▶ استمع» for one surah: plays it in the player, or opens its MP3 in the browser where no audio plays. False when the Quran is not connected.
+export const playSurah = async (surah: number): Promise<boolean> => {
+  const play = await readSurahPlay()
+  if (!play) return false
+  return runPanelAction(play.inBrowser ? 'quran-surah-browser' : 'quran-surah', String(surah))
+}

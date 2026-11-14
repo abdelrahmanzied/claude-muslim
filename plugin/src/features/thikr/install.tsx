@@ -17,6 +17,8 @@ import type { Mode, Options } from '../../config.ts'
 import { limitUntil } from './limit.ts'
 import type { RateLimitWindow } from './limit.ts'
 import { SALAWAT, STARTING, USAGE_LIMIT } from './phrases.ts'
+import { isSalawatTime } from '../../shared/friday/index.ts'
+import { athkarTimesAt } from '../../shared/pray/bounds.ts'
 import { END_OF_TURN } from '../../shared/thikr/end.ts'
 import { groupFor, isStepRow, phraseAt, pickStart, startOf, withThikr } from './rotation.ts'
 import { withTashkeel } from '../../shared/arabic/visual.ts'
@@ -192,6 +194,8 @@ export const install = (on: On, options: Options) => {
   let lastStart: number | undefined
   // Salawat mode: turns so far, so each turn takes the next salawat.
   let turns = 0
+  // Salawat for the whole turn: the chosen mode, or Friday's from Fajr when that setting is on.
+  const isSalawat = (now: number): boolean => options.thikrMode === 'salawat' || isSalawatTime(options.fridaySalawat, now, athkarTimesAt(now)?.fajr ?? null)
   let ticker: { cancel: () => void } | undefined
   // Long moments: compacting, subagents at work, tools by start time.
   let isCompacting = false
@@ -305,7 +309,7 @@ export const install = (on: On, options: Options) => {
     subagents = 0
     toolsSince.clear()
     ticker?.cancel()
-    ticker = options.thikrMode === 'salawat' ? undefined : $.clock.every(TICK_MS, () => $.ui.invalidate('ui.render'))
+    ticker = isSalawat(await $.clock.now()) ? undefined : $.clock.every(TICK_MS, () => $.ui.invalidate('ui.render'))
     limitTimer?.cancel()
     limitTimer = undefined
     await setLimit($, null)
@@ -363,7 +367,7 @@ export const install = (on: On, options: Options) => {
       group = current
       groupSince = now - (played.get(current) ?? 0)
     }
-    const text = options.thikrMode === 'salawat'
+    const text = isSalawat(now)
       ? SALAWAT[Math.max(0, turns - 1) % SALAWAT.length] ?? ''
       : phraseAt(current, now - groupSince, options.thikrSpeed)
     const phrase = await renderArabic($, e.surface, withTashkeel(text, options.tashkeel), arabicCache)

@@ -39,7 +39,7 @@ test('city-dialog Not now puts setup off durably', async ($, on) => {
   expect((await $.command.run(run('city'))).text).toContain('put off')
   expect(stored.salahSetupLater).toBe(true)
   await clock.advance(24 * 3600_000)
-  const ui = await $.ui.mount({ plugin: 'muslim', surface: 'terminal', component: 'AbovePrompt', requestId: 'setup', props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 80, scroll: { offset: 0, bodyRows: 20 }, view: {} } })
+  const ui = await $.ui.mount({ plugin: 'muslim', surface: 'terminal', component: 'AbovePrompt', requestId: 'setup', props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 20, bodyColumns: 80, scroll: { offset: 0, bodyRows: 20 }, view: {} } })
   expect(await ui.find({ key: 'salah-setup' })).toBeUndefined()
   await ui.unmount()
 })

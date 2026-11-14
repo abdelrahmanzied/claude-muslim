@@ -3,6 +3,7 @@ import { expect, mock, test, type Mounted } from 'claude-code/testing'
 import { DEMO_DURATION_MS, DEMO_FOLD_MS, DEMO_UNFOLD_MS, demoReply, demoTerminalReply } from '../../src/features/muslim-pane/demo.ts'
 import { DEMO_GAP_MS, DEMO_START_MS } from '../../src/demo.ts'
 import { demoDuration as athkarDuration } from '../../src/features/athkar/demo.ts'
+import { DEMO_MS as FRIDAY_MS } from '../../src/features/friday/demo.ts'
 import { demoDuration as salahDuration } from '../../src/features/salah/demo.ts'
 import { demoPrompt, DEMO_LIMIT_MS, DEMO_SUBMIT_MS } from '../../src/features/thikr/demo.ts'
 import type { Engine } from 'claude-code/testing'
@@ -47,6 +48,8 @@ const startTour = async ($: Engine, clock: ReturnType<typeof mock.clock>, surfac
   await clock.advance(DEMO_GAP_MS + athkarDuration(surface === 'desktop' ? 'sky' : 'frame', 3200))
   await clock.advance(DEMO_GAP_MS + salahDuration(surface))
   await clock.advance(athkarDuration('frame', 3200, 'afterSalah'))
+  // The Friday demo: the athan card named الجمعة, then the Al-Kahf card.
+  await clock.advance(DEMO_GAP_MS + salahDuration(surface) + FRIDAY_MS)
   await clock.advance(DEMO_GAP_MS)
 }
 

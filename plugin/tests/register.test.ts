@@ -35,7 +35,7 @@ test('/muslim help shows every feature\'s table; with a feature, only its own', 
   expect(all).toContain('| `/thikr speed` | How long each phrase stays |')
   expect(all).toContain('/salah city')
   expect(all).toContain('| `/muslim terminal-arabic` |')
-  expect(all).toContain('| `/muslim demo` | Play thikr, athkar, /salah demo (athan and athkar after salah) and the Muslim pane tour (desktop) in order; thikr uses tokens and leaves a message in the transcript | — |\n| `/muslim demo pane` | Tour the Muslim pane on desktop alone: cards unfold, play and fold back; nothing is saved | — |')
+  expect(all).toContain('| `/muslim demo` | Play thikr, athkar, /salah demo (athan and athkar after salah), /friday demo (the athan card named Jumu\'ah, then the Al-Kahf card) and the Muslim pane tour (desktop) in order; thikr uses tokens and leaves a message in the transcript | — |\n| `/muslim demo pane` | Tour the Muslim pane on desktop alone: cards unfold, play and fold back; nothing is saved | — |')
   expect(all).toContain('| `/muslim tashkeel` | Arabic diacritics on desktop; the terminal never shows them | `on` (default) · `off` |')
   expect((await $.command.run(muslim('help terminal-arabic'))).text).toContain('| `/muslim terminal-arabic` | Choose how Arabic shows in this terminal, for every feature | — |')
   expect(salah?.split('\n')[0]).toBe('**Muslim › Salah › Help**')
@@ -50,7 +50,7 @@ test('/muslim help shows every feature\'s table; with a feature, only its own', 
   expect((await $.command.run(muslim('help quran'))).text).toContain('| `/quran` | Desktop only: open the Muslim pane with its Quran card unfolded |')
   expect(all).not.toContain('/quran play')
   expect(all).not.toContain('/quran reciter')
-  expect((await $.command.run(muslim('help unknown'))).text).toContain('Features: thikr, athkar, salah, quran, color, tashkeel, terminal-arabic')
+  expect((await $.command.run(muslim('help unknown'))).text).toContain('Features: thikr, athkar, salah, friday, quran, color, tashkeel, terminal-arabic')
   expect(all).toContain('| `/athkar morning` · `evening` · `after-salah` | Open that reader above the prompt. `morning` · `evening`: that period\'s athkar, even outside its hours. `after-salah`: the athkar after salah, also offered by itself after the athan card when prayer times are set; the desktop athan button opens it at once | `reset`: read it again from the start · `on` (default) · `off`: its reminder, opening by itself in its time; off still opens by hand |')
   expect((await $.command.run(muslim('help athkar'))).text?.split('\n')[0]).toBe('**Muslim › Athkar › Help**')
   const quran = (await $.command.run(muslim('help quran'))).text
@@ -74,7 +74,7 @@ for(const surface of ['terminal','desktop'] as const) test(`${surface}: session 
   await $.session.start({ cwd: '/tmp', surface, isInteractive: true })
 
   expect(seen).toEqual([])
-  expect(commands).toEqual(['muslim', 'thikr', 'athkar', 'salah', 'quran'])
+  expect(commands).toEqual(['muslim', 'thikr', 'athkar', 'salah', 'friday', 'quran'])
 })
 
 test('/muslim tashkeel reads and changes the plugin-wide setting', async ($, on) => {
@@ -184,12 +184,13 @@ test('terminal /muslim shows its complete version, English feature and shared ta
   on('settings.read',async()=>({value:{extraKnownMarketplaces:{'claude-muslim':{autoUpdate:true}}}}))
   expect((await $.command.run(muslim(''))).text).toBe([
     `**Muslim** · v${VERSION}`,
-    "To change a setting or see every option: `/muslim help`; each feature's: `/thikr help` · `/athkar help` · `/salah help`",
+    "To change a setting or see every option: `/muslim help`; each feature's: `/thikr help` · `/athkar help` · `/salah help` · `/friday help`",
     '', '### Features', '',
     '| Feature | Description | State |', '| --- | --- | --- |',
     "| Thikr | Tasbih in Claude's working line | on |",
     '| Athkar | Morning, evening and after-salah athkar above the prompt; reminders morning · evening · after salah | on · on · on |',
     '| Salah | Pray times and the next pray under the prompt | not set up |',
+    '| Friday | Salawat in the thikr line and the Al-Kahf reminder on Friday; salawat · Al-Kahf | on · on |',
     '| Quran | Desktop recitation player | desktop only |',
     '', '### Shared', '',
     '| Setting | Description | State |', '| --- | --- | --- |',

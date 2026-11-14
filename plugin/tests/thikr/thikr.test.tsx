@@ -317,7 +317,7 @@ test('a usage limit shows hasbiyallah above the prompt until it resets', { optio
     surface: 'terminal' as const,
     component: 'AbovePrompt' as const,
     requestId: 'band',
-    props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} },
+    props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} },
   }
 
   await $.classic.StopFailure({ error: 'rate_limit' })
@@ -345,7 +345,7 @@ test('a response reporting a full usage window shows hasbiyallah before any turn
     surface: 'terminal' as const,
     component: 'AbovePrompt' as const,
     requestId: 'band',
-    props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} },
+    props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} },
   }
   const context = { window: 200_000 }
 
@@ -375,7 +375,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
       on('session.usage', async () => ({ value: { startedAt: 0, context: { window: 200_000 }, rateLimits: [{ kind: 'five_hour', percentUsed: 100, resetsAt: '2026-10-10T13:00:00Z' }] } }))
       on('classic.StopFailure', async () => ({}))
       await $.classic.StopFailure({ error: 'rate_limit' })
-      const shown = await $.ui.mount({ plugin: 'muslim', surface, component: 'AbovePrompt', requestId: 'colors', props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} } })
+      const shown = await $.ui.mount({ plugin: 'muslim', surface, component: 'AbovePrompt', requestId: 'colors', props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} } })
       const accent = await shown.find({ type: 'Text', text: surface === 'terminal' ? stripTashkeel(USAGE_LIMIT) : USAGE_LIMIT })
       expect(accent?.props.color).toBe(expected)
       await shown.unmount()

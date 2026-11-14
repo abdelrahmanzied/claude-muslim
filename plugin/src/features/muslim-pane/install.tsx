@@ -6,12 +6,13 @@ import type { EngineInterface, On } from 'claude-code'
 import type { Options } from '../../config.ts'
 import type { PaneField, PaneOptimistic, PanePicker } from '../../../types/index.d.ts'
 import { defaultArabicMode, isArabicMode, terminalArabic, terminalIdFromEnv, type ArabicMode } from '../../shared/arabic/terminal.ts'
-import { readPanelAutoUpdate, readAthkar, readQuran, readQuranOptions, readSalah, runPanelAction, type PanelAction, type PanelOption } from '../../shared/panel/signal.ts'
+import { readPanelAutoUpdate, readAthkar, readQuran, readQuranOptions, playSurah, readSalah, runPanelAction, type PanelAction, type PanelOption } from '../../shared/panel/signal.ts'
 import { pointerPixels } from '../../shared/card/pointer.ts'
 import { enabledOf, NO_FOLDS, cardRects, hitOfCells, isFolds, isPaneMessage, keyAct, paneHeight, quranRowOf, type Folds, type PaneAct, type PaneMessage } from './layout.ts'
 import { paneModel, quranLayout, textLines, widthOf, type PaneModel } from './model.ts'
 import { dragBar, dragCell, isPanePicker, openPicker, pickerKey, pickerView, pressBar, type PickerView } from './picker.ts'
 import { CATEGORIES, CLOSED_SETTINGS, COPIED_MS, changeCategory, copiedAt, fieldKey, fieldSpec, fieldSubmit, isSwitchField, loadSettings, optimisticOptions, settingsBody, type SettingsState } from './settings.ts'
+import { ALKAHF_SURAH } from '../../shared/friday/index.ts'
 import { skipPaneScroll } from '../../shared/scroll/index.ts'
 // DEMO BEGIN
 import { DEMO_TICK_MS, demoAthkar, demoFolds, demoNow, demoQuran, demoReply, demoSalah, demoTerminalReply, isDemoOver } from './demo.ts'
@@ -194,6 +195,11 @@ async function press($: EngineInterface, options: Options, act: PaneAct): Promis
     if (!picker) return
     const option = (await readQuranOptions(picker.list, picker.query))[picker.scroll + row]
     if (option) await choose($, picker, option)
+    return
+  }
+  if (act === 'quran-alkahf') {
+    // Plays the surah; where Claude Code plays no audio (Windows, Linux) the Quran feature opens it in the browser.
+    if (!(await playSurah(ALKAHF_SURAH))) $.ui.toast('Quran is not ready yet. /quran')
     return
   }
   const action: PanelAction | null = act === 'quran-retry' || act === 'quran-browser' || act === 'quran-toggle' || act === 'quran-prev' || act === 'quran-next' || act === 'quran-repeat-surah' || act === 'quran-repeat-segment' || act === 'athkar-open' || act === 'athkar-finish' ? act : null

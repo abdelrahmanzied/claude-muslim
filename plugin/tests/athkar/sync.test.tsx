@@ -27,7 +27,7 @@ const setup = (on: On, surface: 'terminal' | 'desktop') => {
     const current = stored.athkar as Day
     stored.athkar = { ...current, morning: { ...current.morning, counts, updatedAt: NOW + 5000, ...over } }
   }
-  const band = { plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'sync-refresh', props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 80, scroll: { offset: 0, bodyRows: 20 }, view: {} } }
+  const band = { plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'sync-refresh', props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 20, bodyColumns: 80, scroll: { offset: 0, bodyRows: 20 }, view: {} } }
 
   return { clock, stored, seen, reads, other, band }
 }

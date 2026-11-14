@@ -105,5 +105,5 @@ export const athkarTimes = (place: Where, method: MethodId, adjust: Adjust, at: 
   const today = timesOn(place, method, adjust, at)
   // Pick a point well inside tomorrow in the place's zone, including DST days.
   const tomorrow = at + (36 - localTime(at, place.timeZone).hour) * 3600_000
-  return { day: key(0), previousDay: key(-1), fajr: today.fajr, sunrise: today.sunrise, maghrib: today.maghrib, isha: today.isha, nextFajr: timesOn(place, method, adjust, tomorrow).fajr }
+  return { day: key(0), previousDay: key(-1), fajr: today.fajr, sunrise: today.sunrise, dhuhr: today.dhuhr, maghrib: today.maghrib, isha: today.isha, nextFajr: timesOn(place, method, adjust, tomorrow).fajr }
 }

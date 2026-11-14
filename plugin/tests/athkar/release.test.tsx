@@ -7,7 +7,7 @@ import type { Day, SalahLast } from '../../types'
 const place = { latitude: 48.1372, longitude: 11.5755, timeZone: 'Europe/Berlin' }
 const options = { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berlin; DE', salahAthan: false, salahShow: 'off' }
 const run = (args: string) => ({ command: 'athkar', args, origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } })
-const band = { plugin: 'muslim', surface: 'terminal' as const, component: 'AbovePrompt' as const, requestId: 'release', props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} } }
+const band = { plugin: 'muslim', surface: 'terminal' as const, component: 'AbovePrompt' as const, requestId: 'release', props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} } }
 function fixture(on: On, initial: Day, last: SalahLast | null = null, pending = false) {
   mock.env(on, {})
   mock.store(on, { athkar: initial, arabicTerminals: { unknown: 'plain' }, ...(!pending ? { salahSetupLater: true } : {}) })

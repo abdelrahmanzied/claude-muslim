@@ -19,6 +19,7 @@ import { muslimHelp } from '../src/help.ts'
 import { helpHint, statusTable } from '../src/table.ts'
 import { showText } from '../src/features/salah/today.ts'
 import { install as installSalah } from '../src/features/salah/install.tsx'
+import { install as installFriday } from '../src/features/friday/install.tsx'
 import { install as installQuran } from '../src/features/quran/install.tsx'
 import { defaultReciter } from '../src/features/quran/catalog.ts'
 import { QURAN_CATALOG } from '../src/features/quran/catalog-data.ts'
@@ -270,6 +271,11 @@ export const register: Register = (on, options) => {
       description: 'Pray times: help, show, athan, city, method, adjust, demo',
     })
 
+    await $.command.register({
+      name: 'friday',
+      description: 'Friday: salawat in the thikr line, the Al-Kahf reminder: help, salawat, alkahf, demo',
+    })
+
     await $.command.register({ name: 'quran', description: 'Desktop only: open the Muslim pane with its Quran card unfolded' })
     // Audio handles do not survive a module reload. Never resume stale tracking.
     await $.state.set({ plugin: 'muslim', key: 'quranPlaying' }, null)
@@ -376,7 +382,7 @@ export const register: Register = (on, options) => {
     return {
       text: [
         `**Muslim** · v${VERSION}`,
-        `${helpHint('/muslim')}; each feature's: \`/thikr help\` · \`/athkar help\` · \`/salah help\``,
+        `${helpHint('/muslim')}; each feature's: \`/thikr help\` · \`/athkar help\` · \`/salah help\` · \`/friday help\``,
         '',
         '### Features',
         '',
@@ -384,6 +390,7 @@ export const register: Register = (on, options) => {
           ['Thikr', 'Tasbih in Claude\'s working line', onOff(settings.thikr)],
           ['Athkar', 'Morning, evening and after-salah athkar above the prompt; reminders morning · evening · after salah', [settings.athkarMorning, settings.athkarEvening, settings.athkarAfterSalah].map(onOff).join(' · ')],
           ['Salah', 'Pray times and the next pray under the prompt', settings.salahPlace ? showText(settings.salahShow) : 'not set up'],
+          ['Friday', 'Salawat in the thikr line and the Al-Kahf reminder on Friday; salawat · Al-Kahf', [settings.fridaySalawat, settings.fridayAlkahf].map(onOff).join(' · ')],
           ['Quran', 'Desktop recitation player', 'desktop only'],
         ], 'Feature'),
         '',
@@ -427,6 +434,8 @@ export const register: Register = (on, options) => {
     return next(e)
   })
   installQuran(on, settings)
+  // Friday goes before salah: salah's `/muslim demo` hook is the last link and answers without `next`.
+  installFriday(on, settings)
   installSalah(on, settings)
   installArabicFix(on, settings)
 }

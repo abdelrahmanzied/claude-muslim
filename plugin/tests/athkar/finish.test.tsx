@@ -7,7 +7,7 @@ import { CHOICE_MARGIN, hitsFor } from '../../src/features/athkar/band.ts'
 import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
 
 const NOW = new Date(2026, 9, 10, 10).getTime()
-const band = (surface: 'terminal' | 'desktop') => ({ plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'finish-band', props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} } })
+const band = (surface: 'terminal' | 'desktop') => ({ plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'finish-band', props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} } })
 const fixture = (on: On, day: Day) => {
   mock.env(on, {})
   const kept = { day }

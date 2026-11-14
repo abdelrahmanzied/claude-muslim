@@ -43,6 +43,8 @@ Prayer times for the user's city, calculated on their machine with
    - While inside the window, salah publishes `salahWindow`. Thikr does not read it yet; no prayer-window opener is promised for this release.
    - No toast when the window starts: the footer line is the only notice. No OS notification.
 
+**Jumu'ah.** On a device Friday the Dhuhr slot is named «الجمعة» (English Jumu'ah) wherever a prayer name shows: the prayer line, the athan call (`حان وقت صلاة الجمعة`), the athan card, the times table and review, and the Muslim pane. Its time is Dhuhr's. The desktop athan card on Jumu'ah has no «ابدأ أذكار بعد الصلاة» button (`offersAfterSalah` in `card.ts`; every other prayer keeps it, and the terminal has none), and nothing offers the athkar after salah there. Instead the card shows Surat al-Jumu'ah, verse 9, with its reference (open card only: beside the call, or sliding when the card is too narrow; the folded card shows none; terminal: after the athan line, on its own rows when it does not fit; the text is listed in [salah content](salah-content.md)). See [friday](../friday/friday.md).
+
 ## Calculation
 
 - **Method:** the official Sunni authority of the place's country
@@ -80,6 +82,8 @@ Replies are short markdown: a bold title line first (`**Muslim › Salah**`, `**
 ## Demo
 
 `/salah demo` replies `**Salah demo:** athan · Fajr 05:00 · athkar after salah` and always previews «الفجر» at 05:00, formatted by the real `clockText` function. It does not read a city, method or calculated prayer time. Disposable module-local card and minaret values have their own redraw timers. One selector per existing render path chooses the demo while it is active; the same `athan-card.tsx` and minaret builders draw it. Desktop: open 5 seconds, folded 3 seconds; terminal: rise 3.01 seconds, folded 3 seconds. Expiry, × or the desktop start button immediately hands off to the Fajr after-salah demo in athkar's real reader. The continuation counts through three real-list passages for 6.0 seconds, plays the real 3.2-second finale, then ends (9.2 seconds total). Thus untouched desktop playback totals 17.2 seconds, terminal 15.21 seconds. Afterward any real athan returns with its state and timers untouched. Demo input cannot change the real card. The shared `/muslim demo` starts this same runner, which then reports its end only after the after-salah finale, through the existing transient signal and a completion callback connected in demo-only command hooks; it needs no city either.
+
+The same athan moment also plays as the first step of `/friday demo`: Dhuhr at 12:30 on a fixed Friday, so it is named «الجمعة» (`demoFridayMoment` in `demo.ts`). It has the same lengths, ends when the athan goes (no athkar after salah) and tells Friday through a transient demo signal; it never touches settings, the store or saved state.
 
 ## Settings
 

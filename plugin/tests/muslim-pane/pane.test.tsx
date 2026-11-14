@@ -39,7 +39,7 @@ const engine = (on: On, surface: 'desktop' | 'terminal', open?: (args: PaneOpenA
   on('ui.open', async (_$, e) => { opened.push({ id: e.id, title: e.title, ...(e.focus ? { focus: e.focus } : {}) }); return { value: open?.(e) ?? { isPlaced: true } } })
   return opened
 }
-const band = (surface: 'desktop' | 'terminal') => ({ plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'band', props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} } })
+const band = (surface: 'desktop' | 'terminal') => ({ plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'band', props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} } })
 const modes = (surface: 'desktop' | 'terminal') => ({ plugin: 'muslim', surface, component: 'SessionMode' as const, requestId: 'modes', props: { modes: [] as readonly string[] } })
 
 test('/muslim opens the Muslim pane on desktop', { options: { salahPlace: MUNICH } }, async ($, on) => {

@@ -68,6 +68,22 @@ test('an untouched offer lasts from one to two shared card durations; explicit a
   expect(setAt(new Date(NOW + 3 * IN_MS), { ...day, afterSalah: { ...day.afterSalah, counts: { '66-istighfar': 1 } } }, last)).toBe('afterSalah')
 })
 
+test('Friday Dhuhr (Jumu\'ah) is never offered by itself; asking, a begun slot and other prayers still work', () => {
+  const FRIDAY = new Date(2026, 9, 9, 13).getTime()
+  const dhuhr = { pray: 'dhuhr' as const, at: FRIDAY }, asr = { pray: 'asr' as const, at: FRIDAY }
+  const slot = (l: typeof dhuhr | typeof asr) => syncAfterSalah(emptyDay(dayOf(new Date(FRIDAY))), l)
+  for (const offset of [0, IN_MS - 1, IN_MS, 2 * IN_MS - 1]) {
+    expect(setAt(new Date(FRIDAY + offset), slot(dhuhr), dhuhr)).toBe('morning')
+    expect(setAt(new Date(FRIDAY + offset), slot(asr), asr)).toBe(offset >= IN_MS ? 'afterSalah' : 'morning')
+  }
+  expect(setAt(new Date(FRIDAY + IN_MS), slot(dhuhr), dhuhr, undefined, dhuhr)).toBe('afterSalah')
+  const begun = { ...slot(dhuhr), afterSalah: { ...slot(dhuhr).afterSalah, counts: { '66-istighfar': 1 } } }
+  expect(setAt(new Date(FRIDAY + IN_MS), begun, dhuhr)).toBe('afterSalah')
+  expect(setAt(new Date(FRIDAY + IN_MS), slot(dhuhr), dhuhr, 'afterSalah')).toBe('afterSalah')
+  // The same Dhuhr on any other day is offered as before.
+  expect(setAt(new Date(NOW + IN_MS), fresh(), last)).toBe('afterSalah')
+})
+
 test('the shared count, advance, progress, undo, last-item completion and reset hint use the prayer list', () => {
   const day = syncAfterSalah(fresh(), { pray: 'fajr', at: NOW })
   const reading = { ...day.afterSalah, index: 8 }

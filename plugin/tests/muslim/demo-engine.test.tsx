@@ -4,6 +4,7 @@ import { expect, mock, test, type Engine } from 'claude-code/testing'
 import { DEMO_GAP_MS, DEMO_START_MS, demoReply } from '../../src/demo.ts'
 import { demoDuration as athkarDuration } from '../../src/features/athkar/demo.ts'
 import { demoDuration as salahDuration, DEMO_FOLDED_MS, DEMO_OPEN_MS } from '../../src/features/salah/demo.ts'
+import { DEMO_MS as FRIDAY_MS } from '../../src/features/friday/demo.ts'
 import { DEMO_DURATION_MS as PANE_MS } from '../../src/features/muslim-pane/demo.ts'
 import { demoPrompt, DEMO_LIMIT_MS, DEMO_SUBMIT_MS } from '../../src/features/thikr/demo.ts'
 import { USAGE_LIMIT } from '../../src/features/thikr/phrases.ts'
@@ -15,7 +16,7 @@ const OPTIONS = { thikr: false, ...ATHKAR_QUIET, salahShow: 'off', salahAthan: f
 const run = (args = 'demo') => ({ command: 'muslim', args, origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } })
 const band = (surface: 'desktop' | 'terminal') => ({
   plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'muslim-demo',
-  props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} },
+  props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} },
 })
 
 const fixture = (on: On, surface: 'desktop' | 'terminal' = 'desktop', submit: 'accept' | 'drop' | 'throw' = 'accept') => {
@@ -133,8 +134,8 @@ for (const [surface, style] of [['desktop', 'sky'], ['terminal', 'sky'], ['deskt
     await clock.advance(100)
     expect(await ui.find({ key: 'athkar-demo' })).toBeUndefined()
     expect(written).toEqual([])
-    // The pane tour follows on desktop (skipped on a terminal), after its own gap.
-    await clock.advance(DEMO_GAP_MS + PANE_MS)
+    // The Friday card follows, then the pane tour on desktop (skipped on a terminal), each after its own gap.
+    await clock.advance(DEMO_GAP_MS + FRIDAY_MS + DEMO_GAP_MS + PANE_MS)
     expect(written).toEqual([])
     expect((await $.command.run(run())).text).toBe(demoReply())
     await ui.unmount()
@@ -159,7 +160,7 @@ test('a repeat while queued, working, holding, reading or showing salah says alr
   await clock.advance(timing.salahMs)
   await repeat()
   await clock.advance(athkarDuration('sky', 3200, 'afterSalah'))
-  await clock.advance(DEMO_GAP_MS + PANE_MS)
+  await clock.advance(DEMO_GAP_MS + FRIDAY_MS + DEMO_GAP_MS + PANE_MS)
   expect((await $.command.run(run())).text).toBe(demoReply())
 })
 
