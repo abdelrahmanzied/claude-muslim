@@ -11,7 +11,7 @@ const NOW = new Date(2026, 9, 10, 16, 59, 58).getTime()
 const MUNICH = { salahPlace: 'Munich; 48.1372, 11.5755; Europe/Berlin; DE', salahShow: 'off' }
 const band = (surface: typeof SURFACES[number]) => ({
   plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'first-run',
-  props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} },
+  props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} },
 })
 const run = (args: string) => ({ command: 'athkar', args, origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } })
 const engine = (on: On, now: number, surface: typeof SURFACES[number], saved: Record<string, unknown> = {}) => {

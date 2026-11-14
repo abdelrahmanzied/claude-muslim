@@ -1,7 +1,7 @@
 import { expect, mock, test } from 'claude-code/testing'
 import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
 import { USAGE_LIMIT } from '../../src/features/thikr/phrases.ts'
-const band = { plugin: 'muslim', surface: 'terminal' as const, component: 'AbovePrompt' as const, requestId: 'limit', props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 80, scroll: { offset: 0, bodyRows: 20 }, view: {} } }
+const band = { plugin: 'muslim', surface: 'terminal' as const, component: 'AbovePrompt' as const, requestId: 'limit', props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 20, bodyColumns: 80, scroll: { offset: 0, bodyRows: 20 }, view: {} } }
 for (const until of [9000, 11000]) test(`reload usage limit with deadline ${until} draws only before expiry`, async ($, on) => {
   const clock = mock.clock(on, { now: 10000 })
   mock.store(on, { salahSetupLater: true, arabicTerminals: { unknown: 'plain' } }); mock.env(on, {})

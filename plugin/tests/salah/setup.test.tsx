@@ -10,7 +10,7 @@ const band = (surface: (typeof SURFACES)[number]) => ({
   surface,
   component: 'AbovePrompt' as const,
   requestId: 'band',
-  props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} },
+  props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} },
 })
 
 // Stands for the engine's own band beneath the plugin.
@@ -154,6 +154,7 @@ test('with no config row the band and /salah city say to run /reload-plugins and
 })
 
 test('a saved place shows no setup band', { options: { ...ATHKAR_QUIET, salahPlace: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' } }, async ($, on) => {
+  mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
   mock.env(on, {})
   mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   engineBand(on)
@@ -295,6 +296,7 @@ test('always: the call shows once the pray is in, and never toasts', { options: 
 })
 
 test('off leaves no pray row', { options: { ...ATHKAR_QUIET, ...AT_MUNICH, salahShow: 'off' } }, async ($, on) => {
+  mock.clock(on, { now: Date.parse('2026-10-10T11:30:00Z') })
   mock.env(on, {})
   mock.store(on, { arabicTerminals: { unknown: 'plain' } })
   engineBand(on)
@@ -583,7 +585,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
         return <Box />
       })
 
-      const shown = await $.ui.mount({ plugin: 'muslim', surface, component: 'AbovePrompt', requestId: 'colors', props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} } })
+      const shown = await $.ui.mount({ plugin: 'muslim', surface, component: 'AbovePrompt', requestId: 'colors', props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} } })
       const accent = (await shown.findAll({ type: 'Text' }))[0]
       expect(accent?.props.color).toBe(expected)
       await shown.unmount()

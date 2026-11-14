@@ -7,13 +7,15 @@ import { ATHKAR_QUIET, configRows } from '../../fixtures/config.ts'
 
 const band = (surface: 'terminal' | 'desktop', hasSurvey = false, requestId = 'arabic-check') => ({
   plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId,
-  props: { hasSurvey, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} },
+  props: { hasSurvey, isCollapsed: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} },
 })
 const engineBand = (on: On) => on('ui.render', { component: 'AbovePrompt' }, async ($, e) => {
   const { Text } = $.ui.resolve(e)
   return <Text key="engine-band">engine band</Text>
 })
 const OPTIONS = { ...ATHKAR_QUIET, thikr: false, tashkeel: true, salahShow: 'off', salahPlace: 'Munich, Germany; 48.14, 11.58; Europe/Berlin; DE' }
+// The band reads the clock on every draw; the host no longer answers it by itself.
+const NOW = Date.parse('2026-10-10T10:00:00Z')
 const sample = 'بِسْمِ اللَّهِ'
 const rows = { type: 'Button' as const }
 
@@ -36,6 +38,7 @@ test('survey rows use fixed mode order and Text samples', { options: OPTIONS }, 
 
 for (const mode of ARABIC_MODES) {
   test(`choosing ${mode} saves it for this terminal and hides the survey`, { options: OPTIONS }, async ($, on) => {
+    mock.clock(on, { now: NOW })
     mock.env(on, { TERM_PROGRAM: 'WarpTerminal' })
     const stored: Record<string, unknown> = {}
     on('store.get', async (_$, e) => ({ value: stored[e.key] }))
@@ -54,6 +57,7 @@ for (const mode of ARABIC_MODES) {
 }
 
 test('Apple and Warp answers are independent; a new unanswered terminal gets its own survey', { options: OPTIONS }, async ($, on) => {
+  mock.clock(on, { now: NOW })
   let termId = 'Apple_Terminal'
   on('env.get', async (_$, e) => ({ value: e.name === 'TERM_PROGRAM' ? termId : undefined }))
   const stored: Record<string, unknown> = {}
@@ -72,6 +76,7 @@ test('Apple and Warp answers are independent; a new unanswered terminal gets its
 })
 
 test('desktop never draws the survey; command replies terminal-only there', { options: OPTIONS }, async ($, on) => {
+  mock.clock(on, { now: NOW })
   mock.env(on, { TERM_PROGRAM: 'Apple_Terminal' })
   mock.store(on)
   engineBand(on)
@@ -85,6 +90,7 @@ test('desktop never draws the survey; command replies terminal-only there', { op
 })
 
 test('terminal-arabic reopens the survey for an answered terminal', { options: OPTIONS }, async ($, on) => {
+  mock.clock(on, { now: NOW })
   mock.env(on, { TERM_PROGRAM: 'WarpTerminal' })
   mock.store(on, { arabicTerminals: { WarpTerminal: 'joined' } })
   engineBand(on)
@@ -153,7 +159,7 @@ for (const [color, expected] of [['orange', 'claude'], ['yellow', '#c99a1f']] as
       const { Box } = $.ui.resolve(e)
       return <Box />
     })
-    const shown = await $.ui.mount({ plugin: 'muslim', surface: 'terminal', component: 'AbovePrompt', requestId: 'survey-colors', props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} } })
+    const shown = await $.ui.mount({ plugin: 'muslim', surface: 'terminal', component: 'AbovePrompt', requestId: 'survey-colors', props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} } })
     expect((await shown.find({ type: 'Text', text: 'muslim' }))?.props.color).toBe(expected)
     expect((await shown.find({ type: 'Text', text: 'Press 1–3' }))?.props.color).toBeUndefined()
     await shown.unmount()

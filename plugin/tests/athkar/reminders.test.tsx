@@ -15,7 +15,7 @@ const FAJR = timesOn({ latitude: 48.1372, longitude: 11.5755, timeZone: 'Europe/
 const run = (args: string) => ({ command: 'athkar', args, origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } })
 const band = {
   plugin: 'muslim', surface: 'terminal' as const, component: 'AbovePrompt' as const, requestId: 'reminders-band',
-  props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} },
+  props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} },
 }
 const engine = (on: On, day: Day, rows: () => readonly unknown[] = () => []) => {
   mock.env(on, {})

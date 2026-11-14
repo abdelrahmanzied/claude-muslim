@@ -13,7 +13,7 @@ const MUNICH = { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berlin; 
 const TIMES = timesOn(PLACE, 'mwl', NO_ADJUST, Date.parse('2026-10-10T10:00:00Z'))
 const band = (surface: 'desktop' | 'terminal') => ({
   plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'handoff',
-  props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} },
+  props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} },
 })
 const setup = (on: On, now: number, surface: 'desktop' | 'terminal', photo = true) => {
   const clock = mock.clock(on, { now })

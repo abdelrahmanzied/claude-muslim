@@ -5,7 +5,7 @@ import { ATHKAR_QUIET } from '../../fixtures/config.ts'
 
 const band = (surface: 'terminal' | 'desktop') => ({
   plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'band',
-  props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} },
+  props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} },
 })
 
 for (const program of ['Apple_Terminal', 'WarpTerminal', 'unknown']) {

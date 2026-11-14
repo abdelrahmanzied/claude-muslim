@@ -16,7 +16,7 @@ const OPTIONS = { thikr: false, ...ATHKAR_QUIET, salahShow: 'off', salahAthan: f
 const run = (args = 'demo') => ({ command: 'muslim', args, origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } })
 const band = (surface: 'desktop' | 'terminal') => ({
   plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'muslim-demo',
-  props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} },
+  props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} },
 })
 
 const fixture = (on: On, surface: 'desktop' | 'terminal' = 'desktop', submit: 'accept' | 'drop' | 'throw' = 'accept') => {

@@ -30,7 +30,7 @@ for (const set of ['morning', 'afterSalah'] as const) {
       await $.command.run({ command: 'athkar', args: set === 'afterSalah' ? 'after-salah' : set,
         origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
       const ui = await $.ui.mount({ plugin: 'muslim', surface, component: 'AbovePrompt', requestId: 'closing',
-        props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 80, scroll: { offset: 0, bodyRows: 20 }, view: {} } })
+        props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 20, bodyColumns: 80, scroll: { offset: 0, bodyRows: 20 }, view: {} } })
       const key = (key: string) => ui.post({ act: 'key', key })
       await key('return') // Open the reading from its lit cover.
       await key('return') // Its last remaining count.

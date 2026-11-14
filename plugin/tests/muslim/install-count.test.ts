@@ -46,7 +46,7 @@ const setup = (on: On, env: Record<string, string>, status: () => number) => {
   on('session.start', async (_$, e) => ({ cwd: e.cwd }))
   const sent: Array<{ url: string; body?: string }> = []
   on('http.fetch', async (_$, e) => {
-    sent.push({ url: e.url, body: e.init?.body })
+    sent.push({ url: e.url, body: typeof e.init?.body === 'string' ? e.init.body : undefined })
     return { value: { ok: status() < 300, status: status(), headers: {}, text: '' } }
   })
   return { clock, stored, sent }

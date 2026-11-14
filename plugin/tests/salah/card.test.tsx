@@ -28,7 +28,7 @@ const band = (surface: 'terminal' | 'desktop') => ({
   surface,
   component: 'AbovePrompt' as const,
   requestId: 'band',
-  props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} },
+  props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} },
 })
 
 const engineBand = (on: On, surface: 'desktop' | 'terminal' = 'desktop') => {
@@ -262,7 +262,7 @@ for (const scenario of ['leave', 'return', 'idle', 'keys', 'focus', 'grace', 'fi
     const clock = mock.clock(on, { now: BEFORE_DHUHR })
     engineBand(on)
     on('fs.read', async () => ({ value: { base64: 'QUJD' } }))
-    on('ui.focus', { component: 'AbovePrompt' }, async () => ({}))
+    on('ui.focus', { component: 'AbovePrompt', plugin: '*' }, async () => ({}))
     const states: unknown[] = []
     on('state.set', { plugin: 'muslim', key: 'salahCard' }, async (_$, e, next) => {
       states.push(e.value)
@@ -497,7 +497,7 @@ for (const surface of ['desktop', 'terminal'] as const) {
       on('config.set', async (_$, e) => (written.push(e), { value: e.value }))
       on('store.set', async (_$, e) => (written.push(e), { value: undefined }))
       on('store.delete', async (_$, e) => (written.push(e), { value: undefined }))
-      on('ui.focus', { component: 'AbovePrompt' }, async () => ({}))
+      on('ui.focus', { component: 'AbovePrompt', plugin: '*' }, async () => ({}))
       const ui = await $.ui.mount(band(surface))
       await clock.settle() // Let the existing moment's normal timers initialize.
       written.length = 0

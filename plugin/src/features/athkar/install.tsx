@@ -752,7 +752,8 @@ export const install = (on: On, options: Options) => {
   }))
 
   // A click elsewhere takes the focus off the band: it fades, as at rest.
-  on('ui.focus', { component: 'AbovePrompt' }, async ($, e, next) => {
+  // `plugin: '*'`: a hook leaving it out hears only this plugin's own drawings, and this one acts on another plugin's focus.
+  on('ui.focus', { component: 'AbovePrompt', plugin: '*' }, async ($, e, next) => {
     if (e.plugin !== 'muslim' && (await $.clock.now()) - view.pressedAt > FOCUS_GRACE_MS) rest($)
 
     return next(e)

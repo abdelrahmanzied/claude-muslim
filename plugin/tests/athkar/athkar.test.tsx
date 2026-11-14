@@ -24,7 +24,7 @@ const band = (surface: (typeof SURFACES)[number]) => ({
   surface,
   component: 'AbovePrompt' as const,
   requestId: 'band',
-  props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} },
+  props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} },
 })
 
 const MORNING = new Date(2026, 9, 10, 7, 0).getTime()

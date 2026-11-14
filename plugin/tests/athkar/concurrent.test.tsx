@@ -24,7 +24,7 @@ for (const surface of ['terminal', 'desktop'] as const) for (const fails of [fal
   on('config.list', async () => ({ value: [] }))
   on('ui.render', { component: 'AbovePrompt' }, async ($, e) => { const { Box } = $.ui.resolve(e); return <Box /> })
   await $.command.run({ command: 'athkar', args: 'morning', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
-  const ui = await $.ui.mount({ plugin: 'muslim', surface, component: 'AbovePrompt', requestId: 'counts', props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 80, scroll: { offset: 0, bodyRows: 20 }, view: {} } })
+  const ui = await $.ui.mount({ plugin: 'muslim', surface, component: 'AbovePrompt', requestId: 'counts', props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 20, bodyColumns: 80, scroll: { offset: 0, bodyRows: 20 }, view: {} } })
   await ui.post({ act: 'key', key: 'return' }) // Wake after focus moved to the setup row.
   await ui.post({ act: 'key', key: 'return' }) // Open the cover.
   await Promise.all([ui.post({ act: 'key', key: 'return' }), ui.post({ act: 'key', key: 'return' })])
@@ -48,7 +48,7 @@ for (const surface of ['terminal', 'desktop'] as const) test(`a press after anot
   on('config.list', async () => ({ value: [] }))
   on('ui.render', { component: 'AbovePrompt' }, async ($, e) => { const { Box } = $.ui.resolve(e); return <Box /> })
   await $.command.run({ command: 'athkar', args: 'morning', origin: { kind: 'composer' }, presentation: { isFullscreen: false, columns: 80 } })
-  const ui = await $.ui.mount({ plugin: 'muslim', surface, component: 'AbovePrompt', requestId: 'sync', props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 80, scroll: { offset: 0, bodyRows: 20 }, view: {} } })
+  const ui = await $.ui.mount({ plugin: 'muslim', surface, component: 'AbovePrompt', requestId: 'sync', props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 20, bodyColumns: 80, scroll: { offset: 0, bodyRows: 20 }, view: {} } })
   await ui.post({ act: 'key', key: 'return' })
   await ui.post({ act: 'key', key: 'return' })
   const mine = (stored.athkar as Day).morning.counts[id] ?? 0

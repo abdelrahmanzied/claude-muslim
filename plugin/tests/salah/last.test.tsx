@@ -6,7 +6,7 @@ import { ATHKAR_QUIET } from '../fixtures/config.ts'
 const PLACE = { latitude: 48.1372, longitude: 11.5755, timeZone: 'Europe/Berlin' }
 const NOW = Date.parse('2026-10-10T10:00:00Z')
 const MUNICH = { salahPlace: 'Munich, Germany; 48.1372, 11.5755; Europe/Berlin; DE', salahAthan: false }
-const band = { plugin: 'muslim', surface: 'terminal' as const, component: 'AbovePrompt' as const, requestId: 'last', props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} } }
+const band = { plugin: 'muslim', surface: 'terminal' as const, component: 'AbovePrompt' as const, requestId: 'last', props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} } }
 
 test('today\'s last salah excludes sunrise and yesterday, includes exact prayer instants and adjustments', () => {
   const times = timesOn(PLACE, 'mwl', NO_ADJUST, NOW)

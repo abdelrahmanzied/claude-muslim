@@ -13,7 +13,7 @@ const spinner = (surface: 'terminal' | 'desktop') => ({
 const turnDuration = { surface: 'terminal' as const, component: 'TurnDuration' as const, requestId: 'm1', props: { word: 'Baked', durationMs: 3000 } }
 const band = {
   surface: 'terminal' as const, component: 'AbovePrompt' as const, requestId: 'band',
-  props: { hasSurvey: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} },
+  props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 10, bodyColumns: 80, scroll: { offset: 0, bodyRows: 10 }, view: {} },
 }
 
 // Stands for the engine beneath the plugins, recording every persistent write.

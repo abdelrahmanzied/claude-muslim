@@ -13,7 +13,7 @@ const OPTIONS = { thikr: false, ...ATHKAR_QUIET, salahShow: 'off', salahAthan: f
 const run = () => ({ command: 'salah', args: 'demo', origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } })
 const band = (surface: 'desktop' | 'terminal') => ({
   plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'salah-flow',
-  props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} },
+  props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} },
 })
 const fixture = (on: On, surface: 'desktop' | 'terminal') => {
   const clock = mock.clock(on, { now: NOW })

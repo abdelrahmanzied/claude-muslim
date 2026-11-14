@@ -611,7 +611,7 @@ export const install = (on: On, options: Options) => {
     if (m.act === 'hide' || (m.act === 'pointer' && m.button === 'left' && athan.props !== undefined && columns > 0 && rows > 0 && (isOnClose(athanFrame(athan.props, columns), m.x, m.y, columns, rows) || isOnStart(athan.props, m.x, m.y, columns, rows)))) await closeDemo($)
     return {}
   })
-  on('ui.focus', { component: 'AbovePrompt' }, async ($, e, next) => {
+  on('ui.focus', { component: 'AbovePrompt', plugin: '*' }, async ($, e, next) => {
     if (demo) return {}
     return next(e)
   }).catch(($, e, next) => next(e))
@@ -866,7 +866,8 @@ export const install = (on: On, options: Options) => {
     return {}
   })
 
-  on('ui.focus', { component: 'AbovePrompt' }, async ($, e, next) => {
+  // `plugin: '*'`: a hook leaving it out hears only this plugin's own drawings, and this one acts on another plugin's focus.
+  on('ui.focus', { component: 'AbovePrompt', plugin: '*' }, async ($, e, next) => {
     const now = await $.clock.now()
     if (e.plugin !== 'muslim' && cardView.isEngaged
       && (cardView.pressedAt === undefined || now - cardView.pressedAt > FOCUS_GRACE_MS)) {

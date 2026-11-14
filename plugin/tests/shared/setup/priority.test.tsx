@@ -9,7 +9,7 @@ import { setupForm } from '../../../src/shared/setup/visibility.ts'
 
 const NOW = new Date(2026, 9, 10, 10).getTime()
 const MUNICH = 'Munich; 48.1372, 11.5755; Europe/Berlin; DE'
-const band = (surface: 'desktop' | 'terminal') => ({ plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'priority', props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} } })
+const band = (surface: 'desktop' | 'terminal') => ({ plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'priority', props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} } })
 const command = (name: string, args: string) => ({ command: name, args, origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } })
 const fixture = (on: On, surface: 'desktop' | 'terminal', saved: Record<string, unknown> = {}) => {
   mock.env(on, {})

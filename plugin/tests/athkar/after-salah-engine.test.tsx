@@ -13,7 +13,7 @@ const FAJR = timesOn({ latitude: 48.1372, longitude: 11.5755, timeZone: 'Europe/
 const run = (args: string) => ({ command: 'athkar', args, origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } })
 const band = (surface: 'desktop' | 'terminal') => ({
   plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'after-salah-band',
-  props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} },
+  props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} },
 })
 const engine = (on: On, surface: 'desktop' | 'terminal') => {
   mock.env(on, {})

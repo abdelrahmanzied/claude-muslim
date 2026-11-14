@@ -7,7 +7,7 @@ const NOW = new Date(2026, 9, 10, 10).getTime()
 const FINALE_MS = 3200
 const HINT = '/athkar morning reset → to read again'
 
-const band = (surface: 'terminal' | 'desktop') => ({ plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'close-band', props: { hasSurvey: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} } })
+const band = (surface: 'terminal' | 'desktop') => ({ plugin: 'muslim', surface, component: 'AbovePrompt' as const, requestId: 'close-band', props: { hasSurvey: false, isCollapsed: false, isWorking: false, maxRows: 20, bodyColumns: 100, scroll: { offset: 0, bodyRows: 20 }, view: {} } })
 const command = (args: string) => ({ command: 'athkar', args, origin: { kind: 'composer' as const }, presentation: { isFullscreen: false, columns: 80 } })
 
 // The store is shared with a pretend second session through `kept`.
