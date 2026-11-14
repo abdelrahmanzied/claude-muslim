@@ -14,7 +14,7 @@
 - Desktop: fixed an empty grey card where Jumu'ah's athan card (with Surat al-Jumu'ah, verse 9) should show: its font made the card too big for the app to draw. It now carries only the letters the verse needs, and a test guards the size of every card.
 - Muslim pane: a new «الجمعة» settings tab with both switches, and on Fridays a «سورة الكهف» button in the Quran card.
 - On a Friday the athkar after salah are no longer offered after Dhuhr (Jumu'ah), since you go to the prayer: the athan card shows no «ابدأ أذكار بعد الصلاة» button then and the reader does not open by itself; `/athkar after-salah` still opens it. Other prayers are unchanged.
-- Jumu'ah's athan card (and `/friday demo`'s) now shows Surat al-Jumu'ah, verse 9 (﴿يَا أَيُّهَا الَّذِينَ آمَنُوا …﴾), with «سورة الجمعة · الآية ٩» under it, where the start button is on the other prayers. Open, it sits beside the title; folded, or when the card is too narrow for it, it slides slowly, and it stays still (reference only) when your system asks for less motion. On the terminal it follows the athan line, on its own lines when it does not fit. No word is ever cut.
+- Jumu'ah's athan card (and `/friday demo`'s) now shows Surat al-Jumu'ah, verse 9 (﴿يَا أَيُّهَا الَّذِينَ آمَنُوا …﴾), with «سورة الجمعة · الآية ٩» under it, where the start button is on the other prayers. On the open card it sits beside the title, or slides slowly when the card is too narrow for it (only the reference stays when your system asks for less motion); the folded card shows no verse and is the plain athan card. On the terminal it follows the athan line, on its own lines when it does not fit. No word is ever cut.
 
 ## 0.1.0
 

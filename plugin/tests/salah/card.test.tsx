@@ -5,7 +5,7 @@ import { expect, mock, test } from 'claude-code/testing'
 import { cardHeight, closeArea, FOCUS_GRACE_MS, frameOf, IDLE_MS, KEY_REST_MS, LEAVE_MS, REST_PX } from '../../src/shared/card/card.ts'
 import { stripTashkeel } from '../../src/shared/arabic/visual.ts'
 import { JUMUAH_AYAH, JUMUAH_REF } from '../../src/shared/friday/jumuah-ayah.ts'
-import { athanFrame, athanSvg, CARD_MS, FOLD_MS, isOnStart, startArea, startHitArea, offersAfterSalah, cardVerse, versePlacement, verseRoom, VERSE_PX, VERSE_WORD_PX, START_LABEL, START_MARGIN } from '../../src/features/salah/card.ts'
+import { athanFrame, athanSvg, CARD_MS, FOLD_MS, isOnStart, startArea, startHitArea, offersAfterSalah, cardVerse, shownVerse, versePlacement, verseRoom, VERSE_PX, VERSE_WORD_PX, START_LABEL, START_MARGIN } from '../../src/features/salah/card.ts'
 import { FRAME_MS, HOLD_MS, ROWS_COUNT, TOTAL_MS } from '../../src/features/salah/minaret.ts'
 import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
 import { athanText } from '../../src/shared/pray/line.ts'
@@ -614,7 +614,7 @@ test('the after-salah start button is on every athan card except Jumu\'ah (Dhuhr
   expect(isOnStart(p, 10, 1, 100, 5)).toBe(false)
 })
 
-// Jumu'ah's verse on the open and the folded card.
+// Jumu'ah's verse on the open card; the folded card is the plain athan card.
 const FRI = new Date(2026, 9, 9, 12, 30).getTime()
 const verseProps = (width: number, isFolded: boolean, pray: 'dhuhr' | 'asr' = 'dhuhr', at = FRI, tashkeel = true) => ({
   ...props('QUJD', 'fajr', '12:30'), pray, at, width, isFolded, verse: cardVerse(pray, at, tashkeel),
@@ -648,11 +648,10 @@ test('the verse follows the tashkeel setting but never changes a word', () => {
   expect(off.text.replace(/\s+/g, ' ')).toContain('يا أيها الذين آمنوا')
 })
 
-test('open and wide enough: the verse sits beside the title in two lines; too narrow, or folded: it slides in one line', () => {
+test('open and wide enough: the verse sits beside the title in two lines; too narrow: it slides in one line', () => {
   const frame = (width: number, isFolded: boolean) => athanFrame(verseProps(width, isFolded), Math.round(width / 8.4))
   expect(versePlacement(frame(900, false))).toBe('beside')
   expect(versePlacement(frame(480, false))).toBe('slide')
-  expect(versePlacement(frame(900, true))).toBe('slide')
   // The boundary is the room beside the head against half the verse and one word.
   for (const width of [500, 560, 600, 640, 700, 800, 900]) {
     const f = frame(width, false)
@@ -660,21 +659,34 @@ test('open and wide enough: the verse sits beside the title in two lines; too na
   }
   expect(athanSvg(verseProps(900, false), view(900))).toContain('<div class="side">')
   expect(athanSvg(verseProps(480, false), view(480))).toContain('<div class="track"><div class="move">')
-  expect(athanSvg(verseProps(900, true), view(900))).toContain('<div class="track"><div class="move">')
 })
 
 test('the slide is slow and linear, faded at both ends, and stops (leaving the reference) under reduced motion', () => {
-  const svg = athanSvg(verseProps(900, true), view(900))
+  const svg = athanSvg(verseProps(480, false), view(480))
   expect(svg).toContain('animation: jslide 26s linear infinite')
   expect(svg).toContain('mask-image: linear-gradient(to left, transparent, #000 18px')
   expect(svg).toContain('@media (prefers-reduced-motion: reduce) { .athan .move { animation: none; padding-left: 0; } .athan .move .ayah { display: none; } }')
 })
 
 test('the verse never grows the card: the frame is the same with and without it', () => {
-  for (const width of [480, 900]) for (const isFolded of [false, true]) {
-    const withVerse = athanFrame(verseProps(width, isFolded), Math.round(width / 8.4))
-    const without = athanFrame({ ...props('QUJD', 'fajr', '12:30'), width, isFolded }, Math.round(width / 8.4))
+  for (const width of [480, 900]) {
+    const withVerse = athanFrame(verseProps(width, false), Math.round(width / 8.4))
+    const without = athanFrame({ ...props('QUJD', 'fajr', '12:30'), width, isFolded: false }, Math.round(width / 8.4))
     expect(withVerse).toEqual(without)
-    expect(athanSvg(verseProps(width, isFolded), view(width))).toContain(`height="${frameOf(withVerse).height}"`)
+    expect(athanSvg(verseProps(width, false), view(width))).toContain(`height="${frameOf(withVerse).height}"`)
+  }
+})
+
+test('folded, Jumu\'ah\'s card shows no verse, no reference and no verse font: the plain athan card, same as before the verse', () => {
+  for (const width of [480, 900]) {
+    const folded = athanSvg(verseProps(width, true), view(width))
+    const plain = athanSvg({ ...props('QUJD', 'fajr', '12:30'), pray: 'dhuhr', at: FRI, width, isFolded: true }, view(width))
+    expect(folded).toBe(plain)
+    expect(folded).not.toContain(JUMUAH_REF)
+    expect(folded).not.toContain('jslide')
+    expect(folded).not.toContain('font-family: "Tajawal"')
+    expect(folded).not.toContain(' verse')
+    expect(shownVerse(verseProps(width, true))).toBeUndefined()
+    expect(shownVerse(verseProps(width, false))).toEqual(cardVerse('dhuhr', FRI, true))
   }
 })

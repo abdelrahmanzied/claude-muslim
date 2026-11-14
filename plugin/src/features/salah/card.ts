@@ -123,15 +123,17 @@ export const verseRoom = (f: CardFrame) => {
   return box.width - 2 * box.padX - 2 - 2 * (36 + box.addX) - HEAD_PX - VERSE_GAP
 }
 
-// Folded, or an open card too narrow for the verse in two lines: it slides, slowly, in one line. Otherwise it is two lines beside the head.
+// An open card too narrow for the verse in two lines: it slides, slowly, in one line. Otherwise it is two lines beside the head.
 export const versePlacement = (f: CardFrame): 'beside' | 'slide' =>
-  !f.isFolded && verseRoom(f) >= VERSE_PX / 2 + VERSE_WORD_PX ? 'beside' : 'slide'
+  verseRoom(f) >= VERSE_PX / 2 + VERSE_WORD_PX ? 'beside' : 'slide'
+
+// Only the open card carries the verse: folded, the card is the plain athan card of any Dhuhr.
+export const shownVerse = (p: Pick<AthanCardProps, 'isFolded' | 'verse'>): AthanCardProps['verse'] => (p.isFolded ? undefined : p.verse)
 
 const verseCss = () => [
   fontFace('Tajawal', 400, TAJAWAL_JUMUAH),
   '.athan.verse { flex-direction: row; justify-content: flex-start; align-items: center; gap: ' + VERSE_GAP + 'px; }',
   '.athan.verse .head { flex: none; display: flex; flex-direction: column; justify-content: center; white-space: nowrap; }',
-  '.athan.verse.rest .head { flex-direction: row; align-items: center; gap: 12px; }',
   '.athan .side { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }',
   '.athan .ayah { font: 400 13px/1.55 Tajawal, sans-serif; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.8); text-align: right; direction: rtl; }',
   '.athan .ref { font: 400 11.5px/1.3 Tajawal, sans-serif; color: rgba(255,255,255,.78); white-space: nowrap; text-shadow: 0 1px 3px rgba(0,0,0,.8); }',
@@ -144,9 +146,9 @@ const verseCss = () => [
   '@media (prefers-reduced-motion: reduce) { .athan .move { animation: none; padding-left: 0; } .athan .move .ayah { display: none; } }',
 ].join('\n')
 
-const verseHtml = (p: AthanCardProps, f: CardFrame, call: string) => {
-  const text = ayahInBrackets(p.verse!.text)
-  const ref = p.verse!.ref
+const verseHtml = (verse: { text: string; ref: string }, f: CardFrame, call: string) => {
+  const text = ayahInBrackets(verse.text)
+  const ref = verse.ref
   if (versePlacement(f) === 'beside') return `<div class="head">${call}</div><div class="side"><div class="ayah">${text}</div><div class="ref">${ref}</div></div>`
 
   return `<div class="head">${call}</div><div class="track"><div class="move"><span class="ayah">${text}</span><span class="ref">${ref}</span></div></div>`
@@ -154,13 +156,14 @@ const verseHtml = (p: AthanCardProps, f: CardFrame, call: string) => {
 
 export const athanSvg = (p: AthanCardProps, view: Pick<CardView, 'hoverClose' | 'columns' | 'hoverAction'>) => {
   const frame = athanFrame(p, view.columns)
+  const verse = shownVerse(p)
   const call = `<div class="main">${athanText(p.pray, p.at)}</div><div class="time">${arabicDigits(p.time)}</div>`
 
   return cardSvg(frame, {
-    classes: `athan active${p.isFolded ? ' rest' : ''}${p.verse ? ' verse' : ''}`,
+    classes: `athan active${p.isFolded ? ' rest' : ''}${verse ? ' verse' : ''}`,
     style: '',
-    html: p.verse ? verseHtml(p, frame, call) : `${p.canStart ? `<span class="start${view.hoverAction ? ' hot' : ''}"><span class="start-arrow">← </span><span class="start-label">${START_LABEL}</span></span>` : ''}${call}`,
-    css: css(p.photo, p.accent ?? 'orange') + (p.verse ? '\n' + verseCss() : ''),
+    html: verse ? verseHtml(verse, frame, call) : `${p.canStart ? `<span class="start${view.hoverAction ? ' hot' : ''}"><span class="start-arrow">← </span><span class="start-label">${START_LABEL}</span></span>` : ''}${call}`,
+    css: css(p.photo, p.accent ?? 'orange') + (verse ? '\n' + verseCss() : ''),
     hoverClose: view.hoverClose,
   })
 }
