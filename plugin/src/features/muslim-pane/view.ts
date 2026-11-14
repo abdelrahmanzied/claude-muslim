@@ -12,7 +12,7 @@ import {
   Q_ERROR_TOP, Q_ERROR_H, Q_RETRY_TOP, Q_RETRY_H, Q_NOTE_H, Q_ALKAHF_H, quranAlkahfTop, Q_BROWSER_DY, Q_BROWSER_H, quranNoteTop, Q_RECITER_BASE, Q_RECITER_H, Q_SEG_H, Q_SEG_LEFT, Q_SEG_TOP, Q_TIMES_BASE, Q_TIMES_H, Q_TITLE_H, Q_TITLE_TOP, SHEET_BACK_W, SHEET_BAR_LEFT, SHEET_BAR_W, SHEET_BORDER, SHEET_FOOT_H, SHEET_FOOT_TOP, SHEET_H, SHEET_HEAD_H, SHEET_HEAD_TOP,
   SHEET_MIN_THUMB, SHEET_ROWS_H, SHEET_ROWS_LEFT, SHEET_ROWS_RIGHT, SHEET_ROWS_TOP, SHEET_ROW_H, SHEET_SEARCH_H, SHEET_SEARCH_TOP, AVATAR_H, PAD, TOP_H, TOP_Y, ROWS_TOP, ROW_H, SIDE, cardRects, controlScale, quranOffset, type PaneAct,
 } from './layout.ts'
-import { SETTINGS_TOP, SETTINGS_BODY_TOP, TABS_H, TAB_INSET, TAB_PAD, LIST_CHOICE_H, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, EXTRA_TOP, ADJUST_NOTE_TOP, QURAN_SETTINGS_NOTE, settingsNoteHeight, categoryTabs, settingsBody, type SettingRow, type SettingsTarget } from './settings.ts'
+import { SETTINGS_TOP, SETTINGS_BODY_TOP, TABS_H, TAB_INSET, TAB_PAD, LIST_CHOICE_H, LABEL_H, HINT_TOP, HINT_H, CONTROL_TOP, EXTRA_TOP, MENU_PAD, MENU_ROW_H, ADJUST_NOTE_TOP, QURAN_SETTINGS_NOTE, settingsNoteHeight, categoryTabs, settingsBody, type SettingRow, type SettingsTarget } from './settings.ts'
 import { quranLayout, type PaneModel } from './model.ts'
 import { arabicDigits } from '../../shared/pray/line.ts'
 import { avatar } from './avatar.ts'
@@ -301,6 +301,7 @@ const SETTINGS_CSS = `
 .sc{position:absolute;display:flex;align-items:center;justify-content:center;gap:4px;border-radius:7px;font-size:14px;color:var(--text-2);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .sc.pill,.sc.value,.sc.inline{background:transparent;box-shadow:inset 0 0 0 1px var(--line);padding:3px 6px}.sc.inline{font-size:12px;padding:0 6px}
 .sc.hot{background:var(--hover);color:var(--text)}.sc.pill.on{background:var(--active);color:var(--text)}.sc.field.on{background:var(--active)}.sc.disabled{opacity:.38}.sc.field{box-shadow:inset 0 0 0 1px var(--line);direction:rtl;border-radius:6px;gap:1px;color:var(--text)}.sc.field.editing{box-shadow:inset 0 0 0 1.5px var(--accent)}.sc.field .ph{color:var(--muted)}.sc.field .unit{margin-inline-start:4px;font-size:12px;color:var(--muted)}
+.sc.select{justify-content:space-between;padding:3px 10px;color:var(--text);box-shadow:inset 0 0 0 1px var(--line)}.sc.select.editing{box-shadow:inset 0 0 0 1px var(--accent)}.sc.select .value-text{flex:1;text-align:right;line-height:1;transform:translateY(.12em)}.dropdown{position:absolute;background:var(--sheet);box-shadow:inset 0 0 0 1px var(--sheet-line);border-radius:8px}.dropdown .orow{left:4px;right:4px}
 .sc.pill .value-text,.sc.value .value-text,.sc.inline .value-text{line-height:1;transform:translateY(.12em)}
 .sc.copied{color:var(--text)}.sc.command{direction:ltr}.sc.command .value-text{transform:none}.sc .value-text{min-width:0;overflow:hidden;text-overflow:ellipsis}.sc .ic{width:12px;height:12px;flex:none}.sc.switch{overflow:visible}.sc .tog{margin:0}.sc.swatch{overflow:visible}.sc.swatch::before{content:'';width:16px;height:16px;border-radius:50%;background:var(--sw)}.sc.swatch.on::before{outline:1.5px solid var(--text-2);outline-offset:3px}
 .list-choice{position:absolute;left:16px;right:16px;padding:6px 10px;border-radius:8px;height:${LIST_CHOICE_H}px;font-size:14px;display:flex;align-items:center;justify-content:space-between;gap:6px}
@@ -312,14 +313,14 @@ const SETTINGS_CSS = `
 const settingControl = (t: SettingsTarget, hover: PaneAct | null): string => {
   const c = t.control
   const selected = c.selected ? ' on' : '', hot = hover === t.act ? ' hot' : ''
-  const attr = c.style === 'switch' ? `role="switch" aria-checked="${!!c.selected}"` : c.style === 'field' ? 'role="textbox" inputmode="numeric"' : `role="button" aria-pressed="${!!c.selected}"`
+  const attr = c.style === 'select' ? `role="combobox" aria-haspopup="listbox" aria-expanded="${!!c.editing}"` : c.style === 'switch' ? `role="switch" aria-checked="${!!c.selected}"` : c.style === 'field' ? 'role="textbox" inputmode="numeric"' : `role="button" aria-pressed="${!!c.selected}"`
   const swatch = c.style === 'swatch' ? `--sw:var(--${c.label});` : ''
   const command = c.effect.kind === 'copy' && c.label.startsWith('/')
   // A number box shows its value, or while typed in the typed text (its value dim when empty) and a caret,
   // then its unit; the number reads left to right inside the Arabic box.
   const unit = c.unit ? `<span class="unit">${escape(c.unit)}</span>` : ''
   const field = c.editing ? `${c.label ? `<bdi dir="ltr">${escape(c.label)}</bdi>` : `<span class="ph">${escape(c.placeholder ?? '')}</span>`}<i class="caret"></i>${unit}` : `${c.label ? `<bdi dir="ltr">${escape(c.label)}</bdi>` : `<span class="ph">${escape(c.placeholder ?? '')}</span>`}${unit}`
-  const content = c.style === 'switch' ? `<span class="tog${selected}"><i></i></span>` : c.style === 'swatch' ? '' : c.style === 'field' ? field : `<span class="value-text">${escape(c.label)}</span>${c.style === 'value' && c.effect.kind === 'face' && c.effect.face !== 'main' ? icon('chevl') : ''}`
+  const content = c.style === 'select' ? `<span class="value-text">${escape(c.label)}</span>${icon('chev')}` : c.style === 'switch' ? `<span class="tog${selected}"><i></i></span>` : c.style === 'swatch' ? '' : c.style === 'field' ? field : `<span class="value-text">${escape(c.label)}</span>${c.style === 'value' && c.effect.kind === 'face' && c.effect.face !== 'main' ? icon('chevl') : ''}`
   return `<div class="sc ${c.style}${command ? ' command' : ''}${selected}${hot}${c.done ? ' copied' : ''}${c.disabled ? ' disabled' : ''}${c.editing ? ' editing' : ''}" ${attr} aria-disabled="${!!c.disabled}" aria-label="${escape(c.label || (c.placeholder ?? ''))}" style="left:${t.x0-PAD}px;top:${t.y0}px;width:${t.x1-t.x0}px;height:${t.y1-t.y0}px;${swatch}">${content}</div>`
 }
 const settingRow = (row: SettingRow, y: number): string => {
@@ -352,6 +353,11 @@ const settingsCard = (m: PaneModel, hover: PaneAct | null): string => {
 
     }
     body+=b.controls.filter(t=>!t.act.startsWith('settings:pick:')).map(t=>settingControl(t,hover)).join('')
+    // The open dropdown: the picker's own rows (highlight, chosen tick) over the rows below its field.
+    if (b.menu) {
+      const hoverRow=b.menu.rows.findIndex(r=>r.control.id===hover)
+      body+=`<div class="dropdown" role="listbox" aria-label="المحتوى" style="left:${28-PAD}px;right:${28-PAD}px;top:${b.menu.top}px;height:${b.menu.height}px">${b.menu.rows.map((r,i)=>{const hot=hoverRow>=0?hoverRow===i:r.highlighted;return `<div class="orow${r.control.selected?' chosen':''}${hot?' hot':''}" role="option" aria-selected="${!!r.control.selected}" style="top:${MENU_PAD+i*MENU_ROW_H}px"><span class="lbl">${escape(r.control.label)}</span><span class="tick">${r.control.selected?'✓':''}</span></div>`}).join('')}</div>`
+    }
     const noteHeight=settingsNoteHeight(quranLayout(m).isPlaying)
     if (noteHeight) content+=`<span class="setting-hint chrome-hint" style="top:${SETTINGS_BODY_TOP}px">${QURAN_SETTINGS_NOTE}</span>`
     content+=`<div class="settings-body" style="top:${SETTINGS_BODY_TOP+noteHeight}px">${body}</div>`

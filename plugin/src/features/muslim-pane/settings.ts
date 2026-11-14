@@ -14,11 +14,18 @@ export type SettingsState = PaneSettings
 export const CATEGORIES = [
   ['general', 'عام', 'sliders'], ['prayer', 'الصلاة', 'sujoodreal'], ['athkar', 'الأذكار', 'horizon'], ['thikr', 'الذكر', 'spinbeads'], ['friday', 'الجمعة', 'mosque'],
 ] as const satisfies readonly (readonly [SettingsState['category'], string, FeatureIconKey])[]
+// The thikr «المحتوى» dropdown: its choices in order, the field's width (it spans the row) and an option row's height.
+export const MODE_CHOICES = [['all', 'الكل'], ['salawat', 'الصلاة على النبي'], ['istighfar', 'الاستغفار']] as const
+export const MENU_W = 9999
+export const MENU_ROW_H = 32
+export const MENU_PAD = 4
 export const CLOSED_SETTINGS: SettingsState = { open: false, category: 'general', face: 'main', page: 0 }
 export const isSettings = (v: unknown): v is SettingsState => {
   if (!v || typeof v !== 'object') return false
   const s = v as Record<string, unknown>
   const validFace = s.face === 'main' || s.category === 'prayer' && ['methods', 'adjust', 'city'].includes(String(s.face))
+  const menu = s.menu as Record<string, unknown> | null | undefined
+  if (menu !== undefined && menu !== null && !(typeof menu === 'object' && menu.id === 'thikrMode' && Number.isSafeInteger(menu.highlight))) return false
   return typeof s.open === 'boolean' && CATEGORIES.some(c => c[0] === s.category) && validFace && Number.isSafeInteger(s.page) && Number(s.page) >= 0
 }
 // Unreadable or obsolete session shapes start with fresh settings.
@@ -50,7 +57,8 @@ export type Effect =
   | { kind: 'command'; args: 'update' | 'feedback' }
   | { kind: 'autoupdate'; value: boolean }
   | { kind: 'field'; id: string }
-export type SettingControl = { id: SettingsAct; label: string; width: number; style: 'pill' | 'switch' | 'value' | 'inline' | 'field' | 'swatch'; selected?: boolean; disabled?: boolean; done?: boolean; editing?: boolean; placeholder?: string; unit?: string; effect: Effect }
+  | { kind: 'menu'; id: 'thikrMode' }
+export type SettingControl = { id: SettingsAct; label: string; width: number; style: 'pill' | 'switch' | 'value' | 'inline' | 'field' | 'swatch' | 'select'; selected?: boolean; disabled?: boolean; done?: boolean; editing?: boolean; placeholder?: string; unit?: string; effect: Effect }
 export type SettingRow = { kind?: 'divider'; label: string; hint: string; hintLtr?: boolean; hintNote?: string; hintSecondLine?: string; height: number; controls: SettingControl[]; extra?: { label: string; controls: SettingControl[] } }
 export const SETTINGS_TOP = 56
 // One-line labels: 4px padding, 20px icon, 4px gap, 14px label, 4px padding, inside the 5px border+padding.
@@ -94,7 +102,7 @@ export const LIST_H = 548
 // Constants, per tab, for the tallest row set: «عرض الصلاة» counts its number-box line (EXTRA_ROW_H) here.
 export const MAIN_HEIGHTS = {
   prayer: bodyH(EXTRA_ROW_H, SWITCH_ROW_H, ROW_H, ROW_H, ROW_H), athkar: bodyH(SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H, ROW_H),
-  thikr: bodyH(SWITCH_ROW_H, EXTRA_ROW_H, ROW_H, TWO_LINE_SWITCH_ROW_H), friday: bodyH(SWITCH_ROW_H, SWITCH_ROW_H), general: bodyH(SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H, ROW_H, DIVIDER_H, SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H),
+  thikr: bodyH(SWITCH_ROW_H, ROW_H, ROW_H, TWO_LINE_SWITCH_ROW_H), friday: bodyH(SWITCH_ROW_H, SWITCH_ROW_H), general: bodyH(SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H, ROW_H, DIVIDER_H, SWITCH_ROW_H, SWITCH_ROW_H, SWITCH_ROW_H),
 } as const
 export const FACE_HEIGHTS = { methods: LIST_H, adjust: ADJUST_NOTE_TOP + 50, city: 310 } as const
 // With the options, a tab is only as tall as its visible rows: a hidden number-box line takes no space,
@@ -115,7 +123,9 @@ export const categoryTabs = (width: number) => {
     return { category, label, icon, x0: x1 - tabWidth, x1, y0: SETTINGS_TOP + TAB_PAD, y1: SETTINGS_TOP + TABS_H - TAB_PAD }
   })
 }
-export const changeCategory = (s: SettingsState, category: SettingsState['category']): SettingsState => s.category === category ? s : ({ ...s, category, face: 'main', page: 0 })
+// The state with its dropdown closed (the key is left out, so a saved state keeps its plain shape).
+export const closeMenu = (s: SettingsState): SettingsState => { const { menu: _menu, ...rest } = s; return rest }
+export const changeCategory = (s: SettingsState, category: SettingsState['category']): SettingsState => s.category === category ? s : ({ ...closeMenu(s), category, face: 'main', page: 0 })
 
 // The manifest order and the approved Arabic names; auto must stay first.
 export const METHOD_CHOICES = [
@@ -125,7 +135,7 @@ const PRAYERS = [['fajr','الفجر'],['sunrise','الشروق'],['dhuhr','ال
 const config = (field: keyof Options, value: string | boolean): Effect => ({ kind: 'config', field, value })
 const control = (id: string, label: string, effect: Effect, style: SettingControl['style'] = 'pill', width = 42, selected = false, disabled = false): SettingControl => ({ id: `settings:${id}`, label, effect, style, width, selected, disabled })
 const toggle = (o: SettingsOptions, field: keyof PaneOptimistic) => [control(field, o[field] ? 'on' : 'off', config(field, !o[field]), 'switch', 38, o[field])]
-const pills = (field: keyof Options, selected: string, values: readonly (readonly [string, string])[]) => values.map(([v,l]) => control(`${field}:${v}`, l, config(field, v), 'pill', l.length > 10 ? 108 : l.length > 6 ? 80 : 46, selected === v))
+const pills = (field: keyof Options, selected: string, values: readonly (readonly [string, string])[]) => values.map(([v,l]) => control(`${field}:${v}`, l, config(field, v), 'pill', l.length > 10 ? 108 : 46, selected === v))
 const face = (id: SettingsState['face'], label: string) => [control(id, label, { kind: 'face', face: id }, 'value', 142)]
 // Heights include the ROW_GAP after each row. Switches, color dots and compact buttons share the label line.
 export const isInline = (c: SettingControl | undefined): boolean => c?.style === 'switch' || c?.style === 'swatch' || c?.style === 'inline'
@@ -194,7 +204,7 @@ export const settingsRows = (m: SettingsModel): SettingRow[] => {
     ]
     case 'thikr': return [
       row('الذكر',toggle(o,'thikr'),'عبارات في Spinner (سطر العمل) في Claude Code'),
-      row('المحتوى',pills('thikrMode',o.thikrMode,[['all','الكل'],['salawat','الصلاة على النبي']]),'كل الأذكار أو صلاة على النبي أو الاستغفار مع عدّاد اليوم',{label:'',controls:pills('thikrMode',o.thikrMode,[['istighfar','الاستغفار']])}),
+      row('المحتوى',[{...control('thikrMode:menu',MODE_CHOICES.find(c=>c[0]===o.thikrMode)?.[1] ?? MODE_CHOICES[0][1],{kind:'menu',id:'thikrMode'},'select',MENU_W,false),editing:s.menu?.id === 'thikrMode'}],'كل الأذكار أو صلاة على النبي أو الاستغفار مع عدّاد اليوم'),
       row('السرعة',[...pills('thikrSpeed',String(o.thikrSpeed),[['auto','تلقائي']]),{...numberField(m,'thikrSpeed',o.thikrSpeed === 'auto' ? 'وقت ثابت' : arabicDigits(o.thikrSpeed),SECOND_UNIT),selected:o.thikrSpeed !== 'auto',...(o.thikrSpeed === 'auto' && m.field?.id !== 'thikrSpeed' ? {label:'',placeholder:'وقت ثابت',unit:undefined} : {})}],m.field?.id === 'thikrSpeed' ? FIELD_EDIT_LABEL : 'تلقائي: ثانية + نصف ثانية لكل كلمة'),
       {...row('نهاية الرد',toggle(o,'thikrEnd'),`«${withTashkeel(END_OF_TURN,o.tashkeel)}» في آخر الرد`),hintSecondLine:'بدل كلمة Claude مثل Baked · في الترمينال فقط',height:TWO_LINE_SWITCH_ROW_H},
     ]
@@ -216,10 +226,10 @@ export const settingsRows = (m: SettingsModel): SettingRow[] => {
   }
 }
 export type SettingsTarget = { act: SettingsAct; x0: number; x1: number; y0: number; y1: number; effect: Effect; control: SettingControl }
-export type SettingsBody = { rows: { row: SettingRow; y: number }[]; targets: SettingsTarget[]; controls: SettingsTarget[]; page: number; pages: number; choices: { label: string; note: string; y: number; control: SettingControl }[] }
+export type SettingsBody = { rows: { row: SettingRow; y: number }[]; targets: SettingsTarget[]; controls: SettingsTarget[]; page: number; pages: number; menu: { id: 'thikrMode'; top: number; height: number; rows: { y: number; control: SettingControl; highlighted: boolean }[] } | null; choices: { label: string; note: string; y: number; control: SettingControl }[] }
 export const settingsBody = (width: number, m: SettingsModel): SettingsBody => {
   const { state:s, options:o } = m
-  const out: SettingsBody = { rows: [], targets: [], controls: [], page: 0, pages: 1, choices: [] }
+  const out: SettingsBody = { rows: [], targets: [], controls: [], page: 0, pages: 1, menu: null, choices: [] }
   const left = 28, right = width - 28
   const add = (c: SettingControl, x: number, y: number, w = c.width, h = 28) => {
     const target = { act:c.id,x0:x,x1:x+w,y0:y,y1:y+h,effect:c.effect,control:c }
@@ -259,6 +269,20 @@ export const settingsBody = (width: number, m: SettingsModel): SettingsBody => {
       }
       if (r.extra) { x=left; for (const c of r.extra.controls) { add(c,x,y+EXTRA_TOP); x+=c.width } }
       y+=r.height
+    }
+    // An open dropdown lies over the rows below its field and takes every press: only the field (to close it) and its options are targets.
+    const at = out.rows.find(x => x.row.controls[0]?.effect.kind === 'menu')
+    if (s.menu?.id === 'thikrMode' && at) {
+      const field = out.controls.find(t => t.effect.kind === 'menu')!
+      const top = at.y + CONTROL_TOP + CONTROL_H + 2
+      out.menu = { id: 'thikrMode', top, height: MODE_CHOICES.length * MENU_ROW_H + 2 * MENU_PAD, rows: [] }
+      out.targets = [field]
+      MODE_CHOICES.forEach(([value, label], i) => {
+        const c = control(`thikrMode:${value}`, label, config('thikrMode', value), 'pill', right - left, o.thikrMode === value)
+        const y = top + MENU_PAD + i * MENU_ROW_H
+        out.menu!.rows.push({ y, control: c, highlighted: s.menu!.highlight === i })
+        out.targets.push({ act: c.id, x0: left, x1: right, y0: y, y1: y + MENU_ROW_H, effect: c.effect, control: c })
+      })
     }
   }
   return out
