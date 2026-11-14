@@ -92,6 +92,12 @@ Sources in the code: `plugin/src/features/thikr/phrases.ts`, with the salawat in
 
 > يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ
 
+## ISTIGHFAR: istighfar mode: this one phrase, held for every whole turn (1 phrase)
+
+> أَسْتَغْفِرُ اللَّهَ
+
+Source: Sahih Muslim 591 (Thawban: the Prophet ﷺ said it three times after finishing the prayer). It is the same authored text as the seventh thinking phrase and is reused from it in code.
+
 ## SALAWAT: salawat mode, and Fridays from Fajr: one of these for a whole turn, the next one each turn
 
 ### أذكار وجمل إسلامية عامة — General Islamic phrases

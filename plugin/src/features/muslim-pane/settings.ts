@@ -125,7 +125,7 @@ const PRAYERS = [['fajr','الفجر'],['sunrise','الشروق'],['dhuhr','ال
 const config = (field: keyof Options, value: string | boolean): Effect => ({ kind: 'config', field, value })
 const control = (id: string, label: string, effect: Effect, style: SettingControl['style'] = 'pill', width = 42, selected = false, disabled = false): SettingControl => ({ id: `settings:${id}`, label, effect, style, width, selected, disabled })
 const toggle = (o: SettingsOptions, field: keyof PaneOptimistic) => [control(field, o[field] ? 'on' : 'off', config(field, !o[field]), 'switch', 38, o[field])]
-const pills = (field: keyof Options, selected: string, values: readonly (readonly [string, string])[]) => values.map(([v,l]) => control(`${field}:${v}`, l, config(field, v), 'pill', l.length > 10 ? 108 : 46, selected === v))
+const pills = (field: keyof Options, selected: string, values: readonly (readonly [string, string])[]) => values.map(([v,l]) => control(`${field}:${v}`, l, config(field, v), 'pill', l.length > 10 ? (values.length > 2 ? 100 : 108) : 46, selected === v))
 const face = (id: SettingsState['face'], label: string) => [control(id, label, { kind: 'face', face: id }, 'value', 142)]
 // Heights include the ROW_GAP after each row. Switches, color dots and compact buttons share the label line.
 export const isInline = (c: SettingControl | undefined): boolean => c?.style === 'switch' || c?.style === 'swatch' || c?.style === 'inline'
@@ -194,7 +194,7 @@ export const settingsRows = (m: SettingsModel): SettingRow[] => {
     ]
     case 'thikr': return [
       row('الذكر',toggle(o,'thikr'),'عبارات في Spinner (سطر العمل) في Claude Code'),
-      row('المحتوى',pills('thikrMode',o.thikrMode,[['all','الكل'],['salawat','الصلاة على النبي']]),'كل الأذكار أو صلاة على النبي في كل رد'),
+      row('المحتوى',pills('thikrMode',o.thikrMode,[['all','الكل'],['salawat','الصلاة على النبي'],['istighfar','الاستغفار']]),'كل الأذكار أو صلاة على النبي أو الاستغفار في كل رد'),
       row('السرعة',[...pills('thikrSpeed',String(o.thikrSpeed),[['auto','تلقائي']]),{...numberField(m,'thikrSpeed',o.thikrSpeed === 'auto' ? 'وقت ثابت' : arabicDigits(o.thikrSpeed),SECOND_UNIT),selected:o.thikrSpeed !== 'auto',...(o.thikrSpeed === 'auto' && m.field?.id !== 'thikrSpeed' ? {label:'',placeholder:'وقت ثابت',unit:undefined} : {})}],m.field?.id === 'thikrSpeed' ? FIELD_EDIT_LABEL : 'تلقائي: ثانية + نصف ثانية لكل كلمة'),
       {...row('نهاية الرد',toggle(o,'thikrEnd'),`«${withTashkeel(END_OF_TURN,o.tashkeel)}» في آخر الرد`),hintSecondLine:'بدل كلمة Claude مثل Baked · في الترمينال فقط',height:TWO_LINE_SWITCH_ROW_H},
     ]
@@ -284,7 +284,7 @@ export const terminalSettings = (m: SettingsModel, show: (s:string)=>string, isP
     `Athkar · style: ${o.athkarStyle} · /athkar style sky | frame`,
     `**${show('الذكر')}**`,
     show('يتحكّم في الذكر المعروض في Spinner (سطر العمل) في Claude Code'),
-    `Thikr: ${on(o.thikr)} · /thikr on | off`, `Thikr · mode: ${o.thikrMode} · /thikr mode all | salawat`,
+    `Thikr: ${on(o.thikr)} · /thikr on | off`, `Thikr · mode: ${o.thikrMode} · /thikr mode all | salawat | istighfar`,
     `Thikr · speed: ${o.thikrSpeed} · /thikr speed auto | <1–60>`, `End of turn: ${on(o.thikrEnd)} · /thikr end on | off`,
     `**${show('الجمعة')}**`,
     `Friday · salawat: ${on(o.fridaySalawat)} · /friday salawat on | off`,

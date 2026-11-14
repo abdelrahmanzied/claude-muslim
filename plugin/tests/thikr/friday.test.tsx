@@ -1,7 +1,7 @@
 import type { On } from 'claude-code'
 import { expect, mock, test, type Engine } from 'claude-code/testing'
 
-import { SALAWAT } from '../../src/features/thikr/phrases.ts'
+import { ISTIGHFAR, SALAWAT } from '../../src/features/thikr/phrases.ts'
 import { stripTashkeel } from '../../src/shared/arabic/visual.ts'
 
 const FRIDAY = Date.parse('2026-10-09T14:00:00Z')
@@ -42,6 +42,18 @@ const words = async ($: Engine, on: On, now: number, surface: Surface): Promise<
 const salawat = (text: string, surface: Surface) => SALAWAT.map(phrase => (surface === 'terminal' ? stripTashkeel(phrase) : phrase)).includes(text)
 
 for (const surface of SURFACES) {
+  test(`${surface}: Friday salawat wins over istighfar mode`, { options: { thikrMode: 'istighfar' } }, async ($, on) => {
+    const seen = await words($, on, FRIDAY, surface)
+    expect(seen.length).toBeGreaterThan(0)
+    expect(seen.every(text => salawat(text, surface))).toBe(true)
+  })
+
+  test(`${surface}: with Friday salawat off, istighfar mode shows only its phrase on a Friday`, { options: { thikrMode: 'istighfar', fridaySalawat: false } }, async ($, on) => {
+    const seen = await words($, on, FRIDAY, surface)
+    expect(seen.length).toBeGreaterThan(0)
+    expect(seen.every(text => text === (surface === 'terminal' ? stripTashkeel(ISTIGHFAR) : ISTIGHFAR))).toBe(true)
+  })
+
   test(`${surface}: on a Friday the thikr line shows the salawat, one per turn`, async ($, on) => {
     const seen = await words($, on, FRIDAY, surface)
     expect(seen.length).toBeGreaterThan(0)

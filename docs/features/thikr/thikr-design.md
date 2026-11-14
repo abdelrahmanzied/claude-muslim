@@ -24,6 +24,10 @@ Thikr is text only. This follows the shared text-only requirement.
 | Usage limit | AbovePrompt band | One line in the shared main color (`claude` for orange, light/dark hex otherwise) until the window resets |
 | Settings | Command reply | `/thikr` status and help, one line per change |
 
+## Istighfar mode
+
+`/thikr mode istighfar` is drawn exactly like salawat mode: the one phrase «أَسْتَغْفِرُ اللَّهَ» as plain text in the same places, still for the whole turn, with no ticker. Terminal Arabic goes through the shared shaping, desktop shows it as authored. Friday salawat wins on Friday.
+
 ## Friday
 
 On a device Friday from Fajr the line plays the salawat group, as `/thikr mode salawat` does, still text only in the same places. Friday's own design is [friday design](../friday/friday-design.md).

@@ -225,7 +225,7 @@ test('a settings control takes a press on every pixel and just outside it; a pre
   const folds = { prayer: true, quran: true, athkar: true }
   const settings = { ...DEFAULT_SETTINGS, state: { open: true, category: 'thikr' as const, face: 'main' as const, page: 0 }, options: settingsOptions(readOptions({ thikrSpeed: '3' })) }
   const pills = settingsBoxes(420, folds, settings).filter(b => /thikr(Mode|Speed):|field:thikrSpeed$/.test(b.act))
-  expect(pills.length).toBe(4)
+  expect(pills.length).toBe(5)
   for (const b of pills) {
     for (let x = b.x0; x <= b.x1; x += 2) for (let y = b.y0; y <= b.y1; y += 2) expect(hitAt(420, x, y, on, 0, 0, folds, settings)).toBe(b.act)
     const midX = (b.x0 + b.x1) / 2, midY = (b.y0 + b.y1) / 2
