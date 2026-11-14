@@ -12,7 +12,7 @@ import { ARUQAA_BOLD } from './card-font.ts'
 import { isFriday } from '../../shared/friday/index.ts'
 import { ayahInBrackets, jumuahVerse } from '../../shared/friday/jumuah-ayah.ts'
 import { withTashkeel } from '../../shared/arabic/visual.ts'
-import { TAJAWAL_REGULAR_WOFF2 } from '../../shared/font/tajawal-embedded.ts'
+import { TAJAWAL_JUMUAH } from './jumuah-font.ts'
 
 // The «ابدأ أذكار بعد الصلاة» button is on every athan card but Jumu'ah's (Dhuhr on a Friday): the person goes to the prayer first.
 export const offersAfterSalah = (pray: Pray, at: number): boolean => !(pray === 'dhuhr' && isFriday(at))
@@ -128,7 +128,7 @@ export const versePlacement = (f: CardFrame): 'beside' | 'slide' =>
   !f.isFolded && verseRoom(f) >= VERSE_PX / 2 + VERSE_WORD_PX ? 'beside' : 'slide'
 
 const verseCss = () => [
-  fontFace('Tajawal', 400, TAJAWAL_REGULAR_WOFF2),
+  fontFace('Tajawal', 400, TAJAWAL_JUMUAH),
   '.athan.verse { flex-direction: row; justify-content: flex-start; align-items: center; gap: ' + VERSE_GAP + 'px; }',
   '.athan.verse .head { flex: none; display: flex; flex-direction: column; justify-content: center; white-space: nowrap; }',
   '.athan.verse.rest .head { flex-direction: row; align-items: center; gap: 12px; }',
