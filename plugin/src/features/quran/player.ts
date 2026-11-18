@@ -11,8 +11,8 @@ export function progressBar(elapsed: number, total: number | null): string {
   const filled = total !== null && total > 0 ? Math.round(Math.max(0, Math.min(1, elapsed / total)) * 24) : 0
   return '━'.repeat(filled) + '─'.repeat(24 - filled)
 }
-// What the Muslim pane asks of the player; there are no /quran subcommands.
-export type Command = { kind: 'open' | 'stop' | 'next' | 'prev' | 'retry' | 'repeat' | 'repeat-segment' } | { kind: 'play'; value: string; segmentIndex?: number } | { kind: 'reciter'; value: string }
+// What the Muslim pane asks of the player; there are no /quran subcommands. `select` (Windows and Linux picks) only selects.
+export type Command = { kind: 'open' | 'stop' | 'next' | 'prev' | 'retry' | 'repeat' | 'repeat-segment' } | { kind: 'play'; value: string; segmentIndex?: number; select?: boolean } | { kind: 'reciter'; value: string }
 
 // Advance only the still-active play generation on a natural end; never wrap.
 export function nextSurahAfterEnd(surah: number, endedNaturally: boolean, token: number, activeToken: number, reciterKey = ''): number | null {

@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import { AUDIO_WORKS_KEY, audioNote, audioOsOf, browserUrl, openArgv } from '../../src/features/quran/audio-support.ts'
+import { audioNote, audioOsOf, browserUrl, openArgv } from '../../src/features/quran/audio-support.ts'
 import { NOT_PLAYED_FLOOR_MS, isNotPlayedError, notPlayedError, playedThrough } from '../../src/features/quran/player.ts'
 
 test('a clip counts as played from half its known length, or 10 seconds when unknown', () => {
@@ -31,14 +31,10 @@ test('only Windows and Linux are named; macOS and unknown get no note', () => {
   expect(audioOsOf(undefined, '')).toBe(null)
 })
 
-test('the note shows until a clip really played on this Claude Code version', () => {
-  expect(AUDIO_WORKS_KEY).toBe('quran.audioWorks')
-  expect(audioNote('Windows', undefined, '2.1.306')).toBe('الصوت غير مدعوم على Windows بعد')
-  expect(audioNote('Linux', undefined, '2.1.306')).toBe('الصوت غير مدعوم على Linux بعد')
-  expect(audioNote('Windows', '2.1.306', '2.1.306')).toBe('')
-  expect(audioNote('Windows', '2.1.305', '2.1.306')).toBe('الصوت غير مدعوم على Windows بعد')
-  expect(audioNote('Linux', '2.1.306', undefined)).toBe('الصوت غير مدعوم على Linux بعد')
-  expect(audioNote(null, undefined, '2.1.306')).toBe('')
+test('the note names the OS and says Play opens the browser; macOS and unknown get none', () => {
+  expect(audioNote('Windows')).toBe('الصوت غير مدعوم على Windows بعد، لذلك يفتح التشغيل في المتصفح')
+  expect(audioNote('Linux')).toBe('الصوت غير مدعوم على Linux بعد، لذلك يفتح التشغيل في المتصفح')
+  expect(audioNote(null)).toBe('')
 })
 
 test('the browser gets the surah MP3, with the quarter as a media fragment', () => {

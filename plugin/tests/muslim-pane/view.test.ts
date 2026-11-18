@@ -1,7 +1,7 @@
 import { terminalArabic } from '../../src/shared/arabic/terminal.ts'
 import { listFor, emptyReading, overall } from '../../src/features/athkar/logic.ts'
 import { expect, test } from 'claude-code/testing'
-import { enabledOf, PANE_HEIGHT, cardRects, settingsBoxes, hitAt, Q_BASE_H, Q_BROWSER_DY, Q_BROWSER_H, Q_ERROR_EXTRA, Q_NOTE_EXTRA, Q_ALKAHF_EXTRA, Q_ALKAHF_H, Q_NOTE_H, Q_RETRY_H, Q_RETRY_TOP, quranAlkahfTop, quranNoteTop, quranOffset } from '../../src/features/muslim-pane/layout.ts'
+import { enabledOf, PANE_HEIGHT, cardRects, settingsBoxes, hitAt, Q_BASE_H, Q_ERROR_EXTRA, Q_NOTE_LINE_H, Q_NOTE_GAP, quranNoteLines, Q_ALKAHF_EXTRA, Q_ALKAHF_H, Q_RETRY_H, Q_RETRY_TOP, quranAlkahfTop, quranNoteTop, quranOffset } from '../../src/features/muslim-pane/layout.ts'
 import { paneModel, quranLayout, textLines } from '../../src/features/muslim-pane/model.ts'
 import { CLOSED_SETTINGS, CATEGORIES, DEFAULT_SETTINGS, SETTINGS_BODY_TOP, QURAN_SETTINGS_NOTE, QURAN_SETTINGS_NOTE_H, settingsBody } from '../../src/features/muslim-pane/settings.ts'
 import { paneAlt, paneSvg, paletteCss } from '../../src/features/muslim-pane/view.ts'
@@ -430,38 +430,52 @@ for (const surface of ['terminal', 'desktop'] as const) test(`${surface}: next-p
   if (surface === 'terminal') expect(line).not.toContain(m.prayer.until)
 })
 
-test('an OS without audio adds the note and «استمع في المتصفح ↗» under the controls, or under Retry, with hit tests matching', () => {
+test('an OS without audio adds a wrapped dim hint under the controls, or under Retry, and no browser button', () => {
   const on = { athan: true, quran: true, canPrev: true, canNext: true, athkar: true, segmented: true }
-  const note = 'الصوت غير مدعوم على Windows بعد'
+  const note = 'الصوت غير مدعوم على Windows بعد، لذلك يفتح التشغيل في المتصفح'
   for (const width of [240, 360]) for (const error of ['', 'تعذّر سماع سورة البقرة، لم يبدأ الصوت. أعد المحاولة.']) {
     const plain = paneModel({ ...feeds, quran: { ...feeds.quran, error } }, NOW, width, 'orange')
     const model = paneModel({ ...feeds, quran: { ...feeds.quran, error, audioNote: note } }, NOW, width, 'orange')
     const q = quranLayout(model), r = cardRects(model.folds, model.settings.state, model.settings.options, q)
-    expect(r.quranH - cardRects(plain.folds, plain.settings.state, plain.settings.options, quranLayout(plain)).quranH).toBe(Q_NOTE_EXTRA)
+    const lines = quranNoteLines(width, note)
+    expect(q.noteLines).toBe(lines)
+    expect(r.quranH - cardRects(plain.folds, plain.settings.state, plain.settings.options, quranLayout(plain)).quranH).toBe(lines * Q_NOTE_LINE_H + Q_NOTE_GAP)
     const top = quranNoteTop(q)
     expect(top).toBe(Q_BASE_H + (error ? Q_ERROR_EXTRA : 0) + quranOffset(true))
     const svg = paneSvg(model)
-    expect(svg).toContain(`top:${top}px;left:16px;right:16px;height:${Q_NOTE_H}px`)
-    expect(svg).toContain(note)
-    expect(svg).toContain(`top:${top + Q_BROWSER_DY}px;left:16px;right:16px;height:${Q_BROWSER_H}px"><span>استمع في المتصفح ↗</span>`)
-    expect(paneSvg(plain)).not.toContain('استمع في المتصفح')
-    const y0 = r.quranY + top + Q_BROWSER_DY
-    // Every pixel of the frame and its slop press the button; the note line above it is inert.
-    for (const y of [y0, y0 + Q_BROWSER_H / 2, y0 + Q_BROWSER_H, y0 - 4, y0 + Q_BROWSER_H + 4]) for (const x of [28, width / 2, width - 28]) expect(hitAt(width, x, y, on, 0, 0, model.folds, model.settings, q)).toBe('quran-browser')
-    expect(hitAt(width, width / 2, r.quranY + top + Q_NOTE_H / 2, on, 0, 0, model.folds, model.settings, q)).toBe(null)
-    expect(hitAt(width, width / 2, r.quranY + top + Q_NOTE_H / 2, on, 0, 0, plain.folds, plain.settings, quranLayout(plain))).not.toBe('quran-browser')
-    if (error) {
-      // Retry and the browser button are stacked more than one pointer cell apart.
-      expect(y0 - (r.quranY + Q_RETRY_TOP + quranOffset(true) + Q_RETRY_H)).toBeGreaterThanOrEqual(24)
-      expect(hitAt(width, width / 2, r.quranY + Q_RETRY_TOP + quranOffset(true) + Q_RETRY_H / 2, on, 0, 0, model.folds, model.settings, q)).toBe('quran-retry')
-    }
+    expect(svg).toContain(`top:${top}px;left:16px;right:16px;height:${lines * Q_NOTE_LINE_H}px;line-height:${Q_NOTE_LINE_H}px;white-space:normal;font-size:12px;color:var(--dim)">${note}`)
+    expect(svg).not.toContain('استمع في المتصفح')
+    expect(paneSvg(plain)).not.toContain(note)
+    // The hint is inert text: nothing under it is pressable.
+    expect(hitAt(width, width / 2, r.quranY + top + Q_NOTE_LINE_H / 2, on, 0, 0, model.folds, model.settings, q)).toBe(null)
+    if (error) expect(hitAt(width, width / 2, r.quranY + Q_RETRY_TOP + quranOffset(true) + Q_RETRY_H / 2, on, 0, 0, model.folds, model.settings, q)).toBe('quran-retry')
+  }
+})
+
+test('the narrow pane wraps the hint onto more lines than the wide one, and the card grows with them', () => {
+  const note = 'الصوت غير مدعوم على Windows بعد، لذلك يفتح التشغيل في المتصفح'
+  const narrow = paneModel({ ...feeds, quran: { ...feeds.quran, audioNote: note } }, NOW, 240, 'orange')
+  const wide = paneModel({ ...feeds, quran: { ...feeds.quran, audioNote: note } }, NOW, 600, 'orange')
+  expect(quranLayout(narrow).noteLines!).toBeGreaterThan(quranLayout(wide).noteLines!)
+  const h = (m: typeof narrow) => cardRects(m.folds, m.settings.state, m.settings.options, quranLayout(m)).quranH
+  expect(h(narrow) - h(wide)).toBe((quranLayout(narrow).noteLines! - quranLayout(wide).noteLines!) * Q_NOTE_LINE_H)
+})
+
+test('quranNoteLines: none for no note, one line when wide, more at the narrowest pane, never under the estimate', () => {
+  const note = 'الصوت غير مدعوم على Windows بعد، لذلك يفتح التشغيل في المتصفح'
+  expect(quranNoteLines(360, '')).toBe(0)
+  expect(quranNoteLines(1200, note)).toBe(1)
+  expect(quranNoteLines(240, note)).toBeGreaterThan(1)
+  for (const width of [240, 300, 360, 600, 1200]) {
+    const inner = width - 2 * 12 - 2 * 16
+    expect(quranNoteLines(width, note)).toBeGreaterThanOrEqual(Math.ceil(note.length * 8 / inner))
   }
 })
 
 // Friday on the device's local day: 2026-11-06 12:00.
 const FRIDAY = new Date(2026, 10, 6, 12).getTime()
 
-test('on Fridays the Quran card adds a «سورة الكهف» button under its controls, or under the note, with hit tests matching', () => {
+test('on Fridays the Quran card adds a «سورة الكهف» button under its controls, or under the wrapped hint, with hit tests matching', () => {
   const on = { athan: true, quran: true, canPrev: true, canNext: true, athkar: true, segmented: true }
   for (const width of [240, 360]) for (const audioNote of ['', 'الصوت غير مدعوم على Windows بعد']) {
     const quran = { ...feeds.quran, audioNote }
@@ -472,7 +486,7 @@ test('on Fridays the Quran card adds a «سورة الكهف» button under its 
     const q = quranLayout(model), r = cardRects(model.folds, model.settings.state, model.settings.options, q)
     expect(r.quranH - cardRects(plain.folds, plain.settings.state, plain.settings.options, quranLayout(plain)).quranH).toBe(Q_ALKAHF_EXTRA)
     const top = quranAlkahfTop(q)
-    expect(top).toBe(Q_BASE_H + (audioNote ? Q_NOTE_EXTRA : 0) + quranOffset(true))
+    expect(top).toBe(Q_BASE_H + (audioNote ? quranNoteLines(width, audioNote) * Q_NOTE_LINE_H + Q_NOTE_GAP : 0) + quranOffset(true))
     expect(paneSvg(model)).toContain(`top:${top}px;left:16px;right:16px;height:${Q_ALKAHF_H}px"><span class="ar">سورة الكهف</span>`)
     expect(paneSvg(plain)).not.toContain('سورة الكهف</span>')
     const y0 = r.quranY + top
