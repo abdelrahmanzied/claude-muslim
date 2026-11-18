@@ -3,7 +3,7 @@
 // that is off or not drawn yet leaves its card with a quiet note instead.
 
 import { DEFAULT_SETTINGS, terminalSettings, type SettingsModel } from './settings.ts'
-import { NO_FOLDS, NO_QURAN, type Folds, type QuranLayout } from './layout.ts'
+import { NO_FOLDS, NO_QURAN, quranNoteLines, type Folds, type QuranLayout } from './layout.ts'
 import type { PickerView } from './picker.ts'
 import type { Accent } from '../../shared/color/index.ts'
 import { arabicName, isFriday } from '../../shared/pray/names.ts'
@@ -42,8 +42,8 @@ export type PaneModel = {
 }
 
 // Player geometry and the settings note; isPlaying includes preparation in the shared feed.
-export const quranLayout = (m: Pick<PaneModel, 'quran' | 'picker' | 'isFriday'>): QuranLayout =>
-  !m.quran.isAvailable ? NO_QURAN : { isPlaying: m.quran.isPlaying, error: !!m.quran.error, note: !!m.quran.audioNote, alkahf: m.isFriday, segmented: m.quran.segmented, picker: m.picker ? { list: m.picker.list, count: m.picker.count, scroll: m.picker.scroll } : null }
+export const quranLayout = (m: Pick<PaneModel, 'quran' | 'picker' | 'isFriday' | 'width'>): QuranLayout =>
+  !m.quran.isAvailable ? NO_QURAN : { isPlaying: m.quran.isPlaying, error: !!m.quran.error, noteLines: quranNoteLines(m.width, m.quran.audioNote), alkahf: m.isFriday, segmented: m.quran.segmented, picker: m.picker ? { list: m.picker.list, count: m.picker.count, scroll: m.picker.scroll } : null }
 
 export const PANE_MIN_WIDTH = 240
 export const PANE_MAX_WIDTH = 1200

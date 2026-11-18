@@ -9,11 +9,8 @@ export function audioOsOf(envOs: string | undefined, uname: string | undefined):
   return uname?.trim() === 'Linux' ? 'Linux' : null
 }
 
-// The Claude Code version (`$.session.version().version`) a clip last really
-// played on, on Windows or Linux. A newer version is checked again.
-export const AUDIO_WORKS_KEY = 'quran.audioWorks'
-export const audioNote = (os: AudioOs, worksOn: unknown, version: string | undefined): string =>
-  os && !(version && worksOn === version) ? `الصوت غير مدعوم على ${os} بعد` : ''
+// On Windows and Linux the card says so and Play opens the browser; the note is always shown there.
+export const audioNote = (os: AudioOs): string => os ? `الصوت غير مدعوم على ${os} بعد، لذلك يفتح التشغيل في المتصفح` : ''
 
 // The surah's own MP3; a split surah adds the selected quarter's times as a media fragment.
 export function browserUrl(url: string, segment?: { startMs: number; endMs: number }): string {

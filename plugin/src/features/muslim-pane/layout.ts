@@ -60,12 +60,16 @@ export const Q_ERROR_H = 20
 export const Q_RETRY_TOP = 310
 export const Q_RETRY_H = 30
 export const Q_ERROR_EXTRA = 64
-// On an OS Claude Code plays no audio on: one dim note line, then «استمع في المتصفح ↗», under the
-// error block when both show (the button sits 34px under Retry, past STACK_GAP).
-export const Q_NOTE_H = 20
-export const Q_BROWSER_DY = 24
-export const Q_BROWSER_H = 30
-export const Q_NOTE_EXTRA = 64
+// On an OS Claude Code plays no audio on: one dim hint under the controls (under the error block
+// when both show), wrapped onto as many 18px lines as the pane's width needs, then 10px of space.
+export const Q_NOTE_LINE_H = 18
+export const Q_NOTE_GAP = 10
+// The hint's width is not measured: 12px Tajawal stays under NOTE_CHAR_PX per character, so the
+// estimate never gives too few lines (at worst one empty line's space under the text).
+export const NOTE_CHAR_PX = 8
+export const quranNoteLines = (width: number, note: string): number =>
+  note ? Math.max(1, Math.ceil(note.length * NOTE_CHAR_PX / Math.max(1, width - 2 * PAD - 2 * SIDE))) : 0
+const noteExtra = (q: QuranLayout): number => (q.noteLines ? q.noteLines * Q_NOTE_LINE_H + Q_NOTE_GAP : 0)
 // On Fridays, one full-width «سورة الكهف» button closes the card (30px high, 10px under it).
 export const Q_ALKAHF_H = 30
 export const Q_ALKAHF_EXTRA = 40
@@ -109,13 +113,13 @@ export const SHEET_MIN_THUMB = 28
 
 export type QuranList = 'reciter' | 'surah' | 'segment'
 // Player geometry and playback-dependent settings space, read from the shared Quran feed.
-export type QuranLayout = { isPlaying?: boolean; error?: boolean; note?: boolean; alkahf?: boolean; segmented: boolean; picker: { list: QuranList; count: number; scroll: number } | null }
+export type QuranLayout = { isPlaying?: boolean; error?: boolean; noteLines?: number; alkahf?: boolean; segmented: boolean; picker: { list: QuranList; count: number; scroll: number } | null }
 export const NO_QURAN: QuranLayout = { segmented: false, picker: null }
 // The note block's top, from the card's top: under the controls, or under the error block.
 export const quranNoteTop = (q: QuranLayout): number => Q_BASE_H + (q.error ? Q_ERROR_EXTRA : 0) + quranOffset(q.segmented)
 // The Friday button's top, from the card's top: under the note block when one shows.
-export const quranAlkahfTop = (q: QuranLayout): number => quranNoteTop(q) + (q.note ? Q_NOTE_EXTRA : 0)
-export const quranHeight = (q: QuranLayout): number => (q.picker ? Q_PICKER_H : Q_BASE_H + (q.error ? Q_ERROR_EXTRA : 0) + (q.note ? Q_NOTE_EXTRA : 0) + (q.alkahf ? Q_ALKAHF_EXTRA : 0)) + quranOffset(q.segmented)
+export const quranAlkahfTop = (q: QuranLayout): number => quranNoteTop(q) + noteExtra(q)
+export const quranHeight = (q: QuranLayout): number => (q.picker ? Q_PICKER_H : Q_BASE_H + (q.error ? Q_ERROR_EXTRA : 0) + noteExtra(q) + (q.alkahf ? Q_ALKAHF_EXTRA : 0)) + quranOffset(q.segmented)
 export const QURAN_H = quranHeight(NO_QURAN)
 
 // Athkar card, from its top.
@@ -185,7 +189,7 @@ export const ATHKAR_Y = QURAN_Y + QURAN_H + GAP
 export const PANE_HEIGHT = paneHeight(NO_FOLDS)
 
 type QuranRowAct = `quran-row:${number}`
-export type PaneAct = SettingsAct | 'fold-prayer' | 'fold-quran' | 'fold-athkar' | 'athan' | 'quran-prev' | 'quran-retry' | 'quran-browser' | 'quran-alkahf' | 'quran-toggle' | 'quran-next' | 'quran-repeat-surah' | 'quran-repeat-segment'
+export type PaneAct = SettingsAct | 'fold-prayer' | 'fold-quran' | 'fold-athkar' | 'athan' | 'quran-prev' | 'quran-retry' | 'quran-alkahf' | 'quran-toggle' | 'quran-next' | 'quran-repeat-surah' | 'quran-repeat-segment'
   | 'quran-pick-reciter' | 'quran-pick-surah' | 'quran-pick-segment' | 'quran-back' | 'quran-scroll' | QuranRowAct | 'athkar-open' | 'athkar-finish' | 'athkar-picker' | 'athkar-reset' | `athkar-set:${typeof ATHKAR_SETS[number]['key']}`
 export const quranRowOf = (act: string): number | null => {
   const m = /^quran-row:(\d+)$/.exec(act)
@@ -235,7 +239,6 @@ const boxes = (width: number, f: Folds, settings: SettingsModel, q: QuranLayout,
     ...(f.prayer ? [] : [{ act: 'athan' as const, x0: PAD + SIDE - 8, x1: width - PAD - SIDE + 8, y0: r.prayerY + ATHAN_TOP, y1: r.prayerY + ATHAN_TOP + ATHAN_H }]),
     ...(f.quran ? [] : [
       ...(q.error ? [{ act: 'quran-retry' as const, slop: BUTTON_SLOP, x0: PAD + SIDE, x1: width - PAD - SIDE, y0: qy + Q_RETRY_TOP + off, y1: qy + Q_RETRY_TOP + off + Q_RETRY_H }] : []),
-      ...(q.note ? [{ act: 'quran-browser' as const, slop: BUTTON_SLOP, x0: PAD + SIDE, x1: width - PAD - SIDE, y0: qy + quranNoteTop(q) + Q_BROWSER_DY, y1: qy + quranNoteTop(q) + Q_BROWSER_DY + Q_BROWSER_H }] : []),
       ...(q.alkahf ? [{ act: 'quran-alkahf' as const, slop: BUTTON_SLOP, x0: PAD + SIDE, x1: width - PAD - SIDE, y0: qy + quranAlkahfTop(q), y1: qy + quranAlkahfTop(q) + Q_ALKAHF_H }] : []),
       // The title button spans the hero's text column, right of the avatar.
       { act: 'quran-pick-surah' as const, slop: BUTTON_SLOP, x0: PAD + SIDE + Q_AVATAR_W + 8, x1: width - PAD - SIDE, y0: qy + Q_TITLE_TOP, y1: qy + Q_TITLE_TOP + Q_TITLE_H },

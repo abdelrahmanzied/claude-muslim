@@ -6,7 +6,7 @@ import type { Mounted } from 'claude-code/testing'
 import type { PanelAction, PanelQuran } from '../../src/shared/panel/signal.ts'
 import type { PaneModel } from '../../src/features/muslim-pane/model.ts'
 import { quranLayout } from '../../src/features/muslim-pane/model.ts'
-import { CONTROL_SPECS, Q_BROWSER_DY, Q_BROWSER_H, quranNoteTop, Q_CONTROLS_BASE, Q_CONTROLS_H, Q_RETRY_TOP, Q_RETRY_H, settingsBoxes, Q_RECITER_BASE, Q_SEG_TOP, Q_TITLE_TOP, cardRects, controlScale, quranOffset } from '../../src/features/muslim-pane/layout.ts'
+import { CONTROL_SPECS, Q_CONTROLS_BASE, Q_CONTROLS_H, Q_RETRY_TOP, Q_RETRY_H, settingsBoxes, Q_RECITER_BASE, Q_SEG_TOP, Q_TITLE_TOP, cardRects, controlScale, quranOffset } from '../../src/features/muslim-pane/layout.ts'
 import { defaultReciter } from '../../src/features/quran/catalog.ts'
 import { QURAN_CATALOG } from '../../src/features/quran/catalog-data.ts'
 import { QURAN_SUPPORT } from '../../src/features/quran/reciter-support.ts'
@@ -541,16 +541,15 @@ test('unknown size or missing timing shows the Claude limit with retry and never
   expect(played).toEqual([])
   expect(clock.state.quranPlaying).toBe(null)
 })
-test('a changed recording validator rejects cached byte cuts and cleans Windows range files', async ($, on) => {
+test('a changed recording validator rejects cached byte cuts and cleans its range files', async ($, on) => {
   const plan = quarterPlan()
-  const clock = setup(on, { 'quran.segmentCache': { [`${primary.key}:2`]: plan } }, { OS: 'Windows_NT', TEMP: 'C:\\fixture' })
-  const played = audio(on, clock), ranges = mockRanges(on, plan, 'changed', true)
+  const clock = setup(on, { 'quran.segmentCache': { [`${primary.key}:2`]: plan } })
+  const played = audio(on, clock), ranges = mockRanges(on, plan, 'changed', true, undefined, 'Darwin\n')
   await cmd($, 'play 2')
   expect(clock.state.quranError).toBe(CLIP_ERROR)
   expect(played).toEqual([])
   expect(clock.state.quranPlaying).toBe(null)
-  expect(ranges.cleanup[0]!.slice(0, 5)).toEqual(['cmd', '/d', '/c', 'del', '/q'])
-  expect(ranges.cleanup[0]![5]).toContain('C:\\fixture\\claude-muslim-quran\\range-')
+  expect(ranges.cleanup[0]!.slice(0, 3)).toEqual(['rm', '-f', '--'])
 })
 test('Stop during a blocked size check clears preparation and prevents late audio or cache writes', async ($, on) => {
   const clock = setup(on, {}, {}, 'desktop', false)
@@ -732,11 +731,12 @@ test('duration probe uses curl Range, reads base64 bytes, caches a number and cl
   await cmd($, 'stop')
 })
 test('on Windows the probe uses TEMP and del for cleanup', async ($, on) => {
-  const clock = setup(on, {}, { OS: 'Windows_NT', TEMP: 'C:\\Users\\me\\AppData\\Local\\Temp' })
+  const clock = setup(on, {}, { OS: 'Windows_NT', TEMP: 'C:\\Users\\me\\AppData\\Local\\Temp' }, 'desktop', false)
   audio(on, clock)
   const argv: string[][] = []
   on('fs.write', async () => ({ value: undefined }))
   on('process.run', async (_$, e) => (argv.push([...e.argv]), { value: { exitCode: 1, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
+  // Windows only selects on a pick: the plan check still probes with curl and cleans with del.
   await cmd($, 'play 18'); await clock.settle()
   expect(argv[0]![argv[0]!.indexOf('-o') + 1]!).toContain('C:\\Users\\me\\AppData\\Local\\Temp/claude-muslim-quran/')
   expect(argv[1]!.slice(0, 5)).toEqual(['cmd', '/d', '/c', 'del', '/q'])
@@ -1212,33 +1212,41 @@ function osProbe(on: On, uname: string | null, version = '2.1.306') {
   })
   return opened
 }
-async function pressBrowser($: Parameters<typeof panel>[0]): Promise<void> {
-  const ui = await panel($)
-  const m = (await ui.raw.find({ type: 'Client', key: 'muslim-pane' }))!.props.props as PaneModel
-  const q = quranLayout(m), r = cardRects(m.folds, m.settings.state, m.settings.options, q, m.athkarMenu)
-  const y = r.quranY + quranNoteTop(q) + Q_BROWSER_DY + Q_BROWSER_H / 2
-  const fine = { x: 210 * 50 / 420, y: y * 100 / r.height }
-  await ui.raw.pointer({ in: 'muslim-pane', type: 'down', button: 'left', x: Math.floor(fine.x), y: Math.floor(fine.y), fine })
-}
-
-test('on Windows a clip that ends at once stops with the not-played line and Retry, never advancing; the card names Windows', async ($, on) => {
+test('on Windows Play opens the surah in the browser at once: no audio, no playing state, no error; picking only selects', async ($, on) => {
   const clock = setup(on, {}, { OS: 'Windows_NT', TEMP: 'C:\\fixture' })
-  osProbe(on, '')
+  const opened = osProbe(on, '')
   const played = silentAudio(on)
   const ui = await panel($)
-  expect((await ui.read())?.audioNote).toBe('الصوت غير مدعوم على Windows بعد')
-  await cmd($, 'play 1'); await clock.settle()
-  expect(played).toEqual([{ url: 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r1/001.mp3' }])
-  expect(clock.state.quranPlaying).toBe(null)
-  expect(clock.state.quranSurah).toBe(1)
-  expect(clock.state.quranError).toBe('تعذّر سماع سورة الفاتحة، لم يبدأ الصوت. أعد المحاولة.')
-  expect(clock.store['quran.audioWorks']).toBeUndefined()
-  expect(await ui.svg()).toContain('استمع في المتصفح ↗')
-  // Retry plays the same surah again, and fails the same way.
-  await cmd($, 'retry'); await clock.settle()
-  expect(played).toHaveLength(2)
-  expect(clock.state.quranSurah).toBe(1)
-  expect(clock.state.quranError).toBe('تعذّر سماع سورة الفاتحة، لم يبدأ الصوت. أعد المحاولة.')
+  expect((await ui.read())?.audioNote).toBe('الصوت غير مدعوم على Windows بعد، لذلك يفتح التشغيل في المتصفح')
+  // A pick selects and opens nothing.
+  await cmd($, 'play 18'); await clock.settle()
+  expect(clock.state.quranSurah).toBe(18)
+  expect(opened).toEqual([])
+  // Play opens the selection.
+  await ui.press('quran-toggle'); await clock.settle()
+  expect(opened).toEqual([['cmd', '/d', '/c', 'start', '', 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r1/018.mp3']])
+  expect(played).toEqual([])
+  expect(clock.state.quranPlaying ?? null).toBe(null)
+  expect(clock.state.quranError ?? null).toBe(null)
+  expect(clock.toasts).toEqual([])
+  expect((await ui.read())?.isPlaying).toBe(false)
+  // Play again does the same; Next opens the neighbouring surah.
+  await ui.press('quran-toggle'); await clock.settle()
+  expect(opened).toHaveLength(2)
+  await cmd($, 'next'); await clock.settle()
+  expect(clock.state.quranSurah).toBe(19)
+  expect(opened).toHaveLength(3)
+  expect(opened[2]![5]).toBe('https://cdn.mp3quran.net/audio/muhammad-minshawi/r1/019.mp3')
+  expect(played).toEqual([])
+})
+
+test('a browser that does not open shows the toast', async ($, on) => {
+  const clock = setup(on, {}, { OS: 'Windows_NT', TEMP: 'C:\\fixture' })
+  on('session.version', async () => ({ value: { version: '2.1.306', base: '2.1.306' } }))
+  on('process.run', async (_$, e) => ({ value: { exitCode: isBrowserOpen([...e.argv]) ? 1 : 0, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
+  silentAudio(on)
+  await (await panel($)).press('quran-toggle'); await clock.settle()
+  expect(clock.toasts).toEqual(['Could not open the browser.'])
 })
 
 test('a quarter that ends at once names the quarter and stays on it', async ($, on) => {
@@ -1255,41 +1263,20 @@ test('a quarter that ends at once names the quarter and stays on it', async ($, 
   expect((await (await panel($)).read())?.audioNote).toBe('')
 })
 
-test('on Linux a clip that really plays hides the note for this Claude Code version and advances', async ($, on) => {
+test('on Linux picks only select, then Play and Next open with xdg-open', async ($, on) => {
   const clock = setup(on)
-  osProbe(on, 'Linux')
+  const opened = osProbe(on, 'Linux')
   const played = audio(on, clock)
   const ui = await panel($)
-  expect((await ui.read())?.audioNote).toBe('الصوت غير مدعوم على Linux بعد')
-  await cmd($, 'play 18')
-  await clock.advance(10000)
-  expect(clock.store['quran.audioWorks']).toBe('2.1.306')
-  expect(clock.state.quranPlaying?.surah).toBe(19)
-  expect(played).toHaveLength(2)
-  expect(clock.state.quranError).toBe(null)
-  expect((await ui.read())?.audioNote).toBe('')
-  expect(await ui.svg()).not.toContain('استمع في المتصفح')
-  await cmd($, 'stop')
-})
-
-test('a newer Claude Code version shows the note again', async ($, on) => {
-  setup(on, { 'quran.audioWorks': '2.1.305' })
-  osProbe(on, 'Linux', '2.1.306')
-  expect((await (await panel($)).read())?.audioNote).toBe('الصوت غير مدعوم على Linux بعد')
-})
-
-test('«استمع في المتصفح» opens the surah MP3 with start on Windows and changes nothing saved', async ($, on) => {
-  const clock = setup(on, {}, { OS: 'Windows_NT', TEMP: 'C:\\fixture' })
-  const opened = osProbe(on, '')
-  silentAudio(on)
+  expect((await ui.read())?.audioNote).toBe('الصوت غير مدعوم على Linux بعد، لذلك يفتح التشغيل في المتصفح')
   await cmd($, 'play 18'); await clock.settle()
-  const store = JSON.stringify(clock.store), surah = clock.state.quranSurah, error = clock.state.quranError
-  await pressBrowser($)
-  expect(opened).toEqual([['cmd', '/d', '/c', 'start', '', 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r1/018.mp3']])
-  expect(JSON.stringify(clock.store)).toBe(store)
-  expect(clock.state.quranSurah).toBe(surah)
-  expect(clock.state.quranError).toBe(error)
-  expect(clock.toasts).toEqual([])
+  expect(opened).toEqual([])
+  await ui.press('quran-toggle'); await clock.settle()
+  expect(opened).toEqual([['xdg-open', 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r1/018.mp3']])
+  await cmd($, 'next'); await clock.settle()
+  expect(opened[1]).toEqual(['xdg-open', 'https://cdn.mp3quran.net/audio/muhammad-minshawi/r1/019.mp3'])
+  expect(played).toEqual([])
+  expect(clock.state.quranPlaying ?? null).toBe(null)
 })
 
 test('on Linux a split surah opens its selected quarter as a media fragment with xdg-open', async ($, on) => {
@@ -1300,7 +1287,7 @@ test('on Linux a split surah opens its selected quarter as a media fragment with
   silentAudio(on)
   await (await panel($)).post({ act: 'pick', list: 'surah', value: '2' }); await clock.settle()
   await (await panel($)).post({ act: 'pick', list: 'segment', value: '1' }); await clock.settle()
-  await pressBrowser($)
+  await (await panel($)).press('quran-toggle'); await clock.settle()
   const segment = plan.segments[1]!
   expect(ranges.cleanup.filter(isBrowserOpen)).toEqual([['xdg-open', `${plan.audioUrl}#t=${Math.floor(segment.startMs / 1000)},${Math.ceil(segment.endMs / 1000)}`]])
 })

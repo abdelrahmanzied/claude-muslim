@@ -36,7 +36,7 @@ export type PanelQuran = {
   repeat: 'off' | 'surah' | 'segment'
   // The reciter avatar as an SVG document at the Muslim card's size (96 wide), animated while playing.
   avatar: string
-  // One dim line naming an OS Claude Code plays no audio on (`الصوت غير مدعوم على Windows بعد`), with «استمع في المتصفح ↗»; empty elsewhere.
+  // A dim hint naming an OS Claude Code plays no audio on, saying Play opens the browser there; empty elsewhere.
   audioNote: string
 }
 
@@ -57,7 +57,7 @@ export type PanelAthkar = {
 }
 
 // The Quran's list picks carry a validated string: a reciter key, a surah number, a segment index.
-export type PanelAction = 'muslim-autoupdate' | 'salah-city' | 'quran-toggle' | 'quran-retry' | 'quran-prev' | 'quran-next' | 'quran-reciter' | 'quran-surah' | 'quran-segment' | 'quran-repeat-surah' | 'quran-repeat-segment' | 'quran-browser' | 'quran-surah-browser' | 'athkar-open' | 'athkar-finish' | 'athkar-set' | 'athkar-reset' | 'athkar-undo'
+export type PanelAction = 'muslim-autoupdate' | 'salah-city' | 'quran-toggle' | 'quran-retry' | 'quran-prev' | 'quran-next' | 'quran-reciter' | 'quran-surah' | 'quran-segment' | 'quran-repeat-surah' | 'quran-repeat-segment' | 'quran-surah-browser' | 'athkar-open' | 'athkar-finish' | 'athkar-set' | 'athkar-reset' | 'athkar-undo'
 
 // What a card that offers one surah (the Friday Al-Kahf card, the pane's shortcut) needs of the Quran player:
 // the short Arabic name of the reciter last used, and whether Claude Code plays no audio on this OS (Windows,
